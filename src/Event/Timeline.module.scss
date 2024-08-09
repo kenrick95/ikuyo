@@ -1,0 +1,31 @@
+@function pad2($num) {
+  @if $num >= 10 {
+    @return $num;
+  }
+  @return '0' + $num;
+}
+
+@for $i from 0 to 24 {
+  $hh: pad2($i);
+  @for $j from 0 to 60 {
+    $mm: pad2($j); 
+    // Generate .t0000, .t0001, ..., .t2358, .t2359
+    .t#{$hh}#{$mm} {
+      grid-row-start: t#{$hh}#{$mm};
+    }
+  }
+}
+
+.timeline {
+  --row-minute-height: 5px;
+  display: grid;
+  grid-template-columns: [time] 65px repeat(5, 1fr);
+  grid-template-rows: [header] 50px [meow] repeat(
+      24,
+      calc(5 * var(--row-minute-height))
+    );
+  gap: 0;
+  justify-items: stretch;
+  align-items: stretch;
+  overflow-x: auto;
+}

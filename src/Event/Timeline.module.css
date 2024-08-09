@@ -1,0 +1,51 @@
+
+.timelineHeader {
+  grid-row: header / span 1;
+  grid-column: time / span 1;
+  position: sticky;
+  top: 0;
+  left: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-wrap: break-word;
+  background: #eaecf0;
+  padding: 0.3em;
+  font-weight: bold;
+}
+
+.timelineColumn {
+  grid-row: header / span 1;
+  grid-column-start: auto;
+  grid-column-end: span 1;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eaecf0;
+  padding: 0.3em 0.6rem;
+  font-weight: bold;
+}
+.timelineTime {
+  grid-column: time / span 1;
+  grid-row-end: span 1;
+  position: sticky;
+  left: 0;
+
+  display: flex;
+  align-items: start;
+  justify-content: center;
+  overflow-wrap: break-word;
+  background: #eaecf0;
+  padding: 0.6em 0.3em;
+  font-weight: bold;
+}
+.timelineItem {
+  grid-column-end: span 1;
+  grid-row-end: span 1;
+}
+
+.t0000 {
+  grid-row-start: t0000;
+}
