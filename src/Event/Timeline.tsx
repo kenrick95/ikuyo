@@ -1,6 +1,7 @@
 import clsx from 'clsx';
 import { Activity } from './Activity';
 import s from './Timeline.module.scss';
+import { DbActivities } from '../data/types';
 
 const timeClassMapping = [
   s.t0000,
@@ -38,10 +39,25 @@ const times = new Array(24).fill(0).map((_, i) => {
   );
 });
 
-export function Timeline() {
+export function Timeline({ activities }: { activities: DbActivities }) {
   return (
     <div className={s.timeline}>
       {times}
+
+      {Object.entries(activities).map(([activityId, activity]) => {
+        const timeStart = parseTime(activity.timestampStart);
+        const timeEnd = parseTime(activity.timestampEnd);
+        return (
+          <Activity
+            key={activityId}
+            className={s.timelineItem}
+            timeStart={timeStart}
+            timeEnd={timeEnd}
+            title={activity.title}
+          />
+        );
+      })}
+      {/* 
       <Activity
         className={s.timelineItem}
         // Hmmm, it's very error prone to type this 0000, 0800
@@ -79,7 +95,6 @@ export function Timeline() {
         className={s.timelineItem}
         title="Zoo"
       />
-      {/* Interesting... if overlap, CSS grid will show it to the next column */}
       <Activity
         className={s.timelineItem}
         timeStart="1723"
@@ -103,7 +118,7 @@ export function Timeline() {
         timeStart="2300"
         timeEnd="2359"
         title="Hotel"
-      />
+      /> */}
     </div>
   );
 }
@@ -116,4 +131,20 @@ function TimelineTime({
   timeStart: string;
 }) {
   return <div className={clsx(s.timelineTime, className)}>{time}</div>;
+}
+
+function parseTime(timestamp: number): string {
+  const date = new Date(timestamp);
+  return pad2Digits(date.getHours()) + pad2Digits(date.getMinutes());
+}
+function pad2Digits(num: number): string {
+  if (num < 0) {
+    return '00';
+  } else if (num < 10) {
+    return `0${num}`;
+  } else if (num < 100) {
+    return `${num}`;
+  } else {
+    return `99`;
+  }
 }
