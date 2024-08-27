@@ -9,7 +9,7 @@ export default tseslint.config({
   files: ['**/*.{ts,tsx}'],
   ignores: ['dist'],
   languageOptions: {
-    ecmaVersion: 2020,
+    ecmaVersion: 2022,
     globals: globals.browser,
   },
   plugins: {
