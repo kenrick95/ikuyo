@@ -1,11 +1,9 @@
 export type DbActivity = {
+  id: string;
   title: string;
   timestampStart: number;
   timestampEnd: number;
-};
-export type DbActivities = {
-  [activityId: string]: DbActivity;
-};
+}; 
 export type DbSchema = {
-  activities: DbActivities;
+  activities: DbActivity;
 };

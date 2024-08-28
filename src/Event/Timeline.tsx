@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import { Activity } from './Activity';
 import s from './Timeline.module.scss';
-import { DbActivities } from '../data/types';
+import { DbActivity } from '../data/types';
 
 const timeClassMapping = [
   s.t0000,
@@ -39,17 +39,17 @@ const times = new Array(24).fill(0).map((_, i) => {
   );
 });
 
-export function Timeline({ activities }: { activities: DbActivities }) {
+export function Timeline({ activities }: { activities: DbActivity[] }) {
   return (
     <div className={s.timeline}>
       {times}
 
-      {Object.entries(activities).map(([activityId, activity]) => {
+      {Object.values(activities).map((activity) => {
         const timeStart = parseTime(activity.timestampStart);
         const timeEnd = parseTime(activity.timestampEnd);
         return (
           <Activity
-            key={activityId}
+            key={activity.id}
             className={s.timelineItem}
             timeStart={timeStart}
             timeEnd={timeEnd}

@@ -1,6 +1,7 @@
 import clsx from 'clsx';
 import style from './Activity.module.css';
 import tClasses from './Timeline.module.scss';
+import { addActivity } from '../data/db';
 
 const timeStartMapping: Record<string, string> = {};
 const timeEndMapping: Record<string, string> = {};
@@ -42,5 +43,43 @@ export function Activity({
     >
       Activity: {title}
     </div>
+  );
+}
+
+export function NewActivityForm() {
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        const title = formData.get('title')?.toString() ?? '';
+        const startTime = formData.get('startTime')?.toString() ?? '';
+        const endTime = formData.get('endTime')?.toString() ?? '';
+        console.log('NewActivityForm', {
+          title,
+          startTime: new Date(startTime),
+          endTime: new Date(endTime),
+        });
+        addActivity({
+          title,
+          timestampStart: new Date(startTime).getTime(),
+          timestampEnd: new Date(endTime).getTime(),
+        });
+      }}
+    >
+      <label>
+        Title
+        <input autoFocus name="title" type="text" />
+      </label>
+      <label>
+        Start time
+        <input name="startTime" type="datetime-local" />
+      </label>
+      <label>
+        End time
+        <input name="endTime" type="datetime-local" />
+      </label>
+      <button type="submit">Add activity</button>
+    </form>
   );
 }
