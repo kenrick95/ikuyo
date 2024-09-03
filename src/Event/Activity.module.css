@@ -1,4 +1,24 @@
 .activity {
-    border: 1px solid green;
-    border-radius: 2px;
+  border: 1px solid green;
+  border-radius: 2px;
+}
+.newForm {
+  display: grid;
+  grid-template-columns: 10em auto auto;
+  gap: 0.5em;
+}
+.newFormTitle {
+  grid-column: 1 / span 3;
+  text-align: center;
+  font-weight: bold;
+}
+.newFormLabel {
+  grid-column: 1 / span 1;
+  text-align: end;
+}
+.newFormInputText {
+  grid-column: 2 / span 2;
+}
+.newFormButtonSubmit {
+  grid-column: -2 / span 1;
 }

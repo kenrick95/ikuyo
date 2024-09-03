@@ -1,7 +1,15 @@
 import './App.css';
+import CssBaseline from '@mui/material/CssBaseline';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { db } from './data/db';
-import { NewActivityForm } from './Event/Activity';
+import { TriggerNewActivity } from './Event/Activity';
 import { Timeline } from './Event/Timeline';
+
+const theme = createTheme({
+  colorSchemes: {
+    dark: true,
+  },
+});
 
 function App() {
   const { isLoading, error, data } = db.useQuery({
@@ -16,10 +24,11 @@ function App() {
   }
 
   return (
-    <>
-      <NewActivityForm />
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <TriggerNewActivity />
       <Timeline activities={data.activities} />
-    </>
+    </ThemeProvider>
   );
 }
 

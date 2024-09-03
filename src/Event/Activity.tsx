@@ -2,6 +2,9 @@ import clsx from 'clsx';
 import style from './Activity.module.css';
 import tClasses from './Timeline.module.scss';
 import { addActivity } from '../data/db';
+import { useId } from 'react';
+
+import Button from '@mui/material/Button';
 
 const timeStartMapping: Record<string, string> = {};
 const timeEndMapping: Record<string, string> = {};
@@ -46,40 +49,84 @@ export function Activity({
   );
 }
 
+export function TriggerNewActivity() {
+  return <Button className={style.triggerNewForm}>Add new activity</Button>;
+}
+
 export function NewActivityForm() {
+  const idTitle = useId();
+  const idTimeStart = useId();
+  const idTimeEnd = useId();
   return (
     <form
+      className={style.newForm}
       onSubmit={(e) => {
         e.preventDefault();
-        const formData = new FormData(e.currentTarget);
+        const elForm = e.currentTarget;
+        if (!elForm.reportValidity()) {
+          return;
+        }
+        const formData = new FormData(elForm);
         const title = formData.get('title')?.toString() ?? '';
-        const startTime = formData.get('startTime')?.toString() ?? '';
-        const endTime = formData.get('endTime')?.toString() ?? '';
+        const timeStartString = formData.get('startTime')?.toString() ?? '';
+        const timeEndString = formData.get('endTime')?.toString() ?? '';
+        const timeStartDate = new Date(timeStartString);
+        const timeEndDate = new Date(timeStartString);
         console.log('NewActivityForm', {
           title,
-          startTime: new Date(startTime),
-          endTime: new Date(endTime),
+          startTime: timeStartDate,
+          endTime: timeEndDate,
         });
+        if (!title || !timeStartDate || !timeEndDate) {
+          return;
+        }
+        if (timeStartDate > timeEndDate) {
+          return;
+        }
         addActivity({
           title,
-          timestampStart: new Date(startTime).getTime(),
-          timestampEnd: new Date(endTime).getTime(),
+          timestampStart: new Date(timeStartString).getTime(),
+          timestampEnd: new Date(timeEndString).getTime(),
         });
+        // TODO: Feedback new activity created
+        elForm.reset();
       }}
     >
-      <label>
+      <div className={style.newFormTitle}>Create new activity</div>
+      <label className={style.newFormLabel} htmlFor={idTitle}>
         Title
-        <input autoFocus name="title" type="text" />
       </label>
-      <label>
+      <input
+        className={style.newFormInputText}
+        autoFocus
+        name="title"
+        type="text"
+        id={idTitle}
+        required
+      />
+      <label className={style.newFormLabel} htmlFor={idTimeStart}>
         Start time
-        <input name="startTime" type="datetime-local" />
       </label>
-      <label>
+      <input
+        className={style.newFormInputText}
+        name="startTime"
+        type="datetime-local"
+        id={idTimeStart}
+        required
+      />
+      <label className={style.newFormLabel} htmlFor={idTimeEnd}>
         End time
-        <input name="endTime" type="datetime-local" />
       </label>
-      <button type="submit">Add activity</button>
+      <input
+        className={style.newFormInputText}
+        name="endTime"
+        type="datetime-local"
+        id={idTimeEnd}
+        required
+      />
+      <button className={style.newFormButtonSubmit} type="submit">
+        Add new activity
+      </button>
     </form>
   );
 }
