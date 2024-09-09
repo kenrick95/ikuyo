@@ -57,6 +57,7 @@
     justify-items: stretch;
     align-items: stretch;
     overflow-x: auto;
+    background-color: var(--color-panel-solid);
   }
   .timelineHeader {
     grid-row: header / span 1;
@@ -87,7 +88,7 @@
     font-weight: bold;
   }
   .timelineTime {
-    --time-bg: #333;
+    --time-bg: var(--color-panel-translucent);
 
     grid-column: time / span 1;
     grid-row-end: span 60;

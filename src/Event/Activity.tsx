@@ -6,7 +6,7 @@ import { useCallback, useId, useState } from 'react';
 
 import { Box, Dialog, Flex, Text, TextField } from '@radix-ui/themes';
 import { Button } from '@radix-ui/themes';
-import { useToast } from '../Toast/hooks';
+import { useBoundStore } from '../data/store';
 
 const timeStartMapping: Record<string, string> = {};
 const timeEndMapping: Record<string, string> = {};
@@ -56,14 +56,15 @@ export function TriggerNewActivity() {
   const idTimeStart = useId();
   const idTimeEnd = useId();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const { publish } = useToast();
+  const publishToast = useBoundStore((state) => state.publishToast);
   const closeDialog = useCallback(() => {
-    publish({
-      root: {},
-      title: { children: 'Close' },
+    publishToast({
+      root: { duration: Infinity },
+      title: { children: 'Activity creation cancelled' },
+      close: {}
     });
     setDialogOpen(false);
-  }, []);
+  }, [publishToast]);
   return (
     <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
       <Dialog.Trigger>
@@ -106,6 +107,10 @@ export function TriggerNewActivity() {
             // TODO: Feedback new activity created
             // publish toast ("New activity created");
             elForm.reset();
+            publishToast({
+              root: { duration: Infinity },
+              title: { children: 'New activity created' },
+            });
             setDialogOpen(false);
           }}
         >

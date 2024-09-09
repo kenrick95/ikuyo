@@ -1,30 +1,49 @@
-import React from 'react';
 import * as ToastPrimitive from '@radix-ui/react-toast';
-import { ToastConfigContext } from './hooks';
+import { useBoundStore } from '../data/store';
+import s from './Toast.module.css';
 
 export const ImperativeToastRoot = () => {
-  const toastData = React.useContext(ToastConfigContext);
+  const toasts = useBoundStore((state) => state.toasts);
 
-  console.log('toastData', toastData);
+  console.log('ImperativeToastRoot| toasts', toasts);
   return (
     <ToastPrimitive.Provider>
-      {toastData.map((toastConfig, index) => (
-        <ToastPrimitive.Root key={index} {...toastConfig.root}>
+      {toasts.map((toastConfig, index) => (
+        <ToastPrimitive.Root
+          key={index}
+          className={s.ToastRoot}
+          {...toastConfig.root}
+        >
           {toastConfig.title ? (
-            <ToastPrimitive.Title {...toastConfig.title} />
+            <ToastPrimitive.Title
+              className={s.ToastTitle}
+              {...toastConfig.title}
+            />
           ) : null}
           {toastConfig.description ? (
-            <ToastPrimitive.Description {...toastConfig.description} />
+            <ToastPrimitive.Description
+              className={s.ToastDescription}
+              {...toastConfig.description}
+            />
           ) : null}
           {toastConfig.action ? (
-            <ToastPrimitive.Action {...toastConfig.action} />
+            <ToastPrimitive.Action
+              className={s.ToastAction}
+              {...toastConfig.action}
+            />
           ) : null}
           {toastConfig.close ? (
-            <ToastPrimitive.Close {...toastConfig.close} />
+            <ToastPrimitive.Close
+              className={s.ToastClose}
+              aria-label="Close"
+              {...toastConfig.close}
+            >
+              ×
+            </ToastPrimitive.Close>
           ) : null}
         </ToastPrimitive.Root>
       ))}
-      <ToastPrimitive.Viewport />
+      <ToastPrimitive.Viewport className={s.ToastViewport} />
     </ToastPrimitive.Provider>
   );
 };

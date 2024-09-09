@@ -5,7 +5,7 @@ import {
   ToastTitleProps,
   ToastProps,
 } from '@radix-ui/react-toast';
-import { createContext } from 'react';
+import type { StateCreator } from 'zustand';
 
 export type ToastConfig = {
   root: Omit<ToastProps, 'children'>;
@@ -14,15 +14,32 @@ export type ToastConfig = {
   action?: ToastActionProps;
   close?: ToastCloseProps;
 };
-export const ToastConfigContext = createContext<ToastConfig[]>([]);
-
-export function useToast() {
-  function publishToast(toastConfig: ToastConfig) {
-    // TODO: ... setState to ToastConfigContext.Provider?
-    // how to pass data to ImperativeToastRoot so it can be consumed there?
-    console.log('toastConfig', toastConfig);
-  }
-  return {
-    publish: publishToast,
-  };
+export interface ToastSlice {
+  toasts: Array<ToastConfig>;
+  publishToast: (newToast: ToastConfig) => void;
+  discardToast: () => void;
 }
+
+export const createToastSlice: StateCreator<ToastSlice, [], [], ToastSlice> = (
+  set
+) => {
+  return {
+    toasts: [],
+    publishToast: (newToast: ToastConfig) => {
+      return set((state) => {
+        return {
+          toasts: [...state.toasts, newToast],
+        };
+      });
+    },
+    discardToast: () => {
+      return set((state) => {
+        const copiedToasts = [...state.toasts];
+        copiedToasts.shift();
+        return {
+          toasts: copiedToasts,
+        };
+      });
+    },
+  };
+};

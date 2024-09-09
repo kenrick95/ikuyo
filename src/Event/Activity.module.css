@@ -1,6 +1,6 @@
 .activity {
-  border: 1px solid green;
-  border-radius: 2px;
+  border: 1px solid var(--accent-9);
+  border-radius: var(--radius-3);
 }
 .newForm {
   display: grid;
