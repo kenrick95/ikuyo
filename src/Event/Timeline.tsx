@@ -2,6 +2,7 @@ import clsx from 'clsx';
 import { Activity } from './Activity';
 import s from './Timeline.module.scss';
 import { DbActivity } from '../data/types';
+import { Section } from '@radix-ui/themes';
 
 const timeClassMapping = [
   s.t0000,
@@ -41,85 +42,25 @@ const times = new Array(24).fill(0).map((_, i) => {
 
 export function Timeline({ activities }: { activities: DbActivity[] }) {
   return (
-    <div className={s.timeline}>
-      {times}
+    <Section>
+      <div className={s.timeline}>
+        {times}
 
-      {Object.values(activities).map((activity) => {
-        const timeStart = parseTime(activity.timestampStart);
-        const timeEnd = parseTime(activity.timestampEnd);
-        return (
-          <Activity
-            key={activity.id}
-            className={s.timelineItem}
-            timeStart={timeStart}
-            timeEnd={timeEnd}
-            title={activity.title}
-          />
-        );
-      })}
-      {/* 
-      <Activity
-        className={s.timelineItem}
-        // Hmmm, it's very error prone to type this 0000, 0800
-        timeStart="0000"
-        timeEnd="0800"
-        title="Hotel"
-      />
-      <Activity
-        className={s.timelineItem}
-        timeStart="0800"
-        timeEnd="0900"
-        title="Breakfast"
-      />
-      <Activity
-        className={s.timelineItem}
-        timeStart="0900"
-        timeEnd="0930"
-        title="Walk"
-      />
-      <Activity
-        className={s.timelineItem}
-        timeStart="1145"
-        timeEnd="1235"
-        title="Lunch"
-      />
-      <Activity
-        className={s.timelineItem}
-        timeStart="1245"
-        timeEnd="1400"
-        title="Aquarium"
-      />
-      <Activity
-        timeStart="1434"
-        timeEnd="1800"
-        className={s.timelineItem}
-        title="Zoo"
-      />
-      <Activity
-        className={s.timelineItem}
-        timeStart="1723"
-        timeEnd="1859"
-        title="Dinner"
-      />
-      <Activity
-        className={s.timelineItem}
-        timeStart="1900"
-        timeEnd="2123"
-        title="Museum"
-      />
-      <Activity
-        className={s.timelineItem}
-        timeStart="2200"
-        timeEnd="2300"
-        title="Nightclub"
-      />
-      <Activity
-        className={s.timelineItem}
-        timeStart="2300"
-        timeEnd="2359"
-        title="Hotel"
-      /> */}
-    </div>
+        {Object.values(activities).map((activity) => {
+          const timeStart = parseTime(activity.timestampStart);
+          const timeEnd = parseTime(activity.timestampEnd);
+          return (
+            <Activity
+              key={activity.id}
+              className={s.timelineItem}
+              timeStart={timeStart}
+              timeEnd={timeEnd}
+              title={activity.title}
+            />
+          );
+        })}
+      </div>
+    </Section>
   );
 }
 

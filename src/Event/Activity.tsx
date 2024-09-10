@@ -7,6 +7,7 @@ import { useCallback, useId, useState } from 'react';
 import { Box, Dialog, Flex, Text, TextField } from '@radix-ui/themes';
 import { Button } from '@radix-ui/themes';
 import { useBoundStore } from '../data/store';
+import { DbTrip } from '../data/types';
 
 const timeStartMapping: Record<string, string> = {};
 const timeEndMapping: Record<string, string> = {};
@@ -51,7 +52,7 @@ export function Activity({
   );
 }
 
-export function TriggerNewActivity() {
+export function TriggerNewActivity({ trip }: { trip: DbTrip }) {
   const idTitle = useId();
   const idTimeStart = useId();
   const idTimeEnd = useId();
@@ -59,12 +60,17 @@ export function TriggerNewActivity() {
   const publishToast = useBoundStore((state) => state.publishToast);
   const closeDialog = useCallback(() => {
     publishToast({
-      root: { duration: Infinity },
+      root: {},
       title: { children: 'Activity creation cancelled' },
-      close: {}
+      close: {},
     });
     setDialogOpen(false);
   }, [publishToast]);
+
+  const tripStartStr = formatToDatetimeLocalInput(
+    new Date(trip.timestampStart)
+  );
+  const tripEndStr = formatToDatetimeLocalInput(new Date(trip.timestampEnd));
   return (
     <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
       <Dialog.Trigger>
@@ -99,17 +105,21 @@ export function TriggerNewActivity() {
             if (timeStartDate > timeEndDate) {
               return;
             }
-            addActivity({
-              title,
-              timestampStart: new Date(timeStartString).getTime(),
-              timestampEnd: new Date(timeEndString).getTime(),
-            });
-            // TODO: Feedback new activity created
-            // publish toast ("New activity created");
+            addActivity(
+              {
+                title,
+                timestampStart: new Date(timeStartString).getTime(),
+                timestampEnd: new Date(timeEndString).getTime(),
+              },
+              {
+                trip,
+              }
+            );
             elForm.reset();
             publishToast({
-              root: { duration: Infinity },
+              root: {},
               title: { children: 'New activity created' },
+              close: {},
             });
             setDialogOpen(false);
           }}
@@ -133,6 +143,9 @@ export function TriggerNewActivity() {
               id={idTimeStart}
               name="startTime"
               type="datetime-local"
+              min={tripStartStr}
+              max={tripEndStr}
+              defaultValue={tripStartStr}
               required
             />
             <Text as="label" htmlFor={idTimeEnd}>
@@ -142,6 +155,9 @@ export function TriggerNewActivity() {
               id={idTimeEnd}
               name="endTime"
               type="datetime-local"
+              min={tripStartStr}
+              max={tripEndStr}
+              defaultValue={tripEndStr}
               required
             />
           </Flex>
@@ -163,4 +179,15 @@ export function TriggerNewActivity() {
       </Dialog.Content>
     </Dialog.Root>
   );
+}
+
+/**
+ * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/datetime-local
+ * @param date Date object
+ * @returns `YYYY-MM-DDTHH:mm`
+ */
+function formatToDatetimeLocalInput(date: Date) {
+  return `${pad2(date.getFullYear())}-${pad2(date.getMonth())}-${pad2(
+    date.getDate()
+  )}T${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
 }

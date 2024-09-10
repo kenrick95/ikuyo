@@ -1,0 +1,4 @@
+.container {
+  border-bottom: 1px solid var(--accent-6);
+  height: var(--space-8);
+}
