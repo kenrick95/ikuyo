@@ -1,4 +1,12 @@
 .container {
   border-bottom: 1px solid var(--accent-6);
   height: var(--space-8);
+  padding-left: var(--space-3);
+  padding-right: var(--space-3);
+}
+.flex {
+  height: var(--space-8);
+}
+.flexAlignRight {
+  margin-left: auto;
 }
