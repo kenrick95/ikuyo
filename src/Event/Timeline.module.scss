@@ -56,7 +56,7 @@
     gap: 0;
     justify-items: stretch;
     align-items: stretch;
-    overflow-x: auto;
+    // overflow-x: auto;
     background-color: var(--color-panel-solid);
   }
   .timelineHeader {
@@ -70,22 +70,30 @@
     align-items: center;
     justify-content: center;
     overflow-wrap: break-word;
-    background: #eaecf0;
+    background: var(--color-panel-solid);
+    font-size: 0.8em;
     padding: 0.3em;
     font-weight: bold;
+    border: 1px solid var(--gray-6);
+    z-index: 1;
   }
 
   .timelineColumn {
     grid-row: header / span 1;
     grid-column-start: auto;
     grid-column-end: span 1;
+    position: sticky;
+    top: 0;
+    left: 0;
 
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #eaecf0;
+    background: var(--color-panel-solid);
     padding: 0.3em 0.6rem;
     font-weight: bold;
+    border: 1px solid var(--gray-6);
+    z-index: 1;
   }
   .timelineTime {
     --time-bg: var(--color-panel-translucent);
@@ -102,7 +110,7 @@
     background: var(--time-bg);
     padding: 0.6em 0.3em;
     font-weight: bold;
-    border-top: 1px solid rgb(109, 109, 109);
+    border: 1px solid var(--gray-6);
   }
   .timelineItem {
     grid-column-end: span 1;

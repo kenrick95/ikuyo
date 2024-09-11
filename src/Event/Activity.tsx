@@ -8,16 +8,12 @@ import { Box, Dialog, Flex, Text, TextField } from '@radix-ui/themes';
 import { Button } from '@radix-ui/themes';
 import { useBoundStore } from '../data/store';
 import { DbTrip } from '../data/types';
+import { formatToDatetimeLocalInput, pad2 } from './time';
+import { DateTime } from 'luxon';
 
 const timeStartMapping: Record<string, string> = {};
 const timeEndMapping: Record<string, string> = {};
 
-function pad2(num: number): string {
-  if (num >= 10) {
-    return `${num}`;
-  }
-  return `0${num}`;
-}
 for (let i = 0; i < 24; i++) {
   const hh = pad2(i);
   for (let j = 0; j < 60; j++) {
@@ -68,9 +64,11 @@ export function TriggerNewActivity({ trip }: { trip: DbTrip }) {
   }, [publishToast]);
 
   const tripStartStr = formatToDatetimeLocalInput(
-    new Date(trip.timestampStart)
+    DateTime.fromMillis(trip.timestampStart)
   );
-  const tripEndStr = formatToDatetimeLocalInput(new Date(trip.timestampEnd));
+  const tripEndStr = formatToDatetimeLocalInput(
+    DateTime.fromMillis(trip.timestampEnd)
+  );
   return (
     <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
       <Dialog.Trigger>
@@ -179,15 +177,4 @@ export function TriggerNewActivity({ trip }: { trip: DbTrip }) {
       </Dialog.Content>
     </Dialog.Root>
   );
-}
-
-/**
- * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/datetime-local
- * @param date Date object
- * @returns `YYYY-MM-DDTHH:mm`
- */
-function formatToDatetimeLocalInput(date: Date) {
-  return `${pad2(date.getFullYear())}-${pad2(date.getMonth())}-${pad2(
-    date.getDate()
-  )}T${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
 }

@@ -1,8 +1,12 @@
 import clsx from 'clsx';
 import { Activity } from './Activity';
 import s from './Timeline.module.scss';
-import { DbActivity } from '../data/types';
+import { DbActivity, DbTrip } from '../data/types';
 import { Section } from '@radix-ui/themes';
+import { formatTime } from './time';
+
+import { DateTime } from 'luxon';
+import { useMemo } from 'react';
 
 const timeClassMapping = [
   s.t0000,
@@ -40,15 +44,34 @@ const times = new Array(24).fill(0).map((_, i) => {
   );
 });
 
-export function Timeline({ activities }: { activities: DbActivity[] }) {
+export function Timeline({
+  trip,
+  activities,
+}: {
+  trip: DbTrip;
+  activities: DbActivity[];
+}) {
+  const startDateTimes = useMemo(() => getStartDateTimesFromTrip(trip), [trip]);
   return (
     <Section>
       <div className={s.timeline}>
+        <TimelineHeader />
+
+        {startDateTimes.map((dt, i) => {
+          return (
+            <TimelineDayHeader
+              className={String(i)}
+              dateString={dt.toFormat(`ccc, dd LLL yyyy`)}
+              key={dt.toISODate()}
+            />
+          );
+        })}
+
         {times}
 
         {Object.values(activities).map((activity) => {
-          const timeStart = parseTime(activity.timestampStart);
-          const timeEnd = parseTime(activity.timestampEnd);
+          const timeStart = formatTime(activity.timestampStart);
+          const timeEnd = formatTime(activity.timestampEnd);
           return (
             <Activity
               key={activity.id}
@@ -64,6 +87,19 @@ export function Timeline({ activities }: { activities: DbActivity[] }) {
   );
 }
 
+function TimelineDayHeader({
+  className,
+  dateString,
+}: {
+  className: string;
+  dateString: string;
+}) {
+  return <div className={clsx(s.timelineColumn, className)}>{dateString}</div>;
+}
+
+function TimelineHeader() {
+  return <div className={clsx(s.timelineHeader)}>Time\Day</div>;
+}
 function TimelineTime({
   className,
   timeStart: time,
@@ -74,18 +110,15 @@ function TimelineTime({
   return <div className={clsx(s.timelineTime, className)}>{time}</div>;
 }
 
-function parseTime(timestamp: number): string {
-  const date = new Date(timestamp);
-  return pad2Digits(date.getHours()) + pad2Digits(date.getMinutes());
-}
-function pad2Digits(num: number): string {
-  if (num < 0) {
-    return '00';
-  } else if (num < 10) {
-    return `0${num}`;
-  } else if (num < 100) {
-    return `${num}`;
-  } else {
-    return `99`;
+/** Return `DateTime` objects for each of day in the trip */
+function getStartDateTimesFromTrip(trip: DbTrip): DateTime[] {
+  const res: DateTime[] = [];
+  const tripStartDateTime = DateTime.fromMillis(trip.timestampStart);
+  const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd);
+  const tripDuration = tripEndDateTime.diff(tripStartDateTime, 'days');
+  for (let d = 0; d < tripDuration.days; d++) {
+    res.push(tripStartDateTime.plus({ day: d }));
   }
+
+  return res;
 }

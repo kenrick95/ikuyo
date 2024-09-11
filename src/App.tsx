@@ -42,7 +42,7 @@ function App() {
         <Navbar trip={trip} />
         <ImperativeToastRoot />
         <Container>
-          <Timeline activities={activities} />
+          <Timeline trip={trip} activities={activities} />
         </Container>
       </Theme>
     </ThemeProvider>
