@@ -3,7 +3,6 @@ import { Activity } from './Activity';
 import s from './Timeline.module.scss';
 import { DbActivity, DbTrip } from '../data/types';
 import { Section } from '@radix-ui/themes';
-import { formatTime } from './time';
 
 import { DateTime } from 'luxon';
 import { useMemo } from 'react';
@@ -70,15 +69,11 @@ export function Timeline({
         {times}
 
         {Object.values(activities).map((activity) => {
-          const timeStart = formatTime(activity.timestampStart);
-          const timeEnd = formatTime(activity.timestampEnd);
           return (
             <Activity
               key={activity.id}
               className={s.timelineItem}
-              timeStart={timeStart}
-              timeEnd={timeEnd}
-              title={activity.title}
+              activity={activity}
             />
           );
         })}
