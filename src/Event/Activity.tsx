@@ -1,10 +1,11 @@
 import clsx from 'clsx';
 import style from './Activity.module.css';
 import tClasses from './Timeline.module.scss';
-import { addActivity, deleteActivity, updateActivity } from '../data/db';
+import { addActivity, deleteActivity as dbDeleteActivity, updateActivity } from '../data/db';
 import { useCallback, useId, useState } from 'react';
 
 import {
+  AlertDialog,
   Box,
   ContextMenu,
   Dialog,
@@ -39,6 +40,8 @@ export function Activity({
 }) {
   const timeStart = formatTime(activity.timestampStart);
   const timeEnd = formatTime(activity.timestampEnd);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   return (
     <>
       <ContextMenu.Root>
@@ -57,9 +60,7 @@ export function Activity({
         <ContextMenu.Content>
           <ContextMenu.Item
             onClick={() => {
-              // TODO: push to zustand store
-              // then render edit form once...
-              // not correct to have 1 edit form per component
+              setEditDialogOpen(true);
             }}
           >
             Edit
@@ -67,24 +68,94 @@ export function Activity({
           <ContextMenu.Separator />
           <ContextMenu.Item
             onClick={() => {
-              // Confirm
-              // then call
-              // deleteActivity(activity);
+              setDeleteDialogOpen(true);
             }}
           >
             Delete
           </ContextMenu.Item>
         </ContextMenu.Content>
       </ContextMenu.Root>
+      {editDialogOpen ? (
+        <ActivityEditForm
+          activity={activity}
+          dialogOpen={editDialogOpen}
+          setDialogOpen={setEditDialogOpen}
+        />
+      ) : null}
+      {deleteDialogOpen ? (
+        <ActivityDeleteConfirmationDialog
+          activity={activity}
+          dialogOpen={deleteDialogOpen}
+          setDialogOpen={setDeleteDialogOpen}
+        />
+      ) : null}
     </>
   );
 }
 
-export function ActivityEditForm({ activity }: { activity: DbActivity }) {
+export function ActivityDeleteConfirmationDialog({
+  activity,
+  dialogOpen,
+  setDialogOpen,
+}: {
+  activity: DbActivity;
+  dialogOpen: boolean;
+  setDialogOpen: (newValue: boolean) => void;
+}) {
+  
+  const publishToast = useBoundStore((state) => state.publishToast);
+  const deleteActivity = useCallback(() => {
+    dbDeleteActivity(activity);
+    publishToast({
+      root: {},
+      title: { children: `Activity "${activity.title}" deleted` },
+      close: {},
+    });
+    
+    setDialogOpen(false);
+  }, [publishToast, activity, setDialogOpen]); 
+
+  return (
+    <AlertDialog.Root
+      open={dialogOpen}
+      onOpenChange={setDialogOpen}
+      defaultOpen={dialogOpen}
+    >
+      <AlertDialog.Content maxWidth="450px">
+        <AlertDialog.Title>Delete Activity</AlertDialog.Title>
+        <AlertDialog.Description size="2">
+          Are you sure to delete activity "{activity.title}"?
+        </AlertDialog.Description>
+
+        <Flex gap="3" mt="4" justify="end">
+          <AlertDialog.Cancel>
+            <Button variant="soft" color="gray">
+              Cancel
+            </Button>
+          </AlertDialog.Cancel>
+          <AlertDialog.Action onClick={deleteActivity}>
+            <Button variant="solid" color="red">
+              Revoke access
+            </Button>
+          </AlertDialog.Action>
+        </Flex>
+      </AlertDialog.Content>
+    </AlertDialog.Root>
+  );
+}
+
+export function ActivityEditForm({
+  activity,
+  dialogOpen,
+  setDialogOpen,
+}: {
+  activity: DbActivity;
+  dialogOpen: boolean;
+  setDialogOpen: (newValue: boolean) => void;
+}) {
   const idTitle = useId();
   const idTimeStart = useId();
   const idTimeEnd = useId();
-  const [dialogOpen, setDialogOpen] = useState(true);
   const publishToast = useBoundStore((state) => state.publishToast);
   const closeDialog = useCallback(() => {
     publishToast({
@@ -93,7 +164,7 @@ export function ActivityEditForm({ activity }: { activity: DbActivity }) {
       close: {},
     });
     setDialogOpen(false);
-  }, [publishToast]);
+  }, [publishToast, setDialogOpen]);
 
   const tripStartStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(activity.trip.timestampStart)
@@ -160,7 +231,7 @@ export function ActivityEditForm({ activity }: { activity: DbActivity }) {
               Activity name
             </Text>
             <TextField.Root
-              defaultValue=""
+              defaultValue={activity.title}
               placeholder="Enter activity name"
               name="title"
               type="text"
@@ -194,9 +265,6 @@ export function ActivityEditForm({ activity }: { activity: DbActivity }) {
           </Flex>
           <Box height="32px" />
           <Flex gap="2" justify="end">
-            <Button type="submit" size="2">
-              Save
-            </Button>
             <Button
               type="button"
               size="2"
@@ -204,6 +272,9 @@ export function ActivityEditForm({ activity }: { activity: DbActivity }) {
               onClick={closeDialog}
             >
               Cancel
+            </Button>
+            <Button type="submit" size="2">
+              Save
             </Button>
           </Flex>
         </form>
@@ -325,9 +396,6 @@ export function TriggerNewActivity({ trip }: { trip: DbTrip }) {
           </Flex>
           <Box height="32px" />
           <Flex gap="2" justify="end">
-            <Button type="submit" size="2">
-              Save
-            </Button>
             <Button
               type="button"
               size="2"
@@ -335,6 +403,9 @@ export function TriggerNewActivity({ trip }: { trip: DbTrip }) {
               onClick={closeDialog}
             >
               Cancel
+            </Button>
+            <Button type="submit" size="2">
+              Save
             </Button>
           </Flex>
         </form>
