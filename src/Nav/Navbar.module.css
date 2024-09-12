@@ -3,6 +3,15 @@
   height: var(--space-8);
   padding-left: var(--space-3);
   padding-right: var(--space-3);
+  position: sticky;
+  top: 0;
+  background: var(--color-panel-solid);
+  z-index: 100;
+}
+.logo {
+  height: 30px;
+  vertical-align: -6px;
+  margin-right: 3px;
 }
 .flex {
   height: var(--space-8);

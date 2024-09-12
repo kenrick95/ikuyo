@@ -63,7 +63,7 @@
     grid-row: header / span 1;
     grid-column: time / span 1;
     position: sticky;
-    top: 0;
+    top: var(--space-8);
     left: 0;
 
     display: flex;
@@ -83,7 +83,7 @@
     grid-column-start: auto;
     grid-column-end: span 1;
     position: sticky;
-    top: 0;
+    top: var(--space-8);
     left: 0;
 
     display: flex;

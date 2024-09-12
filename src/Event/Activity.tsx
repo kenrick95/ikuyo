@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import style from './Activity.module.css';
 import tClasses from './Timeline.module.scss';
-import { addActivity, deleteActivity as dbDeleteActivity, updateActivity } from '../data/db';
+import { dbAddActivity, dbDeleteActivity, dbUpdateActivity } from '../data/db';
 import { useCallback, useId, useState } from 'react';
 
 import {
@@ -67,6 +67,7 @@ export function Activity({
           </ContextMenu.Item>
           <ContextMenu.Separator />
           <ContextMenu.Item
+            color="red"
             onClick={() => {
               setDeleteDialogOpen(true);
             }}
@@ -76,7 +77,7 @@ export function Activity({
         </ContextMenu.Content>
       </ContextMenu.Root>
       {editDialogOpen ? (
-        <ActivityEditForm
+        <ActivityEditDialog
           activity={activity}
           dialogOpen={editDialogOpen}
           setDialogOpen={setEditDialogOpen}
@@ -102,7 +103,6 @@ export function ActivityDeleteConfirmationDialog({
   dialogOpen: boolean;
   setDialogOpen: (newValue: boolean) => void;
 }) {
-  
   const publishToast = useBoundStore((state) => state.publishToast);
   const deleteActivity = useCallback(() => {
     dbDeleteActivity(activity);
@@ -111,9 +111,9 @@ export function ActivityDeleteConfirmationDialog({
       title: { children: `Activity "${activity.title}" deleted` },
       close: {},
     });
-    
+
     setDialogOpen(false);
-  }, [publishToast, activity, setDialogOpen]); 
+  }, [publishToast, activity, setDialogOpen]);
 
   return (
     <AlertDialog.Root
@@ -135,7 +135,7 @@ export function ActivityDeleteConfirmationDialog({
           </AlertDialog.Cancel>
           <AlertDialog.Action onClick={deleteActivity}>
             <Button variant="solid" color="red">
-              Revoke access
+              Delete
             </Button>
           </AlertDialog.Action>
         </Flex>
@@ -144,7 +144,7 @@ export function ActivityDeleteConfirmationDialog({
   );
 }
 
-export function ActivityEditForm({
+export function ActivityEditDialog({
   activity,
   dialogOpen,
   setDialogOpen,
@@ -153,19 +153,6 @@ export function ActivityEditForm({
   dialogOpen: boolean;
   setDialogOpen: (newValue: boolean) => void;
 }) {
-  const idTitle = useId();
-  const idTimeStart = useId();
-  const idTimeEnd = useId();
-  const publishToast = useBoundStore((state) => state.publishToast);
-  const closeDialog = useCallback(() => {
-    publishToast({
-      root: {},
-      title: { children: 'Activity edit cancelled' },
-      close: {},
-    });
-    setDialogOpen(false);
-  }, [publishToast, setDialogOpen]);
-
   const tripStartStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(activity.trip.timestampStart)
   );
@@ -185,125 +172,184 @@ export function ActivityEditForm({
         <Dialog.Description>
           Fill in your edited activity details...
         </Dialog.Description>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const elForm = e.currentTarget;
-            if (!elForm.reportValidity()) {
-              return;
-            }
-            const formData = new FormData(elForm);
-            const title = formData.get('title')?.toString() ?? '';
-            const timeStartString = formData.get('startTime')?.toString() ?? '';
-            const timeEndString = formData.get('endTime')?.toString() ?? '';
-            const timeStartDate = new Date(timeStartString);
-            const timeEndDate = new Date(timeStartString);
-            console.log('ActivityEditForm', {
-              title,
-              startTime: timeStartDate,
-              endTime: timeEndDate,
-            });
-            if (!title || !timeStartDate || !timeEndDate) {
-              return;
-            }
-            if (timeStartDate > timeEndDate) {
-              // TODO: show error
-              return;
-            }
-
-            updateActivity({
-              id: activity.id,
-              title,
-              timestampStart: new Date(timeStartString).getTime(),
-              timestampEnd: new Date(timeEndString).getTime(),
-            });
-            elForm.reset();
-            publishToast({
-              root: {},
-              title: { children: 'Activity edited' },
-              close: {},
-            });
-            setDialogOpen(false);
-          }}
-        >
-          <Flex direction="column" gap="2">
-            <Text as="label" htmlFor={idTitle}>
-              Activity name
-            </Text>
-            <TextField.Root
-              defaultValue={activity.title}
-              placeholder="Enter activity name"
-              name="title"
-              type="text"
-              id={idTitle}
-              required
-            />
-            <Text as="label" htmlFor={idTimeStart}>
-              Start time
-            </Text>
-            <TextField.Root
-              id={idTimeStart}
-              name="startTime"
-              type="datetime-local"
-              min={tripStartStr}
-              max={tripEndStr}
-              defaultValue={activityStartStr}
-              required
-            />
-            <Text as="label" htmlFor={idTimeEnd}>
-              End time
-            </Text>
-            <TextField.Root
-              id={idTimeEnd}
-              name="endTime"
-              type="datetime-local"
-              min={tripStartStr}
-              max={tripEndStr}
-              defaultValue={activityEndStr}
-              required
-            />
-          </Flex>
-          <Box height="32px" />
-          <Flex gap="2" justify="end">
-            <Button
-              type="button"
-              size="2"
-              variant="outline"
-              onClick={closeDialog}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" size="2">
-              Save
-            </Button>
-          </Flex>
-        </form>
+        <Box height="16px" />
+        <ActivityForm
+          activityId={activity.id}
+          mode={ActivityFormMode.Edit}
+          tripStartStr={tripStartStr}
+          tripEndStr={tripEndStr}
+          activityTitle={activity.title}
+          activityStartStr={activityStartStr}
+          activityEndStr={activityEndStr}
+          dialogOpen={dialogOpen}
+          setDialogOpen={setDialogOpen}
+        />
       </Dialog.Content>
     </Dialog.Root>
   );
 }
 
-export function TriggerNewActivity({ trip }: { trip: DbTrip }) {
+enum ActivityFormMode {
+  New,
+  Edit,
+}
+
+function ActivityForm({
+  mode,
+  activityId,
+  tripId,
+  setDialogOpen,
+  tripStartStr,
+  tripEndStr,
+  activityTitle,
+  activityStartStr,
+  activityEndStr,
+}: {
+  mode: ActivityFormMode;
+  activityId?: string;
+  tripId?: string;
+  dialogOpen: boolean;
+  setDialogOpen: (newValue: boolean) => void;
+  tripStartStr: string;
+  tripEndStr: string;
+  activityTitle: string;
+  activityStartStr: string;
+  activityEndStr: string;
+}) {
   const idTitle = useId();
   const idTimeStart = useId();
   const idTimeEnd = useId();
-  const [dialogOpen, setDialogOpen] = useState(false);
   const publishToast = useBoundStore((state) => state.publishToast);
   const closeDialog = useCallback(() => {
-    publishToast({
-      root: {},
-      title: { children: 'Activity creation cancelled' },
-      close: {},
-    });
     setDialogOpen(false);
-  }, [publishToast]);
+  }, [setDialogOpen]);
 
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const elForm = e.currentTarget;
+        if (!elForm.reportValidity()) {
+          return;
+        }
+        const formData = new FormData(elForm);
+        const title = formData.get('title')?.toString() ?? '';
+        const timeStartString = formData.get('startTime')?.toString() ?? '';
+        const timeEndString = formData.get('endTime')?.toString() ?? '';
+        const timeStartDate = new Date(timeStartString);
+        const timeEndDate = new Date(timeStartString);
+        console.log('ActivityForm', {
+          mode,
+          activityId,
+          tripId,
+          title,
+          startTime: timeStartDate,
+          endTime: timeEndDate,
+        });
+        if (!title || !timeStartDate || !timeEndDate) {
+          return;
+        }
+        if (timeStartDate > timeEndDate) {
+          // TODO: show error
+          return;
+        }
+        if (mode === ActivityFormMode.Edit && activityId) {
+          dbUpdateActivity({
+            id: activityId,
+            title,
+            timestampStart: new Date(timeStartString).getTime(),
+            timestampEnd: new Date(timeEndString).getTime(),
+          });
+          publishToast({
+            root: {},
+            title: { children: `Activity ${title} edited` },
+            close: {},
+          });
+        } else if (mode === ActivityFormMode.New && tripId) {
+          dbAddActivity(
+            {
+              title,
+              timestampStart: new Date(timeStartString).getTime(),
+              timestampEnd: new Date(timeEndString).getTime(),
+            },
+            {
+              tripId: tripId,
+            }
+          );
+          publishToast({
+            root: {},
+            title: { children: `Activity ${title} added` },
+            close: {},
+          });
+        }
+        elForm.reset();
+        setDialogOpen(false);
+      }}
+    >
+      <Flex direction="column" gap="2">
+        <Text as="label" htmlFor={idTitle}>
+          Activity name
+        </Text>
+        <TextField.Root
+          defaultValue={activityTitle}
+          placeholder="Enter activity name"
+          name="title"
+          type="text"
+          id={idTitle}
+          required
+        />
+        <Text as="label" htmlFor={idTimeStart}>
+          Start time
+        </Text>
+        <TextField.Root
+          id={idTimeStart}
+          name="startTime"
+          type="datetime-local"
+          min={tripStartStr}
+          max={tripEndStr}
+          defaultValue={activityStartStr}
+          required
+        />
+        <Text as="label" htmlFor={idTimeEnd}>
+          End time
+        </Text>
+        <TextField.Root
+          id={idTimeEnd}
+          name="endTime"
+          type="datetime-local"
+          min={tripStartStr}
+          max={tripEndStr}
+          defaultValue={activityEndStr}
+          required
+        />
+      </Flex>
+      <Flex gap="3" mt="5" justify="end">
+        <Button
+          type="button"
+          size="2"
+          variant="soft"
+          color="gray"
+          onClick={closeDialog}
+        >
+          Cancel
+        </Button>
+        <Button type="submit" size="2" variant="solid">
+          Save
+        </Button>
+      </Flex>
+    </form>
+  );
+}
+
+export function AddNewActivityButton({ trip }: { trip: DbTrip }) {
+  const [dialogOpen, setDialogOpen] = useState(false);
   const tripStartStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(trip.timestampStart)
   );
   const tripEndStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(trip.timestampEnd)
   );
+
   return (
     <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
       <Dialog.Trigger>
@@ -314,101 +360,18 @@ export function TriggerNewActivity({ trip }: { trip: DbTrip }) {
         <Dialog.Description>
           Fill in your new activity details...
         </Dialog.Description>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const elForm = e.currentTarget;
-            if (!elForm.reportValidity()) {
-              return;
-            }
-            const formData = new FormData(elForm);
-            const title = formData.get('title')?.toString() ?? '';
-            const timeStartString = formData.get('startTime')?.toString() ?? '';
-            const timeEndString = formData.get('endTime')?.toString() ?? '';
-            const timeStartDate = new Date(timeStartString);
-            const timeEndDate = new Date(timeStartString);
-            console.log('NewActivityForm', {
-              title,
-              startTime: timeStartDate,
-              endTime: timeEndDate,
-            });
-            if (!title || !timeStartDate || !timeEndDate) {
-              return;
-            }
-            if (timeStartDate > timeEndDate) {
-              return;
-            }
-            addActivity(
-              {
-                title,
-                timestampStart: new Date(timeStartString).getTime(),
-                timestampEnd: new Date(timeEndString).getTime(),
-              },
-              {
-                trip,
-              }
-            );
-            elForm.reset();
-            publishToast({
-              root: {},
-              title: { children: 'New activity created' },
-              close: {},
-            });
-            setDialogOpen(false);
-          }}
-        >
-          <Flex direction="column" gap="2">
-            <Text as="label" htmlFor={idTitle}>
-              Activity name
-            </Text>
-            <TextField.Root
-              defaultValue=""
-              placeholder="Enter activity name"
-              name="title"
-              type="text"
-              id={idTitle}
-              required
-            />
-            <Text as="label" htmlFor={idTimeStart}>
-              Start time
-            </Text>
-            <TextField.Root
-              id={idTimeStart}
-              name="startTime"
-              type="datetime-local"
-              min={tripStartStr}
-              max={tripEndStr}
-              defaultValue={tripStartStr}
-              required
-            />
-            <Text as="label" htmlFor={idTimeEnd}>
-              End time
-            </Text>
-            <TextField.Root
-              id={idTimeEnd}
-              name="endTime"
-              type="datetime-local"
-              min={tripStartStr}
-              max={tripEndStr}
-              defaultValue={tripEndStr}
-              required
-            />
-          </Flex>
-          <Box height="32px" />
-          <Flex gap="2" justify="end">
-            <Button
-              type="button"
-              size="2"
-              variant="outline"
-              onClick={closeDialog}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" size="2">
-              Save
-            </Button>
-          </Flex>
-        </form>
+        <Box height="16px" />
+        <ActivityForm
+          mode={ActivityFormMode.New}
+          tripId={trip.id}
+          dialogOpen={dialogOpen}
+          setDialogOpen={setDialogOpen}
+          tripStartStr={tripStartStr}
+          tripEndStr={tripEndStr}
+          activityTitle={''}
+          activityStartStr={tripStartStr}
+          activityEndStr={tripEndStr}
+        />
       </Dialog.Content>
     </Dialog.Root>
   );

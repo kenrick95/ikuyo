@@ -26,17 +26,18 @@ function App() {
 
   const { trip, activities } = useMemo(() => {
     const trip = data?.user[0]?.trip[0];
-    const activities = trip?.activity.map((activity) => {
-      activity.trip = trip;
-      return activity;
-    }) ?? [];
+    const activities =
+      trip?.activity.map((activity) => {
+        activity.trip = trip;
+        return activity;
+      }) ?? [];
     return {
       trip,
       activities,
     };
   }, [data]);
 
-  if (isLoading) {
+  if (isLoading || !trip || !activities) {
     return <div>Fetching data...</div>;
   }
   if (error) {
@@ -48,7 +49,7 @@ function App() {
 
   return (
     <ThemeProvider attribute="class">
-      <Theme accentColor="ruby">
+      <Theme accentColor="plum">
         <Navbar trip={trip} />
         <ImperativeToastRoot />
         <Container>

@@ -6,12 +6,12 @@ const APP_ID = '6962735b-d61f-4c3c-a78f-03ca3fa6ba9a';
 
 export const db = init<DbSchema>({ appId: APP_ID, devtool: false });
 
-export function addActivity(
+export function dbAddActivity(
   newActivity: Omit<DbActivity, 'id' | 'createdAt' | 'lastUpdatedAt' | 'trip'>,
   {
-    trip,
+    tripId,
   }: {
-    trip: DbTrip;
+    tripId: string;
   }
 ) {
   db.transact(
@@ -22,14 +22,14 @@ export function addActivity(
         lastUpdatedAt: Date.now(),
       })
       .link({
-        trip: [trip.id],
+        trip: [tripId],
       })
   );
 }
-export function deleteActivity(activity: DbActivity) {
+export function dbDeleteActivity(activity: DbActivity) {
   db.transact(tx.activity[activity.id].delete());
 }
-export function updateActivity(
+export function dbUpdateActivity(
   activity: Omit<DbActivity, 'createdAt' | 'lastUpdatedAt' | 'trip'>
 ) {
   db.transact(
@@ -39,7 +39,7 @@ export function updateActivity(
     })
   );
 }
-export function addTrip(
+export function dbAddTrip(
   newTrip: Omit<
     DbTrip,
     'id' | 'createdAt' | 'lastUpdatedAt' | 'activity' | 'user'
@@ -58,7 +58,7 @@ export function addTrip(
       }),
   ]);
 }
-export function addUserToTrip(
+export function dbAddUserToTrip(
   trip: Omit<DbTrip, 'createdAt' | 'lastUpdatedAt' | 'activity' | 'user'>,
   user: DbUser
 ) {
@@ -89,7 +89,7 @@ export function removeUserFromTrip(
   ]);
 }
 
-export function updateTrip(
+export function dbUpdateTrip(
   trip: Omit<DbTrip, 'createdAt' | 'lastUpdatedAt' | 'activity' | 'user'>
 ) {
   db.transact(
@@ -99,11 +99,11 @@ export function updateTrip(
     })
   );
 }
-export function deleteTrip(trip: DbTrip) {
+export function dbDeleteTrip(trip: DbTrip) {
   db.transact(tx.trip[trip.id].delete());
 }
 
-export function addUser(
+export function dbAddUser(
   newUser: Omit<DbUser, 'id' | 'createdAt' | 'lastUpdatedAt' | 'trip'>
 ) {
   db.transact(
@@ -114,7 +114,7 @@ export function addUser(
     })
   );
 }
-export function updateUser(user: Omit<DbUser, 'trip'>) {
+export function dbUpdateUser(user: Omit<DbUser, 'trip'>) {
   db.transact(
     tx.user[user.id].update({
       ...user,
