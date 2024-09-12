@@ -1,6 +1,8 @@
 export type DbActivity = {
   id: string;
   title: string;
+  location: string;
+  description: string;
   /** ms */
   timestampStart: number;
   /** ms */

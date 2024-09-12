@@ -11,6 +11,7 @@ import {
   Dialog,
   Flex,
   Text,
+  TextArea,
   TextField,
 } from '@radix-ui/themes';
 import { Button } from '@radix-ui/themes';
@@ -183,6 +184,8 @@ export function ActivityEditDialog({
           activityEndStr={activityEndStr}
           dialogOpen={dialogOpen}
           setDialogOpen={setDialogOpen}
+          activityLocation={activity.location}
+          activityDescription={activity.description}
         />
       </Dialog.Content>
     </Dialog.Root>
@@ -204,6 +207,8 @@ function ActivityForm({
   activityTitle,
   activityStartStr,
   activityEndStr,
+  activityLocation,
+  activityDescription,
 }: {
   mode: ActivityFormMode;
   activityId?: string;
@@ -215,10 +220,14 @@ function ActivityForm({
   activityTitle: string;
   activityStartStr: string;
   activityEndStr: string;
+  activityLocation: string;
+  activityDescription: string;
 }) {
   const idTitle = useId();
   const idTimeStart = useId();
   const idTimeEnd = useId();
+  const idLocation = useId();
+  const idDescription = useId();
   const publishToast = useBoundStore((state) => state.publishToast);
   const closeDialog = useCallback(() => {
     setDialogOpen(false);
@@ -234,6 +243,8 @@ function ActivityForm({
         }
         const formData = new FormData(elForm);
         const title = formData.get('title')?.toString() ?? '';
+        const description = formData.get('description')?.toString() ?? '';
+        const location = formData.get('location')?.toString() ?? '';
         const timeStartString = formData.get('startTime')?.toString() ?? '';
         const timeEndString = formData.get('endTime')?.toString() ?? '';
         const timeStartDate = new Date(timeStartString);
@@ -241,6 +252,8 @@ function ActivityForm({
         console.log('ActivityForm', {
           mode,
           activityId,
+          description,
+          location,
           tripId,
           title,
           startTime: timeStartDate,
@@ -257,6 +270,8 @@ function ActivityForm({
           dbUpdateActivity({
             id: activityId,
             title,
+            description,
+            location,
             timestampStart: new Date(timeStartString).getTime(),
             timestampEnd: new Date(timeEndString).getTime(),
           });
@@ -269,6 +284,8 @@ function ActivityForm({
           dbAddActivity(
             {
               title,
+              description,
+              location,
               timestampStart: new Date(timeStartString).getTime(),
               timestampEnd: new Date(timeEndString).getTime(),
             },
@@ -288,7 +305,10 @@ function ActivityForm({
     >
       <Flex direction="column" gap="2">
         <Text as="label" htmlFor={idTitle}>
-          Activity name
+          Activity name{' '}
+          <Text weight="light" size="1">
+            (required)
+          </Text>
         </Text>
         <TextField.Root
           defaultValue={activityTitle}
@@ -298,8 +318,20 @@ function ActivityForm({
           id={idTitle}
           required
         />
+        <Text as="label" htmlFor={idLocation}>
+          Location
+        </Text>
+        <TextArea
+          defaultValue={activityLocation}
+          placeholder="Enter location name"
+          name="location"
+          id={idLocation}
+        />
         <Text as="label" htmlFor={idTimeStart}>
-          Start time
+          Start time{' '}
+          <Text weight="light" size="1">
+            (required)
+          </Text>
         </Text>
         <TextField.Root
           id={idTimeStart}
@@ -311,7 +343,10 @@ function ActivityForm({
           required
         />
         <Text as="label" htmlFor={idTimeEnd}>
-          End time
+          End time{' '}
+          <Text weight="light" size="1">
+            (required)
+          </Text>
         </Text>
         <TextField.Root
           id={idTimeEnd}
@@ -321,6 +356,15 @@ function ActivityForm({
           max={tripEndStr}
           defaultValue={activityEndStr}
           required
+        />
+        <Text as="label" htmlFor={idLocation}>
+          Description
+        </Text>
+        <TextArea
+          defaultValue={activityDescription}
+          placeholder="Enter description"
+          name="description"
+          id={idDescription}
         />
       </Flex>
       <Flex gap="3" mt="5" justify="end">
@@ -371,6 +415,8 @@ export function AddNewActivityButton({ trip }: { trip: DbTrip }) {
           activityTitle={''}
           activityStartStr={tripStartStr}
           activityEndStr={tripEndStr}
+          activityLocation={''}
+          activityDescription={''}
         />
       </Dialog.Content>
     </Dialog.Root>
