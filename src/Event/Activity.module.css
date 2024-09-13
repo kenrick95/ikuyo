@@ -1,7 +1,7 @@
 .activity {
-  border: 1px solid var(--accent-9);
-  border-radius: var(--radius-3);
-  padding: var(--radius-3);
+  border-color: var(--accent-9);
+  background-color: var(--color-panel-translucent);
+  contain: unset;
 }
 .newForm {
   display: grid;

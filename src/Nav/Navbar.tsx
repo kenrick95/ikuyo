@@ -1,8 +1,8 @@
 import { Box, Container, Flex, Heading } from '@radix-ui/themes';
 import { DbTrip } from '../data/types';
-import { AddNewActivityButton } from '../Event/Activity';
 import s from './Navbar.module.css';
 import imgUrl from '/ikuyo.svg';
+import { NewActivityButton } from '../Event/NewActivityButton';
 
 export function Navbar({ trip }: { trip: DbTrip }) {
   return (
@@ -20,7 +20,7 @@ export function Navbar({ trip }: { trip: DbTrip }) {
           </Heading>
         </Box>
         <Box className={s.flexAlignRight}>
-          <AddNewActivityButton trip={trip} />
+          <NewActivityButton trip={trip} />
         </Box>
       </Flex>
     </Container>

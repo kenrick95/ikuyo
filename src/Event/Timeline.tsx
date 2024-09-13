@@ -51,9 +51,14 @@ export function Timeline({
   activities: DbActivity[];
 }) {
   const startDateTimes = useMemo(() => getStartDateTimesFromTrip(trip), [trip]);
+  const timelineStyle = useMemo(() => {
+    return {
+      gridTemplateColumns: generateGridTemplateColumns(startDateTimes.length),
+    };
+  }, [startDateTimes.length]);
   return (
     <Section>
-      <div className={s.timeline}>
+      <div className={s.timeline} style={timelineStyle}>
         <TimelineHeader />
 
         {startDateTimes.map((dt, i) => {
@@ -80,6 +85,24 @@ export function Timeline({
       </div>
     </Section>
   );
+}
+
+function generateGridTemplateColumns(length: number): string {
+  return `[time] 65px ${new Array(length)
+    .fill(0)
+    .map((_, i) => {
+      if (i === 0) {
+        // first one
+        return `[d${i + 1}] 1fr`;
+      } else if (i > 0 && i < length - 1) {
+        // middle ones
+        return `[de${i} d${i + 1}] 1fr`;
+      } else if (i === length - 1) {
+        // final one
+        return `[de${i} d${i + 1}] 1fr [de${i + 1}]`;
+      }
+    })
+    .join(' ')}`;
 }
 
 function TimelineDayHeader({
