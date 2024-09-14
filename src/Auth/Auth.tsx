@@ -9,31 +9,27 @@ import {
   Heading,
   TextField,
 } from '@radix-ui/themes';
-import { AppAuthed } from '../AppAuthed';
 import { useBoundStore } from '../data/store';
 import s from './Auth.module.css';
+import { Redirect } from 'wouter';
+import { ROUTES } from '../routes';
 
-export function AuthScreen() {
+export function PageLogin() {
   const { isLoading, user, error } = db.useAuth();
-
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-  if (error) {
-    return <div>Uh oh! {error.message}</div>;
-  }
-  if (!user) {
-    return <Login />;
-  }
-  return <AppAuthed user={user} />;
-}
-
-function Login() {
   const [sentEmail, setSentEmail] = useState('');
+  if (user) {
+    // Already authenticated
+    return <Redirect to={ROUTES.Trips} />;
+  }
+
   return (
     <Grid className={s.grid}>
       <Box maxWidth="450px">
-        {!sentEmail ? (
+        {isLoading ? (
+          'Loading'
+        ) : error ? (
+          `Error: ${error}`
+        ) : !sentEmail ? (
           <Email setSentEmail={setSentEmail} />
         ) : (
           <MagicCode sentEmail={sentEmail} />

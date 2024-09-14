@@ -1,10 +1,49 @@
 import { id, init, tx } from '@instantdb/react';
 import type { DbActivity, DbSchema, DbTrip, DbUser } from './types';
+import { StateCreator } from 'zustand';
 
 // ID for app: ikuyo
 const APP_ID = '6962735b-d61f-4c3c-a78f-03ca3fa6ba9a';
 
 export const db = init<DbSchema>({ appId: APP_ID, devtool: false });
+
+export interface DbSlice {
+  trips: Array<DbTrip>;
+  user: undefined | Omit<DbUser, 'trip'>;
+  addUser: (user: DbUser) => void;
+}
+export const createDbSlice: StateCreator<DbSlice, [], [], DbSlice> = (set) => {
+  return {
+    trips: [],
+    user: undefined,
+    addUser: (user: DbUser) => {
+      return set(() => {
+        const trips = user.trip.map((trip) => {
+          const activities =
+            trip.activity.map((activity) => {
+              activity.trip = trip;
+              return activity;
+            }) ?? [];
+          return {
+            ...trip,
+            activity: activities,
+            user: [user]
+          };
+        });
+
+        const stateUser: Omit<DbUser, 'trip'> & { trip?: DbTrip[] } = {
+          ...user,
+        };
+        delete stateUser.trip;
+
+        return {
+          user: stateUser,
+          trips,
+        };
+      });
+    },
+  };
+};
 
 export function dbAddActivity(
   newActivity: Omit<DbActivity, 'id' | 'createdAt' | 'lastUpdatedAt' | 'trip'>,

@@ -1,10 +1,15 @@
 import { Box, Container, Flex, Heading } from '@radix-ui/themes';
-import { DbTrip } from '../data/types';
 import s from './Navbar.module.css';
 import imgUrl from '/ikuyo.svg';
-import { NewActivityButton } from '../Event/NewActivityButton';
+import React from 'react';
 
-export function Navbar({ trip }: { trip: DbTrip }) {
+export function Navbar({
+  leftItems,
+  rightItems,
+}: {
+  leftItems: Array<React.ReactNode>;
+  rightItems: Array<React.ReactNode>;
+}) {
   return (
     <Container className={s.container}>
       <Flex gap="3" align="center" className={s.flex}>
@@ -14,14 +19,16 @@ export function Navbar({ trip }: { trip: DbTrip }) {
             Ikuyo!
           </Heading>
         </Box>
-        <Box>
-          <Heading as="h2" size="5">
-            {trip.title}
-          </Heading>
-        </Box>
-        <Box className={s.flexAlignRight}>
-          <NewActivityButton trip={trip} />
-        </Box>
+        {leftItems.map((item, index) => {
+          return <Box key={index}>{item}</Box>;
+        })}
+        {rightItems.map((item, index) => {
+          return (
+            <Box key={index} className={s.flexAlignRight}>
+              {item}
+            </Box>
+          );
+        })}
       </Flex>
     </Container>
   );
