@@ -4,12 +4,13 @@ import tClasses from './Timeline.module.scss';
 import { useState } from 'react';
 import { InfoCircledIcon, SewingPinIcon } from '@radix-ui/react-icons';
 
-import { Text, Box, Card, ContextMenu } from '@radix-ui/themes';
+import { Text, Box, ContextMenu } from '@radix-ui/themes';
 import { DbActivity } from '../data/types';
 import { formatTime, pad2 } from './time';
 import { DateTime } from 'luxon';
 import { ActivityDeleteDialog } from './ActivityDeleteDialog';
 import { ActivityEditDialog } from './ActivityEditDialog';
+import { ActivityViewDialog } from './ActivityViewDialog';
 
 const timeStartMapping: Record<string, string> = {};
 const timeEndMapping: Record<string, string> = {};
@@ -39,6 +40,7 @@ export function Activity({
   const timeStart = formatTime(activity.timestampStart);
   const timeEnd = formatTime(activity.timestampEnd);
   const [dayStart, dayEnd] = getDayStartEnd(activity);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   return (
@@ -54,31 +56,35 @@ export function Activity({
               dayEndMapping[dayEnd],
               className
             )}
-            asChild
           >
-            <Card>
-              <Text as="div" size="2" weight="bold">
-                {activity.title}
+            <Text as="div" size="2" weight="bold">
+              {activity.title}
+            </Text>
+
+            {activity.location ? (
+              <Text as="div" size="2" color="gray">
+                <SewingPinIcon style={{ verticalAlign: '-2px' }} />{' '}
+                {activity.location}
               </Text>
+            ) : null}
 
-              {activity.location ? (
-                <Text as="div" size="2" color="gray">
-                  <SewingPinIcon style={{ verticalAlign: '-2px' }} />{' '}
-                  {activity.location}
-                </Text>
-              ) : null}
-
-              {activity.description ? (
-                <Text as="div" size="2" color="gray">
-                  <InfoCircledIcon style={{ verticalAlign: '-2px' }} />{' '}
-                  {activity.description}
-                </Text>
-              ) : null}
-            </Card>
+            {activity.description ? (
+              <Text as="div" size="2" color="gray">
+                <InfoCircledIcon style={{ verticalAlign: '-2px' }} />{' '}
+                {activity.description}
+              </Text>
+            ) : null}
           </Box>
         </ContextMenu.Trigger>
         <ContextMenu.Content>
           <ContextMenu.Label>{activity.title}</ContextMenu.Label>
+          <ContextMenu.Item
+            onClick={() => {
+              setViewDialogOpen(true);
+            }}
+          >
+            View
+          </ContextMenu.Item>
           <ContextMenu.Item
             onClick={() => {
               setEditDialogOpen(true);
@@ -97,6 +103,13 @@ export function Activity({
           </ContextMenu.Item>
         </ContextMenu.Content>
       </ContextMenu.Root>
+      {viewDialogOpen ? (
+        <ActivityViewDialog
+          activity={activity}
+          dialogOpen={viewDialogOpen}
+          setDialogOpen={setViewDialogOpen}
+        />
+      ) : null}
       {editDialogOpen ? (
         <ActivityEditDialog
           activity={activity}

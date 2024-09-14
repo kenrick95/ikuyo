@@ -12,16 +12,12 @@
 
 @function timeTemplateRow() {
   $ret: '';
-  // "previous i" and "previous j", to be used in case of current = 2100 and need to refer to previous minute (2059)
-  $pi: 0;
-  $pj: 0;
+  // "previous hh & mm", to be used in case of current = 2100 and need to refer to previous minute (2059)
+  $phhmm: '';
   @for $i from 0 to 24 {
     $hh: pad2($i);
-    $phh: pad2($pi);
     @for $j from 0 to 60 {
       $mm: pad2($j);
-      // "previous "mm"
-      $pmm: pad2($pj);
       // Generate [t0000] var(--row-minute-height), [te000 t0001] var(--row-minute-height), ..., [te2357 t2358] var(--row-minute-height), [te2358 t2359] var(--row-minute-height) [te2359]
       @if $i == 0 and $j == 0 {
         // first one
@@ -29,17 +25,17 @@
       } @else if $i != 23 and $j != 59 {
         // middle ones
         $ret: $ret +
-          '[te#{$phh}#{$pmm} t#{$hh}#{$mm}]' +
+          '[te#{$phhmm} t#{$hh}#{$mm}]' +
           ' var(--row-minute-height) ';
       } @else if $i == 23 and $j == 59 {
         // final one
         $ret: $ret +
-          '[te#{$phh}#{$pmm} t#{$hh}#{$mm}]' +
-          ' var(--row-minute-height) ' + '[te#{$phh}#{$pmm}]';
+          '[te#{$phhmm} t#{$hh}#{$mm}]' +
+          ' var(--row-minute-height) ' +
+          '[te#{$phhmm}]';
       }
-      $pj: $j;
+      $phhmm: '#{$hh}#{$mm}';
     }
-    $pi: $i;
   }
   @return $ret;
 }

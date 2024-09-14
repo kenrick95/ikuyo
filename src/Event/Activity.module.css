@@ -1,7 +1,9 @@
 .activity {
-  border-color: var(--accent-9);
-  background-color: var(--color-panel-translucent);
-  contain: unset;
+  border: 1px solid var(--gray-9);
+  background-color: var(--color-panel-solid);
+  border-radius: var(--radius-2);
+  padding: var(--space-2);
+  overflow: scroll;
 }
 .newForm {
   display: grid;
