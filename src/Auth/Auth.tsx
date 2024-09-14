@@ -102,12 +102,16 @@ function Email({ setSentEmail }: { setSentEmail: (email: string) => void }) {
 }
 
 function MagicCode({ sentEmail }: { sentEmail: string }) {
-  // TODO: refactor this component
-  const [code, setCode] = useState('');
   const publishToast = useBoundStore((state) => state.publishToast);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const elForm = e.currentTarget;
+    if (!elForm.reportValidity()) {
+      return;
+    }
+    const formData = new FormData(elForm);
+    const code = formData.get('code')?.toString() ?? '';
     db.auth.signInWithMagicCode({ email: sentEmail, code }).catch((err) => {
       publishToast({
         root: { duration: Infinity },
@@ -115,21 +119,30 @@ function MagicCode({ sentEmail }: { sentEmail: string }) {
         description: { children: err.body?.message },
         close: {},
       });
-
-      setCode('');
     });
-  };
+  }, []);
+  const idCode = useId();
 
   return (
     <form onSubmit={handleSubmit}>
-      <Heading>Okay, we sent you an email! What was the code?</Heading>
-      <TextField.Root
-        type="text"
-        placeholder="123456..."
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
-      />
-      <Button type="submit">Verify</Button>
+      <Flex direction="column" gap="2">
+        <Heading>Ikuyo!</Heading>
+        <Text as="label" htmlFor={idCode}>
+          Enter the code we sent to your email:
+        </Text>
+        <TextField.Root
+          type="text"
+          inputMode="numeric"
+          pattern="\d*"
+          placeholder="123456"
+          name="code"
+          defaultValue=""
+          required
+          minLength={6}
+          maxLength={6}
+        />
+        <Button type="submit">Verify code</Button>
+      </Flex>
     </form>
   );
 }
