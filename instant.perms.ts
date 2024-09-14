@@ -8,26 +8,29 @@ export default {
   },
   activity: {
     allow: {
-      view: 'true',
-      create: 'true',
-      update: 'true',
-      delete: 'true',
+      view: 'isInvolved',
+      create: 'isInvolved',
+      update: 'isInvolved',
+      delete: 'isInvolved',
     },
+    bind: ['isInvolved', "auth.email in data.ref('trip.user.email')"],
   },
   trip: {
     allow: {
       view: 'true',
-      create: 'true',
-      update: 'true',
-      delete: 'true',
+      create: 'isInvolved',
+      update: 'isInvolved',
+      delete: 'isInvolved',
     },
+    bind: ['isInvolved', "auth.email in data.ref('user.email')"],
   },
   user: {
     allow: {
       view: 'true',
-      create: 'true',
-      update: 'true',
-      delete: 'true',
+      create: 'isOwner',
+      update: 'isOwner',
+      delete: 'isOwner',
     },
+    bind: ['isOwner', 'auth.email == data.email'],
   },
 };
