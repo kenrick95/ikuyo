@@ -33,6 +33,11 @@ export function formatFullDate(date: Date) {
 export function formatToDatetimeLocalInput(date: DateTime) {
   return date.toFormat(`yyyy-LL-dd'T'HH:mm`);
 }
+export function getDateTimeFromDatetimeLocalInput(
+  datetimeLocalInputString: string
+): DateTime {
+  return DateTime.fromFormat(datetimeLocalInputString, `yyyy-LL-dd'T'HH:mm`);
+}
 export function formatTime(timestamp: number): string {
   return DateTime.fromMillis(timestamp).toFormat(`HHmm`);
 }

@@ -1,8 +1,9 @@
 import { Flex, Text, TextField, TextArea, Button } from '@radix-ui/themes';
-import { useId, useCallback } from 'react';
+import { useId, useCallback, useState } from 'react';
 import { dbUpdateActivity, dbAddActivity } from '../data/db';
 import { useBoundStore } from '../data/store';
 import { ActivityFormMode } from './ActivityFormMode';
+import { getDateTimeFromDatetimeLocalInput } from './time';
 
 export function ActivityForm({
   mode,
@@ -39,12 +40,20 @@ export function ActivityForm({
   const closeDialog = useCallback(() => {
     setDialogOpen(false);
   }, [setDialogOpen]);
+  const [errorMessage, setErrorMessage] = useState('');
 
   return (
     <form
+      onInput={() => {
+        setErrorMessage('');
+      }}
       onSubmit={(e) => {
         e.preventDefault();
         const elForm = e.currentTarget;
+        setErrorMessage('');
+        // TIL: https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/setCustomValidity
+        // HTMLInputElement.setCustomValidity()
+        // seems quite hard to use... need to call setCustomValidity again after invalid, before "submit" event
         if (!elForm.reportValidity()) {
           return;
         }
@@ -54,8 +63,9 @@ export function ActivityForm({
         const location = formData.get('location')?.toString() ?? '';
         const timeStartString = formData.get('startTime')?.toString() ?? '';
         const timeEndString = formData.get('endTime')?.toString() ?? '';
-        const timeStartDate = new Date(timeStartString);
-        const timeEndDate = new Date(timeStartString);
+        const timeStartDate =
+          getDateTimeFromDatetimeLocalInput(timeStartString);
+        const timeEndDate = getDateTimeFromDatetimeLocalInput(timeEndString);
         console.log('ActivityForm', {
           mode,
           activityId,
@@ -63,14 +73,20 @@ export function ActivityForm({
           location,
           tripId,
           title,
+          timeStartString,
+          timeEndString,
           startTime: timeStartDate,
           endTime: timeEndDate,
         });
         if (!title || !timeStartDate || !timeEndDate) {
           return;
         }
-        if (timeStartDate > timeEndDate) {
-          // TODO: show error
+        if (timeEndDate.diff(timeStartDate).as('minute') < 0) {
+          setErrorMessage(`End time must be after start time`);
+          return;
+        }
+        if (!timeEndDate.hasSame(timeStartDate, 'day')) {
+          setErrorMessage(`Activity must occur on same day`);
           return;
         }
         if (mode === ActivityFormMode.Edit && activityId) {
@@ -111,6 +127,7 @@ export function ActivityForm({
       }}
     >
       <Flex direction="column" gap="2">
+        <Text color="red" size="2">{errorMessage}&nbsp;</Text>
         <Text as="label" htmlFor={idTitle}>
           Activity name{' '}
           <Text weight="light" size="1">
