@@ -50,23 +50,25 @@ export function Timeline({
   trip: DbTrip;
   activities: DbActivity[];
 }) {
-  const startDateTimes = useMemo(() => getStartDateTimesFromTrip(trip), [trip]);
+  const dayGroups = useMemo(() => groupActivitiesByDays(trip), [trip]);
+  console.log('dayGroups', dayGroups);
   const timelineStyle = useMemo(() => {
     return {
-      gridTemplateColumns: generateGridTemplateColumns(startDateTimes.length),
+      gridTemplateColumns: generateGridTemplateColumns(dayGroups),
     };
-  }, [startDateTimes.length]);
+  }, [dayGroups]);
+  console.log('timelineStyle', timelineStyle);
   return (
     <Section>
       <div className={s.timeline} style={timelineStyle}>
         <TimelineHeader />
 
-        {startDateTimes.map((dt, i) => {
+        {dayGroups.map((dt, i) => {
           return (
             <TimelineDayHeader
               className={String(i)}
-              dateString={dt.toFormat(`ccc, dd LLL yyyy`)}
-              key={dt.toISODate()}
+              dateString={dt.startDateTime.toFormat(`ccc, dd LLL yyyy`)}
+              key={dt.startDateTime.toISODate()}
             />
           );
         })}
@@ -87,7 +89,15 @@ export function Timeline({
   );
 }
 
-function generateGridTemplateColumns(length: number): string {
+type DayGroups = Array<{
+  startDateTime: DateTime;
+  columns: number;
+  activities: DbActivity[];
+}>;
+
+function generateGridTemplateColumns(dayGroups: DayGroups): string {
+  const length = dayGroups.length;
+  // TODO: use col names
   return `[time] 65px ${new Array(length)
     .fill(0)
     .map((_, i) => {
@@ -129,13 +139,57 @@ function TimelineTime({
 }
 
 /** Return `DateTime` objects for each of day in the trip */
-function getStartDateTimesFromTrip(trip: DbTrip): DateTime[] {
-  const res: DateTime[] = [];
+function groupActivitiesByDays(trip: DbTrip): DayGroups {
+  const res: DayGroups = [];
   const tripStartDateTime = DateTime.fromMillis(trip.timestampStart);
   const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd);
   const tripDuration = tripEndDateTime.diff(tripStartDateTime, 'days');
   for (let d = 0; d < tripDuration.days; d++) {
-    res.push(tripStartDateTime.plus({ day: d }));
+    const dayStartDateTime = tripStartDateTime.plus({ day: d });
+    const dayEndDateTime = tripStartDateTime.plus({ day: d + 1 });
+    const dayActivities: DbActivity[] = [];
+    for (const activity of trip.activity ?? []) {
+      const activityStartDateTime = DateTime.fromMillis(
+        activity.timestampStart
+      );
+      const activityEndDateTime = DateTime.fromMillis(activity.timestampEnd);
+      if (
+        dayStartDateTime <= activityStartDateTime &&
+        activityEndDateTime <= dayEndDateTime
+      ) {
+        dayActivities.push(activity);
+      }
+    }
+
+    // Finding max overlaps: https://stackoverflow.com/a/46532590/917957
+    enum Token {
+      Start,
+      End,
+    }
+    const ranges: Array<[number, Token]> = [];
+    for (const activity of dayActivities) {
+      ranges.push([activity.timestampStart, Token.Start]);
+      ranges.push([activity.timestampEnd, Token.End]);
+    }
+    ranges.sort((a, b) => {
+      return a[0] - b[0];
+    });
+    let maxOverlaps = 0;
+    let overlaps = 0;
+    for (const range of ranges) {
+      if (range[1] === Token.Start) {
+        overlaps += 1;
+      } else {
+        overlaps -= 1;
+      }
+      maxOverlaps = Math.max(overlaps, maxOverlaps);
+    }
+
+    res.push({
+      startDateTime: dayStartDateTime,
+      columns: Math.max(maxOverlaps, 1),
+      activities: dayActivities,
+    });
   }
 
   return res;
