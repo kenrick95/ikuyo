@@ -9,8 +9,8 @@ export type DbActivity = {
   timestampEnd: number;
   createdAt: number;
   lastUpdatedAt: number;
-  trip: DbTrip;
-}; 
+  trip: DbTrip | undefined;
+};
 export type DbTrip = {
   id: string;
   title: string;
@@ -18,16 +18,16 @@ export type DbTrip = {
   timestampStart: number;
   /** ms of day _after_ of trip end. This means the final full day of trip is one day before `timestampEnd` */
   timestampEnd: number;
-  activity: DbActivity[];
-  user: DbUser[];
+  activity: DbActivity[] | undefined;
+  user: DbUser[] | undefined;
 };
 export type DbUser = {
   id: string;
   handle: string;
   createdAt: number;
   lastUpdatedAt: number;
-  trip: DbTrip[];
-}
+  trip: undefined | DbTrip[];
+};
 export type DbSchema = {
   activity: DbActivity;
   trip: DbTrip;

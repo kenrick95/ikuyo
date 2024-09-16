@@ -129,7 +129,7 @@ export function Activity({
 }
 
 function getDayStartEnd(activity: DbActivity) {
-  const tripStart = DateTime.fromMillis(activity.trip.timestampStart);
+  const tripStart = DateTime.fromMillis(activity.trip!.timestampStart);
   const activityStart = DateTime.fromMillis(activity.timestampStart);
   const activityEnd = DateTime.fromMillis(activity.timestampEnd);
   const diffStart = activityStart.diff(tripStart, 'day');

@@ -3,45 +3,30 @@ import { Timeline } from '../Event/Timeline';
 import { Navbar } from '../Nav/Navbar';
 import { NewActivityButton } from '../Event/NewActivityButton';
 import { RouteComponentProps } from 'wouter';
-import { useBoundStore } from '../data/store';
-import { useEffect, useMemo } from 'react';
-import { useAuthUser } from '../Auth/hooks';
 import { db } from '../data/db';
+import { useMemo } from 'react';
 
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   const { id: tripId } = params;
-  const { user } = useAuthUser();
-  const addUser = useBoundStore((state) => state.addUser);
-  // TODO: perhaps only fetch this trip & the activities related...
-  const { data } = db.useQuery({
-    user: {
+  const { isLoading, error, data } = db.useQuery({
+    trip: {
       $: {
         where: {
-          email: user?.email,
+          id: tripId,
         },
       },
-      trip: {
-        activity: {},
-      },
+      activity: {},
     },
   });
-
-  useEffect(() => {
-    if (data?.user[0]) {
-      addUser(data?.user[0]);
-    }
-  }, [data, addUser]);
-
-  const trips = useBoundStore((state) => state.trips);
-  const { trip, activities } = useMemo(() => {
-    // TODO: optimize this to a map?
-    const trip = trips.find((trip) => trip.id === tripId);
-    const activities = trip?.activity;
-    return {
-      trip,
-      activities,
-    };
-  }, [trips, tripId]);
+  const trip = data?.trip[0];
+  const activities = useMemo(() => {
+    return (
+      trip?.activity?.map((activity) => {
+        activity.trip = trip;
+        return activity;
+      }) ?? []
+    );
+  }, [trip]);
 
   return (
     <>
@@ -56,6 +41,10 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
       <Container>
         {trip && activities ? (
           <Timeline trip={trip} activities={activities} />
+        ) : isLoading ? (
+          'Loading'
+        ) : error ? (
+          `Error: ${error.message}`
         ) : (
           ''
         )}

@@ -15,10 +15,10 @@ export function ActivityEditDialog({
   setDialogOpen: (newValue: boolean) => void;
 }) {
   const tripStartStr = formatToDatetimeLocalInput(
-    DateTime.fromMillis(activity.trip.timestampStart)
+    DateTime.fromMillis(activity.trip!.timestampStart)
   );
   const tripEndStr = formatToDatetimeLocalInput(
-    DateTime.fromMillis(activity.trip.timestampEnd)
+    DateTime.fromMillis(activity.trip!.timestampEnd)
   );
   const activityStartStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(activity.timestampStart)
