@@ -1,6 +1,5 @@
 import { Dialog, Button, Box } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
-import { useState } from 'react';
 import { DbTrip } from '../data/types';
 import { ActivityForm } from './ActivityForm';
 import { ActivityFormMode } from './ActivityFormMode';
@@ -8,8 +7,15 @@ import { formatToDatetimeLocalInput } from './time';
 import style from './Activity.module.css';
 import { PlusIcon } from '@radix-ui/react-icons';
 
-export function NewActivityButton({ trip }: { trip: DbTrip }) {
-  const [dialogOpen, setDialogOpen] = useState(false);
+export function NewActivityButton({
+  trip,
+  dialogOpen,
+  setDialogOpen,
+}: {
+  trip: DbTrip;
+  dialogOpen: boolean;
+  setDialogOpen: (newValue: boolean) => void;
+}) {
   const tripStartStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(trip.timestampStart)
   );

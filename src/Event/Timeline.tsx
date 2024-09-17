@@ -2,7 +2,7 @@ import clsx from 'clsx';
 import { Activity } from './Activity';
 import s from './Timeline.module.scss';
 import { DbActivity, DbTrip } from '../data/types';
-import { Section } from '@radix-ui/themes';
+import { ContextMenu, Section } from '@radix-ui/themes';
 
 import { DateTime } from 'luxon';
 import { useMemo } from 'react';
@@ -22,9 +22,14 @@ const times = new Array(24).fill(0).map((_, i) => {
   );
 });
 
-export function Timeline({ trip }: { trip: DbTrip }) {
+export function Timeline({
+  trip,
+  setNewActivityDialogOpen,
+}: {
+  trip: DbTrip;
+  setNewActivityDialogOpen: (newValue: boolean) => void;
+}) {
   const dayGroups = useMemo(() => groupActivitiesByDays(trip), [trip]);
-  console.log('dayGroups', dayGroups);
   const timelineStyle = useMemo(() => {
     return {
       gridTemplateColumns: generateGridTemplateColumns(dayGroups),
@@ -32,36 +37,56 @@ export function Timeline({ trip }: { trip: DbTrip }) {
   }, [dayGroups]);
   return (
     <Section>
-      <div className={s.timeline} style={timelineStyle}>
-        <TimelineHeader />
+      <ContextMenu.Root>
+        <ContextMenu.Trigger>
+          <div className={s.timeline} style={timelineStyle}>
+            <TimelineHeader />
 
-        {dayGroups.map((dayGroup, i) => {
-          return (
-            <TimelineDayHeader
-              className={clsx([dayStartMapping[i + 1], dayEndMapping[i + 1]])}
-              dateString={dayGroup.startDateTime.toFormat(`ccc, dd LLL yyyy`)}
-              key={dayGroup.startDateTime.toISODate()}
-            />
-          );
-        })}
+            {dayGroups.map((dayGroup, i) => {
+              return (
+                <TimelineDayHeader
+                  className={clsx([
+                    dayStartMapping[i + 1],
+                    dayEndMapping[i + 1],
+                  ])}
+                  dateString={dayGroup.startDateTime.toFormat(
+                    `ccc, dd LLL yyyy`
+                  )}
+                  key={dayGroup.startDateTime.toISODate()}
+                />
+              );
+            })}
 
-        {times}
+            {times}
 
-        {dayGroups.map((dayGroup) => {
-          return Object.values(dayGroup.activities).map((activity) => {
-            return (
-              <Activity
-                key={activity.id}
-                className={s.timelineItem}
-                activity={activity}
-                columnIndex={
-                  dayGroup.activityColumnIndexMap.get(activity.id) ?? 1
-                }
-              />
-            );
-          });
-        })}
-      </div>
+            {dayGroups.map((dayGroup) => {
+              return Object.values(dayGroup.activities).map((activity) => {
+                return (
+                  <Activity
+                    key={activity.id}
+                    className={s.timelineItem}
+                    activity={activity}
+                    columnIndex={
+                      dayGroup.activityColumnIndexMap.get(activity.id) ?? 1
+                    }
+                  />
+                );
+              });
+            })}
+          </div>
+        </ContextMenu.Trigger>
+
+        <ContextMenu.Content>
+          <ContextMenu.Label>{trip.title}</ContextMenu.Label>
+          <ContextMenu.Item
+            onClick={() => {
+              setNewActivityDialogOpen(true);
+            }}
+          >
+            New Activity
+          </ContextMenu.Item>
+        </ContextMenu.Content>
+      </ContextMenu.Root>
     </Section>
   );
 }

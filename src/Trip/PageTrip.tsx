@@ -4,7 +4,7 @@ import { Navbar } from '../Nav/Navbar';
 import { NewActivityButton } from '../Event/NewActivityButton';
 import { RouteComponentProps } from 'wouter';
 import { db } from '../data/db';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   const { id: tripId } = params;
@@ -28,6 +28,8 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
     );
   }, [trip]);
 
+  const [newActivityDialogOpen, setNewActivityDialogOpen] = useState(false);
+
   return (
     <>
       <Navbar
@@ -36,11 +38,24 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
             {trip?.title ?? 'Loading trip'}
           </Heading>,
         ]}
-        rightItems={[trip ? <NewActivityButton trip={trip} /> : '']}
+        rightItems={[
+          trip ? (
+            <NewActivityButton
+              trip={trip}
+              dialogOpen={newActivityDialogOpen}
+              setDialogOpen={setNewActivityDialogOpen}
+            />
+          ) : (
+            ''
+          ),
+        ]}
       />
       <Container>
         {trip && activities ? (
-          <Timeline trip={trip} />
+          <Timeline
+            trip={trip}
+            setNewActivityDialogOpen={setNewActivityDialogOpen}
+          />
         ) : isLoading ? (
           'Loading'
         ) : error ? (
