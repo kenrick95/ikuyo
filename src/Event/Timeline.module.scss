@@ -64,12 +64,19 @@
       }
     }
   }
-  @for $i from 0 to 100 {
+  @for $i from 0 to 30 {
     .d#{$i} {
       grid-column-start: d#{$i};
     }
     .de#{$i} {
       grid-column-end: de#{$i};
+    }
+  }
+  @for $i from 0 to 30 {
+    @for $j from 0 to 10 {
+      .d#{$i}-c#{$j} {
+        grid-column-start: d#{$i}-c#{$j};
+      }
     }
   }
 }

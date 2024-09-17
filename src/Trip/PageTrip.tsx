@@ -40,7 +40,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
       />
       <Container>
         {trip && activities ? (
-          <Timeline trip={trip} activities={activities} />
+          <Timeline trip={trip} />
         ) : isLoading ? (
           'Loading'
         ) : error ? (
