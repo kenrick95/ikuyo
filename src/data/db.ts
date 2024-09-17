@@ -44,7 +44,11 @@ export function dbAddTrip(
     DbTrip,
     'id' | 'createdAt' | 'lastUpdatedAt' | 'activity' | 'user'
   >,
-  user: DbUser
+  {
+    userId,
+  }: {
+    userId: string;
+  }
 ) {
   db.transact([
     tx.trip[id()]
@@ -54,7 +58,7 @@ export function dbAddTrip(
         lastUpdatedAt: Date.now(),
       })
       .link({
-        user: [user.id],
+        user: [userId],
       }),
   ]);
 }

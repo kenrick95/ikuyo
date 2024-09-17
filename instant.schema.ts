@@ -22,6 +22,7 @@ const graph = i.graph(
       lastUpdatedAt: i.number(),
       timestampEnd: i.number(),
       timestampStart: i.number(),
+      timeZone: i.string(),
       title: i.string(),
     }),
     user: i.entity({

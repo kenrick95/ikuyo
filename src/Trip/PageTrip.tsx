@@ -1,10 +1,11 @@
-import { Container, Heading } from '@radix-ui/themes';
+import { Button, Container, Heading } from '@radix-ui/themes';
 import { Timeline } from '../Event/Timeline';
 import { Navbar } from '../Nav/Navbar';
 import { NewActivityButton } from '../Event/NewActivityButton';
 import { RouteComponentProps } from 'wouter';
 import { db } from '../data/db';
 import { useMemo, useState } from 'react';
+import { TripEditDialog } from './TripEditDialog';
 
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   const { id: tripId } = params;
@@ -29,6 +30,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   }, [trip]);
 
   const [newActivityDialogOpen, setNewActivityDialogOpen] = useState(false);
+  const [editTripDialgoOpen, setEditTripDialgoOpen] = useState(false);
 
   return (
     <>
@@ -37,6 +39,14 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
           <Heading as="h2" size="5">
             {trip?.title ?? 'Loading trip'}
           </Heading>,
+          <Button
+            variant="outline"
+            onClick={() => {
+              setEditTripDialgoOpen(true);
+            }}
+          >
+            Edit trip
+          </Button>,
         ]}
         rightItems={[
           trip ? (
@@ -64,6 +74,14 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
           ''
         )}
       </Container>
+
+      {editTripDialgoOpen && trip ? (
+        <TripEditDialog
+          trip={trip}
+          dialogOpen={editTripDialgoOpen}
+          setDialogOpen={setEditTripDialgoOpen}
+        />
+      ) : null}
     </>
   );
 }

@@ -18,6 +18,8 @@ export type DbTrip = {
   timestampStart: number;
   /** ms of day _after_ of trip end. This means the final full day of trip is one day before `timestampEnd` */
   timestampEnd: number;
+  timeZone: string;
+
   activity: DbActivity[] | undefined;
   user: DbUser[] | undefined;
 };

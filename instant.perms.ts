@@ -1,4 +1,22 @@
 export default {
+  trip: {
+    bind: ['isInvolved', "auth.email in data.ref('user.email')"],
+    allow: {
+      view: 'true',
+      create: 'isInvolved',
+      delete: 'isInvolved',
+      update: 'isInvolved',
+    },
+  },
+  user: {
+    bind: ['isOwner', 'auth.email == data.email'],
+    allow: {
+      view: 'true',
+      create: 'isOwner',
+      delete: 'isOwner',
+      update: 'isOwner',
+    },
+  },
   attrs: {
     allow: {
       create: 'false',
@@ -7,30 +25,12 @@ export default {
     },
   },
   activity: {
+    bind: ['isInvolved', "auth.email in data.ref('trip.user.email')"],
     allow: {
       view: 'isInvolved',
       create: 'isInvolved',
-      update: 'isInvolved',
       delete: 'isInvolved',
-    },
-    bind: ['isInvolved', "auth.email in data.ref('trip.user.email')"],
-  },
-  trip: {
-    allow: {
-      view: 'true',
-      create: 'isInvolved',
       update: 'isInvolved',
-      delete: 'isInvolved',
     },
-    bind: ['isInvolved', "auth.email in data.ref('user.email')"],
-  },
-  user: {
-    allow: {
-      view: 'true',
-      create: 'isOwner',
-      update: 'isOwner',
-      delete: 'isOwner',
-    },
-    bind: ['isOwner', 'auth.email == data.email'],
   },
 };
