@@ -74,6 +74,7 @@ export function ActivityForm({
         location,
         tripId,
         title,
+        tripTimeZone,
         timeStartString,
         timeEndString,
         startTime: timeStartDate,
@@ -96,8 +97,8 @@ export function ActivityForm({
           title,
           description,
           location,
-          timestampStart: new Date(timeStartString).getTime(),
-          timestampEnd: new Date(timeEndString).getTime(),
+          timestampStart: timeStartDate.toMillis(),
+          timestampEnd: timeEndDate.toMillis(),
         });
         publishToast({
           root: {},
@@ -110,8 +111,8 @@ export function ActivityForm({
             title,
             description,
             location,
-            timestampStart: new Date(timeStartString).getTime(),
-            timestampEnd: new Date(timeEndString).getTime(),
+            timestampStart: timeStartDate.toMillis(),
+            timestampEnd: timeEndDate.toMillis(),
           },
           {
             tripId: tripId,
