@@ -92,6 +92,7 @@ export function Timeline({
 }
 
 type DayGroups = Array<{
+  /** DateTime in trip time zone */
   startDateTime: DateTime;
   columns: number;
   activities: DbActivity[];
