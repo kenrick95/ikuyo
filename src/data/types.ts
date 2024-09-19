@@ -26,6 +26,7 @@ export type DbTrip = {
 export type DbUser = {
   id: string;
   handle: string;
+  email: string;
   createdAt: number;
   lastUpdatedAt: number;
   trip: undefined | DbTrip[];

@@ -1,5 +1,5 @@
-import React, { useCallback, useId, useState } from 'react';
-import { db } from '../data/db';
+import React, { useCallback, useEffect, useId, useState } from 'react';
+import { db, dbAddUser } from '../data/db';
 import {
   Text,
   Box,
@@ -16,8 +16,30 @@ import { ROUTES } from '../routes';
 
 export function PageLogin() {
   const { isLoading, user, error } = db.useAuth();
-  const [sentEmail, setSentEmail] = useState('');
-  if (user) {
+  const [sentEmail, setSentEmail] = useState(''); 
+
+  const { data: userData } = db.useQuery({
+    user: {
+      $: {
+        where: {
+          email: user?.email,
+        },
+      },
+    },
+  });
+
+  useEffect(() => {
+    // Create new user if not exist
+    if (user?.email && userData?.user.length === 0) {
+      dbAddUser({
+        // TODO: ask to change handle later?
+        handle: user.email,
+        email: user.email,
+      });
+    }
+  }, [userData, user]);
+
+  if (userData?.user.length != null) {
     // Already authenticated
     return <Redirect to={ROUTES.Trips} />;
   }
@@ -100,23 +122,26 @@ function Email({ setSentEmail }: { setSentEmail: (email: string) => void }) {
 function MagicCode({ sentEmail }: { sentEmail: string }) {
   const publishToast = useBoundStore((state) => state.publishToast);
 
-  const handleSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const elForm = e.currentTarget;
-    if (!elForm.reportValidity()) {
-      return;
-    }
-    const formData = new FormData(elForm);
-    const code = formData.get('code')?.toString() ?? '';
-    db.auth.signInWithMagicCode({ email: sentEmail, code }).catch((err) => {
-      publishToast({
-        root: { duration: Infinity },
-        title: { children: 'Error signing in' },
-        description: { children: err.body?.message },
-        close: {},
+  const handleSubmit = useCallback(
+    (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      const elForm = e.currentTarget;
+      if (!elForm.reportValidity()) {
+        return;
+      }
+      const formData = new FormData(elForm);
+      const code = formData.get('code')?.toString() ?? '';
+      db.auth.signInWithMagicCode({ email: sentEmail, code }).catch((err) => {
+        publishToast({
+          root: { duration: Infinity },
+          title: { children: 'Error signing in' },
+          description: { children: err.body?.message },
+          close: {},
+        });
       });
-    });
-  }, [publishToast, sentEmail]);
+    },
+    [publishToast, sentEmail]
+  );
   const idCode = useId();
 
   return (
