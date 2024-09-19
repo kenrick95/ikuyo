@@ -160,8 +160,8 @@ function TimelineTime({
 /** Return `DateTime` objects for each of day in the trip */
 function groupActivitiesByDays(trip: DbTrip): DayGroups {
   const res: DayGroups = [];
-  const tripStartDateTime = DateTime.fromMillis(trip.timestampStart);
-  const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd);
+  const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone);
+  const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd).setZone(trip.timeZone);
   const tripDuration = tripEndDateTime.diff(tripStartDateTime, 'days');
   for (let d = 0; d < tripDuration.days; d++) {
     const dayStartDateTime = tripStartDateTime.plus({ day: d });
@@ -173,8 +173,8 @@ function groupActivitiesByDays(trip: DbTrip): DayGroups {
       activityColumnIndexMap.set(activity.id, 1);
       const activityStartDateTime = DateTime.fromMillis(
         activity.timestampStart
-      );
-      const activityEndDateTime = DateTime.fromMillis(activity.timestampEnd);
+      ).setZone(trip.timeZone);
+      const activityEndDateTime = DateTime.fromMillis(activity.timestampEnd).setZone(trip.timeZone);
       if (
         dayStartDateTime <= activityStartDateTime &&
         activityEndDateTime <= dayEndDateTime

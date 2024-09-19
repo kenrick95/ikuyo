@@ -11,12 +11,12 @@ export function ActivityViewDialog({
   dialogOpen: boolean;
   setDialogOpen: (newValue: boolean) => void;
 }) {
-  const activityStartStr = DateTime.fromMillis(
-    activity.timestampStart
-  ).toFormat('dd LLLL yyyy HH:mm');
-  const activityEndStr = DateTime.fromMillis(activity.timestampEnd).toFormat(
-    'dd LLLL yyyy HH:mm'
-  );
+  const activityStartStr = DateTime.fromMillis(activity.timestampStart)
+    .setZone(activity.trip?.timeZone)
+    .toFormat('dd LLLL yyyy HH:mm');
+  const activityEndStr = DateTime.fromMillis(activity.timestampEnd)
+    .setZone(activity.trip?.timeZone)
+    .toFormat('dd LLLL yyyy HH:mm');
   return (
     <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
       <Dialog.Content maxWidth="450px">

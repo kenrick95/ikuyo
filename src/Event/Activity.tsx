@@ -26,8 +26,11 @@ export function Activity({
   className?: string;
   columnIndex: number;
 }) {
-  const timeStart = formatTime(activity.timestampStart);
-  const timeEnd = formatTime(activity.timestampEnd);
+  const timeStart = formatTime(
+    activity.timestampStart,
+    activity.trip!.timeZone
+  );
+  const timeEnd = formatTime(activity.timestampEnd, activity.trip!.timeZone);
   const [dayStart] = getDayStartEnd(activity);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -118,9 +121,15 @@ export function Activity({
 }
 
 function getDayStartEnd(activity: DbActivity): [number, number] {
-  const tripStart = DateTime.fromMillis(activity.trip!.timestampStart);
-  const activityStart = DateTime.fromMillis(activity.timestampStart);
-  const activityEnd = DateTime.fromMillis(activity.timestampEnd);
+  const tripStart = DateTime.fromMillis(activity.trip!.timestampStart).setZone(
+    activity.trip?.timeZone
+  );
+  const activityStart = DateTime.fromMillis(activity.timestampStart).setZone(
+    activity.trip?.timeZone
+  );
+  const activityEnd = DateTime.fromMillis(activity.timestampEnd).setZone(
+    activity.trip?.timeZone
+  );
   const diffStart = activityStart.diff(tripStart, 'day');
   const diffEnd = activityEnd.diff(tripStart, 'day');
   return [Math.floor(diffStart.days) + 1, Math.floor(diffEnd.days) + 1];

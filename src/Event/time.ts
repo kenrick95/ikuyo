@@ -27,17 +27,21 @@ export function formatFullDate(date: Date) {
 }
 /**
  * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/datetime-local
- * @param date Date object
+ * @param date Date object in trip's time zone
  * @returns `YYYY-MM-DDTHH:mm`
  */
 export function formatToDatetimeLocalInput(date: DateTime) {
   return date.toFormat(`yyyy-LL-dd'T'HH:mm`);
 }
 export function getDateTimeFromDatetimeLocalInput(
-  datetimeLocalInputString: string
+  datetimeLocalInputString: string,
+  timeZone: string
 ): DateTime {
-  return DateTime.fromFormat(datetimeLocalInputString, `yyyy-LL-dd'T'HH:mm`);
+  return DateTime.fromFormat(
+    datetimeLocalInputString,
+    `yyyy-LL-dd'T'HH:mm`
+  ).setZone(timeZone);
 }
-export function formatTime(timestamp: number): string {
-  return DateTime.fromMillis(timestamp).toFormat(`HHmm`);
+export function formatTime(timestamp: number, timeZone: string): string {
+  return DateTime.fromMillis(timestamp).setZone(timeZone).toFormat(`HHmm`);
 }

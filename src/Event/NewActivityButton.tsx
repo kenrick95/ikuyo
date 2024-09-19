@@ -17,10 +17,12 @@ export function NewActivityButton({
   setDialogOpen: (newValue: boolean) => void;
 }) {
   const tripStartStr = formatToDatetimeLocalInput(
-    DateTime.fromMillis(trip.timestampStart)
+    DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone)
   );
   const tripEndStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(trip.timestampEnd)
+      .setZone(trip.timeZone)
+      .minus({ minute: 1 })
   );
 
   return (
@@ -44,6 +46,7 @@ export function NewActivityButton({
           setDialogOpen={setDialogOpen}
           tripStartStr={tripStartStr}
           tripEndStr={tripEndStr}
+          tripTimeZone={trip.timeZone}
           activityTitle={''}
           activityStartStr={tripStartStr}
           activityEndStr={tripEndStr}

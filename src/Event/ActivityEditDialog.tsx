@@ -15,16 +15,22 @@ export function ActivityEditDialog({
   setDialogOpen: (newValue: boolean) => void;
 }) {
   const tripStartStr = formatToDatetimeLocalInput(
-    DateTime.fromMillis(activity.trip!.timestampStart)
+    DateTime.fromMillis(activity.trip!.timestampStart).setZone(
+      activity.trip?.timeZone
+    )
   );
   const tripEndStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(activity.trip!.timestampEnd)
+      .setZone(activity.trip?.timeZone)
+      .minus({ minute: 1 })
   );
   const activityStartStr = formatToDatetimeLocalInput(
-    DateTime.fromMillis(activity.timestampStart)
+    DateTime.fromMillis(activity.timestampStart).setZone(
+      activity.trip?.timeZone
+    )
   );
   const activityEndStr = formatToDatetimeLocalInput(
-    DateTime.fromMillis(activity.timestampEnd)
+    DateTime.fromMillis(activity.timestampEnd).setZone(activity.trip?.timeZone)
   );
   return (
     <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -39,6 +45,7 @@ export function ActivityEditDialog({
           mode={ActivityFormMode.Edit}
           tripStartStr={tripStartStr}
           tripEndStr={tripEndStr}
+          tripTimeZone={activity.trip!.timeZone}
           activityTitle={activity.title}
           activityStartStr={activityStartStr}
           activityEndStr={activityEndStr}

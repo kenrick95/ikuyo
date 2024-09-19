@@ -54,8 +54,9 @@ export function TripForm({
         const dateEndStr = formData.get('endDate')?.toString() ?? '';
         const timeZone = formData.get('timeZone')?.toString() ?? '';
 
-        const dateStartDateTime = getDateTimeFromDateInput(dateStartStr);
-        const dateEndDateTime = getDateTimeFromDateInput(dateEndStr).plus({
+        const dateStartDateTime =
+          getDateTimeFromDateInput(dateStartStr).setZone(timeZone);
+        const dateEndDateTime = dateStartDateTime.plus({
           days: 1,
         });
         console.log('TripForm', {

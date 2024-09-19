@@ -12,6 +12,7 @@ export function ActivityForm({
   setDialogOpen,
   tripStartStr,
   tripEndStr,
+  tripTimeZone,
   activityTitle,
   activityStartStr,
   activityEndStr,
@@ -25,6 +26,7 @@ export function ActivityForm({
   setDialogOpen: (newValue: boolean) => void;
   tripStartStr: string;
   tripEndStr: string;
+  tripTimeZone: string;
   activityTitle: string;
   activityStartStr: string;
   activityEndStr: string;
@@ -63,9 +65,14 @@ export function ActivityForm({
         const location = formData.get('location')?.toString() ?? '';
         const timeStartString = formData.get('startTime')?.toString() ?? '';
         const timeEndString = formData.get('endTime')?.toString() ?? '';
-        const timeStartDate =
-          getDateTimeFromDatetimeLocalInput(timeStartString);
-        const timeEndDate = getDateTimeFromDatetimeLocalInput(timeEndString);
+        const timeStartDate = getDateTimeFromDatetimeLocalInput(
+          timeStartString,
+          tripTimeZone
+        );
+        const timeEndDate = getDateTimeFromDatetimeLocalInput(
+          timeEndString,
+          tripTimeZone
+        );
         console.log('ActivityForm', {
           mode,
           activityId,
@@ -127,7 +134,9 @@ export function ActivityForm({
       }}
     >
       <Flex direction="column" gap="2">
-        <Text color="red" size="2">{errorMessage}&nbsp;</Text>
+        <Text color="red" size="2">
+          {errorMessage}&nbsp;
+        </Text>
         <Text as="label" htmlFor={idTitle}>
           Activity name{' '}
           <Text weight="light" size="1">
