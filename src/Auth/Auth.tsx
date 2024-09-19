@@ -116,7 +116,7 @@ function MagicCode({ sentEmail }: { sentEmail: string }) {
         close: {},
       });
     });
-  }, []);
+  }, [publishToast, sentEmail]);
   const idCode = useId();
 
   return (
