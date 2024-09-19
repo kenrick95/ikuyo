@@ -28,12 +28,12 @@ jobs:
         run: pnpm build
       - uses: up9cloud/action-rsync@v1.4
         env:
-          HOST: ${{secrets.DEPLOY_HOST}}
+          HOST: ${{env.DEPLOY_HOST}}
           KEY: ${{secrets.DEPLOY_SSH_KEY}}
-          TARGET: ${{secrets.DEPLOY_TARGET}}
-          SOURCE: './dist'
+          TARGET: ${{env.DEPLOY_TARGET}}
+          SOURCE: './dist/'
           MODE: push
           VERBOSE: true
-          PORT: ${{secrets.DEPLOY_PORT}}
-          USER: ${{secrets.DEPLOY_USER}}
+          PORT: ${{env.DEPLOY_PORT}}
+          USER: ${{env.DEPLOY_USER}}
           ARGS: -avz --exclude-from=.gitignore --exclude=/.git/ --exclude=/.github/
