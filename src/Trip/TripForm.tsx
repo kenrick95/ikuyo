@@ -54,8 +54,10 @@ export function TripForm({
         const dateEndStr = formData.get('endDate')?.toString() ?? '';
         const timeZone = formData.get('timeZone')?.toString() ?? '';
 
-        const dateStartDateTime =
-          getDateTimeFromDateInput(dateStartStr).setZone(timeZone);
+        const dateStartDateTime = getDateTimeFromDateInput(
+          dateStartStr,
+          timeZone
+        );
         const dateEndDateTime = dateStartDateTime.plus({
           days: 1,
         });
@@ -165,7 +167,11 @@ export function TripForm({
           <Select.Trigger id={idTimeZone} />
           <Select.Content>
             {timeZones.map((tz) => {
-              return <Select.Item key={tz} value={tz}>{tz}</Select.Item>;
+              return (
+                <Select.Item key={tz} value={tz}>
+                  {tz}
+                </Select.Item>
+              );
             })}
           </Select.Content>
         </Select.Root>

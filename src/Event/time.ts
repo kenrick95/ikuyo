@@ -39,8 +39,11 @@ export function getDateTimeFromDatetimeLocalInput(
 ): DateTime {
   return DateTime.fromFormat(
     datetimeLocalInputString,
-    `yyyy-LL-dd'T'HH:mm`
-  ).setZone(timeZone);
+    `yyyy-LL-dd'T'HH:mm`,
+    {
+      zone: timeZone, 
+    }
+  );
 }
 export function formatTime(timestamp: number, timeZone: string): string {
   return DateTime.fromMillis(timestamp).setZone(timeZone).toFormat(`HHmm`);
