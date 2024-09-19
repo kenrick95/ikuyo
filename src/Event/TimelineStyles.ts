@@ -42,10 +42,10 @@ for (let i = 0; i < 24; i++) {
   }
 }
 for (let i = 0; i < 30; i++) {
-  dayStartMapping[i] = tClasses[`d${i}`];
+  dayStartMapping[i] = tClasses[`d${String(i)}`];
   dayColMapping[i] = {};
   for (let j = 0; j < 10; j++) {
-    dayColMapping[i][j] = tClasses[`d${i}-c${j}`]
+    dayColMapping[i][j] = tClasses[`d${String(i)}-c${String(j)}`];
   }
-  dayEndMapping[i] = tClasses[`de${i}`];
+  dayEndMapping[i] = tClasses[`de${String(i)}`];
 }

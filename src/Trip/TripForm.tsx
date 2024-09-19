@@ -35,6 +35,80 @@ export function TripForm({
   }, [setDialogOpen]);
   const [errorMessage, setErrorMessage] = useState('');
   const timeZones = Intl.supportedValuesOf('timeZone');
+  const handleForm = useCallback(() => {
+    return async (elForm: HTMLFormElement) => {
+      setErrorMessage('');
+      if (!elForm.reportValidity()) {
+        return;
+      }
+      const formData = new FormData(elForm);
+      const title = formData.get('title')?.toString() ?? '';
+      const dateStartStr = formData.get('startDate')?.toString() ?? '';
+      const dateEndStr = formData.get('endDate')?.toString() ?? '';
+      const timeZone = formData.get('timeZone')?.toString() ?? '';
+
+      const dateStartDateTime = getDateTimeFromDateInput(
+        dateStartStr,
+        timeZone
+      );
+      const dateEndDateTime = getDateTimeFromDateInput(
+        dateEndStr,
+        timeZone
+      ).plus({ day: 1 });
+      console.log('TripForm', {
+        mode,
+        location,
+        tripId,
+        title,
+        timeZone,
+        dateStartStr,
+        dateEndStr,
+        dateStartDateTime,
+        dateEndDateTime,
+      });
+      if (!title || !dateStartStr || !dateEndStr) {
+        return;
+      }
+      if (dateEndDateTime.diff(dateStartDateTime).as('minute') < 0) {
+        setErrorMessage(`End date must be after start date`);
+        return;
+      }
+      if (mode === TripFormMode.Edit && tripId) {
+        await dbUpdateTrip({
+          id: tripId,
+          title,
+          timeZone,
+          timestampStart: dateStartDateTime.toMillis(),
+          timestampEnd: dateEndDateTime.toMillis(),
+        });
+        publishToast({
+          root: {},
+          title: { children: `Trip ${title} edited` },
+          close: {},
+        });
+      } else if (mode === TripFormMode.New && userId) {
+        await dbAddTrip(
+          {
+            title,
+            timeZone,
+            timestampStart: dateStartDateTime.toMillis(),
+            timestampEnd: dateEndDateTime.toMillis(),
+          },
+          {
+            userId,
+          }
+        );
+
+        publishToast({
+          root: {},
+          title: { children: `Trip ${title} added` },
+          close: {},
+        });
+      }
+      elForm.reset();
+      setDialogOpen(false);
+    };
+  }, [mode, publishToast, setDialogOpen, tripId, userId]);
 
   return (
     <form
@@ -44,75 +118,7 @@ export function TripForm({
       onSubmit={(e) => {
         e.preventDefault();
         const elForm = e.currentTarget;
-        setErrorMessage('');
-        if (!elForm.reportValidity()) {
-          return;
-        }
-        const formData = new FormData(elForm);
-        const title = formData.get('title')?.toString() ?? '';
-        const dateStartStr = formData.get('startDate')?.toString() ?? '';
-        const dateEndStr = formData.get('endDate')?.toString() ?? '';
-        const timeZone = formData.get('timeZone')?.toString() ?? '';
-
-        const dateStartDateTime = getDateTimeFromDateInput(
-          dateStartStr,
-          timeZone
-        );
-        const dateEndDateTime = dateStartDateTime.plus({
-          days: 1,
-        });
-        console.log('TripForm', {
-          mode,
-          location,
-          tripId,
-          title,
-          timeZone,
-          dateStartStr,
-          dateEndStr,
-          dateStartDateTime,
-          dateEndDateTime,
-        });
-        if (!title || !dateStartStr || !dateEndStr) {
-          return;
-        }
-        if (dateEndDateTime.diff(dateStartDateTime).as('minute') < 0) {
-          setErrorMessage(`End date must be after start date`);
-          return;
-        }
-        if (mode === TripFormMode.Edit && tripId) {
-          dbUpdateTrip({
-            id: tripId,
-            title,
-            timeZone,
-            timestampStart: dateStartDateTime.toMillis(),
-            timestampEnd: dateEndDateTime.toMillis(),
-          });
-          publishToast({
-            root: {},
-            title: { children: `Trip ${title} edited` },
-            close: {},
-          });
-        } else if (mode === TripFormMode.New && userId) {
-          dbAddTrip(
-            {
-              title,
-              timeZone,
-              timestampStart: dateStartDateTime.toMillis(),
-              timestampEnd: dateEndDateTime.toMillis(),
-            },
-            {
-              userId,
-            }
-          );
-
-          publishToast({
-            root: {},
-            title: { children: `Trip ${title} added` },
-            close: {},
-          });
-        }
-        elForm.reset();
-        setDialogOpen(false);
+        void handleForm()(elForm);
       }}
     >
       <Flex direction="column" gap="2">

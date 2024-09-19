@@ -44,6 +44,91 @@ export function ActivityForm({
   }, [setDialogOpen]);
   const [errorMessage, setErrorMessage] = useState('');
 
+  const handleSubmit = useCallback(() => {
+    return async (elForm: HTMLFormElement) => {
+      setErrorMessage('');
+      // TIL: https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/setCustomValidity
+      // HTMLInputElement.setCustomValidity()
+      // seems quite hard to use... need to call setCustomValidity again after invalid, before "submit" event
+      if (!elForm.reportValidity()) {
+        return;
+      }
+      const formData = new FormData(elForm);
+      const title = formData.get('title')?.toString() ?? '';
+      const description = formData.get('description')?.toString() ?? '';
+      const location = formData.get('location')?.toString() ?? '';
+      const timeStartString = formData.get('startTime')?.toString() ?? '';
+      const timeEndString = formData.get('endTime')?.toString() ?? '';
+      const timeStartDate = getDateTimeFromDatetimeLocalInput(
+        timeStartString,
+        tripTimeZone
+      );
+      const timeEndDate = getDateTimeFromDatetimeLocalInput(
+        timeEndString,
+        tripTimeZone
+      );
+      console.log('ActivityForm', {
+        mode,
+        activityId,
+        description,
+        location,
+        tripId,
+        title,
+        timeStartString,
+        timeEndString,
+        startTime: timeStartDate,
+        endTime: timeEndDate,
+      });
+      if (!title || !timeStartString || !timeEndString) {
+        return;
+      }
+      if (timeEndDate.diff(timeStartDate).as('minute') < 0) {
+        setErrorMessage(`End time must be after start time`);
+        return;
+      }
+      if (!timeEndDate.hasSame(timeStartDate, 'day')) {
+        setErrorMessage(`Activity must occur on same day`);
+        return;
+      }
+      if (mode === ActivityFormMode.Edit && activityId) {
+        await dbUpdateActivity({
+          id: activityId,
+          title,
+          description,
+          location,
+          timestampStart: new Date(timeStartString).getTime(),
+          timestampEnd: new Date(timeEndString).getTime(),
+        });
+        publishToast({
+          root: {},
+          title: { children: `Activity ${title} edited` },
+          close: {},
+        });
+      } else if (mode === ActivityFormMode.New && tripId) {
+        await dbAddActivity(
+          {
+            title,
+            description,
+            location,
+            timestampStart: new Date(timeStartString).getTime(),
+            timestampEnd: new Date(timeEndString).getTime(),
+          },
+          {
+            tripId: tripId,
+          }
+        );
+        publishToast({
+          root: {},
+          title: { children: `Activity ${title} added` },
+          close: {},
+        });
+      }
+
+      elForm.reset();
+      setDialogOpen(false);
+    };
+  }, [activityId, mode, publishToast, setDialogOpen, tripId, tripTimeZone]);
+
   return (
     <form
       onInput={() => {
@@ -52,85 +137,7 @@ export function ActivityForm({
       onSubmit={(e) => {
         e.preventDefault();
         const elForm = e.currentTarget;
-        setErrorMessage('');
-        // TIL: https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/setCustomValidity
-        // HTMLInputElement.setCustomValidity()
-        // seems quite hard to use... need to call setCustomValidity again after invalid, before "submit" event
-        if (!elForm.reportValidity()) {
-          return;
-        }
-        const formData = new FormData(elForm);
-        const title = formData.get('title')?.toString() ?? '';
-        const description = formData.get('description')?.toString() ?? '';
-        const location = formData.get('location')?.toString() ?? '';
-        const timeStartString = formData.get('startTime')?.toString() ?? '';
-        const timeEndString = formData.get('endTime')?.toString() ?? '';
-        const timeStartDate = getDateTimeFromDatetimeLocalInput(
-          timeStartString,
-          tripTimeZone
-        );
-        const timeEndDate = getDateTimeFromDatetimeLocalInput(
-          timeEndString,
-          tripTimeZone
-        );
-        console.log('ActivityForm', {
-          mode,
-          activityId,
-          description,
-          location,
-          tripId,
-          title,
-          timeStartString,
-          timeEndString,
-          startTime: timeStartDate,
-          endTime: timeEndDate,
-        });
-        if (!title || !timeStartDate || !timeEndDate) {
-          return;
-        }
-        if (timeEndDate.diff(timeStartDate).as('minute') < 0) {
-          setErrorMessage(`End time must be after start time`);
-          return;
-        }
-        if (!timeEndDate.hasSame(timeStartDate, 'day')) {
-          setErrorMessage(`Activity must occur on same day`);
-          return;
-        }
-        if (mode === ActivityFormMode.Edit && activityId) {
-          dbUpdateActivity({
-            id: activityId,
-            title,
-            description,
-            location,
-            timestampStart: new Date(timeStartString).getTime(),
-            timestampEnd: new Date(timeEndString).getTime(),
-          });
-          publishToast({
-            root: {},
-            title: { children: `Activity ${title} edited` },
-            close: {},
-          });
-        } else if (mode === ActivityFormMode.New && tripId) {
-          dbAddActivity(
-            {
-              title,
-              description,
-              location,
-              timestampStart: new Date(timeStartString).getTime(),
-              timestampEnd: new Date(timeEndString).getTime(),
-            },
-            {
-              tripId: tripId,
-            }
-          );
-          publishToast({
-            root: {},
-            title: { children: `Activity ${title} added` },
-            close: {},
-          });
-        }
-        elForm.reset();
-        setDialogOpen(false);
+        void handleSubmit()(elForm);
       }}
     >
       <Flex direction="column" gap="2">

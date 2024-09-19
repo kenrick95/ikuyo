@@ -1,21 +1,21 @@
 import { Dialog, Flex, Text, Heading, Button } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
-import { DbActivity } from '../data/types';
+import { DbActivityWithTrip } from '../data/types';
 
 export function ActivityViewDialog({
   activity,
   dialogOpen,
   setDialogOpen,
 }: {
-  activity: DbActivity;
+  activity: DbActivityWithTrip;
   dialogOpen: boolean;
   setDialogOpen: (newValue: boolean) => void;
 }) {
   const activityStartStr = DateTime.fromMillis(activity.timestampStart)
-    .setZone(activity.trip?.timeZone)
+    .setZone(activity.trip.timeZone)
     .toFormat('dd LLLL yyyy HH:mm');
   const activityEndStr = DateTime.fromMillis(activity.timestampEnd)
-    .setZone(activity.trip?.timeZone)
+    .setZone(activity.trip.timeZone)
     .toFormat('dd LLLL yyyy HH:mm');
   return (
     <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>

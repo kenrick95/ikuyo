@@ -15,14 +15,25 @@ export function ActivityDeleteDialog({
 }) {
   const publishToast = useBoundStore((state) => state.publishToast);
   const deleteActivity = useCallback(() => {
-    dbDeleteActivity(activity);
-    publishToast({
-      root: {},
-      title: { children: `Activity "${activity.title}" deleted` },
-      close: {},
-    });
+    void dbDeleteActivity(activity)
+      .then(() => {
+        publishToast({
+          root: {},
+          title: { children: `Activity "${activity.title}" deleted` },
+          close: {},
+        });
 
-    setDialogOpen(false);
+        setDialogOpen(false);
+      })
+      .catch((err: unknown) => {
+        console.error(`Error deleting "${activity.title}"`, err);
+        publishToast({
+          root: {},
+          title: { children: `Error deleting "${activity.title}"` },
+          close: {},
+        });
+        setDialogOpen(false);
+      });
   }, [publishToast, activity, setDialogOpen]);
 
   return (

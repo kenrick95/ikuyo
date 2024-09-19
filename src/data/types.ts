@@ -1,3 +1,7 @@
+export type DbActivityWithTrip = Omit<DbActivity, 'trip'> & {
+  trip: DbTripWithActivity;
+};
+
 export type DbActivity = {
   id: string;
   title: string;
@@ -10,6 +14,10 @@ export type DbActivity = {
   createdAt: number;
   lastUpdatedAt: number;
   trip: DbTrip | undefined;
+};
+
+export type DbTripWithActivity = Omit<DbTrip, 'activity'> & {
+  activity: DbActivityWithTrip[];
 };
 export type DbTrip = {
   id: string;

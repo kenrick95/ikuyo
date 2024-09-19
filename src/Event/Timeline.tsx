@@ -1,7 +1,7 @@
 import clsx from 'clsx';
 import { Activity } from './Activity';
 import s from './Timeline.module.scss';
-import { DbActivity, DbTrip } from '../data/types';
+import {   DbActivityWithTrip,  DbTripWithActivity } from '../data/types';
 import { ContextMenu, Section } from '@radix-ui/themes';
 
 import { DateTime } from 'luxon';
@@ -16,7 +16,7 @@ const times = new Array(24).fill(0).map((_, i) => {
   return (
     <TimelineTime
       className={timeColumnMapping[i]}
-      timeStart={`${i}:00`}
+      timeStart={`${String(i)}:00`}
       key={i}
     />
   );
@@ -26,7 +26,7 @@ export function Timeline({
   trip,
   setNewActivityDialogOpen,
 }: {
-  trip: DbTrip;
+  trip: DbTripWithActivity;
   setNewActivityDialogOpen: (newValue: boolean) => void;
 }) {
   const dayGroups = useMemo(() => groupActivitiesByDays(trip), [trip]);
@@ -95,7 +95,7 @@ type DayGroups = Array<{
   /** DateTime in trip time zone */
   startDateTime: DateTime;
   columns: number;
-  activities: DbActivity[];
+  activities: DbActivityWithTrip[];
   activityColumnIndexMap: Map<string, number>;
 }>;
 
@@ -114,23 +114,23 @@ function generateGridTemplateColumns(dayGroups: DayGroups): string {
 
   for (let dayIndex = 0; dayIndex < dayGroups.length; dayIndex++) {
     const dayGroup = dayGroups[dayIndex];
-    const colWidth = 360 / dayGroup.columns;
+    const colWidth = String(360 / dayGroup.columns);
     for (let colIndex = 0; colIndex < dayGroup.columns; colIndex++) {
       const lineNames: string[] = [];
       if (dayIndex > 0) {
-        lineNames.push(`de${dayIndex}`);
+        lineNames.push(`de${String(dayIndex)}`);
       }
       if (colIndex === 0) {
-        lineNames.push(`d${dayIndex + 1}`);
+        lineNames.push(`d${String(dayIndex + 1)}`);
       }
-      lineNames.push(`d${dayIndex + 1}-c${colIndex + 1}`);
+      lineNames.push(`d${String(dayIndex + 1)}-c${String(colIndex + 1)}`);
 
       str += ` [${lineNames.join(' ')}] ${colWidth}fr`;
     }
   }
 
   // Then add final "day end" line name
-  str += ` [de${dayGroups.length - 1}]`;
+  str += ` [de${String(dayGroups.length - 1)}]`;
 
   return str;
 }
@@ -159,23 +159,29 @@ function TimelineTime({
 }
 
 /** Return `DateTime` objects for each of day in the trip */
-function groupActivitiesByDays(trip: DbTrip): DayGroups {
+function groupActivitiesByDays(trip: DbTripWithActivity): DayGroups {
   const res: DayGroups = [];
-  const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone);
-  const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd).setZone(trip.timeZone);
+  const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
+    trip.timeZone
+  );
+  const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd).setZone(
+    trip.timeZone
+  );
   const tripDuration = tripEndDateTime.diff(tripStartDateTime, 'days');
   for (let d = 0; d < tripDuration.days; d++) {
     const dayStartDateTime = tripStartDateTime.plus({ day: d });
     const dayEndDateTime = tripStartDateTime.plus({ day: d + 1 });
-    const dayActivities: DbActivity[] = [];
+    const dayActivities: DbActivityWithTrip[] = [];
     /** activity id --> column index */
     const activityColumnIndexMap: Map<string, number> = new Map();
-    for (const activity of trip.activity ?? []) {
+    for (const activity of trip.activity) {
       activityColumnIndexMap.set(activity.id, 1);
       const activityStartDateTime = DateTime.fromMillis(
         activity.timestampStart
       ).setZone(trip.timeZone);
-      const activityEndDateTime = DateTime.fromMillis(activity.timestampEnd).setZone(trip.timeZone);
+      const activityEndDateTime = DateTime.fromMillis(
+        activity.timestampEnd
+      ).setZone(trip.timeZone);
       if (
         dayStartDateTime <= activityStartDateTime &&
         activityEndDateTime <= dayEndDateTime

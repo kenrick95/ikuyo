@@ -35,17 +35,18 @@ export function PageLogin() {
       resetToast();
       if (userData?.user.length === 0) {
         // Create new user if not exist
-        dbAddUser({
+        void dbAddUser({
           // TODO: ask to change handle later?
           handle: user.email,
           email: user.email,
+        }).then(() => {
+          publishToast({
+            root: { duration: Infinity },
+            title: { children: `Welcome ${user.email}!` },
+            close: {},
+          });
         });
-        publishToast({
-          root: { duration: Infinity },
-          title: { children: `Welcome ${user.email}!` },
-          close: {},
-        });
-      } else if (userData?.user.length != null && userData?.user.length > 0) {
+      } else if (userData?.user.length != null && userData.user.length > 0) {
         publishToast({
           root: { duration: Infinity },
           title: { children: `Welcome back ${user.email}!` },
@@ -55,7 +56,7 @@ export function PageLogin() {
     }
   }, [userData, user, resetToast, publishToast]);
 
-  if (userData?.user.length != null && userData?.user.length > 0) {
+  if (userData?.user.length != null && userData.user.length > 0) {
     // Already authenticated
     return <Redirect to={ROUTES.Trips} />;
   }
@@ -66,7 +67,7 @@ export function PageLogin() {
         {isLoading ? (
           'Loading'
         ) : error ? (
-          `Error: ${error}`
+          `Error: ${error.message}`
         ) : !sentEmail ? (
           <Email setSentEmail={setSentEmail} />
         ) : (
@@ -101,12 +102,14 @@ function Email({ setSentEmail }: { setSentEmail: (email: string) => void }) {
             close: {},
           });
         })
-        .catch((err) => {
+        .catch((err: unknown) => {
           setSentEmail('');
           publishToast({
             root: { duration: Infinity },
             title: { children: `Error sending email to ${email}` },
-            description: { children: err.body?.message },
+            description: {
+              children: (err as { body?: { message?: string } }).body?.message,
+            },
             close: {},
           });
         });
@@ -147,14 +150,18 @@ function MagicCode({ sentEmail }: { sentEmail: string }) {
       }
       const formData = new FormData(elForm);
       const code = formData.get('code')?.toString() ?? '';
-      db.auth.signInWithMagicCode({ email: sentEmail, code }).catch((err) => {
-        publishToast({
-          root: { duration: Infinity },
-          title: { children: 'Error signing in' },
-          description: { children: err.body?.message },
-          close: {},
+      db.auth
+        .signInWithMagicCode({ email: sentEmail, code })
+        .catch((err: unknown) => {
+          publishToast({
+            root: { duration: Infinity },
+            title: { children: 'Error signing in' },
+            description: {
+              children: (err as { body?: { message?: string } }).body?.message,
+            },
+            close: {},
+          });
         });
-      });
     },
     [publishToast, sentEmail]
   );

@@ -26,14 +26,14 @@ export const createToastSlice: StateCreator<ToastSlice, [], [], ToastSlice> = (
   return {
     toasts: [],
     publishToast: (newToast: ToastConfig) => {
-      return set((state) => {
+      set((state) => {
         return {
           toasts: [...state.toasts, newToast],
         };
       });
     },
     resetToast: () => {
-      return set(() => {
+      set(() => {
         return {
           toasts: [],
         };

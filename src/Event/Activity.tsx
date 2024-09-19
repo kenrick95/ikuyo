@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { InfoCircledIcon, SewingPinIcon } from '@radix-ui/react-icons';
 
 import { Text, Box, ContextMenu } from '@radix-ui/themes';
-import { DbActivity } from '../data/types';
+import { DbActivityWithTrip } from '../data/types';
 import { formatTime } from './time';
 import { DateTime } from 'luxon';
 import { ActivityDeleteDialog } from './ActivityDeleteDialog';
@@ -22,15 +22,12 @@ export function Activity({
   className,
   columnIndex,
 }: {
-  activity: DbActivity;
+  activity: DbActivityWithTrip;
   className?: string;
   columnIndex: number;
 }) {
-  const timeStart = formatTime(
-    activity.timestampStart,
-    activity.trip!.timeZone
-  );
-  const timeEnd = formatTime(activity.timestampEnd, activity.trip!.timeZone);
+  const timeStart = formatTime(activity.timestampStart, activity.trip.timeZone);
+  const timeEnd = formatTime(activity.timestampEnd, activity.trip.timeZone);
   const [dayStart] = getDayStartEnd(activity);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -120,15 +117,15 @@ export function Activity({
   );
 }
 
-function getDayStartEnd(activity: DbActivity): [number, number] {
-  const tripStart = DateTime.fromMillis(activity.trip!.timestampStart).setZone(
-    activity.trip?.timeZone
+function getDayStartEnd(activity: DbActivityWithTrip): [number, number] {
+  const tripStart = DateTime.fromMillis(activity.trip.timestampStart).setZone(
+    activity.trip.timeZone
   );
   const activityStart = DateTime.fromMillis(activity.timestampStart).setZone(
-    activity.trip?.timeZone
+    activity.trip.timeZone
   );
   const activityEnd = DateTime.fromMillis(activity.timestampEnd).setZone(
-    activity.trip?.timeZone
+    activity.trip.timeZone
   );
   const diffStart = activityStart.diff(tripStart, 'day');
   const diffEnd = activityEnd.diff(tripStart, 'day');

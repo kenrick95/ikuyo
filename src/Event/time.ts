@@ -2,19 +2,19 @@ import { DateTime } from 'luxon';
 
 export function pad4(num: number): string {
   if (num >= 1000) {
-    return `${num}`;
+    return String(num);
   } else if (num >= 100) {
-    return `0${num}`;
+    return `0${String(num)}`;
   } else if (num >= 10) {
-    return `00${num}`;
+    return `00${String(num)}`;
   }
-  return `000${num}`;
+  return `000${String(num)}`;
 }
 export function pad2(num: number): string {
   if (num >= 10) {
-    return `${num}`;
+    return String(num);
   }
-  return `0${num}`;
+  return `0${String(num)}`;
 }
 /**
  *

@@ -8,6 +8,7 @@ import { useMemo, useState } from 'react';
 import { TripEditDialog } from './TripEditDialog';
 import { useAuthUser } from '../Auth/hooks';
 import { TripMenu } from './TripMenu';
+import { DbTrip, DbTripWithActivity } from '../data/types';
 
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   const { id: tripId } = params;
@@ -23,15 +24,17 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
       activity: {},
     },
   });
-  const trip = data?.trip[0];
-  const activities = useMemo(() => {
-    return (
-      trip?.activity?.map((activity) => {
-        activity.trip = trip;
+  const rawTrip = data?.trip[0] as DbTrip | undefined;
+
+  const trip = useMemo(() => {
+    if (rawTrip && rawTrip.activity) {
+      rawTrip.activity = rawTrip.activity.map((activity) => {
+        activity.trip = rawTrip;
         return activity;
-      }) ?? []
-    );
-  }, [trip]);
+      });
+    }
+    return rawTrip;
+  }, [rawTrip]);
 
   const [newActivityDialogOpen, setNewActivityDialogOpen] = useState(false);
   const [editTripDialgoOpen, setEditTripDialgoOpen] = useState(false);
@@ -45,7 +48,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
           </Heading>,
         ]}
         rightItems={[
-          <span key="user">{user ? `${user.email}` : ''}</span>,
+          <span key="user">{user ? user.email : ''}</span>,
           <TripMenu
             key="menu"
             setEditTripDialgoOpen={setEditTripDialgoOpen}
@@ -54,9 +57,9 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
         ]}
       />
       <Container>
-        {trip && activities ? (
+        {trip ? (
           <Timeline
-            trip={trip}
+            trip={trip as DbTripWithActivity}
             setNewActivityDialogOpen={setNewActivityDialogOpen}
           />
         ) : isLoading ? (

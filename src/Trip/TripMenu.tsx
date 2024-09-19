@@ -42,9 +42,10 @@ export function TripMenu({
         <DropdownMenu.Separator />
         <DropdownMenu.Label>Account</DropdownMenu.Label>
         <DropdownMenu.Item
-          onClick={async () => {
-            await db.auth.signOut();
-            setLocation(ROUTES.Login);
+          onClick={() => {
+            void db.auth.signOut().then(() => {
+              setLocation(ROUTES.Login);
+            });
           }}
         >
           Log out
