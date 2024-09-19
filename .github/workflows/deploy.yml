@@ -26,14 +26,16 @@ jobs:
         run: pnpm lint
       - name: Build
         run: pnpm build
+      - name: Debug
+        run: env
       - uses: up9cloud/action-rsync@v1.4
         env:
-          HOST: ${{env.DEPLOY_HOST}}
-          KEY: ${{secrets.DEPLOY_SSH_KEY}}
-          TARGET: ${{env.DEPLOY_TARGET}}
+          HOST: ${{ vars.DEPLOY_HOST }}
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          TARGET: ${{ vars.DEPLOY_TARGET }}
           SOURCE: './dist/'
           MODE: push
           VERBOSE: true
-          PORT: ${{env.DEPLOY_PORT}}
-          USER: ${{env.DEPLOY_USER}}
+          PORT: ${{ vars.DEPLOY_PORT }}
+          USER: ${{ vars.DEPLOY_USER }}
           ARGS: -avz --exclude-from=.gitignore --exclude=/.git/ --exclude=/.github/
