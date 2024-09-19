@@ -2,6 +2,7 @@ import { Box, Container, Flex, Heading } from '@radix-ui/themes';
 import s from './Navbar.module.css';
 import imgUrl from '/ikuyo.svg';
 import React from 'react';
+import clsx from 'clsx';
 
 export function Navbar({
   leftItems,
@@ -24,7 +25,10 @@ export function Navbar({
         })}
         {rightItems.map((item, index) => {
           return (
-            <Box key={index} className={s.flexAlignRight}>
+            <Box
+              key={index}
+              className={clsx(index === 0 ? s.flexAlignRight : '')}
+            >
               {item}
             </Box>
           );
