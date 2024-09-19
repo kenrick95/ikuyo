@@ -6,9 +6,12 @@ import { RouteComponentProps } from 'wouter';
 import { db } from '../data/db';
 import { useMemo, useState } from 'react';
 import { TripEditDialog } from './TripEditDialog';
+import { useAuthUser } from '../Auth/hooks';
 
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   const { id: tripId } = params;
+  const { user } = useAuthUser();
+
   const { isLoading, error, data } = db.useQuery({
     trip: {
       $: {
@@ -49,6 +52,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
           </Button>,
         ]}
         rightItems={[
+          user ? `Logged in as ${user.email}` : '',
           trip ? (
             <NewActivityButton
               trip={trip}
