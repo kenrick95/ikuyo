@@ -17,7 +17,7 @@ export type ToastConfig = {
 export interface ToastSlice {
   toasts: Array<ToastConfig>;
   publishToast: (newToast: ToastConfig) => void;
-  discardToast: () => void;
+  resetToast: () => void;
 }
 
 export const createToastSlice: StateCreator<ToastSlice, [], [], ToastSlice> = (
@@ -32,12 +32,10 @@ export const createToastSlice: StateCreator<ToastSlice, [], [], ToastSlice> = (
         };
       });
     },
-    discardToast: () => {
-      return set((state) => {
-        const copiedToasts = [...state.toasts];
-        copiedToasts.shift();
+    resetToast: () => {
+      return set(() => {
         return {
-          toasts: copiedToasts,
+          toasts: [],
         };
       });
     },

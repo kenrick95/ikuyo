@@ -16,7 +16,9 @@ import { ROUTES } from '../routes';
 
 export function PageLogin() {
   const { isLoading, user, error } = db.useAuth();
-  const [sentEmail, setSentEmail] = useState(''); 
+  const [sentEmail, setSentEmail] = useState('');
+  const publishToast = useBoundStore((state) => state.publishToast);
+  const resetToast = useBoundStore((state) => state.resetToast);
 
   const { data: userData } = db.useQuery({
     user: {
@@ -29,17 +31,31 @@ export function PageLogin() {
   });
 
   useEffect(() => {
-    // Create new user if not exist
-    if (user?.email && userData?.user.length === 0) {
-      dbAddUser({
-        // TODO: ask to change handle later?
-        handle: user.email,
-        email: user.email,
-      });
+    if (user?.email) {
+      resetToast();
+      if (userData?.user.length === 0) {
+        // Create new user if not exist
+        dbAddUser({
+          // TODO: ask to change handle later?
+          handle: user.email,
+          email: user.email,
+        });
+        publishToast({
+          root: { duration: Infinity },
+          title: { children: `Welcome ${user.email}!` },
+          close: {},
+        });
+      } else if (userData?.user.length != null && userData?.user.length > 0) {
+        publishToast({
+          root: { duration: Infinity },
+          title: { children: `Welcome back ${user.email}!` },
+          close: {},
+        });
+      }
     }
-  }, [userData, user]);
+  }, [userData, user, resetToast, publishToast]);
 
-  if (userData?.user.length != null) {
+  if (userData?.user.length != null && userData?.user.length > 0) {
     // Already authenticated
     return <Redirect to={ROUTES.Trips} />;
   }
@@ -149,7 +165,7 @@ function MagicCode({ sentEmail }: { sentEmail: string }) {
       <Flex direction="column" gap="2">
         <Heading>Ikuyo!</Heading>
         <Text as="label" htmlFor={idCode}>
-          Enter the code we sent to your email:
+          Enter the code we sent to your email ({sentEmail}):
         </Text>
         <TextField.Root
           type="text"
