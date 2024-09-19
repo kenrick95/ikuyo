@@ -26,8 +26,6 @@ jobs:
         run: pnpm lint
       - name: Build
         run: pnpm build
-      - name: Debug
-        run: env
       - uses: up9cloud/action-rsync@v1.4
         env:
           HOST: ${{ vars.DEPLOY_HOST }}
