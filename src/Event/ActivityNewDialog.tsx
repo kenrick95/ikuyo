@@ -1,13 +1,11 @@
-import { Dialog, Button, Box } from '@radix-ui/themes';
+import { Dialog, Box } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { DbTrip } from '../data/types';
 import { ActivityForm } from './ActivityForm';
 import { ActivityFormMode } from './ActivityFormMode';
 import { formatToDatetimeLocalInput } from './time';
-import style from './Activity.module.css';
-import { PlusIcon } from '@radix-ui/react-icons';
 
-export function NewActivityButton({
+export function ActivityNewDialog({
   trip,
   dialogOpen,
   setDialogOpen,
@@ -27,12 +25,6 @@ export function NewActivityButton({
 
   return (
     <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
-      <Dialog.Trigger>
-        <Button className={style.triggerNewForm}>
-          <PlusIcon />
-          New activity
-        </Button>
-      </Dialog.Trigger>
       <Dialog.Content maxWidth="450px">
         <Dialog.Title>New Activity</Dialog.Title>
         <Dialog.Description>

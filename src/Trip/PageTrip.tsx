@@ -1,12 +1,13 @@
-import { Button, Container, Heading } from '@radix-ui/themes';
+import { Container, Heading } from '@radix-ui/themes';
 import { Timeline } from '../Event/Timeline';
 import { Navbar } from '../Nav/Navbar';
-import { NewActivityButton } from '../Event/NewActivityButton';
+import { ActivityNewDialog } from '../Event/ActivityNewDialog';
 import { RouteComponentProps } from 'wouter';
 import { db } from '../data/db';
 import { useMemo, useState } from 'react';
 import { TripEditDialog } from './TripEditDialog';
 import { useAuthUser } from '../Auth/hooks';
+import { TripMenu } from './TripMenu';
 
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   const { id: tripId } = params;
@@ -42,26 +43,14 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
           <Heading as="h2" size="5">
             {trip?.title ?? 'Loading trip'}
           </Heading>,
-          <Button
-            variant="outline"
-            onClick={() => {
-              setEditTripDialgoOpen(true);
-            }}
-          >
-            Edit trip
-          </Button>,
         ]}
         rightItems={[
-          user ? `Logged in as ${user.email}` : '',
-          trip ? (
-            <NewActivityButton
-              trip={trip}
-              dialogOpen={newActivityDialogOpen}
-              setDialogOpen={setNewActivityDialogOpen}
-            />
-          ) : (
-            ''
-          ),
+          <span key="user">{user ? `${user.email}` : ''}</span>,
+          <TripMenu
+            key="menu"
+            setEditTripDialgoOpen={setEditTripDialgoOpen}
+            setNewActivityDialogOpen={setNewActivityDialogOpen}
+          />,
         ]}
       />
       <Container>
@@ -78,6 +67,14 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
           ''
         )}
       </Container>
+
+      {trip ? (
+        <ActivityNewDialog
+          trip={trip}
+          dialogOpen={newActivityDialogOpen}
+          setDialogOpen={setNewActivityDialogOpen}
+        />
+      ) : null}
 
       {editTripDialgoOpen && trip ? (
         <TripEditDialog

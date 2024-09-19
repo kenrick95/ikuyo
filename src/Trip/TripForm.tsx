@@ -165,7 +165,7 @@ export function TripForm({
           <Select.Trigger id={idTimeZone} />
           <Select.Content>
             {timeZones.map((tz) => {
-              return <Select.Item value={tz}>{tz}</Select.Item>;
+              return <Select.Item key={tz} value={tz}>{tz}</Select.Item>;
             })}
           </Select.Content>
         </Select.Root>
