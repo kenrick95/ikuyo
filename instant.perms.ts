@@ -2,7 +2,7 @@ export default {
   trip: {
     bind: ['isInvolved', "auth.email in data.ref('user.email')"],
     allow: {
-      view: 'true',
+      view: 'isInvolved',
       create: 'isInvolved',
       delete: 'isInvolved',
       update: 'isInvolved',
@@ -11,7 +11,7 @@ export default {
   user: {
     bind: ['isOwner', 'auth.email == data.email'],
     allow: {
-      view: 'true',
+      view: 'isOwner',
       create: 'isOwner',
       delete: 'isOwner',
       update: 'isOwner',
