@@ -32,11 +32,13 @@ export function Activity({
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const responsiveTextSize = { initial: '1' as const, sm: '2' as const };
   return (
     <>
       <ContextMenu.Root>
         <ContextMenu.Trigger>
           <Box
+            p={{ initial: '1', sm: '2' }}
             className={clsx(
               style.activity,
               timeStartMapping[timeStart],
@@ -46,19 +48,19 @@ export function Activity({
               className
             )}
           >
-            <Text as="div" size="2" weight="bold">
+            <Text as="div" size={responsiveTextSize} weight="bold">
               {activity.title}
             </Text>
 
             {activity.location ? (
-              <Text as="div" size="2" color="gray">
+              <Text as="div" size={responsiveTextSize} color="gray">
                 <SewingPinIcon style={{ verticalAlign: '-2px' }} />{' '}
                 {activity.location}
               </Text>
             ) : null}
 
             {activity.description ? (
-              <Text as="div" size="2" color="gray">
+              <Text as="div" size={responsiveTextSize} color="gray">
                 <InfoCircledIcon style={{ verticalAlign: '-2px' }} />{' '}
                 {activity.description}
               </Text>

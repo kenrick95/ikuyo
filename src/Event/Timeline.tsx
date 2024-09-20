@@ -1,8 +1,8 @@
 import clsx from 'clsx';
 import { Activity } from './Activity';
 import s from './Timeline.module.scss';
-import {   DbActivityWithTrip,  DbTripWithActivity } from '../data/types';
-import { ContextMenu, Section } from '@radix-ui/themes';
+import { DbActivityWithTrip, DbTripWithActivity } from '../data/types';
+import { ContextMenu, Section, Text } from '@radix-ui/themes';
 
 import { DateTime } from 'luxon';
 import { useMemo } from 'react';
@@ -142,11 +142,27 @@ function TimelineDayHeader({
   className: string;
   dateString: string;
 }) {
-  return <div className={clsx(s.timelineColumn, className)}>{dateString}</div>;
+  return (
+    <Text
+      as="div"
+      size={{ initial: '1', sm: '3' }}
+      className={clsx(s.timelineColumn, className)}
+    >
+      {dateString}
+    </Text>
+  );
 }
 
 function TimelineHeader() {
-  return <div className={clsx(s.timelineHeader)}>Time\Day</div>;
+  return (
+    <Text
+      as="div"
+      size={{ initial: '1', sm: '3' }}
+      className={clsx(s.timelineHeader)}
+    >
+      Time\Day
+    </Text>
+  );
 }
 function TimelineTime({
   className,
@@ -155,7 +171,15 @@ function TimelineTime({
   className: string;
   timeStart: string;
 }) {
-  return <div className={clsx(s.timelineTime, className)}>{time}</div>;
+  return (
+    <Text
+      as="div"
+      size={{ initial: '1', sm: '3' }}
+      className={clsx(s.timelineTime, className)}
+    >
+      {time}
+    </Text>
+  );
 }
 
 /** Return `DateTime` objects for each of day in the trip */

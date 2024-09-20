@@ -8,14 +8,31 @@
   background: var(--color-panel-solid);
   z-index: 100;
 }
+.logoBox {
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.logoText {
+  display: none;
+}
+@media (min-width: 520px) {
+  .logoText {
+    display: inline-block;
+  }
+}
 .logo {
-  height: 30px;
+  width: 32px;
+  height: 32px;
   vertical-align: -6px;
   margin-right: 3px;
 }
-.flex {
+.flexContainer {
   height: var(--space-8);
 }
-.flexAlignRight {
+.boxLeftLast {
+  flex: 0 1 auto;
+  overflow: hidden;
+}
+.boxRightFirst {
   margin-left: auto;
 }

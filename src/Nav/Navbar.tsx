@@ -13,21 +13,30 @@ export function Navbar({
 }) {
   return (
     <Container className={s.container}>
-      <Flex gap="3" align="center" className={s.flex}>
-        <Box>
+      <Flex gap="3" align="center" className={s.flexContainer}>
+        <Box className={s.logoBox}>
           <Heading as="h1" size="6">
             <img src={imgUrl} className={s.logo} />
-            Ikuyo!
+            <span className={s.logoText}>Ikuyo!</span>
           </Heading>
         </Box>
         {leftItems.map((item, index) => {
-          return <Box key={index}>{item}</Box>;
+          return (
+            <Box
+              key={index}
+              className={clsx(
+                index === leftItems.length - 1 ? s.boxLeftLast : ''
+              )}
+            >
+              {item}
+            </Box>
+          );
         })}
         {rightItems.map((item, index) => {
           return (
             <Box
               key={index}
-              className={clsx(index === 0 ? s.flexAlignRight : '')}
+              className={clsx(index === 0 ? s.boxRightFirst : '')}
             >
               {item}
             </Box>

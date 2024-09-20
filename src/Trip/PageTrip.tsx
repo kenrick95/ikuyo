@@ -10,6 +10,7 @@ import { useAuthUser } from '../Auth/hooks';
 import { TripMenu } from './TripMenu';
 import { DbTrip, DbTripWithActivity, DbUser } from '../data/types';
 import { UserAvatar } from '../Auth/UserAvatar';
+import s from './PageTrip.module.css';
 
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   const { id: tripId } = params;
@@ -48,7 +49,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
     <>
       <Navbar
         leftItems={[
-          <Heading as="h2" size="5">
+          <Heading as="h1" size={{ initial: '3', xs: '5' }} className={s.tripTitle}>
             {trip?.title ?? 'Loading trip'}
           </Heading>,
         ]}
