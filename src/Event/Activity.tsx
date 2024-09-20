@@ -32,13 +32,13 @@ export function Activity({
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const responsiveTextSize = { initial: '1' as const, sm: '2' as const };
+  const responsiveTextSize = { initial: '1' as const };
   return (
     <>
       <ContextMenu.Root>
         <ContextMenu.Trigger>
           <Box
-            p={{ initial: '1', sm: '2' }}
+            p={{ initial: '1' }}
             className={clsx(
               style.activity,
               timeStartMapping[timeStart],
