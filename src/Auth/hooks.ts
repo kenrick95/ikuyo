@@ -1,17 +1,18 @@
 import { useLocation } from 'wouter';
 import { db } from '../data/db';
-import { useCallback } from 'react';
+import { useEffect } from 'react';
 import { ROUTES } from '../routes';
 
 export function useAuthUser() {
-  const { user } = db.useAuth();
+  const { user, isLoading } = db.useAuth();
   const [, setLocation] = useLocation();
-  useCallback(() => {
-    if (!user) {
+  useEffect(() => {
+    if (!isLoading && !user) {
       setLocation(ROUTES.Login);
     }
-  }, [user, setLocation]);
+  }, [isLoading, user, setLocation]);
   return {
     user,
+    isLoading,
   };
 }
