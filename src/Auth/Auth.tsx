@@ -63,7 +63,7 @@ export function PageLogin() {
 
   return (
     <Grid className={s.grid}>
-      <Box maxWidth="450px">
+      <Box maxWidth="450px" mx="2" px="2">
         {isLoading ? (
           'Loading'
         ) : error ? (
