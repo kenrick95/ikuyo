@@ -36,7 +36,7 @@ export function Timeline({
     };
   }, [dayGroups]);
   return (
-    <Section>
+    <Section py="0">
       <ContextMenu.Root>
         <ContextMenu.Trigger>
           <div className={s.timeline} style={timelineStyle}>
@@ -114,7 +114,7 @@ function generateGridTemplateColumns(dayGroups: DayGroups): string {
 
   for (let dayIndex = 0; dayIndex < dayGroups.length; dayIndex++) {
     const dayGroup = dayGroups[dayIndex];
-    const colWidth = String(360 / dayGroup.columns);
+    const colWidth = `minmax(${String(90 / dayGroup.columns)}px,${String(360 / dayGroup.columns)}fr)`;
     for (let colIndex = 0; colIndex < dayGroup.columns; colIndex++) {
       const lineNames: string[] = [];
       if (dayIndex > 0) {
@@ -125,7 +125,7 @@ function generateGridTemplateColumns(dayGroups: DayGroups): string {
       }
       lineNames.push(`d${String(dayIndex + 1)}-c${String(colIndex + 1)}`);
 
-      str += ` [${lineNames.join(' ')}] ${colWidth}fr`;
+      str += ` [${lineNames.join(' ')}] ${colWidth}`;
     }
   }
 
@@ -157,7 +157,7 @@ function TimelineHeader() {
   return (
     <Text
       as="div"
-      size={{ initial: '1', sm: '3' }}
+      size="1"
       className={clsx(s.timelineHeader)}
     >
       Time\Day
@@ -168,7 +168,7 @@ function TimelineTime({
   className,
   timeStart: time,
 }: {
-  className: string;
+  className: string[];
   timeStart: string;
 }) {
   return (

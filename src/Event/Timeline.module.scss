@@ -22,7 +22,7 @@
       @if $i == 0 and $j == 0 {
         // first one
         $ret: $ret + '[t#{$hh}#{$mm}]' + ' var(--row-minute-height) ';
-      } @else if $i != 23 and $j != 59 {
+      } @else if not ($i == 0 and $j == 0) and not ($i == 23 and $j == 59) {
         // middle ones
         $ret: $ret +
           '[te#{$phhmm} t#{$hh}#{$mm}]' +
@@ -32,7 +32,7 @@
         $ret: $ret +
           '[te#{$phhmm} t#{$hh}#{$mm}]' +
           ' var(--row-minute-height) ' +
-          '[te#{$phhmm}]';
+          '[te#{$hh}#{$mm}]';
       }
       $phhmm: '#{$hh}#{$mm}';
     }
@@ -83,7 +83,7 @@
 
 @layer timelineBase {
   .timeline {
-    --row-minute-height: 1px;
+    --row-minute-height: 2px;
     display: grid;
     // grid-template-columns will be overridden in "style" at <Timeline />
     grid-template-columns: [time] 65px repeat(5, [d] 1fr);
@@ -92,12 +92,23 @@
     justify-items: stretch;
     align-items: stretch;
     background-color: var(--color-panel-solid);
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+    max-height: calc(100vh - var(--space-8));
   }
+
+  @media (min-width: 520px) {
+    .timeline {
+      --row-minute-height: 1px;
+    }
+  }
+
   .timelineHeader {
     grid-row: header / span 1;
     grid-column: time / span 1;
     position: sticky;
-    top: var(--space-8);
+    top: 0;
     left: 0;
 
     display: flex;
@@ -105,11 +116,9 @@
     justify-content: center;
     overflow-wrap: break-word;
     background: var(--color-panel-solid);
-    font-size: 0.8em;
-    padding: 0.3em;
     font-weight: bold;
     border: 1px solid var(--gray-6);
-    z-index: 1;
+    z-index: 2;
   }
 
   .timelineColumn {
@@ -117,7 +126,7 @@
     grid-column-start: auto;
     grid-column-end: span 1;
     position: sticky;
-    top: var(--space-8);
+    top: 0;
     left: 0;
 
     display: flex;
@@ -130,7 +139,7 @@
     z-index: 1;
   }
   .timelineTime {
-    --time-bg: var(--color-panel-translucent);
+    --time-bg: var(--color-panel-solid);
 
     grid-column: time / span 1;
     grid-row-end: span 60;
@@ -145,6 +154,7 @@
     padding: 0.6em 0.3em;
     font-weight: bold;
     border: 1px solid var(--gray-6);
+    z-index: 1;
   }
   .timelineItem {
     grid-column-end: span 1;
