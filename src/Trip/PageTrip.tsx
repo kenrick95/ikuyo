@@ -8,11 +8,12 @@ import { useMemo, useState } from 'react';
 import { TripEditDialog } from './TripEditDialog';
 import { useAuthUser } from '../Auth/hooks';
 import { TripMenu } from './TripMenu';
-import { DbTrip, DbTripWithActivity } from '../data/types';
+import { DbTrip, DbTripWithActivity, DbUser } from '../data/types';
+import { UserAvatar } from '../Auth/UserAvatar';
 
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   const { id: tripId } = params;
-  const { user } = useAuthUser();
+  const { user: authUser } = useAuthUser();
 
   const { isLoading, error, data } = db.useQuery({
     trip: {
@@ -23,7 +24,11 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
       },
       activity: {},
     },
+    user: {
+      $: { where: { email: authUser?.email } },
+    },
   });
+  const user = data?.user[0] as DbUser | undefined;
   const rawTrip = data?.trip[0] as DbTrip | undefined;
 
   const trip = useMemo(() => {
@@ -48,7 +53,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
           </Heading>,
         ]}
         rightItems={[
-          <span key="user">{user ? user.email : ''}</span>,
+          <UserAvatar user={user} />,
           <TripMenu
             key="menu"
             setEditTripDialgoOpen={setEditTripDialgoOpen}

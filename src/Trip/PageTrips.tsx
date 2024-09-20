@@ -4,18 +4,27 @@ import { ROUTES } from '../routes';
 import { useAuthUser } from '../Auth/hooks';
 import { Navbar } from '../Nav/Navbar';
 import { Container, Heading } from '@radix-ui/themes';
+import { UserAvatar } from '../Auth/UserAvatar';
 
 export function PageTrips() {
-  const { user } = useAuthUser();
+  const { user: authUser } = useAuthUser();
   const { isLoading, data, error } = db.useQuery({
     trip: {
       $: {
         where: {
-          'user.email': user?.email,
+          'user.email': authUser?.email,
         },
       },
     },
+    user: {
+      $: {
+        where: {
+          email: authUser?.email
+        }
+      }
+    }
   });
+  const user = data?.user[0];
 
   return (
     <>
@@ -25,7 +34,7 @@ export function PageTrips() {
             Trips
           </Heading>,
         ]}
-        rightItems={[<>{user ? `Signed in as ${user.email}` : ''}</>]}
+        rightItems={[<UserAvatar user={user} />]}
       />
 
       <Container>
