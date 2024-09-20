@@ -114,7 +114,9 @@ function generateGridTemplateColumns(dayGroups: DayGroups): string {
 
   for (let dayIndex = 0; dayIndex < dayGroups.length; dayIndex++) {
     const dayGroup = dayGroups[dayIndex];
-    const colWidth = `minmax(${String(90 / dayGroup.columns)}px,${String(360 / dayGroup.columns)}fr)`;
+    const colWidth = `minmax(${String(90 / dayGroup.columns)}px,${String(
+      360 / dayGroup.columns
+    )}fr)`;
     for (let colIndex = 0; colIndex < dayGroup.columns; colIndex++) {
       const lineNames: string[] = [];
       if (dayIndex > 0) {
@@ -155,11 +157,7 @@ function TimelineDayHeader({
 
 function TimelineHeader() {
   return (
-    <Text
-      as="div"
-      size="1"
-      className={clsx(s.timelineHeader)}
-    >
+    <Text as="div" size="1" className={clsx(s.timelineHeader)}>
       Time\Day
     </Text>
   );
@@ -237,12 +235,29 @@ function groupActivitiesByDays(trip: DbTripWithActivity): DayGroups {
     for (const range of ranges) {
       if (range[1] === Token.Start) {
         overlaps += 1;
+        /* TODO: buggy if have 3 different events packed together...
+
+        A: 1100 to 1230
+        B: 1200 to 1330
+        C: 1300 to 1330
+
+        A: 1
+        B: 2
+        C: 2 --> while true that max overlap is 2, it cannot be displayed in this column since it's still occupied by "B"
+
+        need some var to know if column is free to assign an event...
+
+        this becomes much more complex that initally thought
+ 
+        */
+        activityColumnIndexMap.set(range[2], overlaps);
       } else {
         overlaps -= 1;
       }
-      activityColumnIndexMap.set(range[2], overlaps + 1);
       maxOverlaps = Math.max(overlaps, maxOverlaps);
     }
+
+    // TODO: to find which ones can span till end of column, need to go through ranges again, mark those that isn't maxOverlap
 
     res.push({
       startDateTime: dayStartDateTime,
