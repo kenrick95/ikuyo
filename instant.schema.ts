@@ -1,12 +1,9 @@
-// ikuyo
+// Ikuyo
 // https://instantdb.com/dash?s=main&t=home&app=6962735b-d61f-4c3c-a78f-03ca3fa6ba9a
 
 import { i } from '@instantdb/react';
 
-const INSTANT_APP_ID = '6962735b-d61f-4c3c-a78f-03ca3fa6ba9a';
-
 const graph = i.graph(
-  INSTANT_APP_ID,
   {
     activity: i.entity({
       createdAt: i.number(),
