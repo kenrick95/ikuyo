@@ -1,0 +1,46 @@
+@use 'sass:string';
+@layer timelineBase, timeOverride;
+
+@function pad2($num) {
+  @if $num < 0 {
+    @return '0';
+  } @else if $num >= 10 {
+    @return $num;
+  }
+  @return '0' + $num;
+}
+
+@layer timeOverride {
+  @for $i from 0 to 24 {
+    $hh: pad2($i);
+    @for $j from 0 to 60 {
+      $mm: pad2($j);
+
+      // Generate .t0000, .t0001, ..., .t2358, .t2359
+      // For anchoring start of time (row)
+      .t#{$hh}#{$mm} {
+        grid-row-start: t#{$hh}#{$mm};
+      }
+      // Generate .te0000, .te0001, ..., .te2358, .te2359
+      // For anchoring end of time (row)
+      .te#{$hh}#{$mm} {
+        grid-row-end: te#{$hh}#{$mm};
+      }
+    }
+  }
+  @for $i from 0 to 30 {
+    .d#{$i} {
+      grid-column-start: d#{$i};
+    }
+    .de#{$i} {
+      grid-column-end: de#{$i};
+    }
+  }
+  @for $i from 0 to 30 {
+    @for $j from 0 to 10 {
+      .d#{$i}-c#{$j} {
+        grid-column-start: d#{$i}-c#{$j};
+      }
+    }
+  }
+}
