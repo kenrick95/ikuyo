@@ -6,6 +6,7 @@ import { Navbar } from '../Nav/Navbar';
 import { Container, Heading } from '@radix-ui/themes';
 import { UserAvatar } from '../Auth/UserAvatar';
 
+export default PageTrips;
 export function PageTrips() {
   const { user: authUser } = useAuthUser();
   const { isLoading, data, error } = db.useQuery({

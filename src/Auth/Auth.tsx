@@ -14,6 +14,7 @@ import s from './Auth.module.css';
 import { Redirect } from 'wouter';
 import { ROUTES } from '../routes';
 
+export default PageLogin;
 export function PageLogin() {
   const { isLoading, user, error } = db.useAuth();
   const [sentEmail, setSentEmail] = useState('');

@@ -12,6 +12,7 @@ import { DbTrip, DbTripWithActivity, DbUser } from '../data/types';
 import { UserAvatar } from '../Auth/UserAvatar';
 import s from './PageTrip.module.css';
 
+export default PageTrip;
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   const { id: tripId } = params;
   const { user: authUser } = useAuthUser();
