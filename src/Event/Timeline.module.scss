@@ -55,6 +55,7 @@
     min-height: 0;
     overflow: auto;
     max-height: calc(100vh - var(--space-8));
+    overscroll-behavior-y: contain;
   }
 
   @media (min-width: 520px) {
