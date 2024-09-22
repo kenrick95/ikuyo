@@ -18,9 +18,6 @@ export default defineConfig({
             if (id.includes('@instantdb')) {
               return 'v-instantdb';
             }
-            if (id.includes('.pnpm/react') || id.includes('.pnpm/scheduler')) {
-              return 'v-react';
-            }
             return 'v-vendor';
           }
         },
