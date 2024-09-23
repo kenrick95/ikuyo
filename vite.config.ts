@@ -28,6 +28,6 @@ export default defineConfig({
     },
   },
   test: {
-    watch: true,
+    watch: !process.env.CI,
   },
 });
