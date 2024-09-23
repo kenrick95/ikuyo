@@ -13,7 +13,7 @@ const PageTrip = withLoading(React.lazy(() => import('./Trip/PageTrip')));
 function withLoading<T extends object>(Component: React.ComponentType<T>) {
   return (props: T) => {
     return (
-      <Suspense fallback={<Text size="3">Loading route...</Text>}>
+      <Suspense fallback={<Text size="3">Loading...</Text>}>
         <Component {...props} />
       </Suspense>
     );
