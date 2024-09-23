@@ -12,6 +12,7 @@ import { ActivityEditDialog } from './ActivityEditDialog';
 import { ActivityViewDialog } from './ActivityViewDialog';
 import {
   dayColMapping,
+  dayEndMapping,
   dayStartMapping,
   timeEndMapping,
   timeStartMapping,
@@ -21,14 +22,16 @@ export function Activity({
   activity,
   className,
   columnIndex,
+  columnEndIndex,
 }: {
   activity: DbActivityWithTrip;
   className?: string;
   columnIndex: number;
+  columnEndIndex: number;
 }) {
   const timeStart = formatTime(activity.timestampStart, activity.trip.timeZone);
   const timeEnd = formatTime(activity.timestampEnd, activity.trip.timeZone);
-  const [dayStart] = getDayStartEnd(activity);
+  const [dayStart, dayEnd] = getDayStartEnd(activity);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -45,6 +48,7 @@ export function Activity({
               timeEndMapping[timeEnd],
               dayStartMapping[dayStart],
               dayColMapping[dayStart][columnIndex],
+              columnIndex === columnEndIndex ? '' : dayEndMapping[dayEnd],
               className
             )}
           >

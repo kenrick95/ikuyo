@@ -69,16 +69,16 @@ describe('Trip', () => {
   test('Overlap = 2 on day 1', () => {
     /***
      * |    Day 1    |
-     * 
+     *
      * +-----+
      * |act-0| +-----+
      * +-----+ |act-1|
      *         +-----+
-     * 
-     * +-----+
-     * |act-2|
-     * +-----+
-     * 
+     *
+     * +-------------+
+     * |act-2        |
+     * +-------------+
+     *
      */
     const activities: DbActivityWithTrip[] = [
       createActivity({
@@ -108,21 +108,24 @@ describe('Trip', () => {
     expect(result.length).toBe(2);
     expect(result[0].columns).toBe(2);
     expect(result[0].activities.length).toBe(3);
-    const day1Columns = result[0].activityColumnIndexMap
-    expect(day1Columns.get('act-0')?.start).toBe(1)
-    expect(day1Columns.get('act-1')?.start).toBe(2)
-    expect(day1Columns.get('act-2')?.start).toBe(1)
+    const day1Columns = result[0].activityColumnIndexMap;
+    expect(day1Columns.get('act-0')?.start).toBe(1);
+    expect(day1Columns.get('act-0')?.end).toBe(1);
+    expect(day1Columns.get('act-1')?.start).toBe(2);
+    expect(day1Columns.get('act-1')?.end).toBe(2);
+    expect(day1Columns.get('act-2')?.start).toBe(1);
+    expect(day1Columns.get('act-2')?.end).toBe(2);
   });
   test('Max overlap = 2 on day 1 with three events close to each other', () => {
     /***
      * |    Day 1    |
-     * 
+     *
      * +-----+
      * |act-0| +-----+
      * +-----+ |act-1|
      * |act-2| +-----+
      * +-----+
-     * 
+     *
      */
     const activities: DbActivityWithTrip[] = [
       createActivity({
@@ -152,9 +155,12 @@ describe('Trip', () => {
     expect(result.length).toBe(2);
     expect(result[0].columns).toBe(2);
     expect(result[0].activities.length).toBe(3);
-    const day1Columns = result[0].activityColumnIndexMap
-    expect(day1Columns.get('act-0')?.start).toBe(1)
-    expect(day1Columns.get('act-1')?.start).toBe(2)
-    expect(day1Columns.get('act-2')?.start ).toBe(1)
+    const day1Columns = result[0].activityColumnIndexMap;
+    expect(day1Columns.get('act-0')?.start).toBe(1);
+    expect(day1Columns.get('act-0')?.end).toBe(1);
+    expect(day1Columns.get('act-1')?.start).toBe(2);
+    expect(day1Columns.get('act-1')?.end).toBe(2);
+    expect(day1Columns.get('act-2')?.start).toBe(1);
+    expect(day1Columns.get('act-2')?.end).toBe(1);
   });
 });

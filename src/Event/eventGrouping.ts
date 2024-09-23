@@ -62,26 +62,32 @@ export function groupActivitiesByDays(trip: DbTripWithActivity): DayGroups {
     });
     let maxOverlaps = 0;
     let overlaps = 0;
-    const tracksLastTimestamp: Array<number> = [0];
+
+    const activitiesByTrack: Array<DbActivityWithTrip[]> = [];
 
     for (const range of ranges) {
       if (range[1] === Token.Start) {
         overlaps += 1;
-        // Find a new track
+
+        // Find unoccupied track
         let trackIndex = 0;
         for (
           trackIndex = 0;
-          trackIndex < tracksLastTimestamp.length;
+          trackIndex < activitiesByTrack.length;
           trackIndex++
         ) {
-          if (tracksLastTimestamp[trackIndex] < range[2].timestampStart) {
+          const lastActivity = activitiesByTrack[trackIndex].at(-1);
+          if (
+            lastActivity &&
+            lastActivity.timestampEnd - 0.5 < range[2].timestampStart
+          ) {
             break;
           }
         }
-        if (trackIndex === tracksLastTimestamp.length) {
-          tracksLastTimestamp.push(range[2].timestampEnd);
+        if (trackIndex === activitiesByTrack.length) {
+          activitiesByTrack.push([range[2]]);
         } else {
-          tracksLastTimestamp[trackIndex] = range[2].timestampEnd - 0.5;
+          activitiesByTrack[trackIndex].push(range[2]);
         }
 
         activityColumnIndexMap.set(range[2].id, {
@@ -94,6 +100,66 @@ export function groupActivitiesByDays(trip: DbTripWithActivity): DayGroups {
       maxOverlaps = Math.max(overlaps, maxOverlaps);
     }
 
+    // Make activity on the final occupied track expand to occupy till end of column
+    // Idea: for each activity, check the next tracks if the time is occupied or not
+    // TODO: but this is very ... inefficient...
+    // Interval tree? https://en.wikipedia.org/wiki/Interval_tree
+    for (
+      let trackIndex = 0;
+      trackIndex < activitiesByTrack.length;
+      trackIndex++
+    ) {
+      const trackActivities = activitiesByTrack[trackIndex];
+      for (
+        let trackActivityIndex = 0;
+        trackActivityIndex < trackActivities.length;
+        trackActivityIndex++
+      ) {
+        const trackActivity = trackActivities[trackActivityIndex];
+
+        let canExpandTillEndOfTrack = true;
+        for (
+          let nextTrackIndex = trackIndex + 1;
+          nextTrackIndex < activitiesByTrack.length;
+          nextTrackIndex++
+        ) {
+          const nextTrackActivities = activitiesByTrack[nextTrackIndex];
+          for (
+            let nextTrackActivityIndex = 0;
+            nextTrackActivityIndex < nextTrackActivities.length;
+            nextTrackActivityIndex++
+          ) {
+            const nextTrackActivity =
+              nextTrackActivities[nextTrackActivityIndex];
+
+            if (
+              trackActivity.timestampEnd - 0.5 <
+                nextTrackActivity.timestampStart ||
+              trackActivity.timestampStart >
+                nextTrackActivity.timestampEnd - 0.5
+            ) {
+              // No overlap, skip this track
+              break;
+            } else {
+              // Overlap
+              canExpandTillEndOfTrack = false;
+            }
+          }
+          if (!canExpandTillEndOfTrack) {
+            break;
+          }
+        }
+
+        if (canExpandTillEndOfTrack) {
+          const activityId = trackActivity.id;
+
+          activityColumnIndexMap.set(activityId, {
+            start: trackIndex + 1,
+            end: activitiesByTrack.length,
+          });
+        }
+      }
+    }
     res.push({
       startDateTime: dayStartDateTime,
       columns: Math.max(maxOverlaps, 1),

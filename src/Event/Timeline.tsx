@@ -61,15 +61,16 @@ export function Timeline({
 
             {dayGroups.map((dayGroup) => {
               return Object.values(dayGroup.activities).map((activity) => {
-                const columnIndex = dayGroup.activityColumnIndexMap.get(activity.id)
+                const columnIndex = dayGroup.activityColumnIndexMap.get(
+                  activity.id
+                );
                 return (
                   <Activity
                     key={activity.id}
                     className={s.timelineItem}
                     activity={activity}
-                    columnIndex={
-                      columnIndex?.start ?? 1
-                    }
+                    columnIndex={columnIndex?.start ?? 1}
+                    columnEndIndex={columnIndex?.end ?? 1}
                   />
                 );
               });
@@ -172,4 +173,3 @@ function TimelineTime({
     </Text>
   );
 }
-
