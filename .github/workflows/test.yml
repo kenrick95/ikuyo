@@ -1,16 +1,17 @@
-name: Deploy
+name: Testing
 
 on:
   push:
     branches: ['main']
+  pull_request:
+    branches: ['main']
 
 jobs:
-  deploy:
+  test:
     concurrency:
       group: ci-${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     runs-on: ubuntu-20.04
-    environment: production
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4.0.0
@@ -21,16 +22,9 @@ jobs:
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install
+      - name: Lint
+        run: pnpm lint
+      - name: Test
+        run: pnpm test
       - name: Build
         run: pnpm build
-      - uses: up9cloud/action-rsync@v1.4
-        env:
-          HOST: ${{ vars.DEPLOY_HOST }}
-          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          TARGET: ${{ vars.DEPLOY_TARGET }}
-          SOURCE: './dist/'
-          MODE: push
-          VERBOSE: true
-          PORT: ${{ vars.DEPLOY_PORT }}
-          USER: ${{ vars.DEPLOY_USER }}
-          ARGS: -avz --exclude-from=.gitignore --exclude=/.git/ --exclude=/.github/
