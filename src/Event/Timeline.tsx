@@ -1,16 +1,16 @@
 import clsx from 'clsx';
 import { Activity } from './Activity';
 import s from './Timeline.module.scss';
-import { DbActivityWithTrip, DbTripWithActivity } from '../data/types';
+import { DbTripWithActivity } from '../data/types';
 import { ContextMenu, Section, Text } from '@radix-ui/themes';
 
-import { DateTime } from 'luxon';
 import { useMemo } from 'react';
 import {
   dayEndMapping,
   dayStartMapping,
   timeColumnMapping,
 } from './TimelineStyles';
+import { DayGroups, groupActivitiesByDays } from './eventGrouping';
 
 const times = new Array(24).fill(0).map((_, i) => {
   return (
@@ -61,13 +61,14 @@ export function Timeline({
 
             {dayGroups.map((dayGroup) => {
               return Object.values(dayGroup.activities).map((activity) => {
+                const columnIndex = dayGroup.activityColumnIndexMap.get(activity.id)
                 return (
                   <Activity
                     key={activity.id}
                     className={s.timelineItem}
                     activity={activity}
                     columnIndex={
-                      dayGroup.activityColumnIndexMap.get(activity.id) ?? 1
+                      columnIndex?.start ?? 1
                     }
                   />
                 );
@@ -90,14 +91,6 @@ export function Timeline({
     </Section>
   );
 }
-
-type DayGroups = Array<{
-  /** DateTime in trip time zone */
-  startDateTime: DateTime;
-  columns: number;
-  activities: DbActivityWithTrip[];
-  activityColumnIndexMap: Map<string, number>;
-}>;
 
 function generateGridTemplateColumns(dayGroups: DayGroups): string {
   let str = `[time] 65px`;
@@ -180,92 +173,3 @@ function TimelineTime({
   );
 }
 
-/** Return `DateTime` objects for each of day in the trip */
-function groupActivitiesByDays(trip: DbTripWithActivity): DayGroups {
-  const res: DayGroups = [];
-  const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
-    trip.timeZone
-  );
-  const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd).setZone(
-    trip.timeZone
-  );
-  const tripDuration = tripEndDateTime.diff(tripStartDateTime, 'days');
-  for (let d = 0; d < tripDuration.days; d++) {
-    const dayStartDateTime = tripStartDateTime.plus({ day: d });
-    const dayEndDateTime = tripStartDateTime.plus({ day: d + 1 });
-    const dayActivities: DbActivityWithTrip[] = [];
-    /** activity id --> column index */
-    const activityColumnIndexMap: Map<string, number> = new Map();
-    for (const activity of trip.activity) {
-      activityColumnIndexMap.set(activity.id, 1);
-      const activityStartDateTime = DateTime.fromMillis(
-        activity.timestampStart
-      ).setZone(trip.timeZone);
-      const activityEndDateTime = DateTime.fromMillis(
-        activity.timestampEnd
-      ).setZone(trip.timeZone);
-      if (
-        dayStartDateTime <= activityStartDateTime &&
-        activityEndDateTime <= dayEndDateTime
-      ) {
-        dayActivities.push(activity);
-      }
-    }
-
-    // Finding max overlaps: https://stackoverflow.com/a/46532590/917957
-    enum Token {
-      Start,
-      End,
-    }
-    const ranges: Array<[number, Token, string]> = [];
-    for (const activity of dayActivities) {
-      ranges.push([activity.timestampStart, Token.Start, activity.id]);
-      // "End" is half a millisecond before start so that we don't count event that ends at exact time as next start one as overlapping
-      ranges.push([activity.timestampEnd - 0.5, Token.End, activity.id]);
-    }
-    ranges.sort((a, b) => {
-      // Sort by time, if tie, break by Start first then End
-      if (a[0] === b[0]) {
-        return a[1] - b[1];
-      }
-      return a[0] - b[0];
-    });
-    let maxOverlaps = 0;
-    let overlaps = 0;
-    for (const range of ranges) {
-      if (range[1] === Token.Start) {
-        overlaps += 1;
-        /* TODO: buggy if have 3 different events packed together...
-
-        A: 1100 to 1230
-        B: 1200 to 1330
-        C: 1300 to 1330
-
-        A: 1
-        B: 2
-        C: 2 --> while true that max overlap is 2, it cannot be displayed in this column since it's still occupied by "B"
-
-        need some var to know if column is free to assign an event...
-
-        this becomes much more complex that initally thought
- 
-        */
-        activityColumnIndexMap.set(range[2], overlaps);
-      } else {
-        overlaps -= 1;
-      }
-      maxOverlaps = Math.max(overlaps, maxOverlaps);
-    }
-
-    // TODO: to find which ones can span till end of column, need to go through ranges again, mark those that isn't maxOverlap
-
-    res.push({
-      startDateTime: dayStartDateTime,
-      columns: Math.max(maxOverlaps, 1),
-      activities: dayActivities,
-      activityColumnIndexMap,
-    });
-  }
-
-  return res;
-}
