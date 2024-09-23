@@ -4,7 +4,7 @@ import { ROUTES } from '../routes';
 import { useAuthUser } from '../Auth/hooks';
 import { Navbar } from '../Nav/Navbar';
 import { Container, Heading } from '@radix-ui/themes';
-import { UserAvatar } from '../Auth/UserAvatar';
+import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
 
 export default PageTrips;
 export function PageTrips() {
@@ -20,10 +20,10 @@ export function PageTrips() {
     user: {
       $: {
         where: {
-          email: authUser?.email
-        }
-      }
-    }
+          email: authUser?.email,
+        },
+      },
+    },
   });
   const user = data?.user[0];
 
@@ -35,7 +35,7 @@ export function PageTrips() {
             Trips
           </Heading>,
         ]}
-        rightItems={[<UserAvatar user={user} />]}
+        rightItems={[<UserAvatarMenu user={user} />]}
       />
 
       <Container>

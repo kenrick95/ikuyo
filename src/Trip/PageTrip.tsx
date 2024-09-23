@@ -9,8 +9,9 @@ import { TripEditDialog } from './TripEditDialog';
 import { useAuthUser } from '../Auth/hooks';
 import { TripMenu } from './TripMenu';
 import { DbTrip, DbTripWithActivity, DbUser } from '../data/types';
-import { UserAvatar } from '../Auth/UserAvatar';
+
 import s from './PageTrip.module.css';
+import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
 
 export default PageTrip;
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
@@ -50,17 +51,21 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
     <>
       <Navbar
         leftItems={[
-          <Heading as="h1" size={{ initial: '3', xs: '5' }} className={s.tripTitle}>
+          <Heading
+            as="h1"
+            size={{ initial: '3', xs: '5' }}
+            className={s.tripTitle}
+          >
             {trip?.title ?? 'Loading trip'}
           </Heading>,
         ]}
         rightItems={[
-          <UserAvatar user={user} />,
           <TripMenu
             key="menu"
             setEditTripDialgoOpen={setEditTripDialgoOpen}
             setNewActivityDialogOpen={setNewActivityDialogOpen}
           />,
+          <UserAvatarMenu user={user} />,
         ]}
       />
       <Container>

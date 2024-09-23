@@ -1,5 +1,4 @@
 import { Button, DropdownMenu } from '@radix-ui/themes';
-import { db } from '../data/db';
 import { useLocation } from 'wouter';
 import { ROUTES } from '../routes';
 
@@ -40,15 +39,13 @@ export function TripMenu({
         </DropdownMenu.Item>
 
         <DropdownMenu.Separator />
-        <DropdownMenu.Label>Account</DropdownMenu.Label>
+        <DropdownMenu.Label>Trips</DropdownMenu.Label>
         <DropdownMenu.Item
           onClick={() => {
-            void db.auth.signOut().then(() => {
-              setLocation(ROUTES.Login);
-            });
+            setLocation(ROUTES.Trips);
           }}
         >
-          Log out
+          View trips
         </DropdownMenu.Item>
       </DropdownMenu.Content>
     </DropdownMenu.Root>
