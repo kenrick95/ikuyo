@@ -1,7 +1,6 @@
 import { Button, DropdownMenu } from '@radix-ui/themes';
 import { useLocation } from 'wouter';
 import { ROUTES } from '../routes';
-import { TripViewModeSelector } from './TripViewModeSelector';
 import { TripViewMode } from './TripViewMode';
 import { HamburgerMenuIcon } from '@radix-ui/react-icons';
 
@@ -39,8 +38,16 @@ export function TripMenu({
         <DropdownMenu.Separator />
         <DropdownMenu.Label>Trip</DropdownMenu.Label>
 
-        <DropdownMenu.Item>
-          View as <TripViewModeSelector mode={tripViewMode} setMode={setTripViewMode} />
+        <DropdownMenu.Item
+          onClick={() => {
+            if (tripViewMode === TripViewMode.List) {
+              setTripViewMode(TripViewMode.Timetable);
+            } else {
+              setTripViewMode(TripViewMode.List);
+            }
+          }}
+        >
+          View as {tripViewMode === TripViewMode.List ? 'timetable' : 'list'}
         </DropdownMenu.Item>
 
         <DropdownMenu.Item
