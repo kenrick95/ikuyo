@@ -13,7 +13,6 @@ import { DbTrip, DbTripWithActivity, DbUser } from '../data/types';
 import s from './PageTrip.module.css';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
 import { TripViewMode } from './TripViewMode';
-import { TripViewModeSelector } from './TripViewModeSelector';
 import { ActivityList } from '../ActivityList/ActivityList';
 
 export default PageTrip;
@@ -64,14 +63,12 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
           </Heading>,
         ]}
         rightItems={[
-          <TripViewModeSelector
-            mode={tripViewMode}
-            setMode={setTripViewMode}
-          />,
           <TripMenu
             key="menu"
             setEditTripDialgoOpen={setEditTripDialgoOpen}
             setNewActivityDialogOpen={setNewActivityDialogOpen}
+            tripViewMode={tripViewMode}
+            setTripViewMode={setTripViewMode}
           />,
           <UserAvatarMenu user={user} />,
         ]}
