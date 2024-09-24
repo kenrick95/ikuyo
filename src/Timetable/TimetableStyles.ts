@@ -1,5 +1,5 @@
 import { pad2 } from './time';
-import './TimelineTimes.scss';
+import './TimetableTimes.scss';
 
 export const timeStartMapping: Record<string, string> = {};
 export const timeEndMapping: Record<string, string> = {};

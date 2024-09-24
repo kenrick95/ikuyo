@@ -1,5 +1,5 @@
 @use 'sass:string';
-@layer timelineBase, timeOverride;
+@layer timetableBase, timetableOverride;
 
 @function pad2($num) {
   @if $num < 0 {
@@ -10,7 +10,7 @@
   @return '0' + $num;
 }
 
-@layer timeOverride {
+@layer timetableOverride {
   @for $i from 0 to 24 {
     $hh: pad2($i);
     @for $j from 0 to 60 {

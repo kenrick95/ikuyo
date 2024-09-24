@@ -1,7 +1,11 @@
 import clsx from 'clsx';
 import style from './Activity.module.css';
 import { useState } from 'react';
-import { InfoCircledIcon, SewingPinIcon } from '@radix-ui/react-icons';
+import {
+  ClockIcon,
+  InfoCircledIcon,
+  SewingPinIcon,
+} from '@radix-ui/react-icons';
 
 import { Text, Box, ContextMenu } from '@radix-ui/themes';
 import { DbActivityWithTrip } from '../data/types';
@@ -16,18 +20,21 @@ import {
   dayStartMapping,
   timeEndMapping,
   timeStartMapping,
-} from './TimelineStyles';
+} from '../Timetable/TimetableStyles';
+import { TripViewMode } from '../Trip/TripViewMode';
 
 export function Activity({
   activity,
   className,
   columnIndex,
   columnEndIndex,
+  tripViewMode,
 }: {
   activity: DbActivityWithTrip;
   className?: string;
   columnIndex: number;
   columnEndIndex: number;
+  tripViewMode: TripViewMode;
 }) {
   const timeStart = formatTime(activity.timestampStart, activity.trip.timeZone);
   const timeEnd = formatTime(activity.timestampEnd, activity.trip.timeZone);
@@ -52,6 +59,15 @@ export function Activity({
               className
             )}
           >
+            {tripViewMode === TripViewMode.List ? (
+              <>
+                <Text as="div" size={responsiveTextSize} color="gray">
+                  <ClockIcon style={{ verticalAlign: '-2px' }} /> {timeStart} -{' '}
+                  {timeEnd}
+                </Text>
+              </>
+            ) : null}
+
             <Text as="div" size={responsiveTextSize} weight="bold">
               {activity.title}
             </Text>

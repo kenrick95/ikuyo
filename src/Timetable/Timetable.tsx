@@ -1,6 +1,6 @@
 import clsx from 'clsx';
-import { Activity } from './Activity';
-import s from './Timeline.module.scss';
+import { Activity } from '../Activity/Activity';
+import s from './Timetable.module.scss';
 import { DbTripWithActivity } from '../data/types';
 import { ContextMenu, Section, Text } from '@radix-ui/themes';
 
@@ -9,12 +9,13 @@ import {
   dayEndMapping,
   dayStartMapping,
   timeColumnMapping,
-} from './TimelineStyles';
-import { DayGroups, groupActivitiesByDays } from './eventGrouping';
+} from './TimetableStyles';
+import { DayGroups, groupActivitiesByDays } from '../Activity/eventGrouping';
+import { TripViewMode } from '../Trip/TripViewMode';
 
 const times = new Array(24).fill(0).map((_, i) => {
   return (
-    <TimelineTime
+    <TimetableTime
       className={timeColumnMapping[i]}
       timeStart={`${String(i)}:00`}
       key={i}
@@ -22,7 +23,7 @@ const times = new Array(24).fill(0).map((_, i) => {
   );
 });
 
-export function Timeline({
+export function Timetable({
   trip,
   setNewActivityDialogOpen,
 }: {
@@ -30,7 +31,7 @@ export function Timeline({
   setNewActivityDialogOpen: (newValue: boolean) => void;
 }) {
   const dayGroups = useMemo(() => groupActivitiesByDays(trip), [trip]);
-  const timelineStyle = useMemo(() => {
+  const timetableStyle = useMemo(() => {
     return {
       gridTemplateColumns: generateGridTemplateColumns(dayGroups),
     };
@@ -39,12 +40,12 @@ export function Timeline({
     <Section py="0">
       <ContextMenu.Root>
         <ContextMenu.Trigger>
-          <div className={s.timeline} style={timelineStyle}>
-            <TimelineHeader />
+          <div className={s.timetable} style={timetableStyle}>
+            <TimetableHeader />
 
             {dayGroups.map((dayGroup, i) => {
               return (
-                <TimelineDayHeader
+                <TimetableDayHeader
                   className={clsx([
                     dayStartMapping[i + 1],
                     dayEndMapping[i + 1],
@@ -67,10 +68,11 @@ export function Timeline({
                 return (
                   <Activity
                     key={activity.id}
-                    className={s.timelineItem}
+                    className={s.timetableItem}
                     activity={activity}
                     columnIndex={columnIndex?.start ?? 1}
                     columnEndIndex={columnIndex?.end ?? 1}
+                    tripViewMode={TripViewMode.Timetable}
                   />
                 );
               });
@@ -131,7 +133,7 @@ function generateGridTemplateColumns(dayGroups: DayGroups): string {
   return str;
 }
 
-function TimelineDayHeader({
+function TimetableDayHeader({
   className,
   dateString,
 }: {
@@ -142,21 +144,21 @@ function TimelineDayHeader({
     <Text
       as="div"
       size={{ initial: '1', sm: '3' }}
-      className={clsx(s.timelineColumn, className)}
+      className={clsx(s.timetableColumn, className)}
     >
       {dateString}
     </Text>
   );
 }
 
-function TimelineHeader() {
+function TimetableHeader() {
   return (
-    <Text as="div" size="1" className={clsx(s.timelineHeader)}>
+    <Text as="div" size="1" className={clsx(s.timetableHeader)}>
       Time\Day
     </Text>
   );
 }
-function TimelineTime({
+function TimetableTime({
   className,
   timeStart: time,
 }: {
@@ -167,7 +169,7 @@ function TimelineTime({
     <Text
       as="div"
       size={{ initial: '1', sm: '3' }}
-      className={clsx(s.timelineTime, className)}
+      className={clsx(s.timetableTime, className)}
     >
       {time}
     </Text>

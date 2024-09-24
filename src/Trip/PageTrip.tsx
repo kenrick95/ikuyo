@@ -1,7 +1,7 @@
 import { Container, Heading } from '@radix-ui/themes';
-import { Timeline } from '../Event/Timeline';
+import { Timetable } from '../Timetable/Timetable';
 import { Navbar } from '../Nav/Navbar';
-import { ActivityNewDialog } from '../Event/ActivityNewDialog';
+import { ActivityNewDialog } from '../Activity/ActivityNewDialog';
 import { RouteComponentProps } from 'wouter';
 import { db } from '../data/db';
 import { useMemo, useState } from 'react';
@@ -12,6 +12,9 @@ import { DbTrip, DbTripWithActivity, DbUser } from '../data/types';
 
 import s from './PageTrip.module.css';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
+import { TripViewMode } from './TripViewMode';
+import { TripViewModeSelector } from './TripViewModeSelector';
+import { ActivityList } from '../ActivityList/ActivityList';
 
 export default PageTrip;
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
@@ -46,6 +49,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
 
   const [newActivityDialogOpen, setNewActivityDialogOpen] = useState(false);
   const [editTripDialgoOpen, setEditTripDialgoOpen] = useState(false);
+  const [tripViewMode, setTripViewMode] = useState(TripViewMode.Timetable);
 
   return (
     <>
@@ -60,6 +64,10 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
           </Heading>,
         ]}
         rightItems={[
+          <TripViewModeSelector
+            mode={tripViewMode}
+            setMode={setTripViewMode}
+          />,
           <TripMenu
             key="menu"
             setEditTripDialgoOpen={setEditTripDialgoOpen}
@@ -70,10 +78,14 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
       />
       <Container>
         {trip ? (
-          <Timeline
-            trip={trip as DbTripWithActivity}
-            setNewActivityDialogOpen={setNewActivityDialogOpen}
-          />
+          tripViewMode === TripViewMode.Timetable ? (
+            <Timetable
+              trip={trip as DbTripWithActivity}
+              setNewActivityDialogOpen={setNewActivityDialogOpen}
+            />
+          ) : (
+            <ActivityList trip={trip as DbTripWithActivity} />
+          )
         ) : isLoading ? (
           'Loading'
         ) : error ? (

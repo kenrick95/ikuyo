@@ -1,5 +1,5 @@
 @use 'sass:string';
-@layer timelineBase, timeOverride;
+@layer timetableBase, timetableOverride;
 
 @function pad2($num) {
   @if $num < 0 {
@@ -40,11 +40,11 @@
   @return $ret;
 }
 
-@layer timelineBase {
-  .timeline {
+@layer timetableBase {
+  .timetable {
     --row-minute-height: 2px;
     display: grid;
-    // grid-template-columns will be overridden in "style" at <Timeline />
+    // grid-template-columns will be overridden in "style" at <Timetable />
     grid-template-columns: [time] 65px repeat(5, [d] 1fr);
     grid-template-rows: [header] 50px string.unquote(timeTemplateRow());
     gap: 0;
@@ -59,12 +59,12 @@
   }
 
   @media (min-width: 520px) {
-    .timeline {
+    .timetable {
       --row-minute-height: 1px;
     }
   }
 
-  .timelineHeader {
+  .timetableHeader {
     grid-row: header / span 1;
     grid-column: time / span 1;
     position: sticky;
@@ -81,7 +81,7 @@
     z-index: 2;
   }
 
-  .timelineColumn {
+  .timetableColumn {
     grid-row: header / span 1;
     grid-column-start: auto;
     grid-column-end: span 1;
@@ -98,7 +98,7 @@
     border: 1px solid var(--gray-6);
     z-index: 1;
   }
-  .timelineTime {
+  .timetableTime {
     --time-bg: var(--color-panel-solid);
 
     grid-column: time / span 1;
@@ -116,7 +116,7 @@
     border: 1px solid var(--gray-6);
     z-index: 1;
   }
-  .timelineItem {
+  .timetableItem {
     grid-column-end: span 1;
     grid-row-end: span 1;
   }
