@@ -12,12 +12,14 @@ import {
 } from './TimetableStyles';
 import { DayGroups, groupActivitiesByDays } from '../Activity/eventGrouping';
 import { TripViewMode } from '../Trip/TripViewMode';
+import { pad2 } from './time';
+import { ClockIcon } from '@radix-ui/react-icons';
 
 const times = new Array(24).fill(0).map((_, i) => {
   return (
     <TimetableTime
       className={timeColumnMapping[i]}
-      timeStart={`${String(i)}:00`}
+      timeStart={`${pad2(i)}:00`}
       key={i}
     />
   );
@@ -96,7 +98,7 @@ export function Timetable({
 }
 
 function generateGridTemplateColumns(dayGroups: DayGroups): string {
-  let str = `[time] 65px`;
+  let str = `[time] 45px`;
 
   // Generate something like:
   // [d1 d1-c1]     360 / 1 fr
@@ -110,7 +112,7 @@ function generateGridTemplateColumns(dayGroups: DayGroups): string {
 
   for (let dayIndex = 0; dayIndex < dayGroups.length; dayIndex++) {
     const dayGroup = dayGroups[dayIndex];
-    const colWidth = `minmax(${String(90 / dayGroup.columns)}px,${String(
+    const colWidth = `minmax(${String(120 / dayGroup.columns)}px,${String(
       360 / dayGroup.columns
     )}fr)`;
     for (let colIndex = 0; colIndex < dayGroup.columns; colIndex++) {
@@ -154,7 +156,7 @@ function TimetableDayHeader({
 function TimetableHeader() {
   return (
     <Text as="div" size="1" className={clsx(s.timetableHeader)}>
-      Time\Day
+      <ClockIcon />
     </Text>
   );
 }

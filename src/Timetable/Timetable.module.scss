@@ -45,7 +45,7 @@
     --row-minute-height: 2px;
     display: grid;
     // grid-template-columns will be overridden in "style" at <Timetable />
-    grid-template-columns: [time] 65px repeat(5, [d] 1fr);
+    grid-template-columns: [time] 45px repeat(5, [d] 1fr);
     grid-template-rows: [header] 50px string.unquote(timeTemplateRow());
     gap: 0;
     justify-items: stretch;
