@@ -11,3 +11,6 @@ export function getDateTimeFromDateInput(
     zone: timeZone,
   });
 }
+export function formatTimestampToReadableDate(timestamp: number) {
+  return DateTime.fromMillis(timestamp).toFormat(`d LLLL yyyy`);
+}
