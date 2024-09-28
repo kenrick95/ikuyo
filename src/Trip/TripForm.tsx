@@ -4,6 +4,8 @@ import { dbUpdateTrip, dbAddTrip } from '../data/db';
 import { useBoundStore } from '../data/store';
 import { TripFormMode } from './TripFormMode';
 import { getDateTimeFromDateInput } from './time';
+import { useLocation } from 'wouter';
+import { ROUTES } from '../routes';
 
 export function TripForm({
   mode,
@@ -25,6 +27,7 @@ export function TripForm({
   tripTimeZone: string;
   userId?: string;
 }) {
+  const [, setLocation] = useLocation();
   const idTitle = useId();
   const idTimeStart = useId();
   const idTimeEnd = useId();
@@ -66,7 +69,7 @@ export function TripForm({
         dateStartDateTime,
         dateEndDateTime,
       });
-      if (!title || !dateStartStr || !dateEndStr) {
+      if (!title || !dateStartStr || !dateEndStr || !timeZone) {
         return;
       }
       if (dateEndDateTime.diff(dateStartDateTime).as('minute') < 0) {
@@ -86,8 +89,10 @@ export function TripForm({
           title: { children: `Trip ${title} edited` },
           close: {},
         });
+        elForm.reset();
+        setDialogOpen(false);
       } else if (mode === TripFormMode.New && userId) {
-        await dbAddTrip(
+        const { id: newId, result } = await dbAddTrip(
           {
             title,
             timeZone,
@@ -98,17 +103,24 @@ export function TripForm({
             userId,
           }
         );
+        console.log('!dbAddTrip', newId, result);
 
         publishToast({
           root: {},
           title: { children: `Trip ${title} added` },
           close: {},
         });
+        elForm.reset();
+        setDialogOpen(false);
+
+        setLocation(ROUTES.Trip.replace(':id', newId));
+      } else {
+        // Shouldn't reach this block, but included for completeness
+        elForm.reset();
+        setDialogOpen(false);
       }
-      elForm.reset();
-      setDialogOpen(false);
     };
-  }, [mode, publishToast, setDialogOpen, tripId, userId]);
+  }, [mode, publishToast, setDialogOpen, tripId, userId, setLocation]);
 
   return (
     <form
@@ -139,10 +151,28 @@ export function TripForm({
           id={idTitle}
           required
         />
+        <Text as="label" htmlFor={idTimeZone}>
+          Destination's time zone{' '}
+          <Text weight="light" size="1">
+            (required)
+          </Text>
+        </Text>
+        <Select.Root name="timeZone" defaultValue={tripTimeZone} required>
+          <Select.Trigger id={idTimeZone} />
+          <Select.Content>
+            {timeZones.map((tz) => {
+              return (
+                <Select.Item key={tz} value={tz}>
+                  {tz}
+                </Select.Item>
+              );
+            })}
+          </Select.Content>
+        </Select.Root>
         <Text as="label" htmlFor={idTimeStart}>
           Start date{' '}
           <Text weight="light" size="1">
-            (first day of trip; required)
+            (first day of trip, in destination's time zone; required)
           </Text>
         </Text>
         <TextField.Root
@@ -155,7 +185,7 @@ export function TripForm({
         <Text as="label" htmlFor={idTimeEnd}>
           End date{' '}
           <Text weight="light" size="1">
-            (final day of trip; required)
+            (final day of trip, in destination's time zone; required)
           </Text>
         </Text>
         <TextField.Root
@@ -165,22 +195,6 @@ export function TripForm({
           defaultValue={tripEndStr}
           required
         />
-        <Text as="label" htmlFor={idTimeZone}>
-          Time zone
-        </Text>
-
-        <Select.Root name="timeZone" defaultValue={tripTimeZone}>
-          <Select.Trigger id={idTimeZone} />
-          <Select.Content>
-            {timeZones.map((tz) => {
-              return (
-                <Select.Item key={tz} value={tz}>
-                  {tz}
-                </Select.Item>
-              );
-            })}
-          </Select.Content>
-        </Select.Root>
       </Flex>
       <Flex gap="3" mt="5" justify="end">
         <Button

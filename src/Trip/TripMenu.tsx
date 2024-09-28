@@ -5,12 +5,12 @@ import { TripViewMode } from './TripViewMode';
 import { HamburgerMenuIcon } from '@radix-ui/react-icons';
 
 export function TripMenu({
-  setEditTripDialgoOpen,
+  setEditTripDialogOpen,
   setNewActivityDialogOpen,
   tripViewMode,
   setTripViewMode,
 }: {
-  setEditTripDialgoOpen: (v: boolean) => void;
+  setEditTripDialogOpen: (v: boolean) => void;
   setNewActivityDialogOpen: (v: boolean) => void;
   tripViewMode: TripViewMode;
   setTripViewMode: (newMode: TripViewMode) => void;
@@ -52,7 +52,7 @@ export function TripMenu({
 
         <DropdownMenu.Item
           onClick={() => {
-            setEditTripDialgoOpen(true);
+            setEditTripDialogOpen(true);
           }}
         >
           Edit trip

@@ -50,17 +50,21 @@ export async function dbAddTrip(
     userId: string;
   }
 ) {
-  return db.transact([
-    tx.trip[id()]
-      .update({
-        ...newTrip,
-        createdAt: Date.now(),
-        lastUpdatedAt: Date.now(),
-      })
-      .link({
-        user: [userId],
-      }),
-  ]);
+  const newId = id();
+  return {
+    id: newId,
+    result: await db.transact([
+      tx.trip[newId]
+        .update({
+          ...newTrip,
+          createdAt: Date.now(),
+          lastUpdatedAt: Date.now(),
+        })
+        .link({
+          user: [userId],
+        }),
+    ]),
+  };
 }
 export async function dbAddUserToTrip(
   trip: Omit<DbTrip, 'createdAt' | 'lastUpdatedAt' | 'activity' | 'user'>,

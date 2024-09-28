@@ -47,7 +47,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   }, [rawTrip]);
 
   const [newActivityDialogOpen, setNewActivityDialogOpen] = useState(false);
-  const [editTripDialgoOpen, setEditTripDialgoOpen] = useState(false);
+  const [editTripDialogOpen, setEditTripDialogOpen] = useState(false);
   const [tripViewMode, setTripViewMode] = useState(TripViewMode.Timetable);
 
   return (
@@ -65,7 +65,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
         rightItems={[
           <TripMenu
             key="menu"
-            setEditTripDialgoOpen={setEditTripDialgoOpen}
+            setEditTripDialogOpen={setEditTripDialogOpen}
             setNewActivityDialogOpen={setNewActivityDialogOpen}
             tripViewMode={tripViewMode}
             setTripViewMode={setTripViewMode}
@@ -100,11 +100,11 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
         />
       ) : null}
 
-      {editTripDialgoOpen && trip ? (
+      {editTripDialogOpen && trip ? (
         <TripEditDialog
           trip={trip}
-          dialogOpen={editTripDialgoOpen}
-          setDialogOpen={setEditTripDialgoOpen}
+          dialogOpen={editTripDialogOpen}
+          setDialogOpen={setEditTripDialogOpen}
         />
       ) : null}
     </>
