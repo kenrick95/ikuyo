@@ -27,6 +27,10 @@ export default defineConfig({
           },
         ],
       },
+      strategies: 'generateSW',
+      workbox: {
+        navigateFallbackDenylist: [/^\/sw.js/],
+      },
     }),
   ],
   build: {
