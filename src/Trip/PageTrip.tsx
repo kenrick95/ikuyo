@@ -14,6 +14,7 @@ import s from './PageTrip.module.css';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
 import { TripViewMode } from './TripViewMode';
 import { ActivityList } from '../ActivityList/ActivityList';
+import { TripDeleteDialog } from './TripDeleteDialog';
 
 export default PageTrip;
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
@@ -48,6 +49,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
 
   const [newActivityDialogOpen, setNewActivityDialogOpen] = useState(false);
   const [editTripDialogOpen, setEditTripDialogOpen] = useState(false);
+  const [deleteTripDialogOpen, setDeleteTripDialogOpen] = useState(false);
   const [tripViewMode, setTripViewMode] = useState(TripViewMode.Timetable);
 
   return (
@@ -67,6 +69,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
             key="menu"
             setEditTripDialogOpen={setEditTripDialogOpen}
             setNewActivityDialogOpen={setNewActivityDialogOpen}
+            setDeleteTripDialogOpen={setDeleteTripDialogOpen}
             tripViewMode={tripViewMode}
             setTripViewMode={setTripViewMode}
           />,
@@ -105,6 +108,14 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
           trip={trip}
           dialogOpen={editTripDialogOpen}
           setDialogOpen={setEditTripDialogOpen}
+        />
+      ) : null}
+
+      {deleteTripDialogOpen && trip ? (
+        <TripDeleteDialog
+          trip={trip}
+          dialogOpen={deleteTripDialogOpen}
+          setDialogOpen={setDeleteTripDialogOpen}
         />
       ) : null}
     </>

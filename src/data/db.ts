@@ -1,5 +1,11 @@
-import { id, init, tx } from '@instantdb/react';
-import type { DbActivity, DbSchema, DbTrip, DbUser } from './types';
+import { id, init } from '@instantdb/react';
+import type {
+  DbActivity,
+  DbSchema,
+  DbTrip,
+  DbTripWithActivity,
+  DbUser,
+} from './types';
 
 // ID for app: ikuyo
 const APP_ID = '6962735b-d61f-4c3c-a78f-03ca3fa6ba9a';
@@ -15,7 +21,7 @@ export async function dbAddActivity(
   }
 ) {
   return db.transact(
-    tx.activity[id()]
+    db.tx.activity[id()]
       .update({
         ...newActivity,
         createdAt: Date.now(),
@@ -27,13 +33,13 @@ export async function dbAddActivity(
   );
 }
 export async function dbDeleteActivity(activity: DbActivity) {
-  return db.transact(tx.activity[activity.id].delete());
+  return db.transact(db.tx.activity[activity.id].delete());
 }
 export async function dbUpdateActivity(
   activity: Omit<DbActivity, 'createdAt' | 'lastUpdatedAt' | 'trip'>
 ) {
   return db.transact(
-    tx.activity[activity.id].update({
+    db.tx.activity[activity.id].update({
       ...activity,
       lastUpdatedAt: Date.now(),
     })
@@ -54,7 +60,7 @@ export async function dbAddTrip(
   return {
     id: newId,
     result: await db.transact([
-      tx.trip[newId]
+      db.tx.trip[newId]
         .update({
           ...newTrip,
           createdAt: Date.now(),
@@ -71,7 +77,7 @@ export async function dbAddUserToTrip(
   user: DbUser
 ) {
   return db.transact([
-    tx.trip[trip.id]
+    db.tx.trip[trip.id]
       .update({
         ...trip,
         lastUpdatedAt: Date.now(),
@@ -86,7 +92,7 @@ export async function removeUserFromTrip(
   user: DbUser
 ) {
   return db.transact([
-    tx.trip[trip.id]
+    db.tx.trip[trip.id]
       .update({
         ...trip,
         lastUpdatedAt: Date.now(),
@@ -101,21 +107,24 @@ export async function dbUpdateTrip(
   trip: Omit<DbTrip, 'createdAt' | 'lastUpdatedAt' | 'activity' | 'user'>
 ) {
   return db.transact(
-    tx.trip[trip.id].update({
+    db.tx.trip[trip.id].update({
       ...trip,
       lastUpdatedAt: Date.now(),
     })
   );
 }
-export async function dbDeleteTrip(trip: DbTrip) {
-  return db.transact(tx.trip[trip.id].delete());
+export async function dbDeleteTrip(trip: DbTripWithActivity) {
+  return db.transact([
+    ...trip.activity.map((activity) => db.tx.activity[activity.id].delete()),
+    db.tx.trip[trip.id].delete(),
+  ]);
 }
 
 export async function dbAddUser(
   newUser: Omit<DbUser, 'id' | 'createdAt' | 'lastUpdatedAt' | 'trip'>
 ) {
   return db.transact(
-    tx.user[id()].update({
+    db.tx.user[id()].update({
       ...newUser,
       createdAt: Date.now(),
       lastUpdatedAt: Date.now(),
@@ -124,7 +133,7 @@ export async function dbAddUser(
 }
 export async function dbUpdateUser(user: Omit<DbUser, 'trip'>) {
   return db.transact(
-    tx.user[user.id].update({
+    db.tx.user[user.id].update({
       ...user,
       lastUpdatedAt: Date.now(),
     })
