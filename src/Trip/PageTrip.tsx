@@ -37,14 +37,14 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   const user = data?.user[0] as DbUser | undefined;
   const rawTrip = data?.trip[0] as DbTrip | undefined;
 
-  const trip = useMemo(() => {
+  const trip: undefined | DbTripWithActivity = useMemo(() => {
     if (rawTrip && rawTrip.activity) {
       rawTrip.activity = rawTrip.activity.map((activity) => {
         activity.trip = rawTrip;
         return activity;
       });
     }
-    return rawTrip;
+    return rawTrip as undefined | DbTripWithActivity;
   }, [rawTrip]);
 
   const [newActivityDialogOpen, setNewActivityDialogOpen] = useState(false);
@@ -80,11 +80,11 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
         {trip ? (
           tripViewMode === TripViewMode.Timetable ? (
             <Timetable
-              trip={trip as DbTripWithActivity}
+              trip={trip}
               setNewActivityDialogOpen={setNewActivityDialogOpen}
             />
           ) : (
-            <ActivityList trip={trip as DbTripWithActivity} />
+            <ActivityList trip={trip} />
           )
         ) : isLoading ? (
           'Loading'
