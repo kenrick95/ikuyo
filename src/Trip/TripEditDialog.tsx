@@ -1,6 +1,6 @@
 import { Dialog, Box } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
-import { DbTrip } from '../data/types';
+import { DbTripWithActivity } from '../data/types';
 import { TripForm } from './TripForm';
 import { TripFormMode } from './TripFormMode';
 import { formatToDateInput } from './time';
@@ -10,7 +10,7 @@ export function TripEditDialog({
   dialogOpen,
   setDialogOpen,
 }: {
-  trip: DbTrip;
+  trip: DbTripWithActivity;
   dialogOpen: boolean;
   setDialogOpen: (newValue: boolean) => void;
 }) {
@@ -39,6 +39,7 @@ export function TripEditDialog({
           dialogOpen={dialogOpen}
           setDialogOpen={setDialogOpen}
           tripTimeZone={trip.timeZone}
+          activities={trip.activity}
         />
       </Dialog.Content>
     </Dialog.Root>

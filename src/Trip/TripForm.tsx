@@ -6,6 +6,7 @@ import { TripFormMode } from './TripFormMode';
 import { getDateTimeFromDateInput } from './time';
 import { useLocation } from 'wouter';
 import { ROUTES } from '../routes';
+import { DbActivity } from '../data/types';
 
 export function TripForm({
   mode,
@@ -16,6 +17,7 @@ export function TripForm({
   tripTitle,
   tripTimeZone,
   userId,
+  activities,
 }: {
   mode: TripFormMode;
   tripId?: string;
@@ -26,6 +28,7 @@ export function TripForm({
   tripTitle: string;
   tripTimeZone: string;
   userId?: string;
+  activities?: DbActivity[];
 }) {
   const [, setLocation] = useLocation();
   const idTitle = useId();
@@ -77,13 +80,19 @@ export function TripForm({
         return;
       }
       if (mode === TripFormMode.Edit && tripId) {
-        await dbUpdateTrip({
-          id: tripId,
-          title,
-          timeZone,
-          timestampStart: dateStartDateTime.toMillis(),
-          timestampEnd: dateEndDateTime.toMillis(),
-        });
+        await dbUpdateTrip(
+          {
+            id: tripId,
+            title,
+            timeZone,
+            timestampStart: dateStartDateTime.toMillis(),
+            timestampEnd: dateEndDateTime.toMillis(),
+          },
+          {
+            activities,
+            previousTimeZone: tripTimeZone,
+          }
+        );
         publishToast({
           root: {},
           title: { children: `Trip ${title} edited` },
@@ -120,7 +129,16 @@ export function TripForm({
         setDialogOpen(false);
       }
     };
-  }, [mode, publishToast, setDialogOpen, tripId, userId, setLocation]);
+  }, [
+    mode,
+    publishToast,
+    setDialogOpen,
+    tripId,
+    userId,
+    setLocation,
+    activities,
+    tripTimeZone,
+  ]);
 
   return (
     <form
