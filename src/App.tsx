@@ -1,10 +1,11 @@
 import './App.css';
 import '@radix-ui/themes/styles.css';
 import { Theme, Text } from '@radix-ui/themes';
-import { ThemeProvider } from 'next-themes';
 import { Switch, Route, Redirect } from 'wouter';
 import { ImperativeToastRoot } from './Toast/ImperativeToast';
 import React, { Suspense } from 'react';
+import { ROUTES } from './routes';
+import { ThemeAppearance, useTheme } from './theme';
 
 const PageLogin = withLoading(React.lazy(() => import('./Auth/Auth')));
 const PageTrips = withLoading(React.lazy(() => import('./Trip/PageTrips')));
@@ -19,24 +20,27 @@ function withLoading<T extends object>(Component: React.ComponentType<T>) {
     );
   };
 }
-
-import { ROUTES } from './routes';
-
 function App() {
+  const theme = useTheme();
   return (
-    <ThemeProvider attribute="class">
-      <Theme accentColor="plum">
-        <ImperativeToastRoot />
-        <Switch>
-          <Route path={ROUTES.Login} component={PageLogin} />
-          <Route path={ROUTES.Trips} component={PageTrips} />
-          <Route path={ROUTES.Trip} component={PageTrip} />
-          <Route>
-            <Redirect to={ROUTES.Login} />
-          </Route>
-        </Switch>
-      </Theme>
-    </ThemeProvider>
+    <Theme
+      appearance={
+        theme === ThemeAppearance.Dark
+          ? 'dark'
+          : 'light'
+      }
+      accentColor="plum"
+    >
+      <ImperativeToastRoot />
+      <Switch>
+        <Route path={ROUTES.Login} component={PageLogin} />
+        <Route path={ROUTES.Trips} component={PageTrips} />
+        <Route path={ROUTES.Trip} component={PageTrip} />
+        <Route>
+          <Redirect to={ROUTES.Login} />
+        </Route>
+      </Switch>
+    </Theme>
   );
 }
 
