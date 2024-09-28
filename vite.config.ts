@@ -29,6 +29,7 @@ export default defineConfig({
       },
       strategies: 'generateSW',
       workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         navigateFallbackDenylist: [/^\/sw.js/],
       },
     }),
