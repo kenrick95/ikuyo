@@ -159,9 +159,17 @@ function Trips({
                           {trip.title}
                         </Text>
                         <Text as="div" size="2" color="gray">
-                          {formatTimestampToReadableDate(trip.timestampStart)}{' '}
-                          &ndash;
-                          {formatTimestampToReadableDate(trip.timestampEnd)}
+                          {formatTimestampToReadableDate(
+                            trip.timestampStart,
+                            trip.timeZone
+                          )}
+                          {' '}&ndash;{' '}
+                          {formatTimestampToReadableDate(
+                            trip.timestampEnd,
+                            trip.timeZone
+                          )}
+                          {' '}
+                          ({trip.timeZone})
                         </Text>
                       </Link>
                     </Card>
