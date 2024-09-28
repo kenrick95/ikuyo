@@ -150,10 +150,10 @@ function Trips({
         <ul>
           {trips.length === 0
             ? 'None'
-            : trips.map((trip, i) => {
+            : trips.map((trip) => {
                 return (
-                  <li className={s.tripLi}>
-                    <Card asChild key={i}>
+                  <li className={s.tripLi} key={trip.id}>
+                    <Card asChild>
                       <Link to={ROUTES.Trip.replace(':id', trip.id)}>
                         <Text as="div" weight="bold">
                           {trip.title}
@@ -162,13 +162,12 @@ function Trips({
                           {formatTimestampToReadableDate(
                             trip.timestampStart,
                             trip.timeZone
-                          )}
-                          {' '}&ndash;{' '}
+                          )}{' '}
+                          &ndash;{' '}
                           {formatTimestampToReadableDate(
                             trip.timestampEnd,
                             trip.timeZone
-                          )}
-                          {' '}
+                          )}{' '}
                           ({trip.timeZone})
                         </Text>
                       </Link>
