@@ -1,7 +1,8 @@
-import { id, init_experimental } from '@instantdb/react';
+import { id, init_experimental, lookup } from '@instantdb/react';
 import type { DbActivity, DbTrip, DbTripWithActivity, DbUser } from './types';
 import { DateTime } from 'luxon';
 import schema from '../../instant.schema';
+import { TripUserRole } from './TripUserRole';
 
 // ID for app: ikuyo
 const APP_ID = '6962735b-d61f-4c3c-a78f-03ca3fa6ba9a';
@@ -136,6 +137,68 @@ export async function dbDeleteTrip(trip: DbTripWithActivity) {
     ...trip.activity.map((activity) => db.tx.activity[activity.id].delete()),
     db.tx.trip[trip.id].delete(),
   ]);
+}
+
+export async function dbAddUserToTrip({
+  tripId,
+  userEmail,
+  userRole,
+}: {
+  tripId: string;
+  userEmail: undefined | string;
+  userRole: TripUserRole;
+}) {
+  const lastUpdatedAt = Date.now();
+
+  // TODO: fixup perms...
+  // I want: create user if it doesn't exist
+  // means "create" user need to be public?
+  // but the way this is written.. "update" need to be public too...
+  // also, this exposes all user email of this trip, kind of dangerous?
+  
+  return db.transact([
+    db.tx.user[lookup('email', userEmail)].merge({
+      lastUpdatedAt,
+    }),
+    db.tx.trip[tripId].link({
+      [userRole]: lookup('email', userEmail),
+    }),
+  ]);
+}
+export async function dbUpdateUserFromTrip({
+  tripId,
+  userEmail,
+  previousUserRole,
+  userRole,
+}: {
+  tripId: string;
+  userEmail: undefined | string;
+  previousUserRole: TripUserRole;
+  userRole: TripUserRole;
+}) {
+  return db.transact([
+    db.tx.trip[tripId].unlink({
+      [previousUserRole]: lookup('email', userEmail),
+    }),
+    db.tx.trip[tripId].link({
+      [userRole]: lookup('email', userEmail),
+    }),
+  ]);
+}
+export async function dbRemoveUserFromTrip({
+  tripId,
+  userEmail,
+  userRole,
+}: {
+  tripId: string;
+  userEmail: undefined | string;
+  userRole: TripUserRole;
+}) {
+  return db.transact(
+    db.tx.trip[tripId].unlink({
+      [userRole]: lookup('email', userEmail),
+    })
+  );
 }
 
 export async function dbAddUser(

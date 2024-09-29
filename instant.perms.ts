@@ -25,10 +25,10 @@ export default {
   user: {
     bind: ['isSelf', 'auth.email == data.email'],
     allow: {
-      view: 'isSelf',
-      create: 'isSelf',
+      view: 'true',
+      create: 'true',
       delete: 'false',
-      update: 'isSelf',
+      update: 'true',
     },
   },
   activity: {

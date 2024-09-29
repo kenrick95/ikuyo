@@ -15,6 +15,7 @@ import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
 import { TripViewMode } from './TripViewMode';
 import { ActivityList } from '../ActivityList/ActivityList';
 import { TripDeleteDialog } from './TripDeleteDialog';
+import { TripSharingDialog } from './TripSharingDialog';
 
 export default PageTrip;
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
@@ -29,6 +30,9 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
         },
       },
       activity: {},
+      viewer: {},
+      editor: {},
+      owner: {},
     },
     user: {
       $: { where: { email: authUser?.email ?? '' } },
@@ -50,6 +54,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   const [newActivityDialogOpen, setNewActivityDialogOpen] = useState(false);
   const [editTripDialogOpen, setEditTripDialogOpen] = useState(false);
   const [deleteTripDialogOpen, setDeleteTripDialogOpen] = useState(false);
+  const [shareTripDialogOpen, setShareTripDialogOpen] = useState(false);
   const [tripViewMode, setTripViewMode] = useState(TripViewMode.Timetable);
 
   return (
@@ -70,6 +75,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
             setEditTripDialogOpen={setEditTripDialogOpen}
             setNewActivityDialogOpen={setNewActivityDialogOpen}
             setDeleteTripDialogOpen={setDeleteTripDialogOpen}
+            setShareTripDialogOpen={setShareTripDialogOpen}
             tripViewMode={tripViewMode}
             setTripViewMode={setTripViewMode}
           />,
@@ -108,6 +114,15 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
           trip={trip}
           dialogOpen={editTripDialogOpen}
           setDialogOpen={setEditTripDialogOpen}
+        />
+      ) : null}
+
+      {shareTripDialogOpen && trip && user ? (
+        <TripSharingDialog
+          trip={trip}
+          dialogOpen={shareTripDialogOpen}
+          setDialogOpen={setShareTripDialogOpen}
+          user={user}
         />
       ) : null}
 

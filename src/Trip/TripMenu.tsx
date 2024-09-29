@@ -3,15 +3,18 @@ import { useLocation } from 'wouter';
 import { ROUTES } from '../routes';
 import { TripViewMode } from './TripViewMode';
 import { HamburgerMenuIcon } from '@radix-ui/react-icons';
+import { TripSharing } from '../toggles';
 
 export function TripMenu({
   setEditTripDialogOpen,
+  setShareTripDialogOpen,
   setNewActivityDialogOpen,
   setDeleteTripDialogOpen,
   tripViewMode,
   setTripViewMode,
 }: {
   setEditTripDialogOpen: (v: boolean) => void;
+  setShareTripDialogOpen: (v: boolean) => void;
   setNewActivityDialogOpen: (v: boolean) => void;
   setDeleteTripDialogOpen: (v: boolean) => void;
   tripViewMode: TripViewMode;
@@ -59,6 +62,17 @@ export function TripMenu({
         >
           Edit trip
         </DropdownMenu.Item>
+
+        {TripSharing ? (
+          <DropdownMenu.Item
+            onClick={() => {
+              setShareTripDialogOpen(true);
+            }}
+          >
+            Share trip
+          </DropdownMenu.Item>
+        ) : null}
+
         <DropdownMenu.Item
           onClick={() => {
             setDeleteTripDialogOpen(true);

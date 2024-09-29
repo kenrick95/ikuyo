@@ -1,0 +1,6 @@
+.emailField {
+  flex-grow: 1;
+}
+.roleField {
+  flex-basis: 100px;
+}

@@ -50,7 +50,7 @@ export function PageTrips() {
   const user = data?.user?.[0] as DbUser | undefined;
   const [newTripDialogOpen, setNewTripDialogOpen] = useState(false);
   const tripGroups: Record<TripGroup, DbTrip[]> = useMemo(() => {
-    const trips: DbTrip[] = data?.trip ? data.trip as DbTrip[] : [];
+    const trips: DbTrip[] = data?.trip ? (data.trip as DbTrip[]) : [];
     const groups: Record<TripGroup, DbTrip[]> = {
       [TripGroup.Upcoming]: [],
       [TripGroup.Ongoing]: [],

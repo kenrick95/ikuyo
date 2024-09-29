@@ -1,5 +1,5 @@
 export enum TripUserRole {
-    Viewer = 1,
-    Editor = 2,
-    Owner = 3
+    Viewer = 'viewer',
+    Editor = 'editor',
+    Owner = 'owner'
 }

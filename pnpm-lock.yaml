@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@instantdb/core':
+        specifier: ^0.14.5
+        version: 0.14.5
       '@instantdb/react':
         specifier: ~0.14.5
         version: 0.14.5(react@18.3.1)
