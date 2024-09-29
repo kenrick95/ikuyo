@@ -42,16 +42,40 @@ const graph = i.graph(
         label: 'activity',
       },
     },
-    tripUser: {
+    tripOwner: {
       forward: {
         on: 'trip',
         has: 'many',
-        label: 'user',
+        label: 'owner',
       },
       reverse: {
         on: 'user',
         has: 'many',
-        label: 'trip',
+        label: 'tripOwner',
+      },
+    },
+    tripViewer: {
+      forward: {
+        on: 'trip',
+        has: 'many',
+        label: 'viewer',
+      },
+      reverse: {
+        on: 'user',
+        has: 'many',
+        label: 'tripViewer',
+      },
+    },
+    tripEditor: {
+      forward: {
+        on: 'trip',
+        has: 'many',
+        label: 'editor',
+      },
+      reverse: {
+        on: 'user',
+        has: 'many',
+        label: 'tripEditor',
       },
     },
   }

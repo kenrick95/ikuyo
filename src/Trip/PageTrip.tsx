@@ -31,7 +31,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
       activity: {},
     },
     user: {
-      $: { where: { email: authUser?.email } },
+      $: { where: { email: authUser?.email ?? '' } },
     },
   });
   const user = data?.user[0] as DbUser | undefined;

@@ -16,7 +16,7 @@ import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
 import s from './PageTrips.module.css';
 import { formatTimestampToReadableDate } from './time';
 import { useMemo, useState } from 'react';
-import { DbTrip } from '../data/types';
+import { DbTrip, DbUser } from '../data/types';
 import { TripGroup } from './TripGroup';
 import { PlusIcon } from '@radix-ui/react-icons';
 import { TripNewDialog } from './TripNewDialog';
@@ -28,22 +28,29 @@ export function PageTrips() {
     trip: {
       $: {
         where: {
-          'user.email': authUser?.email,
+          or: [
+            { 'editor.email': authUser?.email ?? '' },
+            { 'viewer.email': authUser?.email ?? '' },
+            { 'owner.email': authUser?.email ?? '' },
+          ],
         },
       },
+      viewer: {},
+      editor: {},
+      owner: {},
     },
     user: {
       $: {
         where: {
-          email: authUser?.email,
+          email: authUser?.email ?? '',
         },
       },
     },
   });
-  const user = data?.user[0];
+  const user = data?.user?.[0] as DbUser | undefined;
   const [newTripDialogOpen, setNewTripDialogOpen] = useState(false);
   const tripGroups: Record<TripGroup, DbTrip[]> = useMemo(() => {
-    const trips: DbTrip[] = data?.trip ? data.trip : [];
+    const trips: DbTrip[] = data?.trip ? data.trip as DbTrip[] : [];
     const groups: Record<TripGroup, DbTrip[]> = {
       [TripGroup.Upcoming]: [],
       [TripGroup.Ongoing]: [],

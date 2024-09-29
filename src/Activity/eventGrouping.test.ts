@@ -10,7 +10,9 @@ describe('Trip', () => {
     timestampEnd: new Date('2024-09-25T00:00:00Z').getTime(),
     timeZone: 'UTC',
     activity: [],
-    user: undefined,
+    owner: undefined,
+    viewer: undefined,
+    editor: undefined,
   };
   function createActivity(
     activity: Partial<DbActivityWithTrip>

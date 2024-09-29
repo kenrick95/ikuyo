@@ -29,7 +29,10 @@ export type DbTrip = {
   timeZone: string;
 
   activity: DbActivity[] | undefined;
-  user: DbUser[] | undefined;
+
+  viewer: DbUser[] | undefined;
+  editor: DbUser[] | undefined;
+  owner: DbUser[] | undefined;
 };
 export type DbUser = {
   id: string;
@@ -37,7 +40,10 @@ export type DbUser = {
   email: string;
   createdAt: number;
   lastUpdatedAt: number;
-  trip: undefined | DbTrip[];
+
+  tripEditor: DbTrip[] | undefined;
+  tripOwner: DbTrip[] | undefined;
+  tripViewer: DbTrip[] | undefined;
 };
 export type DbSchema = {
   activity: DbActivity;

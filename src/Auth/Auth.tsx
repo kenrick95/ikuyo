@@ -25,7 +25,7 @@ export function PageLogin() {
     user: {
       $: {
         where: {
-          email: user?.email,
+          email: user?.email ?? '',
         },
       },
     },
