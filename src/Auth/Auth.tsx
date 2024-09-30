@@ -14,6 +14,8 @@ import s from './Auth.module.css';
 import { Redirect } from 'wouter';
 import { ROUTES } from '../routes';
 
+import imgUrl from '/ikuyo.svg';
+
 export default PageLogin;
 export function PageLogin() {
   const { isLoading, user, error } = db.useAuth();
@@ -123,7 +125,7 @@ function Email({ setSentEmail }: { setSentEmail: (email: string) => void }) {
   return (
     <form onSubmit={handleSubmit}>
       <Flex direction="column" gap="2">
-        <Heading>Ikuyo!</Heading>
+        <Heading><img src={imgUrl} className={s.logo} /> Ikuyo!</Heading>
         <Text as="label" htmlFor={idEmail}>
           Enter your email to log in:
         </Text>

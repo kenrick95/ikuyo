@@ -3,3 +3,10 @@
   height: 100vh;
   place-items: center;
 }
+
+.logo {
+  width: 32px;
+  height: 32px;
+  vertical-align: -6px;
+  margin-right: 3px;
+}
