@@ -1,6 +1,6 @@
 import './App.css';
 import '@radix-ui/themes/styles.css';
-import { Theme, Text } from '@radix-ui/themes';
+import { Theme, Text, Portal } from '@radix-ui/themes';
 import { Switch, Route, Redirect } from 'wouter';
 import { ImperativeToastRoot } from './Toast/ImperativeToast';
 import React, { Suspense } from 'react';
@@ -23,24 +23,29 @@ function withLoading<T extends object>(Component: React.ComponentType<T>) {
 function App() {
   const theme = useTheme();
   return (
-    <Theme
-      appearance={
-        theme === ThemeAppearance.Dark
-          ? 'dark'
-          : 'light'
-      }
-      accentColor="plum"
-    >
-      <ImperativeToastRoot />
-      <Switch>
-        <Route path={ROUTES.Login} component={PageLogin} />
-        <Route path={ROUTES.Trips} component={PageTrips} />
-        <Route path={ROUTES.Trip} component={PageTrip} />
-        <Route>
-          <Redirect to={ROUTES.Login} />
-        </Route>
-      </Switch>
-    </Theme>
+    <>
+      <Theme
+        appearance={theme === ThemeAppearance.Dark ? 'dark' : 'light'}
+        accentColor="plum"
+      >
+        <Switch>
+          <Route path={ROUTES.Login} component={PageLogin} />
+          <Route path={ROUTES.Trips} component={PageTrips} />
+          <Route path={ROUTES.Trip} component={PageTrip} />
+          <Route>
+            <Redirect to={ROUTES.Login} />
+          </Route>
+        </Switch>
+      </Theme>
+      <Portal style={{ zIndex: 10 }} asChild>
+        <Theme
+          appearance={theme === ThemeAppearance.Dark ? 'dark' : 'light'}
+          accentColor="plum"
+        >
+          <ImperativeToastRoot />
+        </Theme>
+      </Portal>
+    </>
   );
 }
 
