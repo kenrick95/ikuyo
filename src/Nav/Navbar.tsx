@@ -3,6 +3,8 @@ import s from './Navbar.module.css';
 import imgUrl from '/ikuyo.svg';
 import React from 'react';
 import clsx from 'clsx';
+import { Link } from 'wouter';
+import { ROUTES } from '../routes';
 
 export function Navbar({
   leftItems,
@@ -15,10 +17,12 @@ export function Navbar({
     <Container className={s.container}>
       <Flex gap="3" align="center" className={s.flexContainer}>
         <Box className={s.logoBox}>
-          <Heading as="h1" size="6">
-            <img src={imgUrl} className={s.logo} />
-            <span className={s.logoText}>Ikuyo!</span>
-          </Heading>
+          <Link asChild to={ROUTES.Trips}>
+            <Heading as="h1" size="6">
+              <img src={imgUrl} className={s.logo} />
+              <span className={s.logoText}>Ikuyo!</span>
+            </Heading>
+          </Link>
         </Box>
         {leftItems.map((item, index) => {
           return (

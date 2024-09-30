@@ -11,9 +11,11 @@
 .logoBox {
   white-space: nowrap;
   flex: 0 0 auto;
+  cursor: var(--cursor-link);
 }
 .logoText {
   display: none;
+  cursor: var(--cursor-link);
 }
 @media (min-width: 520px) {
   .logoText {
