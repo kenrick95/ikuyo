@@ -41,6 +41,15 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   const user = data?.user[0] as DbUser | undefined;
   const rawTrip = data?.trip[0] as DbTrip | undefined;
 
+  const currentUserIsOwner = useMemo(() => {
+    for (const tripUser of rawTrip?.owner ?? []) {
+      if (user?.id === tripUser.id) {
+        return true;
+      }
+    }
+    return false;
+  }, [rawTrip, user]);
+
   const trip: undefined | DbTripWithActivity = useMemo(() => {
     if (rawTrip && rawTrip.activity) {
       rawTrip.activity = rawTrip.activity.map((activity) => {
@@ -76,6 +85,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
             setNewActivityDialogOpen={setNewActivityDialogOpen}
             setDeleteTripDialogOpen={setDeleteTripDialogOpen}
             setShareTripDialogOpen={setShareTripDialogOpen}
+            showTripSharing={currentUserIsOwner}
             tripViewMode={tripViewMode}
             setTripViewMode={setTripViewMode}
           />,

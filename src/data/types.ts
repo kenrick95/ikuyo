@@ -40,6 +40,7 @@ export type DbUser = {
   email: string;
   createdAt: number;
   lastUpdatedAt: number;
+  activated: boolean;
 
   tripEditor: DbTrip[] | undefined;
   tripOwner: DbTrip[] | undefined;

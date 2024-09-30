@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useId, useState } from 'react';
-import { db, dbAddUser } from '../data/db';
+import { db, dbUpsertUser as dbUpsertUser } from '../data/db';
 import {
   Text,
   Box,
@@ -34,12 +34,13 @@ export function PageLogin() {
   useEffect(() => {
     if (user?.email) {
       resetToast();
-      if (userData?.user.length === 0) {
-        // Create new user if not exist
-        void dbAddUser({
+      if (userData?.user.length === 0 || userData?.user[0].activated === false) {
+        // Create new user if not exist, or alr exist but not yet activated
+        void dbUpsertUser({
           // TODO: ask to change handle later?
           handle: user.email,
           email: user.email,
+          activated: true,
         }).then(() => {
           publishToast({
             root: { duration: Infinity },

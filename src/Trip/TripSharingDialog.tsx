@@ -8,8 +8,8 @@ import {
   Table,
   Inset,
 } from '@radix-ui/themes';
-import { useCallback, useState, useMemo } from 'react';
-import { dbAddUserToTrip, dbRemoveUserFromTrip } from '../data/db';
+import { useCallback, useState, useMemo, SyntheticEvent } from 'react';
+import { db, dbAddUserToTrip, dbRemoveUserFromTrip } from '../data/db';
 import { useBoundStore } from '../data/store';
 import { DbTrip, DbUser } from '../data/types';
 import { TripUserRole } from '../data/TripUserRole';
@@ -29,20 +29,19 @@ export function TripSharingDialog({
 }) {
   const publishToast = useBoundStore((state) => state.publishToast);
   const [errorMessage, setErrorMessage] = useState('');
-  const { userAndRoles, currentUserCanEditRoles } = useMemo(() => {
+  const { userAndRoles, currentUserIsOwner } = useMemo(() => {
     const res: Array<{ user: DbUser; role: TripUserRole }> = [];
-    let currentUserCanEditRoles = false;
+    let currentUserIsOwner = false;
     for (const role of [
       TripUserRole.Owner,
       TripUserRole.Editor,
       TripUserRole.Viewer,
     ]) {
       for (const user of trip[role] ?? []) {
-        if (
-          user.id === currentUser.id &&
-          (role === TripUserRole.Editor || role === TripUserRole.Owner)
-        ) {
-          currentUserCanEditRoles = true;
+        if (user.id === currentUser.id) {
+          if (role === TripUserRole.Owner) {
+            currentUserIsOwner = true;
+          }
         }
         res.push({
           user,
@@ -51,8 +50,22 @@ export function TripSharingDialog({
       }
     }
 
-    return { userAndRoles: res, currentUserCanEditRoles };
+    return { userAndRoles: res, currentUserIsOwner };
   }, [trip, currentUser.id]);
+
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserRole, setNewUserRole] = useState(TripUserRole.Viewer);
+  const { data: newUserData } = db.useQuery({
+    user: {
+      $: {
+        where: {
+          email: newUserEmail,
+        },
+        limit: 1,
+      },
+    },
+  });
+  const newUser = newUserData?.user[0] as DbUser | undefined;
 
   const handleDeleteUser = useCallback(() => {
     return async ({ user, role }: { user: DbUser; role: TripUserRole }) => {
@@ -62,7 +75,7 @@ export function TripSharingDialog({
         userRole: role,
       });
     };
-  }, []);
+  }, [trip.id]);
 
   const handleForm = useCallback(() => {
     return async (elForm: HTMLFormElement) => {
@@ -77,13 +90,20 @@ export function TripSharingDialog({
       console.log('TripForm', {
         newUserEmail,
         newUserRole,
+        newUser,
       });
       if (!newUserEmail || !newUserRole) {
         return;
       }
 
+      if (currentUserIsOwner && newUser && newUser.id === currentUser.id) {
+        setErrorMessage(`Cannot change current user's owner permission`);
+        return;
+      }
+
       await dbAddUserToTrip({
         tripId: trip.id,
+        newUser: newUser,
         userEmail: newUserEmail,
         userRole: newUserRole as TripUserRole,
       });
@@ -95,8 +115,19 @@ export function TripSharingDialog({
         close: {},
       });
       elForm.reset();
+      setNewUserEmail('');
+      setNewUserRole(TripUserRole.Viewer);
     };
-  }, [trip.id, trip.title, publishToast]);
+  }, [trip.id, trip.title, publishToast, newUser]);
+
+  const handleFormSubmit = useCallback(
+    (e: SyntheticEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      const elForm = e.currentTarget;
+      void handleForm()(elForm);
+    },
+    [handleForm]
+  );
 
   return (
     <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -106,16 +137,12 @@ export function TripSharingDialog({
           Share this trip with other people!
         </Dialog.Description>
 
-        {currentUserCanEditRoles ? (
+        {currentUserIsOwner ? (
           <form
             onInput={() => {
               setErrorMessage('');
             }}
-            onSubmit={(e) => {
-              e.preventDefault();
-              const elForm = e.currentTarget;
-              void handleForm()(elForm);
-            }}
+            onSubmit={handleFormSubmit}
           >
             <Flex direction="column" gap="2">
               <Text color="red" size="2">
@@ -124,17 +151,23 @@ export function TripSharingDialog({
 
               <Flex direction="row" gap="1" justify="end">
                 <TextField.Root
-                  defaultValue=""
                   placeholder="abc@example.com"
                   name="newUserEmail"
                   type="text"
                   required
                   className={s.emailField}
+                  value={newUserEmail}
+                  onChange={(ev) => {
+                    setNewUserEmail(ev.currentTarget.value);
+                  }}
                 ></TextField.Root>
 
                 <Select.Root
                   name="newUserRole"
-                  defaultValue={TripUserRole.Viewer}
+                  value={newUserRole}
+                  onValueChange={(v) => {
+                    setNewUserRole(v as TripUserRole);
+                  }}
                   required
                 >
                   <Select.Trigger className={s.roleField} />
@@ -162,7 +195,7 @@ export function TripSharingDialog({
               <Table.Row>
                 <Table.ColumnHeaderCell>Person</Table.ColumnHeaderCell>
                 <Table.ColumnHeaderCell>Role</Table.ColumnHeaderCell>
-                {currentUserCanEditRoles ? (
+                {currentUserIsOwner ? (
                   <Table.ColumnHeaderCell>Actions</Table.ColumnHeaderCell>
                 ) : null}
               </Table.Row>
@@ -175,8 +208,8 @@ export function TripSharingDialog({
                     <Table.RowHeaderCell>
                       {user.handle || user.email}
                     </Table.RowHeaderCell>
-                    <Table.Cell>{role}</Table.Cell>
-                    {currentUserCanEditRoles ? (
+                    <Table.Cell>{capitalizeFirst(role)}</Table.Cell>
+                    {currentUserIsOwner ? (
                       <Table.Cell>
                         {currentUser.id === user.id ? (
                           ''
@@ -200,7 +233,19 @@ export function TripSharingDialog({
             </Table.Body>
           </Table.Root>
         </Inset>
+
+        <Flex gap="3" mt="5" justify="end">
+          <Dialog.Close>
+            <Button size="2" variant="soft" color="gray">
+              Close
+            </Button>
+          </Dialog.Close>
+        </Flex>
       </Dialog.Content>
     </Dialog.Root>
   );
+}
+
+function capitalizeFirst(text: string): string {
+  return text.length > 0 ? `${text[0].toUpperCase()}${text.slice(1)}` : '';
 }

@@ -26,6 +26,7 @@ const graph = i.graph(
       createdAt: i.number(),
       handle: i.string().unique().indexed(),
       email: i.string().unique().indexed(),
+      activated: i.boolean(),
       lastUpdatedAt: i.number(),
     }),
   },

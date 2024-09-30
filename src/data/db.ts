@@ -141,29 +141,56 @@ export async function dbDeleteTrip(trip: DbTripWithActivity) {
 
 export async function dbAddUserToTrip({
   tripId,
+  newUser,
   userEmail,
   userRole,
 }: {
   tripId: string;
+  newUser: undefined | DbUser;
   userEmail: undefined | string;
   userRole: TripUserRole;
 }) {
   const lastUpdatedAt = Date.now();
+  const transactions = [];
 
-  // TODO: fixup perms...
-  // I want: create user if it doesn't exist
-  // means "create" user need to be public?
-  // but the way this is written.. "update" need to be public too...
-  // also, this exposes all user email of this trip, kind of dangerous?
-  
-  return db.transact([
-    db.tx.user[lookup('email', userEmail)].merge({
-      lastUpdatedAt,
-    }),
+  // TODO: if there is a 'queryOnce', I can create the user here if needed, for now have to do useQuery I guess..
+
+  let userId = newUser?.id;
+  if (!userId) {
+    userId = id();
+    transactions.push(
+      db.tx.user[userId].update({
+        handle: userEmail,
+        email: userEmail,
+        activated: false,
+        createdAt: lastUpdatedAt,
+        lastUpdatedAt: lastUpdatedAt,
+      })
+    );
+  }
+
+  transactions.push(
     db.tx.trip[tripId].link({
-      [userRole]: lookup('email', userEmail),
-    }),
-  ]);
+      [userRole]: userId,
+    })
+  );
+  for (const role of [
+    TripUserRole.Owner,
+    TripUserRole.Editor,
+    TripUserRole.Viewer,
+  ]) {
+    if (userRole === role) {
+      continue;
+    }
+
+    transactions.push(
+      db.tx.trip[tripId].unlink({
+        [role]: userId,
+      })
+    );
+  }
+
+  return db.transact(transactions);
 }
 export async function dbUpdateUserFromTrip({
   tripId,
@@ -201,7 +228,7 @@ export async function dbRemoveUserFromTrip({
   );
 }
 
-export async function dbAddUser(
+export async function dbUpsertUser(
   newUser: Omit<
     DbUser,
     | 'id'
@@ -214,17 +241,10 @@ export async function dbAddUser(
   >
 ) {
   return db.transact(
-    db.tx.user[id()].merge({
+    db.tx.user[lookup('email', newUser.email)].merge({
       ...newUser,
+      // TODO: need a query once to check if need to update createAt or not...
       createdAt: Date.now(),
-      lastUpdatedAt: Date.now(),
-    })
-  );
-}
-export async function dbUpdateUser(user: Omit<DbUser, 'trip'>) {
-  return db.transact(
-    db.tx.user[user.id].merge({
-      ...user,
       lastUpdatedAt: Date.now(),
     })
   );
