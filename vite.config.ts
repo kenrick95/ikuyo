@@ -5,6 +5,15 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  // https://github.com/vitejs/vite/issues/18164#issuecomment-2365310242
+  css: {
+    preprocessorOptions: {
+      scss: {
+        api: 'modern-compiler',
+      },
+    },
+  },
+
   plugins: [
     react(),
     VitePWA({
