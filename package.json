@@ -19,8 +19,8 @@
     "@radix-ui/themes": "~3.1.4",
     "clsx": "~2.1.1",
     "luxon": "~3.5.0",
-    "react": "~18.3.1",
-    "react-dom": "~18.3.1",
+    "react": "19.0.0-rc-2d16326d-20240930",
+    "react-dom": "19.0.0-rc-2d16326d-20240930",
     "workbox-window": "~7.1.0",
     "wouter": "~3.3.5",
     "zustand": "~4.5.5"
@@ -28,8 +28,8 @@
   "devDependencies": {
     "@eslint/js": "~9.11.1",
     "@types/luxon": "~3.4.2",
-    "@types/react": "~18.3.10",
-    "@types/react-dom": "~18.3.0",
+    "@types/react": "npm:types-react@rc",
+    "@types/react-dom": "npm:types-react-dom@rc",
     "@vitejs/plugin-react-swc": "~3.7.1",
     "eslint": "~9.11.1",
     "eslint-plugin-react-hooks": "5.1.0-rc-2d16326d-20240930",
@@ -43,5 +43,19 @@
     "vite-plugin-pwa": "~0.20.5",
     "vitest": "~2.1.1"
   },
-  "packageManager": "pnpm@9.11.0"
+  "packageManager": "pnpm@9.11.0",
+  "pnpm": {
+    "overrides": {
+      "@types/react": "npm:types-react@rc",
+      "@types/react-dom": "npm:types-react-dom@rc"
+    },
+    "peerDependencyRules": {
+      "allowAny": [
+        "react",
+        "react-dom",
+        "@types/react",
+        "@types/react-dom"
+      ]
+    }
+  }
 }
