@@ -49,14 +49,14 @@ export function PageLogin() {
           activated: true,
         }).then(() => {
           publishToast({
-            root: { duration: Infinity },
+            root: {},
             title: { children: `Welcome ${user.email}!` },
             close: {},
           });
         });
       } else if (userData?.user.length != null && userData.user.length > 0) {
         publishToast({
-          root: { duration: Infinity },
+          root: {},
           title: { children: `Welcome back ${user.email}!` },
           close: {},
         });
@@ -183,7 +183,9 @@ function MagicCode({ sentEmail }: { sentEmail: string }) {
   return (
     <form onSubmit={handleSubmit}>
       <Flex direction="column" gap="2">
-        <Heading>Ikuyo!</Heading>
+        <Heading>
+          <img src={imgUrl} className={s.logo} /> Ikuyo!
+        </Heading>
         <Text as="label" htmlFor={idCode}>
           Enter the code we sent to your email ({sentEmail}):
         </Text>
