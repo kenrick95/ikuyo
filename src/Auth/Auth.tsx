@@ -15,6 +15,7 @@ import { Redirect } from 'wouter';
 import { ROUTES } from '../routes';
 
 import imgUrl from '/ikuyo.svg';
+import { DocTitle } from '../Nav/DocTitle';
 
 export default PageLogin;
 export function PageLogin() {
@@ -36,7 +37,10 @@ export function PageLogin() {
   useEffect(() => {
     if (user?.email) {
       resetToast();
-      if (userData?.user.length === 0 || userData?.user[0].activated === false) {
+      if (
+        userData?.user.length === 0 ||
+        userData?.user[0].activated === false
+      ) {
         // Create new user if not exist, or alr exist but not yet activated
         void dbUpsertUser({
           // TODO: ask to change handle later?
@@ -66,19 +70,22 @@ export function PageLogin() {
   }
 
   return (
-    <Grid className={s.grid}>
-      <Box maxWidth="450px" mx="2" px="2">
-        {isLoading ? (
-          'Loading'
-        ) : error ? (
-          `Error: ${error.message}`
-        ) : !sentEmail ? (
-          <Email setSentEmail={setSentEmail} />
-        ) : (
-          <MagicCode sentEmail={sentEmail} />
-        )}
-      </Box>
-    </Grid>
+    <>
+      <DocTitle title={'Login'} />
+      <Grid className={s.grid}>
+        <Box maxWidth="450px" mx="2" px="2">
+          {isLoading ? (
+            'Loading'
+          ) : error ? (
+            `Error: ${error.message}`
+          ) : !sentEmail ? (
+            <Email setSentEmail={setSentEmail} />
+          ) : (
+            <MagicCode sentEmail={sentEmail} />
+          )}
+        </Box>
+      </Grid>
+    </>
   );
 }
 
@@ -125,7 +132,9 @@ function Email({ setSentEmail }: { setSentEmail: (email: string) => void }) {
   return (
     <form onSubmit={handleSubmit}>
       <Flex direction="column" gap="2">
-        <Heading><img src={imgUrl} className={s.logo} /> Ikuyo!</Heading>
+        <Heading>
+          <img src={imgUrl} className={s.logo} /> Ikuyo!
+        </Heading>
         <Text as="label" htmlFor={idEmail}>
           Enter your email to log in:
         </Text>

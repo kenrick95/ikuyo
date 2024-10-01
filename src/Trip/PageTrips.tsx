@@ -20,6 +20,7 @@ import { DbTrip, DbUser } from '../data/types';
 import { TripGroup } from './TripGroup';
 import { PlusIcon } from '@radix-ui/react-icons';
 import { TripNewDialog } from './TripNewDialog';
+import { DocTitle } from '../Nav/DocTitle';
 
 export default PageTrips;
 export function PageTrips() {
@@ -76,6 +77,7 @@ export function PageTrips() {
 
   return (
     <>
+      <DocTitle title={'Trips'} />
       <Navbar
         leftItems={[
           <Heading as="h2" size="5">

@@ -16,6 +16,7 @@ import { TripViewMode } from './TripViewMode';
 import { ActivityList } from '../ActivityList/ActivityList';
 import { TripDeleteDialog } from './TripDeleteDialog';
 import { TripSharingDialog } from './TripSharingDialog';
+import { DocTitle } from '../Nav/DocTitle';
 
 export default PageTrip;
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
@@ -68,6 +69,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
 
   return (
     <>
+      <DocTitle title={trip?.title ?? 'Trip'} />
       <Navbar
         leftItems={[
           <Heading
