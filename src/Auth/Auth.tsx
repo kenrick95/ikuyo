@@ -19,23 +19,39 @@ import { DocTitle } from '../Nav/DocTitle';
 
 export default PageLogin;
 export function PageLogin() {
-  const { isLoading, user, error } = db.useAuth();
+  const { isLoading: authUserLoading, user: authUser, error } = db.useAuth();
   const [sentEmail, setSentEmail] = useState('');
   const publishToast = useBoundStore((state) => state.publishToast);
   const resetToast = useBoundStore((state) => state.resetToast);
 
-  const { data: userData } = db.useQuery({
+  const { isLoading: userDataLoading, data: userData } = db.useQuery({
     user: {
       $: {
         where: {
-          email: user?.email ?? '',
+          email: authUser?.email ?? '',
         },
+        limit: 1,
       },
     },
   });
 
+  // TODO: really need queryOnce instead of relying on useQuery...
+  console.log('PageLogin| render', {
+    sentEmail,
+    authUser,
+    authUserLoading,
+    userData,
+    userDataLoading,
+  });
+
   useEffect(() => {
-    if (user?.email) {
+    console.log('PageLogin| effect', {
+      authUser,
+      authUserLoading,
+      userData,
+      userDataLoading,
+    });
+    if (authUser?.email && !userDataLoading) {
       resetToast();
       if (
         userData?.user.length === 0 ||
@@ -44,27 +60,39 @@ export function PageLogin() {
         // Create new user if not exist, or alr exist but not yet activated
         void dbUpsertUser({
           // TODO: ask to change handle later?
-          handle: user.email,
-          email: user.email,
+          handle: authUser.email,
+          email: authUser.email,
           activated: true,
         }).then(() => {
           publishToast({
             root: {},
-            title: { children: `Welcome ${user.email}!` },
+            title: { children: `Welcome ${authUser.email}!` },
             close: {},
           });
         });
       } else if (userData?.user.length != null && userData.user.length > 0) {
         publishToast({
           root: {},
-          title: { children: `Welcome back ${user.email}!` },
+          title: { children: `Welcome back ${authUser.email}!` },
           close: {},
         });
       }
     }
-  }, [userData, user, resetToast, publishToast]);
+  }, [
+    userData,
+    authUser,
+    resetToast,
+    publishToast,
+    authUserLoading,
+    userDataLoading,
+  ]);
 
-  if (userData?.user.length != null && userData.user.length > 0) {
+  if (
+    !authUserLoading &&
+    !userDataLoading &&
+    userData?.user.length != null &&
+    userData.user.length > 0
+  ) {
     // Already authenticated
     return <Redirect to={ROUTES.Trips} />;
   }
@@ -74,7 +102,7 @@ export function PageLogin() {
       <DocTitle title={'Login'} />
       <Grid className={s.grid}>
         <Box maxWidth="450px" mx="2" px="2">
-          {isLoading ? (
+          {authUserLoading ? (
             'Loading'
           ) : error ? (
             `Error: ${error.message}`
