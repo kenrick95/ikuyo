@@ -1,5 +1,5 @@
-import './App.css';
 import '@radix-ui/themes/styles.css';
+import s from './App.module.css';
 import { Theme, Text, Portal } from '@radix-ui/themes';
 import { Switch, Route, Redirect } from 'wouter';
 import { ImperativeToastRoot } from './Toast/ImperativeToast';
@@ -37,7 +37,7 @@ function App() {
           </Route>
         </Switch>
       </Theme>
-      <Portal style={{ zIndex: 10 }} asChild>
+      <Portal className={s.notificationArea} asChild>
         <Theme
           appearance={theme === ThemeAppearance.Dark ? 'dark' : 'light'}
           accentColor="plum"
