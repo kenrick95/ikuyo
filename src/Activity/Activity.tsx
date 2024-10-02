@@ -11,9 +11,6 @@ import { Text, Box, ContextMenu } from '@radix-ui/themes';
 import { DbActivityWithTrip } from '../data/types';
 import { formatTime } from './time';
 import { DateTime } from 'luxon';
-import { ActivityDeleteDialog } from './ActivityDeleteDialog';
-import { ActivityEditDialog } from './ActivityEditDialog';
-import { ActivityViewDialog } from './ActivityViewDialog';
 import {
   dayColMapping,
   dayEndMapping,
@@ -22,6 +19,31 @@ import {
   timeStartMapping,
 } from '../Timetable/TimetableStyles';
 import { TripViewMode } from '../Trip/TripViewMode';
+import { withLoading } from '../Loading/withLoading';
+import React from 'react';
+import { DialogLoading } from '../Loading/DialogLoading';
+
+const ActivityViewDialog = withLoading({ fallback: () => <DialogLoading /> })(
+  React.lazy(() =>
+    import('./ActivityViewDialog').then((module) => {
+      return { default: module.ActivityViewDialog };
+    })
+  )
+);
+const ActivityDeleteDialog = withLoading({ fallback: () => <DialogLoading /> })(
+  React.lazy(() =>
+    import('./ActivityDeleteDialog').then((module) => {
+      return { default: module.ActivityDeleteDialog };
+    })
+  )
+);
+const ActivityEditDialog = withLoading({ fallback: () => <DialogLoading /> })(
+  React.lazy(() =>
+    import('./ActivityEditDialog').then((module) => {
+      return { default: module.ActivityEditDialog };
+    })
+  )
+);
 
 export function Activity({
   activity,

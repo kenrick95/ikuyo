@@ -11,14 +11,15 @@ import {
 } from '@radix-ui/themes';
 import { useBoundStore } from '../data/store';
 import s from './Auth.module.css';
-import { Redirect } from 'wouter';
+import { Redirect, RouteComponentProps } from 'wouter';
 import { ROUTES } from '../routes';
 
 import imgUrl from '/ikuyo.svg';
 import { DocTitle } from '../Nav/DocTitle';
 
 export default PageLogin;
-export function PageLogin() {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function PageLogin(_props: RouteComponentProps) {
   const { isLoading: authUserLoading, user: authUser, error } = db.useAuth();
   const [sentEmail, setSentEmail] = useState('');
   const publishToast = useBoundStore((state) => state.publishToast);

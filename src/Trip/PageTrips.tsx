@@ -1,4 +1,4 @@
-import { Link } from 'wouter';
+import { Link, RouteComponentProps } from 'wouter';
 import { db } from '../data/db';
 import { ROUTES } from '../routes';
 import { useAuthUser } from '../Auth/hooks';
@@ -19,11 +19,22 @@ import { useMemo, useState } from 'react';
 import { DbTrip, DbUser } from '../data/types';
 import { TripGroup } from './TripGroup';
 import { PlusIcon } from '@radix-ui/react-icons';
-import { TripNewDialog } from './TripNewDialog';
+
 import { DocTitle } from '../Nav/DocTitle';
+import { withLoading } from '../Loading/withLoading';
+import React from 'react';
+
+const TripNewDialog = withLoading()(
+  React.lazy(() =>
+    import('./TripNewDialog').then((module) => {
+      return { default: module.TripNewDialog };
+    })
+  )
+);
 
 export default PageTrips;
-export function PageTrips() {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function PageTrips(_props: RouteComponentProps) {
   const { user: authUser } = useAuthUser();
   const { isLoading, data, error } = db.useQuery({
     trip: {

@@ -1,22 +1,65 @@
+import React from 'react';
 import { Container, Heading } from '@radix-ui/themes';
-import { Timetable } from '../Timetable/Timetable';
 import { Navbar } from '../Nav/Navbar';
-import { ActivityNewDialog } from '../Activity/ActivityNewDialog';
 import { RouteComponentProps } from 'wouter';
 import { db } from '../data/db';
 import { useMemo, useState } from 'react';
-import { TripEditDialog } from './TripEditDialog';
+
 import { useAuthUser } from '../Auth/hooks';
-import { TripMenu } from './TripMenu';
 import { DbTrip, DbTripWithActivity, DbUser } from '../data/types';
 
 import s from './PageTrip.module.css';
+
+import { TripMenu } from './TripMenu';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
 import { TripViewMode } from './TripViewMode';
-import { ActivityList } from '../ActivityList/ActivityList';
-import { TripDeleteDialog } from './TripDeleteDialog';
-import { TripSharingDialog } from './TripSharingDialog';
+
 import { DocTitle } from '../Nav/DocTitle';
+import { withLoading } from '../Loading/withLoading';
+import { DialogLoading } from '../Loading/DialogLoading';
+
+const Timetable = withLoading()(
+  React.lazy(() =>
+    import('../Timetable/Timetable').then((module) => {
+      return { default: module.Timetable };
+    })
+  )
+);
+const ActivityList = withLoading()(
+  React.lazy(() =>
+    import('../ActivityList/ActivityList').then((module) => {
+      return { default: module.ActivityList };
+    })
+  )
+);
+const ActivityNewDialog = withLoading({ fallback: () => <DialogLoading /> })(
+  React.lazy(() =>
+    import('../Activity/ActivityNewDialog').then((module) => {
+      return { default: module.ActivityNewDialog };
+    })
+  )
+);
+const TripEditDialog = withLoading({ fallback: () => <DialogLoading /> })(
+  React.lazy(() =>
+    import('./TripEditDialog').then((module) => {
+      return { default: module.TripEditDialog };
+    })
+  )
+);
+const TripDeleteDialog = withLoading({ fallback: () => <DialogLoading /> })(
+  React.lazy(() =>
+    import('./TripDeleteDialog').then((module) => {
+      return { default: module.TripDeleteDialog };
+    })
+  )
+);
+const TripSharingDialog = withLoading({ fallback: () => <DialogLoading /> })(
+  React.lazy(() =>
+    import('./TripSharingDialog').then((module) => {
+      return { default: module.TripSharingDialog };
+    })
+  )
+);
 
 export default PageTrip;
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
@@ -113,7 +156,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
         )}
       </Container>
 
-      {trip ? (
+      {newActivityDialogOpen && trip ? (
         <ActivityNewDialog
           trip={trip}
           dialogOpen={newActivityDialogOpen}
