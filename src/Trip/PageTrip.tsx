@@ -4,7 +4,7 @@ import { Navbar } from '../Nav/Navbar';
 import { ActivityNewDialog } from '../Activity/ActivityNewDialog';
 import { RouteComponentProps } from 'wouter';
 import { db } from '../data/db';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { TripEditDialog } from './TripEditDialog';
 import { useAuthUser } from '../Auth/hooks';
 import { TripMenu } from './TripMenu';
@@ -17,7 +17,6 @@ import { ActivityList } from '../ActivityList/ActivityList';
 import { TripDeleteDialog } from './TripDeleteDialog';
 import { TripSharingDialog } from './TripSharingDialog';
 import { DocTitle } from '../Nav/DocTitle';
-import { useBoundStore } from '../data/store';
 
 export default PageTrip;
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
@@ -67,15 +66,6 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   const [deleteTripDialogOpen, setDeleteTripDialogOpen] = useState(false);
   const [shareTripDialogOpen, setShareTripDialogOpen] = useState(false);
   const [tripViewMode, setTripViewMode] = useState(TripViewMode.Timetable);
-
-  const publishToast = useBoundStore((state) => state.publishToast);
-  useEffect(() => {
-    publishToast({
-      root: { duration: Infinity },
-      title: { children: `Meow` },
-      close: {},
-    });
-  }, [publishToast]);
 
   return (
     <>
