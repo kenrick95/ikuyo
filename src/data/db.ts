@@ -141,21 +141,31 @@ export async function dbDeleteTrip(trip: DbTripWithActivity) {
 
 export async function dbAddUserToTrip({
   tripId,
-  newUser,
   userEmail,
   userRole,
 }: {
   tripId: string;
-  newUser: undefined | DbUser;
-  userEmail: undefined | string;
+  userEmail: string;
   userRole: TripUserRole;
 }) {
   const lastUpdatedAt = Date.now();
   const transactions = [];
 
-  // TODO: if there is a 'queryOnce', I can create the user here if needed, for now have to do useQuery I guess..
+  const { data: userData } = await db.queryOnce({
+    user: {
+      $: {
+        where: {
+          email: userEmail,
+        },
+        limit: 1,
+      },
+    },
+  });
+  const user = userData.user[0] as
+    | undefined
+    | Omit<DbUser, 'tripEditor' | 'tripViewer' | 'tripOwner'>;
 
-  let userId = newUser?.id;
+  let userId = user?.id;
   if (!userId) {
     userId = id();
     transactions.push(
@@ -240,12 +250,37 @@ export async function dbUpsertUser(
     | 'tripViewer'
   >
 ) {
-  return db.transact(
-    db.tx.user[lookup('email', newUser.email)].merge({
-      ...newUser,
-      // TODO: need a query once to check if need to update createAt or not...
-      createdAt: Date.now(),
-      lastUpdatedAt: Date.now(),
-    })
-  );
+  const { data: userData } = await db.queryOnce({
+    user: {
+      $: {
+        where: {
+          email: newUser.email,
+        },
+        limit: 1,
+      },
+    },
+  });
+  const user = userData.user[0] as
+    | undefined
+    | Omit<DbUser, 'tripEditor' | 'tripViewer' | 'tripOwner'>;
+  let userId = user?.id;
+  if (!userId) {
+    // new user
+    userId = id(); 
+    return db.transact(
+      db.tx.user[userId].update({
+        ...newUser, 
+        createdAt: Date.now(),
+        lastUpdatedAt: Date.now(),
+      })
+    );
+  } else {
+    // existing user
+    return db.transact(
+      db.tx.user[userId].update({
+        ...newUser,  
+        lastUpdatedAt: Date.now(),
+      })
+    );
+  }
 }

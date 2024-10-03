@@ -55,17 +55,6 @@ export function TripSharingDialog({
 
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserRole, setNewUserRole] = useState(TripUserRole.Viewer);
-  const { data: newUserData } = db.useQuery({
-    user: {
-      $: {
-        where: {
-          email: newUserEmail,
-        },
-        limit: 1,
-      },
-    },
-  });
-  const newUser = newUserData?.user[0] as DbUser | undefined;
 
   const handleDeleteUser = useCallback(() => {
     return async ({ user, role }: { user: DbUser; role: TripUserRole }) => {
@@ -90,20 +79,18 @@ export function TripSharingDialog({
       console.log('TripForm', {
         newUserEmail,
         newUserRole,
-        newUser,
       });
       if (!newUserEmail || !newUserRole) {
         return;
       }
 
-      if (currentUserIsOwner && newUser && newUser.id === currentUser.id) {
+      if (currentUserIsOwner && newUserEmail === currentUser.email) {
         setErrorMessage(`Cannot change current user's owner permission`);
         return;
       }
 
       await dbAddUserToTrip({
         tripId: trip.id,
-        newUser: newUser,
         userEmail: newUserEmail,
         userRole: newUserRole as TripUserRole,
       });
@@ -118,7 +105,7 @@ export function TripSharingDialog({
       setNewUserEmail('');
       setNewUserRole(TripUserRole.Viewer);
     };
-  }, [trip.id, trip.title, publishToast, newUser]);
+  }, [currentUserIsOwner, currentUser.email, trip.id, trip.title, publishToast]);
 
   const handleFormSubmit = useCallback(
     (e: SyntheticEvent<HTMLFormElement>) => {
