@@ -41,6 +41,12 @@ export function groupActivitiesByDays(trip: DbTripWithActivity): DayGroups {
         dayActivities.push(activity);
       }
     }
+    dayActivities.sort((a, b) => {
+      if (a.timestampStart === b.timestampStart) {
+        return a.timestampEnd - b.timestampEnd;
+      }
+      return a.timestampStart - b.timestampStart;
+    });
 
     // Finding max overlaps: https://stackoverflow.com/a/46532590/917957
     enum Token {
@@ -138,11 +144,11 @@ export function groupActivitiesByDays(trip: DbTripWithActivity): DayGroups {
               trackActivity.timestampStart >
                 nextTrackActivity.timestampEnd - 0.5
             ) {
-              // No overlap, skip this track
-              break;
+              // No overlap with this activity
             } else {
-              // Overlap
+              // Overlap with this activity
               canExpandTillEndOfTrack = false;
+              break;
             }
           }
           if (!canExpandTillEndOfTrack) {
