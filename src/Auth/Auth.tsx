@@ -11,7 +11,7 @@ import {
 } from '@radix-ui/themes';
 import { useBoundStore } from '../data/store';
 import s from './Auth.module.css';
-import { Redirect, RouteComponentProps } from 'wouter';
+import { RouteComponentProps, useLocation } from 'wouter';
 import { ROUTES } from '../routes';
 
 import imgUrl from '/ikuyo.svg';
@@ -22,88 +22,62 @@ export default PageLogin;
 export function PageLogin(_props: RouteComponentProps) {
   const { isLoading: authUserLoading, user: authUser, error } = db.useAuth();
   const [sentEmail, setSentEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const publishToast = useBoundStore((state) => state.publishToast);
   const resetToast = useBoundStore((state) => state.resetToast);
-
-  const { isLoading: userDataLoading, data: userData } = db.useQuery({
-    user: {
-      $: {
-        where: {
-          email: authUser?.email ?? '',
-        },
-        limit: 1,
-      },
-    },
-  });
-
-  // TODO: really need queryOnce instead of relying on useQuery...
-  console.log('PageLogin| render', {
-    sentEmail,
-    authUser,
-    authUserLoading,
-    userData,
-    userDataLoading,
-  });
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
-    console.log('PageLogin| effect', {
-      authUser,
-      authUserLoading,
-      userData,
-      userDataLoading,
-    });
-    if (authUser?.email && !userDataLoading) {
-      resetToast();
-      if (
-        userData?.user.length === 0 ||
-        userData?.user[0].activated === false
-      ) {
+    async function checkUser(userEmail: string) {
+      setIsLoading(true);
+      const { data: userData } = await db.queryOnce({
+        user: {
+          $: {
+            where: {
+              email: userEmail,
+            },
+            limit: 1,
+          },
+        },
+      });
+      if (userData.user.length === 0 || !userData.user[0].activated) {
         // Create new user if not exist, or alr exist but not yet activated
         void dbUpsertUser({
           // TODO: ask to change handle later?
-          handle: authUser.email,
-          email: authUser.email,
+          handle: userEmail,
+          email: userEmail,
           activated: true,
         }).then(() => {
           publishToast({
             root: {},
-            title: { children: `Welcome ${authUser.email}!` },
+            title: { children: `Welcome ${userEmail}!` },
             close: {},
           });
+          setIsLoading(false);
+          setLocation(ROUTES.Trips);
         });
-      } else if (userData?.user.length != null && userData.user.length > 0) {
+      } else if (userData.user.length > 0) {
         publishToast({
           root: {},
-          title: { children: `Welcome back ${authUser.email}!` },
+          title: { children: `Welcome back ${userEmail}!` },
           close: {},
         });
+        setIsLoading(false);
+        setLocation(ROUTES.Trips);
       }
     }
-  }, [
-    userData,
-    authUser,
-    resetToast,
-    publishToast,
-    authUserLoading,
-    userDataLoading,
-  ]);
-
-  if (
-    !authUserLoading &&
-    !userDataLoading &&
-    userData?.user.length != null &&
-    userData.user.length > 0
-  ) {
-    // Already authenticated
-    return <Redirect to={ROUTES.Trips} />;
-  }
+    if (authUser?.email) {
+      resetToast();
+      void checkUser(authUser.email);
+    }
+  }, [authUser?.email, resetToast, publishToast, setLocation]);
 
   return (
     <>
       <DocTitle title={'Login'} />
       <Grid className={s.grid}>
         <Box maxWidth="450px" mx="2" px="2">
-          {authUserLoading ? (
+          {authUserLoading || isLoading ? (
             'Loading'
           ) : error ? (
             `Error: ${error.message}`
