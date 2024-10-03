@@ -19,7 +19,7 @@ export async function dbAddActivity(
 ) {
   return db.transact(
     db.tx.activity[id()]
-      .merge({
+      .update({
         ...newActivity,
         createdAt: Date.now(),
         lastUpdatedAt: Date.now(),
@@ -65,7 +65,7 @@ export async function dbAddTrip(
     id: newTripId,
     result: await db.transact([
       db.tx.trip[newTripId]
-        .merge({
+        .update({
           ...newTrip,
           createdAt: Date.now(),
           lastUpdatedAt: Date.now(),
