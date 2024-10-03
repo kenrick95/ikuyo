@@ -71,6 +71,9 @@ export function Activity({
         <ContextMenu.Trigger>
           <Box
             p={{ initial: '1' }}
+            as="div"
+            role="button"
+            tabIndex={0}
             className={clsx(
               style.activity,
               timeStartMapping[timeStart],
@@ -80,6 +83,9 @@ export function Activity({
               columnIndex === columnEndIndex ? '' : dayEndMapping[dayEnd],
               className
             )}
+            onClick={() => {
+              setViewDialogOpen(true);
+            }}
           >
             {tripViewMode === TripViewMode.List ? (
               <>
@@ -102,7 +108,12 @@ export function Activity({
             ) : null}
 
             {activity.description ? (
-              <Text as="div" size={responsiveTextSize} color="gray">
+              <Text
+                as="div"
+                size={responsiveTextSize}
+                color="gray"
+                className={style.activityDescription}
+              >
                 <InfoCircledIcon style={{ verticalAlign: '-2px' }} />{' '}
                 {activity.description}
               </Text>

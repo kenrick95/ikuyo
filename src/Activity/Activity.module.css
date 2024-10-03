@@ -3,6 +3,18 @@
   background-color: var(--color-panel-solid);
   border-radius: var(--radius-2);
   overflow: hidden;
+  cursor: var(--cursor-link);
+  display: block;
+  text-align: start;
+}
+.activity:focus-visible {
+  outline-style: solid;
+  outline-offset: 2px;
+  outline-width: 2px;
+  outline-color: var(--accent-9);
+}
+.activityDescription {
+  white-space: pre-wrap;
 }
 .newForm {
   display: grid;

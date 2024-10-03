@@ -2,6 +2,7 @@ import { Dialog, Flex, Text, Heading, Button } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { DbActivityWithTrip } from '../data/types';
 
+import s from './Activity.module.css';
 export function ActivityViewDialog({
   activity,
   dialogOpen,
@@ -49,7 +50,9 @@ export function ActivityViewDialog({
               <Heading as="h2" size="3">
                 Description
               </Heading>
-              <Text>{activity.description}</Text>
+              <Text className={s.activityDescription}>
+                {activity.description}
+              </Text>
             </>
           ) : (
             <></>
