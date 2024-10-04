@@ -9,7 +9,7 @@ import {
   Inset,
 } from '@radix-ui/themes';
 import { useCallback, useState, useMemo, SyntheticEvent } from 'react';
-import { db, dbAddUserToTrip, dbRemoveUserFromTrip } from '../data/db';
+import { dbAddUserToTrip, dbRemoveUserFromTrip } from '../data/db';
 import { useBoundStore } from '../data/store';
 import { DbTrip, DbUser } from '../data/types';
 import { TripUserRole } from '../data/TripUserRole';
