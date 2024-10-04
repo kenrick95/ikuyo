@@ -21,6 +21,7 @@
     "luxon": "~3.5.0",
     "react": "19.0.0-rc-d8c90fa4-20241001",
     "react-dom": "19.0.0-rc-d8c90fa4-20241001",
+    "url-regex-safe": "^4.0.0",
     "workbox-window": "~7.1.0",
     "wouter": "~3.3.5",
     "zustand": "~4.5.5"
@@ -30,6 +31,7 @@
     "@types/luxon": "~3.4.2",
     "@types/react": "npm:types-react@rc",
     "@types/react-dom": "npm:types-react-dom@rc",
+    "@types/url-regex-safe": "^1.0.2",
     "@vitejs/plugin-react-swc": "~3.7.1",
     "eslint": "~9.11.1",
     "eslint-plugin-react-hooks": "5.1.0-rc-d8c90fa4-20241001",
