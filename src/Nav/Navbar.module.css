@@ -16,6 +16,7 @@
 .logoText {
   display: none;
   cursor: var(--cursor-link);
+  color: var(--gray-12);
 }
 @media (min-width: 520px) {
   .logoText {

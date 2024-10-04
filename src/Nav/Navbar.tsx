@@ -17,12 +17,12 @@ export function Navbar({
     <Container className={s.container}>
       <Flex gap="3" align="center" className={s.flexContainer}>
         <Box className={s.logoBox}>
-          <Link asChild to={ROUTES.Trips}>
-            <Heading as="h1" size="6">
+          <Heading asChild as="h1" size="6">
+            <Link to={ROUTES.Trips}>
               <img src={imgUrl} className={s.logo} />
               <span className={s.logoText}>Ikuyo!</span>
-            </Heading>
-          </Link>
+            </Link>
+          </Heading>
         </Box>
         {leftItems.map((item, index) => {
           return (

@@ -11,7 +11,7 @@ import {
 } from '@radix-ui/themes';
 import { useBoundStore } from '../data/store';
 import s from './Auth.module.css';
-import { RouteComponentProps, useLocation } from 'wouter';
+import { Link, RouteComponentProps, useLocation } from 'wouter';
 import { ROUTES } from '../routes';
 
 import imgUrl from '/ikuyo.svg';
@@ -39,27 +39,39 @@ export function PageLogin(_props: RouteComponentProps) {
             limit: 1,
           },
         },
-      });
+      }); 
       if (userData.user.length === 0 || !userData.user[0].activated) {
         // Create new user if not exist, or alr exist but not yet activated
+        const defaultHandle = userEmail.toLowerCase().replace(/[@.]/g, '_');
         void dbUpsertUser({
-          // TODO: ask to change handle later?
-          handle: userEmail,
+          handle: defaultHandle,
           email: userEmail,
           activated: true,
         }).then(() => {
           publishToast({
-            root: {},
-            title: { children: `Welcome ${userEmail}!` },
+            root: { duration: Infinity },
+            title: { children: `Welcome!` },
+            description: {
+              children: `Activated account for ${userEmail}. Account handle is set as ${defaultHandle}`,
+            },
+            action: {
+              altText: 'Go to account details edit page to edit handle',
+              children: (
+                <Button asChild>
+                  <Link to={ROUTES.Account}>Edit account details</Link>
+                </Button>
+              ),
+            },
             close: {},
           });
           setIsLoading(false);
           setLocation(ROUTES.Trips);
         });
       } else if (userData.user.length > 0) {
+        const userHandle = userData.user[0].handle;
         publishToast({
           root: {},
-          title: { children: `Welcome back ${userEmail}!` },
+          title: { children: `Welcome back ${userHandle}!` },
           close: {},
         });
         setIsLoading(false);
