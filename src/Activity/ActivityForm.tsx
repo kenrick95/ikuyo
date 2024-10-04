@@ -167,6 +167,7 @@ export function ActivityForm({
           placeholder="Enter location name"
           name="location"
           id={idLocation}
+          style={{ minHeight: 80 }}
         />
         <Text as="label" htmlFor={idTimeStart}>
           Start time{' '}
@@ -206,6 +207,7 @@ export function ActivityForm({
           placeholder="Enter description"
           name="description"
           id={idDescription}
+          style={{ minHeight: 240 }}
         />
       </Flex>
       <Flex gap="3" mt="5" justify="end">
