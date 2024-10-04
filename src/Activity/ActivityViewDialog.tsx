@@ -17,7 +17,8 @@ export function ActivityViewDialog({
     .toFormat('dd LLLL yyyy HH:mm');
   const activityEndStr = DateTime.fromMillis(activity.timestampEnd)
     .setZone(activity.trip.timeZone)
-    .toFormat('dd LLLL yyyy HH:mm');
+    // since 1 activity must be in same day, so might as well just show the time for end
+    .toFormat('HH:mm');
   return (
     <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
       <Dialog.Content maxWidth="450px">
