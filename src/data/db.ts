@@ -13,16 +13,7 @@ if (!INSTANT_APP_ID) {
 export const db = init({ schema, appId: INSTANT_APP_ID, devtool: false });
 
 export async function dbUpsertUser(
-  newUser: Omit<
-    DbUser,
-    | 'id'
-    | 'createdAt'
-    | 'lastUpdatedAt'
-    | 'trip'
-    | 'tripOwner'
-    | 'tripEditor'
-    | 'tripViewer'
-  >
+  newUser: Omit<DbUser, 'id' | 'createdAt' | 'lastUpdatedAt' | 'tripUser'>
 ) {
   const { data: userData } = await db.queryOnce({
     user: {
@@ -34,9 +25,7 @@ export async function dbUpsertUser(
       },
     },
   });
-  const user = userData.user[0] as
-    | undefined
-    | Omit<DbUser, 'tripEditor' | 'tripViewer' | 'tripOwner'>;
+  const user = userData.user[0] as undefined | Omit<DbUser, 'tripUser'>;
   let userId = user?.id;
   if (!userId) {
     // new user

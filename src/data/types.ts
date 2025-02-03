@@ -1,5 +1,7 @@
+import { DbAccommodation } from '../Accommodation/db';
 import { DbActivity } from '../Activity/db';
-import { DbTrip } from '../Trip/db';
+import { DbExpense } from '../Expense/db';
+import { DbTrip, DbTripUser } from '../Trip/db';
 
 export type DbUser = {
   id: string;
@@ -9,12 +11,13 @@ export type DbUser = {
   lastUpdatedAt: number;
   activated: boolean;
 
-  tripEditor: DbTrip[] | undefined;
-  tripOwner: DbTrip[] | undefined;
-  tripViewer: DbTrip[] | undefined;
+  tripUser: DbTripUser[] | undefined;
 };
 export type DbSchema = {
   activity: DbActivity;
   trip: DbTrip;
   user: DbUser;
+  tripUser: DbTripUser;
+  accommodation: DbAccommodation;
+  expense: DbExpense;
 };

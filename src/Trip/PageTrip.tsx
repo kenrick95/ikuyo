@@ -38,6 +38,7 @@ import { DbTrip, DbTripWithActivityAccommodation } from './db';
 import { ROUTES_TRIP } from '../routes';
 import { ExpenseList } from '../Expense/ExpenseList';
 import { DoubleArrowRightIcon } from '@radix-ui/react-icons';
+import { TripUserRole } from '../data/TripUserRole';
 
 export default PageTrip;
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
@@ -53,9 +54,9 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
       },
       activity: {},
       accommodation: {},
-      viewer: {},
-      editor: {},
-      owner: {},
+      tripUser: {
+        user: {},
+      },
     },
     user: {
       $: { where: { email: authUser?.email ?? '' } },
@@ -65,8 +66,11 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   const rawTrip = data?.trip[0] as DbTrip | undefined;
 
   const currentUserIsOwner = useMemo(() => {
-    for (const tripUser of rawTrip?.owner ?? []) {
-      if (user?.id === tripUser.id) {
+    for (const tripUser of rawTrip?.tripUser ?? []) {
+      if (
+        user?.id === tripUser.user?.[0]?.id &&
+        tripUser.role === TripUserRole.Owner
+      ) {
         return true;
       }
     }

@@ -12,6 +12,9 @@ importers:
 
   .:
     dependencies:
+      '@instantdb/admin':
+        specifier: ~0.17.12
+        version: 0.17.12
       '@instantdb/core':
         specifier: ~0.17.12
         version: 0.17.12
@@ -97,6 +100,9 @@ importers:
       sass-embedded:
         specifier: ~1.83.4
         version: 1.83.4
+      tsx:
+        specifier: ^4.19.2
+        version: 4.19.2
       typescript:
         specifier: ~5.7.3
         version: 5.7.3
@@ -1077,6 +1083,9 @@ packages:
   '@inquirer/type@2.0.0':
     resolution: {integrity: sha512-XvJRx+2KR3YXyYtPUUy+qd9i7p+GO9Ko6VIIpWlBrpWwXDv8WLFeHTxz35CfQFUiBMLXlGHhGzys7lqit9gWag==}
     engines: {node: '>=18'}
+
+  '@instantdb/admin@0.17.12':
+    resolution: {integrity: sha512-BAxfTJo+uP4Gp+qA4jNs8RcQ1s4ya/g6HJHonSsEExoMjgb4M7QnXblfbkXpZ9QSscuiFKVlmhtgwv3MCadK/Q==}
 
   '@instantdb/core@0.17.12':
     resolution: {integrity: sha512-YBcuTn+OoFIcnFam3HwsKffk1kvpLRSbdGMasrersRDpaG4dDr8N0a6jeVYRUhjSL734zm/hVkv/yG0pevVT3A==}
@@ -5196,6 +5205,10 @@ snapshots:
   '@inquirer/type@2.0.0':
     dependencies:
       mute-stream: 1.0.0
+
+  '@instantdb/admin@0.17.12':
+    dependencies:
+      '@instantdb/core': 0.17.12
 
   '@instantdb/core@0.17.12':
     dependencies:

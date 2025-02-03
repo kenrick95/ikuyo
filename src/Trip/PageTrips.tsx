@@ -33,17 +33,9 @@ export function PageTrips(_props: RouteComponentProps) {
   const { isLoading, data, error } = db.useQuery({
     trip: {
       $: {
-        where: {
-          or: [
-            { 'editor.email': authUser?.email ?? '' },
-            { 'viewer.email': authUser?.email ?? '' },
-            { 'owner.email': authUser?.email ?? '' },
-          ],
-        },
+        where: { 'tripUser.user.email': authUser?.email ?? '' },
       },
-      viewer: {},
-      editor: {},
-      owner: {},
+      tripUser: {},
     },
     user: {
       $: {
@@ -53,10 +45,10 @@ export function PageTrips(_props: RouteComponentProps) {
       },
     },
   });
-  const user = data?.user?.[0] as DbUser | undefined;
+  const user = data?.user[0] as DbUser | undefined;
   const [newTripDialogOpen, setNewTripDialogOpen] = useState(false);
   const tripGroups: Record<TripGroup, DbTrip[]> = useMemo(() => {
-    const trips: DbTrip[] = data?.trip ? (data.trip as DbTrip[]) : [];
+    const trips: DbTrip[] = data?.trip ? (data.trip as unknown as DbTrip[]) : [];
     const groups: Record<TripGroup, DbTrip[]> = {
       [TripGroup.Upcoming]: [],
       [TripGroup.Ongoing]: [],

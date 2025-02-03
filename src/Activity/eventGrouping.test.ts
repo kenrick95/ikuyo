@@ -16,9 +16,7 @@ describe('Trip', () => {
     originCurrency: 'USD',
     activity: [],
     accommodation: [],
-    owner: undefined,
-    viewer: undefined,
-    editor: undefined,
+    tripUser: [],
   };
   function createActivity(
     activity: Partial<DbActivityWithTrip>

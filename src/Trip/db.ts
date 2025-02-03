@@ -36,9 +36,18 @@ export type DbTrip = {
   activity: DbActivity[] | undefined;
   accommodation: DbAccommodation[] | undefined;
 
-  viewer: DbUser[] | undefined;
-  editor: DbUser[] | undefined;
-  owner: DbUser[] | undefined;
+  tripUser: DbTripUser[] | undefined;
+};
+
+export type DbTripUser = {
+  id: string;
+
+  createdAt: number;
+  lastUpdatedAt: number;
+  role: TripUserRole;
+
+  trip: DbTrip[] | undefined;
+  user: DbUser[] | undefined;
 };
 
 export async function dbAddTrip(
@@ -49,10 +58,7 @@ export async function dbAddTrip(
     | 'lastUpdatedAt'
     | 'activity'
     | 'accommodation'
-    | 'user'
-    | 'owner'
-    | 'editor'
-    | 'viewer'
+    | 'tripUser'
   >,
   {
     userId,
@@ -61,17 +67,24 @@ export async function dbAddTrip(
   }
 ) {
   const newTripId = id();
+  const newTripUserId = id();
   return {
     id: newTripId,
     result: await db.transact([
-      db.tx.trip[newTripId]
+      db.tx.trip[newTripId].update({
+        ...newTrip,
+        createdAt: Date.now(),
+        lastUpdatedAt: Date.now(),
+      }),
+      db.tx.tripUser[newTripUserId]
         .update({
-          ...newTrip,
           createdAt: Date.now(),
           lastUpdatedAt: Date.now(),
+          role: TripUserRole.Owner,
         })
         .link({
-          owner: [userId],
+          user: userId,
+          trip: newTripId,
         }),
     ]),
   };
@@ -79,14 +92,7 @@ export async function dbAddTrip(
 export async function dbUpdateTrip(
   trip: Omit<
     DbTrip,
-    | 'createdAt'
-    | 'lastUpdatedAt'
-    | 'accommodation'
-    | 'activity'
-    | 'user'
-    | 'owner'
-    | 'editor'
-    | 'viewer'
+    'createdAt' | 'lastUpdatedAt' | 'accommodation' | 'activity' | 'tripUser'
   >,
   {
     previousTimeZone,
@@ -154,7 +160,8 @@ export async function dbAddUserToTrip({
   userRole: TripUserRole;
 }) {
   const lastUpdatedAt = Date.now();
-  const transactions = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const transactions: TransactionChunk<any, any>[] = [];
 
   const { data: userData } = await db.queryOnce({
     user: {
@@ -166,9 +173,8 @@ export async function dbAddUserToTrip({
       },
     },
   });
-  const user = userData.user[0] as
-    | undefined
-    | Omit<DbUser, 'tripEditor' | 'tripViewer' | 'tripOwner'>;
+
+  const user = userData.user[0] as undefined | Omit<DbUser, 'tripUser'>;
 
   let userId = user?.id;
   if (!userId) {
@@ -186,23 +192,43 @@ export async function dbAddUserToTrip({
     );
   }
 
-  transactions.push(
-    db.tx.trip[tripId].link({
-      [userRole]: userId,
-    })
-  );
-  for (const role of [
-    TripUserRole.Owner,
-    TripUserRole.Editor,
-    TripUserRole.Viewer,
-  ]) {
-    if (userRole === role) {
-      continue;
-    }
+  const { data: tripUserData } = await db.queryOnce({
+    tripUser: {
+      $: {
+        where: {
+          'trip.id': tripId,
+          'user.email': userEmail,
+        },
+        limit: 1,
+      },
+    },
+  });
+  const tripUser = tripUserData.tripUser[0] as
+    | undefined
+    | Omit<DbTripUser, 'trip' | 'user'>;
 
+  let tripUserId = tripUser?.id;
+  if (!tripUserId) {
+    // New TripUser entity: create new row, and link to Trip & User
+    tripUserId = id();
     transactions.push(
-      db.tx.trip[tripId].unlink({
-        [role]: userId,
+      db.tx.tripUser[tripUserId]
+        .update({
+          createdAt: lastUpdatedAt,
+          lastUpdatedAt: lastUpdatedAt,
+          role: userRole,
+        })
+        .link({
+          trip: tripId,
+          user: userId,
+        })
+    );
+  } else {
+    // Existing TripUser entity, just update the "row" column
+    transactions.push(
+      db.tx.tripUser[tripUserId].update({
+        lastUpdatedAt: lastUpdatedAt,
+        role: userRole,
       })
     );
   }
@@ -212,35 +238,86 @@ export async function dbAddUserToTrip({
 export async function dbUpdateUserFromTrip({
   tripId,
   userEmail,
-  previousUserRole,
   userRole,
 }: {
   tripId: string;
-  userEmail: undefined | string;
+  userEmail: string;
   previousUserRole: TripUserRole;
   userRole: TripUserRole;
 }) {
-  return db.transact([
-    db.tx.trip[tripId].unlink({
-      [previousUserRole]: lookup('email', userEmail),
-    }),
-    db.tx.trip[tripId].link({
-      [userRole]: lookup('email', userEmail),
-    }),
-  ]);
+  const lastUpdatedAt = Date.now();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const transactions: TransactionChunk<any, any>[] = [];
+
+  const { data: tripUserData } = await db.queryOnce({
+    tripUser: {
+      $: {
+        where: {
+          'trip.id': tripId,
+          'user.email': userEmail,
+        },
+        limit: 1,
+      },
+    },
+  });
+  const tripUser = tripUserData.tripUser[0] as
+    | undefined
+    | Omit<DbTripUser, 'trip' | 'user'>;
+  let tripUserId = tripUser?.id;
+
+  if (!tripUserId) {
+    // New TripUser entity: create new row, and link to Trip & User
+    tripUserId = id();
+    transactions.push(
+      db.tx.tripUser[tripUserId]
+        .update({
+          createdAt: lastUpdatedAt,
+          lastUpdatedAt: lastUpdatedAt,
+          role: userRole,
+        })
+        .link({
+          trip: tripId,
+          user: lookup('email', userEmail),
+        })
+    );
+  } else {
+    // Existing TripUser entity, just update the "row" column
+    transactions.push(
+      db.tx.tripUser[tripUserId].update({
+        lastUpdatedAt: lastUpdatedAt,
+        role: userRole,
+      })
+    );
+  }
+
+  return db.transact(transactions);
 }
 export async function dbRemoveUserFromTrip({
   tripId,
   userEmail,
-  userRole,
 }: {
   tripId: string;
-  userEmail: undefined | string;
-  userRole: TripUserRole;
+  userEmail: string;
 }) {
-  return db.transact(
-    db.tx.trip[tripId].unlink({
-      [userRole]: lookup('email', userEmail),
-    })
-  );
+  const { data: tripUserData } = await db.queryOnce({
+    tripUser: {
+      $: {
+        where: {
+          'trip.id': tripId,
+          'user.email': userEmail,
+        },
+        limit: 1,
+      },
+    },
+  });
+  const tripUser = tripUserData.tripUser[0] as
+    | undefined
+    | Omit<DbTripUser, 'trip' | 'user'>;
+
+  const tripUserId = tripUser?.id;
+  if (!tripUserId) {
+    return;
+  }
+
+  return db.transact([db.tx.tripUser[tripUserId].delete()]);
 }

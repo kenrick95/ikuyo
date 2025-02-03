@@ -33,20 +33,17 @@ export function TripSharingDialog({
   const { userAndRoles, currentUserIsOwner } = useMemo(() => {
     const res: Array<{ user: DbUser; role: TripUserRole }> = [];
     let currentUserIsOwner = false;
-    for (const role of [
-      TripUserRole.Owner,
-      TripUserRole.Editor,
-      TripUserRole.Viewer,
-    ]) {
-      for (const user of trip[role] ?? []) {
-        if (user.id === currentUser.id) {
-          if (role === TripUserRole.Owner) {
-            currentUserIsOwner = true;
-          }
+
+    for (const tripUser of trip.tripUser ?? []) {
+      if (tripUser.user?.[0]?.id === currentUser.id) {
+        if (tripUser.role === TripUserRole.Owner) {
+          currentUserIsOwner = true;
         }
+      }
+      if (tripUser.user?.[0]) {
         res.push({
-          user,
-          role: role,
+          user: tripUser.user[0],
+          role: tripUser.role,
         });
       }
     }
@@ -58,11 +55,10 @@ export function TripSharingDialog({
   const [newUserRole, setNewUserRole] = useState(TripUserRole.Viewer);
 
   const handleDeleteUser = useCallback(() => {
-    return async ({ user, role }: { user: DbUser; role: TripUserRole }) => {
+    return async ({ user }: { user: DbUser; role: TripUserRole }) => {
       await dbRemoveUserFromTrip({
         tripId: trip.id,
         userEmail: user.email,
-        userRole: role,
       });
     };
   }, [trip.id]);

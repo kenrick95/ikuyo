@@ -34,6 +34,11 @@ const schema = i.schema({
       handle: i.string().unique().indexed(),
       lastUpdatedAt: i.number(),
     }),
+    tripUser: i.entity({
+      createdAt: i.number(),
+      lastUpdatedAt: i.number(),
+      role: i.string(),
+    }),
     accommodation: i.entity({
       name: i.string(),
       createdAt: i.number(),
@@ -70,52 +75,28 @@ const schema = i.schema({
         label: 'activity',
       },
     },
-    tripEditor: {
+    tripTripUser: {
       forward: {
         on: 'trip',
         has: 'many',
-        label: 'editor',
+        label: 'tripUser',
       },
       reverse: {
-        on: 'user',
-        has: 'many',
-        label: 'tripEditor',
-      },
-    },
-    tripOwner: {
-      forward: {
-        on: 'trip',
-        has: 'many',
-        label: 'owner',
-      },
-      reverse: {
-        on: 'user',
-        has: 'many',
-        label: 'tripOwner',
-      },
-    },
-    tripUser: {
-      forward: {
-        on: 'trip',
-        has: 'many',
-        label: 'user',
-      },
-      reverse: {
-        on: 'user',
+        on: 'tripUser',
         has: 'many',
         label: 'trip',
       },
     },
-    tripViewer: {
+    userTripUser: {
       forward: {
-        on: 'trip',
-        has: 'many',
-        label: 'viewer',
-      },
-      reverse: {
         on: 'user',
         has: 'many',
-        label: 'tripViewer',
+        label: 'tripUser',
+      },
+      reverse: {
+        on: 'tripUser',
+        has: 'many',
+        label: 'user',
       },
     },
     tripAccommodation: {

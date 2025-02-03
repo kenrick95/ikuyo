@@ -8,14 +8,12 @@ export default {
   },
   trip: {
     bind: [
-      // TODO: Refactor permission model to use "roles"
-      // TODO: Roles: 'viewer', 'participant', 'owner'
-      'isTripViewer',
-      "auth.email in data.ref('viewer.email')",
       'isTripEditor',
-      "auth.email in data.ref('editor.email')",
+      "'editor' in data.ref('tripUser.role') && auth.email in data.ref('tripUser.user.email')",
       'isTripOwner',
-      "auth.email in data.ref('owner.email')",
+      "'owner' in data.ref('tripUser.role') && auth.email in data.ref('tripUser.user.email')",
+      'isTripViewer',
+      "'viewer' in data.ref('tripUser.role') && auth.email in data.ref('tripUser.user.email')",
     ],
     allow: {
       view: 'isTripViewer || isTripEditor || isTripOwner',
@@ -28,9 +26,11 @@ export default {
     bind: ['isSelf', 'auth.email == data.email'],
     allow: {
       view: 'true',
+      // Anyone can create a new user, e.g. from sharing to a new email
       create: 'true',
       delete: 'false',
-      update: 'isSelf',
+      // TODO: Linking to an existing user requires "update" permission; probably should specify what fields can be updated
+      update: 'true',
     },
   },
   $users: {
@@ -43,12 +43,12 @@ export default {
   },
   activity: {
     bind: [
-      'isTripViewer',
-      "auth.email in data.ref('trip.viewer.email')",
       'isTripEditor',
-      "auth.email in data.ref('trip.editor.email')",
+      "'editor' in data.ref('trip.tripUser.role') && auth.email in data.ref('trip.tripUser.user.email')",
       'isTripOwner',
-      "auth.email in data.ref('trip.owner.email')",
+      "'owner' in data.ref('trip.tripUser.role') && auth.email in data.ref('trip.tripUser.user.email')",
+      'isTripViewer',
+      "'viewer' in data.ref('trip.tripUser.role') && auth.email in data.ref('trip.tripUser.user.email')",
     ],
     allow: {
       view: 'isTripViewer || isTripEditor || isTripOwner',
@@ -59,12 +59,12 @@ export default {
   },
   accommodation: {
     bind: [
-      'isTripViewer',
-      "auth.email in data.ref('trip.viewer.email')",
       'isTripEditor',
-      "auth.email in data.ref('trip.editor.email')",
+      "'editor' in data.ref('trip.tripUser.role') && auth.email in data.ref('trip.tripUser.user.email')",
       'isTripOwner',
-      "auth.email in data.ref('trip.owner.email')",
+      "'owner' in data.ref('trip.tripUser.role') && auth.email in data.ref('trip.tripUser.user.email')",
+      'isTripViewer',
+      "'viewer' in data.ref('trip.tripUser.role') && auth.email in data.ref('trip.tripUser.user.email')",
     ],
     allow: {
       view: 'isTripViewer || isTripEditor || isTripOwner',
@@ -75,18 +75,34 @@ export default {
   },
   expense: {
     bind: [
-      'isTripViewer',
-      "auth.email in data.ref('trip.viewer.email')",
       'isTripEditor',
-      "auth.email in data.ref('trip.editor.email')",
+      "'editor' in data.ref('trip.tripUser.role') && auth.email in data.ref('trip.tripUser.user.email')",
       'isTripOwner',
-      "auth.email in data.ref('trip.owner.email')",
+      "'owner' in data.ref('trip.tripUser.role') && auth.email in data.ref('trip.tripUser.user.email')",
+      'isTripViewer',
+      "'viewer' in data.ref('trip.tripUser.role') && auth.email in data.ref('trip.tripUser.user.email')",
     ],
     allow: {
       view: 'isTripEditor || isTripOwner',
       create: 'isTripEditor || isTripOwner',
       delete: 'isTripEditor || isTripOwner',
       update: 'isTripEditor || isTripOwner',
+    },
+  },
+  tripUser: {
+    bind: [
+      'isTripEditor',
+      "'editor' in data.ref('trip.tripUser.role') && auth.email in data.ref('trip.tripUser.user.email')",
+      'isTripOwner',
+      "'owner' in data.ref('trip.tripUser.role') && auth.email in data.ref('trip.tripUser.user.email')",
+      'isTripViewer',
+      "'viewer' in data.ref('trip.tripUser.role') && auth.email in data.ref('trip.tripUser.user.email')",
+    ],
+    allow: {
+      view: 'isTripEditor || isTripOwner',
+      create: 'isTripOwner',
+      delete: 'isTripOwner',
+      update: 'isTripOwner',
     },
   },
 };
