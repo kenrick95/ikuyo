@@ -13,14 +13,14 @@ importers:
   .:
     dependencies:
       '@instantdb/admin':
-        specifier: ~0.17.27
-        version: 0.17.27
+        specifier: ~0.17.31
+        version: 0.17.31
       '@instantdb/core':
-        specifier: ~0.17.27
-        version: 0.17.27
+        specifier: ~0.17.31
+        version: 0.17.31
       '@instantdb/react':
-        specifier: ~0.17.27
-        version: 0.17.27(react@19.0.0)
+        specifier: ~0.17.31
+        version: 0.17.31(react@19.0.0)
       '@radix-ui/colors':
         specifier: ~3.0.0
         version: 3.0.0
@@ -1301,14 +1301,14 @@ packages:
     resolution: {integrity: sha512-XvJRx+2KR3YXyYtPUUy+qd9i7p+GO9Ko6VIIpWlBrpWwXDv8WLFeHTxz35CfQFUiBMLXlGHhGzys7lqit9gWag==}
     engines: {node: '>=18'}
 
-  '@instantdb/admin@0.17.27':
-    resolution: {integrity: sha512-mDRIjaDg3IumYpsLZD6zuJYHjAZqZz1L5gaF9bx1hgut4LJdkUM8c0vNL+Qrg7r/ZvEfrm9iwdrDDF6HIoI6Uw==}
+  '@instantdb/admin@0.17.31':
+    resolution: {integrity: sha512-X7muRcS01ur56MRutxjxjDystgfqUaCS0aAyJzXcOAsfBsZyZhXVc8sF/YABt9EzjHzVBXYDsiTYp1p496Wv8A==}
 
-  '@instantdb/core@0.17.27':
-    resolution: {integrity: sha512-TuZMCDsxVEwRI8MGkz5Mzb6Dyo6C6xX5ifVWbNOUexY9CA9ZiarFhAd3k9q5ZDSqbq0aHye8zmeYiJgAkPmQjg==}
+  '@instantdb/core@0.17.31':
+    resolution: {integrity: sha512-Y7XS5dJn/Y3qB5YAtNE2mNXozSmIaAZ7XWWyhKLKjGvQBRwsle4MCoe3KXVJvn+EqmdT15zr5LIowIj6dlx2MA==}
 
-  '@instantdb/react@0.17.27':
-    resolution: {integrity: sha512-oUa8hn2coAIlUgeAvJ+vUMgcnLIyCpB10Uw8iQDL7NfdU/tzxk15OBCqfuB+434nMlEL6aQGHVyNHeATtmtXHg==}
+  '@instantdb/react@0.17.31':
+    resolution: {integrity: sha512-GNBiwGbJ9ETf3wTsuSjCOaHpEwhMg3rWhrOyzXDXlkWc1TBku2BtRH9gMiLvbCJBqBF0xRouwSnTJ/X74ja79g==}
     peerDependencies:
       react: '>=16'
 
@@ -5619,18 +5619,18 @@ snapshots:
     dependencies:
       mute-stream: 1.0.0
 
-  '@instantdb/admin@0.17.27':
+  '@instantdb/admin@0.17.31':
     dependencies:
-      '@instantdb/core': 0.17.27
+      '@instantdb/core': 0.17.31
 
-  '@instantdb/core@0.17.27':
+  '@instantdb/core@0.17.31':
     dependencies:
       mutative: 1.1.0
       uuid: 9.0.1
 
-  '@instantdb/react@0.17.27(react@19.0.0)':
+  '@instantdb/react@0.17.31(react@19.0.0)':
     dependencies:
-      '@instantdb/core': 0.17.27
+      '@instantdb/core': 0.17.31
       react: 19.0.0
 
   '@jridgewell/gen-mapping@0.3.8':

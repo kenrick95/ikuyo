@@ -12,9 +12,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@instantdb/admin": "~0.17.27",
-    "@instantdb/core": "~0.17.27",
-    "@instantdb/react": "~0.17.27",
+    "@instantdb/admin": "~0.17.31",
+    "@instantdb/core": "~0.17.31",
+    "@instantdb/react": "~0.17.31",
     "@radix-ui/colors": "~3.0.0",
     "@radix-ui/react-icons": "~1.3.2",
     "@radix-ui/react-toast": "~1.2.6",
