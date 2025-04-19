@@ -1,4 +1,4 @@
-import { DbTrip } from '../Trip/db';
+import type { DbTrip } from '../Trip/db';
 
 const lastNewActivityTimestampStorageKey = 'ikuyo:last-new-activity-timestamp';
 
@@ -6,12 +6,12 @@ export function getNewActivityTimestamp(trip: DbTrip): number {
   try {
     const fromStorage = JSON.parse(
       globalThis.localStorage.getItem(lastNewActivityTimestampStorageKey) ??
-        '{}'
+        '{}',
     ) as { timestamp?: number; tripId?: string };
     const timestampFromStorage = fromStorage.timestamp;
     if (
       timestampFromStorage == null ||
-      isNaN(timestampFromStorage) ||
+      Number.isNaN(timestampFromStorage) ||
       !fromStorage.tripId ||
       fromStorage.tripId !== trip.id
     ) {
@@ -40,7 +40,7 @@ export function setNewActivityTimestamp(value: {
   try {
     globalThis.localStorage.setItem(
       lastNewActivityTimestampStorageKey,
-      JSON.stringify(value)
+      JSON.stringify(value),
     );
   } catch {
     // no-op

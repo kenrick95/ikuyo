@@ -1,11 +1,11 @@
+import { HamburgerMenuIcon } from '@radix-ui/react-icons';
 import { Button, DropdownMenu } from '@radix-ui/themes';
 import { Link, useLocation } from 'wouter';
-import { asRootRoute, ROUTES } from '../routes';
-import { HamburgerMenuIcon } from '@radix-ui/react-icons';
-import s from './TripMenu.module.css';
-import { db } from '../data/db';
-import { DbUser } from '../data/types';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
+import { db } from '../data/db';
+import type { DbUser } from '../data/types';
+import { ROUTES, asRootRoute } from '../routes';
+import s from './TripMenu.module.css';
 
 export function TripMenu({
   user,

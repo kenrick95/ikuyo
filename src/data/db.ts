@@ -13,7 +13,7 @@ if (!INSTANT_APP_ID) {
 export const db = init({ schema, appId: INSTANT_APP_ID, devtool: false });
 
 export async function dbUpsertUser(
-  newUser: Omit<DbUser, 'id' | 'createdAt' | 'lastUpdatedAt' | 'tripUser'>
+  newUser: Omit<DbUser, 'id' | 'createdAt' | 'lastUpdatedAt' | 'tripUser'>,
 ) {
   const { data: userData } = await db.queryOnce({
     user: {
@@ -35,15 +35,14 @@ export async function dbUpsertUser(
         ...newUser,
         createdAt: Date.now(),
         lastUpdatedAt: Date.now(),
-      })
-    );
-  } else {
-    // existing user
-    return db.transact(
-      db.tx.user[userId].update({
-        ...newUser,
-        lastUpdatedAt: Date.now(),
-      })
+      }),
     );
   }
+  // existing user
+  return db.transact(
+    db.tx.user[userId].update({
+      ...newUser,
+      lastUpdatedAt: Date.now(),
+    }),
+  );
 }

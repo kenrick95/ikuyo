@@ -1,9 +1,9 @@
-import {
+import type {
   ToastActionProps,
   ToastCloseProps,
   ToastDescriptionProps,
-  ToastTitleProps,
   ToastProps,
+  ToastTitleProps,
 } from '@radix-ui/react-toast';
 import type { StateCreator } from 'zustand';
 
@@ -13,6 +13,7 @@ export type ToastConfig = {
   description?: ToastDescriptionProps;
   action?: ToastActionProps;
   close?: ToastCloseProps;
+  uid?: string;
 };
 export interface ToastSlice {
   toasts: Array<ToastConfig>;
@@ -21,12 +22,17 @@ export interface ToastSlice {
 }
 
 export const createToastSlice: StateCreator<ToastSlice, [], [], ToastSlice> = (
-  set
+  set,
 ) => {
   return {
     toasts: [],
     publishToast: (newToast: ToastConfig) => {
       set((state) => {
+        if (!newToast.uid) {
+          const uid =
+            crypto.randomUUID() ?? Math.random().toString(36).slice(2);
+          newToast.uid = uid;
+        }
         return {
           toasts: [...state.toasts, newToast],
         };

@@ -1,10 +1,10 @@
-import { Dialog, Box } from '@radix-ui/themes';
+import { Box, Dialog } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
+import { CommonDialogMaxWidth } from '../dialog';
 import { TripForm } from './TripForm';
 import { TripFormMode } from './TripFormMode';
+import type { DbTripWithActivity } from './db';
 import { formatToDateInput } from './time';
-import { CommonDialogMaxWidth } from '../dialog';
-import { DbTripWithActivity } from './db';
 
 export function TripEditDialog({
   trip,
@@ -16,12 +16,12 @@ export function TripEditDialog({
   setDialogOpen: (newValue: boolean) => void;
 }) {
   const tripStartStr = formatToDateInput(
-    DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone)
+    DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone),
   );
   const tripEndStr = formatToDateInput(
     DateTime.fromMillis(trip.timestampEnd)
       .setZone(trip.timeZone)
-      .minus({ days: 1 })
+      .minus({ days: 1 }),
   );
   return (
     <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>

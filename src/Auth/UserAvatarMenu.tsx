@@ -1,9 +1,9 @@
 import { Button, DropdownMenu } from '@radix-ui/themes';
-import { db } from '../data/db';
 import { Link, useLocation } from 'wouter';
-import { asRootRoute, ROUTES } from '../routes';
+import { db } from '../data/db';
+import type { DbUser } from '../data/types';
+import { ROUTES, asRootRoute } from '../routes';
 import { UserAvatar } from './UserAvatar';
-import { DbUser } from '../data/types';
 
 export function UserAvatarMenu({ user }: { user: DbUser | null | undefined }) {
   const [, setLocation] = useLocation();

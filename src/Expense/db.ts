@@ -1,6 +1,6 @@
 import { id } from '@instantdb/core';
+import type { DbTrip } from '../Trip/db';
 import { db } from '../data/db';
-import { DbTrip } from '../Trip/db';
 
 export type DbExpenseWithTrip = Omit<DbExpense, 'trip'> & {
   trip: DbTrip;
@@ -26,7 +26,7 @@ export type DbExpense = {
 
 export async function dbAddExpense(
   newExpense: Omit<DbExpense, 'id' | 'createdAt' | 'lastUpdatedAt' | 'trip'>,
-  { tripId }: { tripId: string }
+  { tripId }: { tripId: string },
 ) {
   const newId = id();
   return {
@@ -45,13 +45,13 @@ export async function dbAddExpense(
   };
 }
 export async function dbUpdateExpense(
-  expense: Omit<DbExpense, 'createdAt' | 'lastUpdatedAt' | 'trip'>
+  expense: Omit<DbExpense, 'createdAt' | 'lastUpdatedAt' | 'trip'>,
 ) {
   return db.transact(
     db.tx.expense[expense.id].merge({
       ...expense,
       lastUpdatedAt: Date.now(),
-    })
+    }),
   );
 }
 export async function dbDeleteExpense({

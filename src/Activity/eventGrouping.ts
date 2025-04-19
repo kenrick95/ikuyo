@@ -1,8 +1,8 @@
 import { DateTime } from 'luxon';
-import { DbTripWithActivityAccommodation } from '../Trip/db';
-import { DbActivityWithTrip } from './db';
-import { DbAccommodationWithTrip } from '../Accommodation/db';
 import { AccommodationDisplayTimeMode } from '../Accommodation/AccommodationDisplayTimeMode';
+import type { DbAccommodationWithTrip } from '../Accommodation/db';
+import type { DbTripWithActivityAccommodation } from '../Trip/db';
+import type { DbActivityWithTrip } from './db';
 
 export type DayGroups = Array<{
   /** DateTime in trip time zone */
@@ -21,14 +21,14 @@ export type DayGroups = Array<{
 
 /** Return `DateTime` objects for each of day in the trip */
 export function groupActivitiesByDays(
-  trip: DbTripWithActivityAccommodation
+  trip: DbTripWithActivityAccommodation,
 ): DayGroups {
   const res: DayGroups = [];
   const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
-    trip.timeZone
+    trip.timeZone,
   );
   const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd).setZone(
-    trip.timeZone
+    trip.timeZone,
   );
   const tripDuration = tripEndDateTime.diff(tripStartDateTime, 'days');
   for (let d = 0; d < tripDuration.days; d++) {
@@ -45,10 +45,10 @@ export function groupActivitiesByDays(
     for (const activity of trip.activity) {
       activityColumnIndexMap.set(activity.id, { start: 1, end: 1 });
       const activityStartDateTime = DateTime.fromMillis(
-        activity.timestampStart
+        activity.timestampStart,
       ).setZone(trip.timeZone);
       const activityEndDateTime = DateTime.fromMillis(
-        activity.timestampEnd
+        activity.timestampEnd,
       ).setZone(trip.timeZone);
       if (
         dayStartDateTime <= activityStartDateTime &&
@@ -66,10 +66,10 @@ export function groupActivitiesByDays(
 
     for (const accommodation of trip.accommodation) {
       const accommodationCheckInDateTime = DateTime.fromMillis(
-        accommodation.timestampCheckIn
+        accommodation.timestampCheckIn,
       ).setZone(trip.timeZone);
       const accommodationCheckOutDateTime = DateTime.fromMillis(
-        accommodation.timestampCheckOut
+        accommodation.timestampCheckOut,
       ).setZone(trip.timeZone);
       if (
         // This day is the start of the stay: check in time is this day
@@ -105,8 +105,8 @@ export function groupActivitiesByDays(
 
     // Finding max overlaps: https://stackoverflow.com/a/46532590/917957
     enum Token {
-      Start,
-      End,
+      Start = 0,
+      End = 1,
     }
     const ranges: Array<[number, Token, DbActivityWithTrip]> = [];
     for (const activity of dayActivities) {

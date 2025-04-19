@@ -3,18 +3,18 @@ import {
   Container,
   Flex,
   Heading,
-  TextField,
   Text,
+  TextField,
 } from '@radix-ui/themes';
+import { useAuthUser } from '../Auth/hooks';
 import { Navbar } from '../Nav/Navbar';
 import { db, dbUpsertUser } from '../data/db';
-import { useAuthUser } from '../Auth/hooks';
-import { DbUser } from '../data/types';
+import type { DbUser } from '../data/types';
 
+import { useCallback, useId, useState } from 'react';
+import type { RouteComponentProps } from 'wouter';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
 import { DocTitle } from '../Nav/DocTitle';
-import { RouteComponentProps } from 'wouter';
-import { useId, useState, useCallback } from 'react';
 import { useBoundStore } from '../data/store';
 import { dangerToken } from '../ui';
 
@@ -45,7 +45,7 @@ export function PageAccount(_props: RouteComponentProps) {
         return;
       }
       const formData = new FormData(elForm);
-      const handle = formData.get('handle') as string | null ?? '';
+      const handle = (formData.get('handle') as string | null) ?? '';
 
       if (!handle || !userData) {
         return;
@@ -58,17 +58,17 @@ export function PageAccount(_props: RouteComponentProps) {
         });
         publishToast({
           root: {},
-          title: { children: `Account details updated` },
+          title: { children: 'Account details updated' },
           close: {},
         });
         elForm.reset();
       } catch (err) {
         publishToast({
           root: {
-            duration: Infinity,
+            duration: Number.POSITIVE_INFINITY,
           },
           title: {
-            children: `Failed to update account details`,
+            children: 'Failed to update account details',
           },
           description: {
             children: (err as { message?: string }).message || '',
@@ -85,11 +85,11 @@ export function PageAccount(_props: RouteComponentProps) {
       <DocTitle title={'Account'} />
       <Navbar
         leftItems={[
-          <Heading as="h1" size={{ initial: '3', xs: '5' }}>
+          <Heading as="h1" key="title" size={{ initial: '3', xs: '5' }}>
             {'Account'}
           </Heading>,
         ]}
-        rightItems={[<UserAvatarMenu user={userData} />]}
+        rightItems={[<UserAvatarMenu key="UserAvatarMenu" user={userData} />]}
       />
       <Container p="2" my="2">
         <Heading as="h2">Edit Account Details</Heading>

@@ -8,9 +8,9 @@ export const ImperativeToastRoot = () => {
   console.log('ImperativeToastRoot| toasts', toasts);
   return (
     <ToastPrimitive.Provider duration={2500}>
-      {toasts.map((toastConfig, index) => (
+      {toasts.map((toastConfig) => (
         <ToastPrimitive.Root
-          key={index}
+          key={`${toastConfig.uid}`}
           className={s.ToastRoot}
           {...toastConfig.root}
         >

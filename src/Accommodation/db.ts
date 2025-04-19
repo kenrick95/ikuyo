@@ -1,5 +1,5 @@
 import { id } from '@instantdb/core';
-import { DbTrip, DbTripWithAccommodation } from '../Trip/db';
+import type { DbTrip, DbTripWithAccommodation } from '../Trip/db';
 import { db } from '../data/db';
 
 export type DbAccommodationWithTrip = Omit<DbAccommodation, 'trip'> & {
@@ -19,7 +19,7 @@ export type DbAccommodation = {
 
   createdAt: number;
   lastUpdatedAt: number;
-  
+
   trip: DbTrip | undefined;
 };
 
@@ -32,7 +32,7 @@ export async function dbAddAccommodation(
     tripId,
   }: {
     tripId: string;
-  }
+  },
 ) {
   const newAccommodationId = id();
   return {
@@ -52,18 +52,18 @@ export async function dbAddAccommodation(
 }
 
 export async function dbUpdateAccommodation(
-  accommodation: Omit<DbAccommodation, 'createdAt' | 'lastUpdatedAt' | 'trip'>
+  accommodation: Omit<DbAccommodation, 'createdAt' | 'lastUpdatedAt' | 'trip'>,
 ) {
   return db.transact(
     db.tx.accommodation[accommodation.id].merge({
       ...accommodation,
       lastUpdatedAt: Date.now(),
-    })
+    }),
   );
 }
 
 export async function dbDeleteAccommodation(
-  accommodation: DbAccommodationWithTrip
+  accommodation: DbAccommodationWithTrip,
 ) {
   return db.transact([
     db.tx.trip[accommodation.trip.id].unlink({

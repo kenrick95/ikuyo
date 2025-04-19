@@ -1,7 +1,7 @@
-import { DbAccommodation } from '../Accommodation/db';
-import { DbActivity } from '../Activity/db';
-import { DbExpense } from '../Expense/db';
-import { DbTrip, DbTripUser } from '../Trip/db';
+import type { DbAccommodation } from '../Accommodation/db';
+import type { DbActivity } from '../Activity/db';
+import type { DbExpense } from '../Expense/db';
+import type { DbTrip, DbTripUser } from '../Trip/db';
 
 export type DbUser = {
   id: string;

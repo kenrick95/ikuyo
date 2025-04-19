@@ -1,45 +1,45 @@
-import React from 'react';
 import { Container, Heading } from '@radix-ui/themes';
-import { Navbar } from '../Nav/Navbar';
-import { Redirect, Route, RouteComponentProps, Switch } from 'wouter';
-import { db } from '../data/db';
+import React from 'react';
 import { useMemo, useState } from 'react';
+import { Redirect, Route, type RouteComponentProps, Switch } from 'wouter';
+import { Navbar } from '../Nav/Navbar';
+import { db } from '../data/db';
 
 import { useAuthUser } from '../Auth/hooks';
-import { DbUser } from '../data/types';
+import type { DbUser } from '../data/types';
 
 import s from './PageTrip.module.css';
 
 import { TripMenu } from './TripMenu';
 
-import { DocTitle } from '../Nav/DocTitle';
 import { withLoading } from '../Loading/withLoading';
+import { DocTitle } from '../Nav/DocTitle';
 
 const Timetable = withLoading()(
   React.lazy(() =>
     import('../Timetable/Timetable').then((module) => {
       return { default: module.Timetable };
-    })
-  )
+    }),
+  ),
 );
 const ActivityList = withLoading()(
   React.lazy(() =>
     import('../ActivityList/ActivityList').then((module) => {
       return { default: module.ActivityList };
-    })
-  )
+    }),
+  ),
 );
-import { ActivityNewDialog } from '../Activity/ActivityNewDialog';
-import { TripEditDialog } from './TripEditDialog';
-import { TripDeleteDialog } from './TripDeleteDialog';
-import { TripSharingDialog } from './TripSharingDialog';
-import { AccommodationNewDialog } from '../Accommodation/AccommodationNewDialog';
-import { DbTrip, DbTripWithActivityAccommodation } from './db';
-import { ROUTES_TRIP } from '../routes';
-import { ExpenseList } from '../Expense/ExpenseList';
 import { DoubleArrowRightIcon } from '@radix-ui/react-icons';
+import { AccommodationNewDialog } from '../Accommodation/AccommodationNewDialog';
+import { ActivityNewDialog } from '../Activity/ActivityNewDialog';
+import { ExpenseList } from '../Expense/ExpenseList';
 import { TripUserRole } from '../data/TripUserRole';
+import { ROUTES_TRIP } from '../routes';
+import { TripDeleteDialog } from './TripDeleteDialog';
+import { TripEditDialog } from './TripEditDialog';
 import { TripMenuFloating } from './TripMenuFloating';
+import { TripSharingDialog } from './TripSharingDialog';
+import type { DbTrip, DbTripWithActivityAccommodation } from './db';
 
 export default PageTrip;
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
@@ -114,6 +114,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
             as="h1"
             size={{ initial: '3', xs: '5' }}
             className={s.tripTitle}
+            key="title"
           >
             {trip?.title ?? 'Loading trip'}
             {

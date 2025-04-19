@@ -1,29 +1,29 @@
-import { TripViewMode } from '../Trip/TripViewMode';
-import { DbAccommodationWithTrip } from './db';
-import clsx from 'clsx';
-import { Text, Box, ContextMenu } from '@radix-ui/themes';
-import s from './Accommodation.module.css';
-import { useState } from 'react';
-import { AccommodationViewDialog } from './AccommodationViewDialog';
-import { AccommodationEditDialog } from './AccommodationEditDialog';
-import { AccommodationDeleteDialog } from './AccommodationDeleteDialog';
 import { ClockIcon, HomeIcon } from '@radix-ui/react-icons';
-import { formatTime } from './time';
-import { AccommodationDisplayTimeMode } from './AccommodationDisplayTimeMode';
+import { Box, ContextMenu, Text } from '@radix-ui/themes';
+import clsx from 'clsx';
+import { useState } from 'react';
+import { TripViewMode } from '../Trip/TripViewMode';
 import { dangerToken } from '../ui';
+import s from './Accommodation.module.css';
+import { AccommodationDeleteDialog } from './AccommodationDeleteDialog';
+import { AccommodationDisplayTimeMode } from './AccommodationDisplayTimeMode';
+import { AccommodationEditDialog } from './AccommodationEditDialog';
+import { AccommodationViewDialog } from './AccommodationViewDialog';
+import type { DbAccommodationWithTrip } from './db';
+import { formatTime } from './time';
 
 export function Accommodation({
   className,
   accommodation,
   tripViewMode,
   displayTimeMode,
-  style
+  style,
 }: {
   className?: string;
   accommodation: DbAccommodationWithTrip;
   tripViewMode: TripViewMode;
   displayTimeMode?: AccommodationDisplayTimeMode;
-  style?: React.CSSProperties
+  style?: React.CSSProperties;
 }) {
   const responsiveTextSize = { initial: '1' as const };
 
@@ -38,6 +38,7 @@ export function Accommodation({
           <Box
             p={{ initial: '1' }}
             as="div"
+            // biome-ignore lint/a11y/useSemanticElements: <Box> need to be a <div>
             role="button"
             tabIndex={0}
             className={clsx(s.accommodation, className)}
@@ -55,12 +56,13 @@ export function Accommodation({
               displayTimeMode === AccommodationDisplayTimeMode.CheckOut) ? (
               <>
                 <Text as="div" size={responsiveTextSize} color="gray">
-                  <ClockIcon style={{ verticalAlign: '-2px' }} /> {displayTimeMode}:{' '}
+                  <ClockIcon style={{ verticalAlign: '-2px' }} />{' '}
+                  {displayTimeMode}:{' '}
                   {formatTime(
                     displayTimeMode === AccommodationDisplayTimeMode.CheckIn
                       ? accommodation.timestampCheckIn
                       : accommodation.timestampCheckOut,
-                    accommodation.trip.timeZone
+                    accommodation.trip.timeZone,
                   )}
                 </Text>
               </>

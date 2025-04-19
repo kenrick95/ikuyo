@@ -3,9 +3,11 @@ import { DateTime } from 'luxon';
 export function pad4(num: number): string {
   if (num >= 1000) {
     return String(num);
-  } else if (num >= 100) {
+  }
+  if (num >= 100) {
     return `0${String(num)}`;
-  } else if (num >= 10) {
+  }
+  if (num >= 10) {
     return `00${String(num)}`;
   }
   return `000${String(num)}`;
@@ -22,7 +24,7 @@ export function pad2(num: number): string {
  */
 export function formatFullDate(date: Date) {
   return `${pad4(date.getFullYear())}-${pad2(date.getMonth())}-${pad2(
-    date.getDate()
+    date.getDate(),
   )}`;
 }
 /**
@@ -35,16 +37,12 @@ export function formatToDatetimeLocalInput(date: DateTime) {
 }
 export function getDateTimeFromDatetimeLocalInput(
   datetimeLocalInputString: string,
-  timeZone: string
+  timeZone: string,
 ): DateTime {
-  return DateTime.fromFormat(
-    datetimeLocalInputString,
-    `yyyy-LL-dd'T'HH:mm`,
-    {
-      zone: timeZone, 
-    }
-  );
+  return DateTime.fromFormat(datetimeLocalInputString, `yyyy-LL-dd'T'HH:mm`, {
+    zone: timeZone,
+  });
 }
 export function formatTime(timestamp: number, timeZone: string): string {
-  return DateTime.fromMillis(timestamp).setZone(timeZone).toFormat(`HHmm`);
+  return DateTime.fromMillis(timestamp).setZone(timeZone).toFormat('HHmm');
 }

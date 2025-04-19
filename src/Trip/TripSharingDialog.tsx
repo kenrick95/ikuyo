@@ -1,22 +1,22 @@
+import { PlusIcon, TrashIcon } from '@radix-ui/react-icons';
 import {
+  Button,
+  Dialog,
   Flex,
+  Inset,
+  Select,
+  Table,
   Text,
   TextField,
-  Button,
-  Select,
-  Dialog,
-  Table,
-  Inset,
 } from '@radix-ui/themes';
-import { useCallback, useState, useMemo, SyntheticEvent } from 'react';
-import { useBoundStore } from '../data/store';
-import { DbUser } from '../data/types';
+import { type SyntheticEvent, useCallback, useMemo, useState } from 'react';
 import { TripUserRole } from '../data/TripUserRole';
-import { PlusIcon, TrashIcon } from '@radix-ui/react-icons';
-import s from './TripSharingDialog.module.css';
+import { useBoundStore } from '../data/store';
+import type { DbUser } from '../data/types';
 import { CommonDialogMaxWidth } from '../dialog';
-import { DbTrip, dbRemoveUserFromTrip, dbAddUserToTrip } from './db';
 import { dangerToken } from '../ui';
+import s from './TripSharingDialog.module.css';
+import { type DbTrip, dbAddUserToTrip, dbRemoveUserFromTrip } from './db';
 
 export function TripSharingDialog({
   dialogOpen,
@@ -89,7 +89,7 @@ export function TripSharingDialog({
       }
 
       if ((newUserRole as TripUserRole) === TripUserRole.Owner) {
-        setErrorMessage(`Cannot set other person as owner`);
+        setErrorMessage('Cannot set other person as owner');
         return;
       }
 
@@ -123,7 +123,7 @@ export function TripSharingDialog({
       const elForm = e.currentTarget;
       void handleForm()(elForm);
     },
-    [handleForm]
+    [handleForm],
   );
 
   return (
@@ -157,7 +157,7 @@ export function TripSharingDialog({
                   onChange={(ev) => {
                     setNewUserEmail(ev.currentTarget.value);
                   }}
-                ></TextField.Root>
+                />
 
                 <Select.Root
                   name="newUserRole"

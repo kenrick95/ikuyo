@@ -1,10 +1,10 @@
-import { Flex, Text, TextField, TextArea, Button } from '@radix-ui/themes';
-import { useId, useCallback, useState } from 'react';
+import { Button, Flex, Text, TextArea, TextField } from '@radix-ui/themes';
+import { useCallback, useId, useState } from 'react';
 import { useBoundStore } from '../data/store';
-import { AccommodationFormMode } from './AccommodationFormMode';
-import { getDateTimeFromDatetimeLocalInput } from './time';
-import { dbAddAccommodation, dbUpdateAccommodation } from './db';
 import { dangerToken } from '../ui';
+import { AccommodationFormMode } from './AccommodationFormMode';
+import { dbAddAccommodation, dbUpdateAccommodation } from './db';
+import { getDateTimeFromDatetimeLocalInput } from './time';
 
 export function AccommodationForm({
   mode,
@@ -73,11 +73,11 @@ export function AccommodationForm({
         (formData.get('timeCheckOut') as string | null) ?? '';
       const timeCheckInDate = getDateTimeFromDatetimeLocalInput(
         timeCheckInString,
-        tripTimeZone
+        tripTimeZone,
       );
       const timeCheckOutDate = getDateTimeFromDatetimeLocalInput(
         timeCheckOutString,
-        tripTimeZone
+        tripTimeZone,
       );
       console.log('AccommodationForm', {
         mode,
@@ -96,7 +96,7 @@ export function AccommodationForm({
         return;
       }
       if (timeCheckOutDate.diff(timeCheckInDate).as('minute') < 0) {
-        setErrorMessage(`Check out time must be after check in time`);
+        setErrorMessage('Check out time must be after check in time');
         return;
       }
       if (mode === AccommodationFormMode.Edit && accommodationId) {
@@ -126,7 +126,7 @@ export function AccommodationForm({
           },
           {
             tripId: tripId,
-          }
+          },
         );
         console.log('AccommodationForm: dbAddAccommodation', { id, result });
         publishToast({

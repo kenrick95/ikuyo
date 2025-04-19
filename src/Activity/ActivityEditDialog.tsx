@@ -1,10 +1,10 @@
-import { Dialog, Box } from '@radix-ui/themes';
+import { Box, Dialog } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
+import { CommonDialogMaxWidth } from '../dialog';
 import { ActivityForm } from './ActivityForm';
 import { ActivityFormMode } from './ActivityFormMode';
+import type { DbActivityWithTrip } from './db';
 import { formatToDatetimeLocalInput } from './time';
-import { CommonDialogMaxWidth } from '../dialog';
-import { DbActivityWithTrip } from './db';
 
 export function ActivityEditDialog({
   activity,
@@ -17,19 +17,21 @@ export function ActivityEditDialog({
 }) {
   const tripStartStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(activity.trip.timestampStart).setZone(
-      activity.trip.timeZone
-    )
+      activity.trip.timeZone,
+    ),
   );
   const tripEndStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(activity.trip.timestampEnd)
       .setZone(activity.trip.timeZone)
-      .minus({ minute: 1 })
+      .minus({ minute: 1 }),
   );
   const activityStartStr = formatToDatetimeLocalInput(
-    DateTime.fromMillis(activity.timestampStart).setZone(activity.trip.timeZone)
+    DateTime.fromMillis(activity.timestampStart).setZone(
+      activity.trip.timeZone,
+    ),
   );
   const activityEndStr = formatToDatetimeLocalInput(
-    DateTime.fromMillis(activity.timestampEnd).setZone(activity.trip.timeZone)
+    DateTime.fromMillis(activity.timestampEnd).setZone(activity.trip.timeZone),
   );
   return (
     <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
