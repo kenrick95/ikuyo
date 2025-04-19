@@ -1,8 +1,4 @@
-import { Link, RouteComponentProps } from 'wouter';
-import { db } from '../data/db';
-import { ROUTES } from '../routes';
-import { useAuthUser } from '../Auth/hooks';
-import { Navbar } from '../Nav/Navbar';
+import { PlusIcon } from '@radix-ui/react-icons';
 import {
   Box,
   Button,
@@ -12,19 +8,23 @@ import {
   Heading,
   Text,
 } from '@radix-ui/themes';
-import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
-import s from './PageTrips.module.css';
-import { formatTimestampToReadableDate } from './time';
 import { useCallback, useMemo, useState } from 'react';
-import { DbUser } from '../data/types';
+import { Link, type RouteComponentProps } from 'wouter';
+import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
+import { useAuthUser } from '../Auth/hooks';
+import { Navbar } from '../Nav/Navbar';
+import { db } from '../data/db';
+import type { DbUser } from '../data/types';
+import { ROUTES } from '../routes';
+import s from './PageTrips.module.css';
 import { TripGroup } from './TripGroup';
-import { PlusIcon } from '@radix-ui/react-icons';
+import { formatTimestampToReadableDate } from './time';
 
-import { DocTitle } from '../Nav/DocTitle';
 import { DateTime } from 'luxon';
+import { DocTitle } from '../Nav/DocTitle';
 
 import { TripNewDialog } from './TripNewDialog';
-import { DbTrip } from './db';
+import type { DbTrip } from './db';
 
 export default PageTrips;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

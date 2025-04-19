@@ -1,11 +1,11 @@
 import { Flex, Heading } from '@radix-ui/themes';
-import { Activity } from '../Activity/Activity';
-import s from './ActivityList.module.css';
-import { groupActivitiesByDays } from '../Activity/eventGrouping';
 import { useMemo } from 'react';
-import { TripViewMode } from '../Trip/TripViewMode';
-import { DbTripWithActivityAccommodation } from '../Trip/db';
 import { Accommodation } from '../Accommodation/Accommodation';
+import { Activity } from '../Activity/Activity';
+import { groupActivitiesByDays } from '../Activity/eventGrouping';
+import { TripViewMode } from '../Trip/TripViewMode';
+import type { DbTripWithActivityAccommodation } from '../Trip/db';
+import s from './ActivityList.module.css';
 
 export function ActivityList({
   trip,

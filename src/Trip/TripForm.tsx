@@ -1,13 +1,13 @@
-import { Flex, Text, TextField, Button, Select } from '@radix-ui/themes';
-import { useId, useCallback, useState, useMemo } from 'react';
-import { useBoundStore } from '../data/store';
-import { TripFormMode } from './TripFormMode';
-import { getDateTimeFromDateInput } from './time';
+import { Button, Flex, Select, Text, TextField } from '@radix-ui/themes';
+import { useCallback, useId, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
+import type { DbActivity } from '../Activity/db';
+import { useBoundStore } from '../data/store';
 import { ROUTES } from '../routes';
-import { DbActivity } from '../Activity/db';
-import { dbUpdateTrip, dbAddTrip } from './db';
 import { dangerToken } from '../ui';
+import { TripFormMode } from './TripFormMode';
+import { dbAddTrip, dbUpdateTrip } from './db';
+import { getDateTimeFromDateInput } from './time';
 
 export function TripForm({
   mode,

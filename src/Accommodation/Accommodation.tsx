@@ -1,16 +1,16 @@
-import { TripViewMode } from '../Trip/TripViewMode';
-import { DbAccommodationWithTrip } from './db';
-import clsx from 'clsx';
-import { Text, Box, ContextMenu } from '@radix-ui/themes';
-import s from './Accommodation.module.css';
-import { useState } from 'react';
-import { AccommodationViewDialog } from './AccommodationViewDialog';
-import { AccommodationEditDialog } from './AccommodationEditDialog';
-import { AccommodationDeleteDialog } from './AccommodationDeleteDialog';
 import { ClockIcon, HomeIcon } from '@radix-ui/react-icons';
-import { formatTime } from './time';
-import { AccommodationDisplayTimeMode } from './AccommodationDisplayTimeMode';
+import { Box, ContextMenu, Text } from '@radix-ui/themes';
+import clsx from 'clsx';
+import { useState } from 'react';
+import { TripViewMode } from '../Trip/TripViewMode';
 import { dangerToken } from '../ui';
+import s from './Accommodation.module.css';
+import { AccommodationDeleteDialog } from './AccommodationDeleteDialog';
+import { AccommodationDisplayTimeMode } from './AccommodationDisplayTimeMode';
+import { AccommodationEditDialog } from './AccommodationEditDialog';
+import { AccommodationViewDialog } from './AccommodationViewDialog';
+import type { DbAccommodationWithTrip } from './db';
+import { formatTime } from './time';
 
 export function Accommodation({
   className,

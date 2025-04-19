@@ -1,8 +1,8 @@
 import { DateTime } from 'luxon';
-import { DbTripWithActivityAccommodation } from '../Trip/db';
-import { DbActivityWithTrip } from './db';
-import { DbAccommodationWithTrip } from '../Accommodation/db';
 import { AccommodationDisplayTimeMode } from '../Accommodation/AccommodationDisplayTimeMode';
+import type { DbAccommodationWithTrip } from '../Accommodation/db';
+import type { DbTripWithActivityAccommodation } from '../Trip/db';
+import type { DbActivityWithTrip } from './db';
 
 export type DayGroups = Array<{
   /** DateTime in trip time zone */
@@ -105,8 +105,8 @@ export function groupActivitiesByDays(
 
     // Finding max overlaps: https://stackoverflow.com/a/46532590/917957
     enum Token {
-      Start,
-      End,
+      Start = 0,
+      End = 1,
     }
     const ranges: Array<[number, Token, DbActivityWithTrip]> = [];
     for (const activity of dayActivities) {

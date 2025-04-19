@@ -4,18 +4,21 @@ import s from './Timetable.module.scss';
 
 import { ContextMenu, Section, Text } from '@radix-ui/themes';
 
-import { useMemo } from 'react';
-import { DayGroups, groupActivitiesByDays } from '../Activity/eventGrouping';
-import { TripViewMode } from '../Trip/TripViewMode';
-import { pad2 } from './time';
 import { ClockIcon, HomeIcon } from '@radix-ui/react-icons';
+import { DateTime } from 'luxon';
+import { useMemo } from 'react';
+import { Accommodation } from '../Accommodation/Accommodation';
+import type { DbAccommodationWithTrip } from '../Accommodation/db';
 import {
+  type DayGroups,
+  groupActivitiesByDays,
+} from '../Activity/eventGrouping';
+import { TripViewMode } from '../Trip/TripViewMode';
+import type {
   DbTripWithAccommodation,
   DbTripWithActivityAccommodation,
 } from '../Trip/db';
-import { Accommodation } from '../Accommodation/Accommodation';
-import { DateTime } from 'luxon';
-import { DbAccommodationWithTrip } from '../Accommodation/db';
+import { pad2 } from './time';
 
 const times = new Array(24).fill(0).map((_, i) => {
   return (

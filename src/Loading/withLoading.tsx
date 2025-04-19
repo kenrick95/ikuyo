@@ -1,4 +1,5 @@
-import React, { forwardRef, Suspense } from 'react';
+import type React from 'react';
+import { Suspense, forwardRef } from 'react';
 
 import { Text } from '@radix-ui/themes';
 

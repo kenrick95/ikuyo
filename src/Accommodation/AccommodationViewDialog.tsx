@@ -1,12 +1,12 @@
-import { Dialog, Flex, Text, Heading, Button } from '@radix-ui/themes';
+import { Button, Dialog, Flex, Heading, Text } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 
 import createUrlRegExp from 'url-regex-safe';
 
-import s from './Accommodation.module.css';
 import { useMemo } from 'react';
 import { CommonDialogMaxWidth } from '../dialog';
-import { DbAccommodationWithTrip } from './db';
+import s from './Accommodation.module.css';
+import type { DbAccommodationWithTrip } from './db';
 
 export function AccommodationViewDialog({
   accommodation,

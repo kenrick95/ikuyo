@@ -1,23 +1,23 @@
-import clsx from 'clsx';
-import style from './Activity.module.css';
-import { useMemo, useState } from 'react';
 import {
   ClockIcon,
   InfoCircledIcon,
   SewingPinIcon,
 } from '@radix-ui/react-icons';
+import clsx from 'clsx';
+import { useMemo, useState } from 'react';
+import style from './Activity.module.css';
 
-import { Text, Box, ContextMenu } from '@radix-ui/themes';
-import { formatTime } from './time';
+import { Box, ContextMenu, Text } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
+import { formatTime } from './time';
 
 import { TripViewMode } from '../Trip/TripViewMode';
 
-import { ActivityViewDialog } from './ActivityViewDialog';
+import { dangerToken } from '../ui';
 import { ActivityDeleteDialog } from './ActivityDeleteDialog';
 import { ActivityEditDialog } from './ActivityEditDialog';
-import { DbActivityWithTrip } from './db';
-import { dangerToken } from '../ui';
+import { ActivityViewDialog } from './ActivityViewDialog';
+import type { DbActivityWithTrip } from './db';
 
 export function Activity({
   activity,

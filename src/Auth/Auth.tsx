@@ -1,32 +1,33 @@
-import React, { useCallback, useEffect, useId, useMemo, useState } from 'react';
-import { db, dbUpsertUser as dbUpsertUser } from '../data/db';
 import {
-  Text,
   Box,
   Button,
   Flex,
   Grid,
   Heading,
+  Text,
   TextField,
 } from '@radix-ui/themes';
+import type React from 'react';
+import { useCallback, useEffect, useId, useMemo, useState } from 'react';
+import { Link, type RouteComponentProps, useLocation } from 'wouter';
+import { db, dbUpsertUser } from '../data/db';
 import { useBoundStore } from '../data/store';
+import { ROUTES, asRootRoute } from '../routes';
 import s from './Auth.module.css';
-import { Link, RouteComponentProps, useLocation } from 'wouter';
-import { asRootRoute, ROUTES } from '../routes';
 
-import imgUrl from '../logo/ikuyo.svg';
+import { ArrowLeftIcon } from '@radix-ui/react-icons';
 import { DocTitle } from '../Nav/DocTitle';
 import { CommonDialogMaxWidth } from '../dialog';
-import { ArrowLeftIcon } from '@radix-ui/react-icons';
+import imgUrl from '../logo/ikuyo.svg';
 
 export default PageLogin;
 
 enum AuthScreen {
-  LoginSelection,
-  LoginViaEmailInput,
-  LoginViaEmailVerify,
-  LoginViaGoogle,
-  InvalidState,
+  LoginSelection = 0,
+  LoginViaEmailInput = 1,
+  LoginViaEmailVerify = 2,
+  LoginViaGoogle = 3,
+  InvalidState = 4,
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -71,7 +72,7 @@ export function PageLogin(_props: RouteComponentProps) {
           activated: true,
         }).then(() => {
           publishToast({
-            root: { duration: Infinity },
+            root: { duration: Number.POSITIVE_INFINITY },
             title: { children: `Welcome!` },
             description: {
               children: `Activated account for ${userEmail}. Account handle is set as ${defaultHandle}`,
@@ -216,7 +217,7 @@ function Email({
           setSentEmail(email);
           setScreen(AuthScreen.LoginViaEmailVerify);
           publishToast({
-            root: { duration: Infinity },
+            root: { duration: Number.POSITIVE_INFINITY },
             title: { children: 'Email sent!' },
             description: { children: `Please check your mailbox for ${email}` },
             close: {},
@@ -225,7 +226,7 @@ function Email({
         .catch((err: unknown) => {
           setSentEmail('');
           publishToast({
-            root: { duration: Infinity },
+            root: { duration: Number.POSITIVE_INFINITY },
             title: { children: `Error sending email to ${email}` },
             description: {
               children: (err as { body?: { message?: string } }).body?.message,
@@ -292,7 +293,7 @@ function MagicCode({
         .signInWithMagicCode({ email: sentEmail, code })
         .catch((err: unknown) => {
           publishToast({
-            root: { duration: Infinity },
+            root: { duration: Number.POSITIVE_INFINITY },
             title: { children: 'Error signing in' },
             description: {
               children: (err as { body?: { message?: string } }).body?.message,

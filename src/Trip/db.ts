@@ -1,10 +1,13 @@
-import { id, TransactionChunk, lookup } from '@instantdb/core';
+import { type TransactionChunk, id, lookup } from '@instantdb/core';
 import { DateTime } from 'luxon';
-import { DbActivityWithTrip, DbActivity } from '../Activity/db';
-import { db } from '../data/db';
+import type {
+  DbAccommodation,
+  DbAccommodationWithTrip,
+} from '../Accommodation/db';
+import type { DbActivity, DbActivityWithTrip } from '../Activity/db';
 import { TripUserRole } from '../data/TripUserRole';
-import { DbUser } from '../data/types';
-import { DbAccommodation, DbAccommodationWithTrip } from '../Accommodation/db';
+import { db } from '../data/db';
+import type { DbUser } from '../data/types';
 
 export type DbTripWithActivityAccommodation = Omit<
   DbTrip,

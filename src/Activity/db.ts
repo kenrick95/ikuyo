@@ -1,6 +1,6 @@
 import { id } from '@instantdb/core';
+import type { DbTrip, DbTripWithActivity } from '../Trip/db';
 import { db } from '../data/db';
-import { DbTripWithActivity, DbTrip } from '../Trip/db';
 
 export type DbActivityWithTrip = Omit<DbActivity, 'trip'> & {
   trip: DbTripWithActivity;

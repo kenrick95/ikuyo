@@ -1,9 +1,9 @@
-import {
+import type {
   ToastActionProps,
   ToastCloseProps,
   ToastDescriptionProps,
-  ToastTitleProps,
   ToastProps,
+  ToastTitleProps,
 } from '@radix-ui/react-toast';
 import type { StateCreator } from 'zustand';
 

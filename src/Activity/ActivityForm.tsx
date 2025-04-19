@@ -1,11 +1,11 @@
-import { Flex, Text, TextField, TextArea, Button } from '@radix-ui/themes';
-import { useId, useCallback, useState } from 'react';
+import { Button, Flex, Text, TextArea, TextField } from '@radix-ui/themes';
+import { useCallback, useId, useState } from 'react';
 import { useBoundStore } from '../data/store';
-import { ActivityFormMode } from './ActivityFormMode';
-import { getDateTimeFromDatetimeLocalInput } from './time';
-import { setNewActivityTimestamp } from './activitiyStorage';
-import { dbUpdateActivity, dbAddActivity } from './db';
 import { dangerToken } from '../ui';
+import { ActivityFormMode } from './ActivityFormMode';
+import { setNewActivityTimestamp } from './activitiyStorage';
+import { dbAddActivity, dbUpdateActivity } from './db';
+import { getDateTimeFromDatetimeLocalInput } from './time';
 
 export function ActivityForm({
   mode,

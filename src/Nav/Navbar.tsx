@@ -1,10 +1,10 @@
 import { Box, Container, Flex, Heading } from '@radix-ui/themes';
-import s from './Navbar.module.css';
-import imgUrl from '../logo/ikuyo.svg';
-import React from 'react';
 import clsx from 'clsx';
+import type React from 'react';
 import { Link } from 'wouter';
+import imgUrl from '../logo/ikuyo.svg';
 import { ROUTES } from '../routes';
+import s from './Navbar.module.css';
 
 export function Navbar({
   leftItems,

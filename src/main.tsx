@@ -30,5 +30,5 @@ setTimeout(() => {
 createRoot(document.getElementById('root') as HTMLDivElement).render(
   <StrictMode>
     <App />
-  </StrictMode>
+  </StrictMode>,
 );

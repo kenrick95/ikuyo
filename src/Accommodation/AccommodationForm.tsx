@@ -1,10 +1,10 @@
-import { Flex, Text, TextField, TextArea, Button } from '@radix-ui/themes';
-import { useId, useCallback, useState } from 'react';
+import { Button, Flex, Text, TextArea, TextField } from '@radix-ui/themes';
+import { useCallback, useId, useState } from 'react';
 import { useBoundStore } from '../data/store';
-import { AccommodationFormMode } from './AccommodationFormMode';
-import { getDateTimeFromDatetimeLocalInput } from './time';
-import { dbAddAccommodation, dbUpdateAccommodation } from './db';
 import { dangerToken } from '../ui';
+import { AccommodationFormMode } from './AccommodationFormMode';
+import { dbAddAccommodation, dbUpdateAccommodation } from './db';
+import { getDateTimeFromDatetimeLocalInput } from './time';
 
 export function AccommodationForm({
   mode,

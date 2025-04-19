@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 
 export enum ThemeAppearance {
-  Light,
-  Dark,
+  Light = 0,
+  Dark = 1,
 }
 
 // https://stackoverflow.com/questions/59621784/how-to-detect-prefers-color-scheme-change-in-javascript

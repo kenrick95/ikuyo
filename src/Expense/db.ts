@@ -1,6 +1,6 @@
 import { id } from '@instantdb/core';
+import type { DbTrip } from '../Trip/db';
 import { db } from '../data/db';
-import { DbTrip } from '../Trip/db';
 
 export type DbExpenseWithTrip = Omit<DbExpense, 'trip'> & {
   trip: DbTrip;

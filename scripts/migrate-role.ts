@@ -1,6 +1,6 @@
 // Migrate roles from trip.viewer, trip.editor, trip.owner to tripUser.role
 import 'dotenv/config';
-import { init, id } from '@instantdb/admin';
+import { id, init } from '@instantdb/admin';
 import schema from '../instant.schema.ts';
 const INSTANT_APP_ID = process.env.INSTANT_APP_ID || '';
 const INSTANT_APP_ADMIN_TOKEN = process.env.INSTANT_APP_ADMIN_TOKEN || '';

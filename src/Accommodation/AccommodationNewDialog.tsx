@@ -1,11 +1,11 @@
-import { Dialog, Box } from '@radix-ui/themes';
+import { Box, Dialog } from '@radix-ui/themes';
+import { DateTime } from 'luxon';
+import { useMemo } from 'react';
+import type { DbTrip } from '../Trip/db';
 import { CommonDialogMaxWidth } from '../dialog';
-import { DbTrip } from '../Trip/db';
 import { AccommodationForm } from './AccommodationForm';
 import { AccommodationFormMode } from './AccommodationFormMode';
 import { formatToDatetimeLocalInput } from './time';
-import { DateTime } from 'luxon';
-import { useMemo } from 'react';
 
 export function AccommodationNewDialog({
   trip,

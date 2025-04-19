@@ -99,7 +99,7 @@ export default function Privacy() {
             <strong>Website</strong> refers to Ikuyo, accessible from{' '}
             <a
               href="https://ikuyo.kenrick95.org"
-              rel="external nofollow noopener"
+              rel="noreferrer external nofollow noopener"
               target="_blank"
             >
               https://ikuyo.kenrick95.org
@@ -490,7 +490,7 @@ export default function Privacy() {
             By visiting this page on our website:{' '}
             <a
               href="https://ikuyo.kenrick95.org/"
-              rel="external nofollow noopener"
+              rel="noreferrer external nofollow noopener"
               target="_blank"
             >
               https://ikuyo.kenrick95.org/

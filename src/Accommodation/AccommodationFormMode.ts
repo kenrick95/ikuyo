@@ -1,4 +1,4 @@
 export enum AccommodationFormMode {
-  New,
-  Edit,
+  New = 0,
+  Edit = 1,
 }

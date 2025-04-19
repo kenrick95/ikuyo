@@ -1,10 +1,10 @@
-import { Dialog, Box } from '@radix-ui/themes';
+import { Box, Dialog } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
+import { CommonDialogMaxWidth } from '../dialog';
 import { TripForm } from './TripForm';
 import { TripFormMode } from './TripFormMode';
+import type { DbTripWithActivity } from './db';
 import { formatToDateInput } from './time';
-import { CommonDialogMaxWidth } from '../dialog';
-import { DbTripWithActivity } from './db';
 
 export function TripEditDialog({
   trip,

@@ -1,8 +1,8 @@
-import { SegmentedControl, Tooltip } from '@radix-ui/themes';
-import s from './TripMenuFloating.module.css';
 import { CalendarIcon, ListBulletIcon, TableIcon } from '@radix-ui/react-icons';
+import { SegmentedControl, Tooltip } from '@radix-ui/themes';
 import { useLocation } from 'wouter';
 import { ROUTES_TRIP } from '../routes';
+import s from './TripMenuFloating.module.css';
 
 export function TripMenuFloating() {
   const [location, setLocation] = useLocation();

@@ -3,18 +3,18 @@ import {
   Container,
   Flex,
   Heading,
-  TextField,
   Text,
+  TextField,
 } from '@radix-ui/themes';
+import { useAuthUser } from '../Auth/hooks';
 import { Navbar } from '../Nav/Navbar';
 import { db, dbUpsertUser } from '../data/db';
-import { useAuthUser } from '../Auth/hooks';
-import { DbUser } from '../data/types';
+import type { DbUser } from '../data/types';
 
+import { useCallback, useId, useState } from 'react';
+import type { RouteComponentProps } from 'wouter';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
 import { DocTitle } from '../Nav/DocTitle';
-import { RouteComponentProps } from 'wouter';
-import { useId, useState, useCallback } from 'react';
 import { useBoundStore } from '../data/store';
 import { dangerToken } from '../ui';
 
@@ -65,7 +65,7 @@ export function PageAccount(_props: RouteComponentProps) {
       } catch (err) {
         publishToast({
           root: {
-            duration: Infinity,
+            duration: Number.POSITIVE_INFINITY,
           },
           title: {
             children: `Failed to update account details`,

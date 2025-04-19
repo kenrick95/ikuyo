@@ -1,8 +1,8 @@
-import { Dialog, Box } from '@radix-ui/themes';
-import { DbUser } from '../data/types';
+import { Box, Dialog } from '@radix-ui/themes';
+import type { DbUser } from '../data/types';
+import { CommonDialogMaxWidth } from '../dialog';
 import { TripForm } from './TripForm';
 import { TripFormMode } from './TripFormMode';
-import { CommonDialogMaxWidth } from '../dialog';
 
 export function TripNewDialog({
   dialogOpen,

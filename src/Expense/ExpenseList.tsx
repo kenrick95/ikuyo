@@ -1,13 +1,13 @@
-import { useState } from 'react';
-import { Button, Section, Table, Tooltip } from '@radix-ui/themes';
-import { db } from '../data/db';
-import { DbTripWithActivityAccommodation } from '../Trip/db';
 import { PlusIcon, QuestionMarkCircledIcon } from '@radix-ui/react-icons';
-import { ExpenseMode } from './ExpenseMode';
-import s from './ExpenseList.module.css';
+import { Button, Section, Table, Tooltip } from '@radix-ui/themes';
+import { useState } from 'react';
+import type { DbTripWithActivityAccommodation } from '../Trip/db';
+import { db } from '../data/db';
 import { ExpenseInlineForm } from './ExpenseInlineForm';
+import s from './ExpenseList.module.css';
+import { ExpenseMode } from './ExpenseMode';
 import { ExpenseRow } from './ExpenseRow';
-import { DbExpense } from './db';
+import type { DbExpense } from './db';
 
 export function ExpenseList({
   trip,

@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'vitest';
-import { groupActivitiesByDays } from './eventGrouping';
-import { DbTripWithActivityAccommodation } from '../Trip/db';
-import { DbActivityWithTrip } from './db';
-import { DbAccommodationWithTrip } from '../Accommodation/db';
 import { AccommodationDisplayTimeMode } from '../Accommodation/AccommodationDisplayTimeMode';
+import type { DbAccommodationWithTrip } from '../Accommodation/db';
+import type { DbTripWithActivityAccommodation } from '../Trip/db';
+import type { DbActivityWithTrip } from './db';
+import { groupActivitiesByDays } from './eventGrouping';
 
 describe('Trip', () => {
   const baseTrip: DbTripWithActivityAccommodation = {

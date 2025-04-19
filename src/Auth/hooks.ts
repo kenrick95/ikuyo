@@ -1,6 +1,6 @@
+import { useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { db } from '../data/db';
-import { useEffect } from 'react';
 import { ROUTES } from '../routes';
 
 export function useAuthUser() {
