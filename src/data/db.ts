@@ -37,13 +37,12 @@ export async function dbUpsertUser(
         lastUpdatedAt: Date.now(),
       }),
     );
-  } else {
-    // existing user
-    return db.transact(
-      db.tx.user[userId].update({
-        ...newUser,
-        lastUpdatedAt: Date.now(),
-      }),
-    );
   }
+  // existing user
+  return db.transact(
+    db.tx.user[userId].update({
+      ...newUser,
+      lastUpdatedAt: Date.now(),
+    }),
+  );
 }

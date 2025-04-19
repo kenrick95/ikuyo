@@ -58,7 +58,7 @@ export function PageAccount(_props: RouteComponentProps) {
         });
         publishToast({
           root: {},
-          title: { children: `Account details updated` },
+          title: { children: 'Account details updated' },
           close: {},
         });
         elForm.reset();
@@ -68,7 +68,7 @@ export function PageAccount(_props: RouteComponentProps) {
             duration: Number.POSITIVE_INFINITY,
           },
           title: {
-            children: `Failed to update account details`,
+            children: 'Failed to update account details',
           },
           description: {
             children: (err as { message?: string }).message || '',

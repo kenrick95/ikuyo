@@ -172,7 +172,7 @@ function PastTrips({ user, now }: { user: DbUser | undefined; now: number }) {
           {limit !== 0 ? (
             <>
               {error ? `Error: ${error.message}` : null}
-              {isLoading ? `Loading...` : null}
+              {isLoading ? 'Loading...' : null}
               {trips.length === 0 && !isLoading && !error
                 ? 'None'
                 : trips.map((trip) => {

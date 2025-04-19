@@ -96,7 +96,7 @@ export function TripForm({
         return;
       }
       if (dateEndDateTime.diff(dateStartDateTime).as('minute') < 0) {
-        setErrorMessage(`End date must be after start date`);
+        setErrorMessage('End date must be after start date');
         return;
       }
       if (mode === TripFormMode.Edit && tripId) {
@@ -279,7 +279,7 @@ export function TripForm({
           <Text weight="light" size="1">
             This will be used as the default currency in expenses.
             {mode === TripFormMode.Edit
-              ? ` Editing this value will not change existing expenses `
+              ? ' Editing this value will not change existing expenses '
               : null}
           </Text>
         </Text>
@@ -294,7 +294,7 @@ export function TripForm({
           <Text weight="light" size="1">
             This will be used as the default origin's currency in expenses.
             {mode === TripFormMode.Edit
-              ? ` Editing this value will not change existing expenses `
+              ? ' Editing this value will not change existing expenses '
               : null}
           </Text>
         </Text>

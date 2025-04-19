@@ -3,9 +3,11 @@ import { DateTime } from 'luxon';
 export function pad4(num: number): string {
   if (num >= 1000) {
     return String(num);
-  } else if (num >= 100) {
+  }
+  if (num >= 100) {
     return `0${String(num)}`;
-  } else if (num >= 10) {
+  }
+  if (num >= 10) {
     return `00${String(num)}`;
   }
   return `000${String(num)}`;
@@ -42,5 +44,5 @@ export function getDateTimeFromDatetimeLocalInput(
   });
 }
 export function formatTime(timestamp: number, timeZone: string): string {
-  return DateTime.fromMillis(timestamp).setZone(timeZone).toFormat(`HHmm`);
+  return DateTime.fromMillis(timestamp).setZone(timeZone).toFormat('HHmm');
 }

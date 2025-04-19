@@ -87,11 +87,11 @@ export function ActivityForm({
         return;
       }
       if (timeEndDate.diff(timeStartDate).as('minute') < 0) {
-        setErrorMessage(`End time must be after start time`);
+        setErrorMessage('End time must be after start time');
         return;
       }
       if (!timeEndDate.hasSame(timeStartDate, 'day')) {
-        setErrorMessage(`Activity must occur on same day`);
+        setErrorMessage('Activity must occur on same day');
         return;
       }
       if (mode === ActivityFormMode.Edit && activityId) {

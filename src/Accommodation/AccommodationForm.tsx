@@ -96,7 +96,7 @@ export function AccommodationForm({
         return;
       }
       if (timeCheckOutDate.diff(timeCheckInDate).as('minute') < 0) {
-        setErrorMessage(`Check out time must be after check in time`);
+        setErrorMessage('Check out time must be after check in time');
         return;
       }
       if (mode === AccommodationFormMode.Edit && accommodationId) {

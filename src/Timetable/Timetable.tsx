@@ -64,7 +64,7 @@ export function Timetable({
               return (
                 <TimetableDayHeader
                   dateString={dayGroup.startDateTime.toFormat(
-                    `ccc, dd LLL yyyy`,
+                    'ccc, dd LLL yyyy',
                   )}
                   key={dayGroup.startDateTime.toISODate()}
                   style={{
@@ -135,7 +135,7 @@ export function Timetable({
 }
 
 function generateMainGridTemplateColumns(dayGroups: DayGroups): string {
-  let str = `[time] 45px`;
+  let str = '[time] 45px';
 
   // Generate something like:
   // [d1 d1-c1]     360 / 1 fr
@@ -175,7 +175,7 @@ function generateMainGridTemplateColumns(dayGroups: DayGroups): string {
 function generateAccommodationGridTemplateColumns(
   dayGroups: DayGroups,
 ): string {
-  let str = ``;
+  let str = '';
 
   // 1 day always have 2 columns
   // Generate something like:

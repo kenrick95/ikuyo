@@ -89,7 +89,7 @@ export function TripSharingDialog({
       }
 
       if ((newUserRole as TripUserRole) === TripUserRole.Owner) {
-        setErrorMessage(`Cannot set other person as owner`);
+        setErrorMessage('Cannot set other person as owner');
         return;
       }
 
@@ -157,7 +157,7 @@ export function TripSharingDialog({
                   onChange={(ev) => {
                     setNewUserEmail(ev.currentTarget.value);
                   }}
-                ></TextField.Root>
+                />
 
                 <Select.Root
                   name="newUserRole"

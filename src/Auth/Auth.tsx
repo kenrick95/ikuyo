@@ -73,7 +73,7 @@ export function PageLogin(_props: RouteComponentProps) {
         }).then(() => {
           publishToast({
             root: { duration: Number.POSITIVE_INFINITY },
-            title: { children: `Welcome!` },
+            title: { children: 'Welcome!' },
             description: {
               children: `Activated account for ${userEmail}. Account handle is set as ${defaultHandle}`,
             },

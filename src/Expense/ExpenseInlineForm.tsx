@@ -124,7 +124,7 @@ export function ExpenseInlineForm({
         !title ||
         !description ||
         !currency ||
-        isNaN(amountFloat)
+        Number.isNaN(amountFloat)
       ) {
         setErrorMessage('Please fill in all required fields.');
         return;

@@ -11,7 +11,7 @@ export function getNewActivityTimestamp(trip: DbTrip): number {
     const timestampFromStorage = fromStorage.timestamp;
     if (
       timestampFromStorage == null ||
-      isNaN(timestampFromStorage) ||
+      Number.isNaN(timestampFromStorage) ||
       !fromStorage.tripId ||
       fromStorage.tripId !== trip.id
     ) {

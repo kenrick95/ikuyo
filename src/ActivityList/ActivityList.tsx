@@ -24,7 +24,7 @@ export function ActivityList({
             size="4"
             className={s.listSubheader}
           >
-            {dayGroup.startDateTime.toFormat(`cccc, dd LLLL yyyy`)}
+            {dayGroup.startDateTime.toFormat('cccc, dd LLLL yyyy')}
           </Heading>,
           ...Object.values(dayGroup.accommodations).map((accommodation, i) => {
             const props = dayGroup.accommodationProps.get(accommodation.id);

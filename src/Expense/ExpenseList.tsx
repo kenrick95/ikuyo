@@ -54,7 +54,7 @@ export function ExpenseList({
                 content={`How much does 1 unit of origin's currency is worth in the entry's currency. This is equal to "Amount" divided by "Amount in Origin's Currency".`}
               >
                 <QuestionMarkCircledIcon
-                  style={{ verticalAlign: `-3px`, marginLeft: '3px' }}
+                  style={{ verticalAlign: '-3px', marginLeft: '3px' }}
                 />
               </Tooltip>
             </Table.ColumnHeaderCell>
@@ -62,7 +62,7 @@ export function ExpenseList({
               Amount in Origin's Currency
               {trip.originCurrency ? ` (${trip.originCurrency})` : ''}
             </Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell />
           </Table.Row>
         </Table.Header>
 
