@@ -51,6 +51,7 @@ export function Activity({
           <Box
             p={{ initial: '1' }}
             as="div"
+            // biome-ignore lint/a11y/useSemanticElements: <Box> need to be a <div>
             role="button"
             tabIndex={0}
             className={clsx(

@@ -85,11 +85,11 @@ export function PageAccount(_props: RouteComponentProps) {
       <DocTitle title={'Account'} />
       <Navbar
         leftItems={[
-          <Heading as="h1" size={{ initial: '3', xs: '5' }}>
+          <Heading as="h1" key="title" size={{ initial: '3', xs: '5' }}>
             {'Account'}
           </Heading>,
         ]}
-        rightItems={[<UserAvatarMenu user={userData} />]}
+        rightItems={[<UserAvatarMenu key="UserAvatarMenu" user={userData} />]}
       />
       <Container p="2" my="2">
         <Heading as="h2">Edit Account Details</Heading>

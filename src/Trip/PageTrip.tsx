@@ -114,6 +114,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
             as="h1"
             size={{ initial: '3', xs: '5' }}
             className={s.tripTitle}
+            key="title"
           >
             {trip?.title ?? 'Loading trip'}
             {

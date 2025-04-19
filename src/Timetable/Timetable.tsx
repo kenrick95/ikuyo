@@ -24,7 +24,7 @@ const times = new Array(24).fill(0).map((_, i) => {
   return (
     <TimetableTime
       timeStart={`${pad2(i)}:00`}
-      key={i}
+      key={`${pad2(i)}:00`}
       style={{
         gridRowStart: `t${pad2(i)}00`,
       }}

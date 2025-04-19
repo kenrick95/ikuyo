@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "rsbuild build",
+    "biome-ci": "biome ci",
     "check": "biome check --write",
     "test": "vitest",
     "dev": "rsbuild dev --open",
@@ -32,6 +33,7 @@
     "@rsbuild/core": "^1.3.1",
     "@rsbuild/plugin-react": "^1.1.1",
     "@rsbuild/plugin-sass": "^1.3.1",
+    "@rsbuild/plugin-type-check": "^1.2.1",
     "@types/luxon": "~3.6.2",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.1",

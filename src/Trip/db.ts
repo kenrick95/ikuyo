@@ -108,7 +108,7 @@ export async function dbUpdateTrip(
   const tripId = trip.id;
 
   const transactionTimestamp = Date.now();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: The type should be generic
   const transactions: TransactionChunk<any, any>[] = [
     db.tx.trip[tripId].merge({
       ...trip,
@@ -163,7 +163,7 @@ export async function dbAddUserToTrip({
   userRole: TripUserRole;
 }) {
   const lastUpdatedAt = Date.now();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: The type should be generic
   const transactions: TransactionChunk<any, any>[] = [];
 
   const { data: userData } = await db.queryOnce({
@@ -249,7 +249,7 @@ export async function dbUpdateUserFromTrip({
   userRole: TripUserRole;
 }) {
   const lastUpdatedAt = Date.now();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: The type should be generic
   const transactions: TransactionChunk<any, any>[] = [];
 
   const { data: tripUserData } = await db.queryOnce({

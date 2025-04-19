@@ -13,6 +13,7 @@ export type ToastConfig = {
   description?: ToastDescriptionProps;
   action?: ToastActionProps;
   close?: ToastCloseProps;
+  uid?: string;
 };
 export interface ToastSlice {
   toasts: Array<ToastConfig>;
@@ -27,6 +28,11 @@ export const createToastSlice: StateCreator<ToastSlice, [], [], ToastSlice> = (
     toasts: [],
     publishToast: (newToast: ToastConfig) => {
       set((state) => {
+        if (!newToast.uid) {
+          const uid =
+            crypto.randomUUID() ?? Math.random().toString(36).slice(2);
+          newToast.uid = uid;
+        }
         return {
           toasts: [...state.toasts, newToast],
         };

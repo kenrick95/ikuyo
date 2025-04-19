@@ -86,11 +86,11 @@ export function PageTrips(_props: RouteComponentProps) {
       <DocTitle title={'Trips'} />
       <Navbar
         leftItems={[
-          <Heading as="h2" size="5">
+          <Heading as="h2" size="5" key="trips">
             Trips
           </Heading>,
         ]}
-        rightItems={[<UserAvatarMenu user={user} />]}
+        rightItems={[<UserAvatarMenu user={user} key="userAvatarMenu" />]}
       />
 
       <Container>

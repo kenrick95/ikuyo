@@ -27,11 +27,11 @@ async function main() {
     },
   });
   for (const user of allUsers.user || []) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+    // biome-ignore lint/suspicious/noExplicitAny: Migration script, this old field has been deleted in current schema
     const tripEditor = (user as any).tripEditor || [];
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+    // biome-ignore lint/suspicious/noExplicitAny: Migration script, this old field has been deleted in current schema
     const tripOwner = (user as any).tripOwner || [];
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+    // biome-ignore lint/suspicious/noExplicitAny: Migration script, this old field has been deleted in current schema
     const tripViewer = (user as any).tripViewer || [];
     for (const trip of tripEditor) {
       const tripUserId = id();

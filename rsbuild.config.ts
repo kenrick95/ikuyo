@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { defineConfig } from '@rsbuild/core';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSass } from '@rsbuild/plugin-sass';
+import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
 
 const INSTANT_APP_ID = process.env.INSTANT_APP_ID;
 
@@ -26,5 +27,5 @@ export default defineConfig({
       'process.env.INSTANT_APP_ID': JSON.stringify(process.env.INSTANT_APP_ID),
     },
   },
-  plugins: [pluginReact(), pluginSass()],
+  plugins: [pluginReact(), pluginSass(), pluginTypeCheck()],
 });

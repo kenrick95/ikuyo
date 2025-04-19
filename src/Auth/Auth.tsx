@@ -170,7 +170,7 @@ function LoginSelection({
   return (
     <Flex direction="column" gap="2">
       <Heading>
-        <img src={imgUrl} className={s.logo} /> Ikuyo!
+        <img src={imgUrl} className={s.logo} alt="Logo" /> Ikuyo!
       </Heading>
       <Button
         variant="outline"
@@ -253,7 +253,7 @@ function Email({
           >
             <ArrowLeftIcon />
           </Button>
-          <img src={imgUrl} className={s.logo} /> Ikuyo!
+          <img src={imgUrl} className={s.logo} alt="Logo" /> Ikuyo!
         </Heading>
         <Text as="label" htmlFor={idEmail}>
           Enter your email to log in:
@@ -320,7 +320,7 @@ function MagicCode({
           >
             <ArrowLeftIcon />
           </Button>
-          <img src={imgUrl} className={s.logo} /> Ikuyo!
+          <img src={imgUrl} className={s.logo} alt="Ikuyo logo" /> Ikuyo!
         </Heading>
         <Text as="label" htmlFor={idCode}>
           Enter the code we sent to your email ({sentEmail}):
