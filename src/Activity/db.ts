@@ -26,7 +26,7 @@ export async function dbAddActivity(
     tripId,
   }: {
     tripId: string;
-  }
+  },
 ) {
   return db.transact(
     db.tx.activity[id()]
@@ -37,19 +37,19 @@ export async function dbAddActivity(
       })
       .link({
         trip: tripId,
-      })
+      }),
   );
 }
 export async function dbDeleteActivity(activity: DbActivity) {
   return db.transact(db.tx.activity[activity.id].delete());
 }
 export async function dbUpdateActivity(
-  activity: Omit<DbActivity, 'createdAt' | 'lastUpdatedAt' | 'trip'>
+  activity: Omit<DbActivity, 'createdAt' | 'lastUpdatedAt' | 'trip'>,
 ) {
   return db.transact(
     db.tx.activity[activity.id].merge({
       ...activity,
       lastUpdatedAt: Date.now(),
-    })
+    }),
   );
 }

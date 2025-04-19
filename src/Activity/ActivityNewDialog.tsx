@@ -1,5 +1,5 @@
 import { Dialog, Box } from '@radix-ui/themes';
-import { DateTime } from 'luxon'; 
+import { DateTime } from 'luxon';
 import { ActivityForm } from './ActivityForm';
 import { ActivityFormMode } from './ActivityFormMode';
 import { formatToDatetimeLocalInput } from './time';
@@ -18,26 +18,26 @@ export function ActivityNewDialog({
   setDialogOpen: (newValue: boolean) => void;
 }) {
   const tripStartStr = formatToDatetimeLocalInput(
-    DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone)
+    DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone),
   );
   const tripEndStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(trip.timestampEnd)
       .setZone(trip.timeZone)
-      .minus({ minute: 1 })
+      .minus({ minute: 1 }),
   );
   const [activityStartStr, activityEndStr] = useMemo(() => {
     const activityStartTimestamp = getNewActivityTimestamp(trip);
 
     return [
       formatToDatetimeLocalInput(
-        DateTime.fromMillis(activityStartTimestamp).setZone(trip.timeZone)
+        DateTime.fromMillis(activityStartTimestamp).setZone(trip.timeZone),
       ),
       formatToDatetimeLocalInput(
         DateTime.fromMillis(activityStartTimestamp)
           .setZone(trip.timeZone)
           .plus({
             hours: 1,
-          })
+          }),
       ),
     ];
   }, [trip]);

@@ -22,12 +22,12 @@ export function AccommodationViewDialog({
   setDeleteDialogOpen: (newValue: boolean) => void;
 }) {
   const accommodationCheckInStr = DateTime.fromMillis(
-    accommodation.timestampCheckIn
+    accommodation.timestampCheckIn,
   )
     .setZone(accommodation.trip.timeZone)
     .toFormat('dd LLLL yyyy HH:mm');
   const accommodationCheckOutStr = DateTime.fromMillis(
-    accommodation.timestampCheckOut
+    accommodation.timestampCheckOut,
   )
     .setZone(accommodation.trip.timeZone)
     .toFormat('dd LLLL yyyy HH:mm');
@@ -55,7 +55,7 @@ export function AccommodationViewDialog({
           parts.push(
             <a href={url} target="_blank" rel="noopener noreferrer">
               {url}
-            </a>
+            </a>,
           );
         }
         i = match.index + url.length;

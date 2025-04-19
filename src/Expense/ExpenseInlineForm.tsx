@@ -24,10 +24,10 @@ export function ExpenseInlineForm({
         DateTime.fromMillis(
           expenseMode === ExpenseMode.Edit && expense
             ? expense.timestampIncurred
-            : trip.timestampStart
-        ).setZone(trip.timeZone)
+            : trip.timestampStart,
+        ).setZone(trip.timeZone),
       ),
-    [trip.timestampStart, trip.timeZone, expense, expenseMode]
+    [trip.timestampStart, trip.timeZone, expense, expenseMode],
   );
   const publishToast = useBoundStore((state) => state.publishToast);
   const idForm = useId();
@@ -56,7 +56,7 @@ export function ExpenseInlineForm({
           amount: '',
           currencyConversionFactor: '1',
           amountInOriginCurrency: '',
-        }
+        },
   );
   const [errorMessage, setErrorMessage] = useState('');
   const currencies = useMemo(() => Intl.supportedValuesOf('currency'), []);
@@ -80,7 +80,7 @@ export function ExpenseInlineForm({
         [name]: value,
       }));
     },
-    []
+    [],
   );
 
   const handleForm = useCallback(
@@ -99,11 +99,11 @@ export function ExpenseInlineForm({
 
       const dateTimestampIncurred = getDateTimeFromDateInput(
         timestampIncurred,
-        trip.timeZone
+        trip.timeZone,
       );
       const amountFloat = parseFloat(amount);
       const currencyConversionFactorFloat = parseFloat(
-        currencyConversionFactor
+        currencyConversionFactor,
       );
       const amountInOriginCurrencyFloat = parseFloat(amountInOriginCurrency);
 
@@ -167,7 +167,7 @@ export function ExpenseInlineForm({
             amountInOriginCurrency: amountInOriginCurrencyFloat,
             timestampIncurred: dateTimestampIncurred.toMillis(),
           },
-          { tripId: trip.id }
+          { tripId: trip.id },
         )
           .then(() => {
             publishToast({
@@ -196,7 +196,7 @@ export function ExpenseInlineForm({
       expense,
       publishToast,
       resetFormState,
-    ]
+    ],
   );
 
   const handleCurrencyChange = useCallback((value: string) => {
@@ -214,7 +214,7 @@ export function ExpenseInlineForm({
         form={idForm}
       />
     ),
-    [formState.timestampIncurred, handleInputChange, idForm]
+    [formState.timestampIncurred, handleInputChange, idForm],
   );
   const fieldSelectCurrency = useMemo(() => {
     return (
@@ -245,10 +245,10 @@ export function ExpenseInlineForm({
       formState.amountInOriginCurrency
     ) {
       const amountInOriginCurrencyFloat = parseFloat(
-        formState.amountInOriginCurrency
+        formState.amountInOriginCurrency,
       );
       const currencyConversionFactorFloat = parseFloat(
-        formState.currencyConversionFactor
+        formState.currencyConversionFactor,
       );
       setFormState((prev) => ({
         ...prev,
@@ -271,7 +271,7 @@ export function ExpenseInlineForm({
     ) {
       const amountFloat = parseFloat(formState.amount);
       const amountInOriginCurrencyFloat = parseFloat(
-        formState.amountInOriginCurrency
+        formState.amountInOriginCurrency,
       );
       setFormState((prev) => ({
         ...prev,
@@ -294,7 +294,7 @@ export function ExpenseInlineForm({
     ) {
       const amountFloat = parseFloat(formState.amount);
       const currencyConversionFactorFloat = parseFloat(
-        formState.currencyConversionFactor
+        formState.currencyConversionFactor,
       );
       setFormState((prev) => ({
         ...prev,

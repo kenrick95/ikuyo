@@ -51,7 +51,7 @@ export function ActivityViewDialog({
           parts.push(
             <a href={url} target="_blank" rel="noopener noreferrer">
               {url}
-            </a>
+            </a>,
           );
         }
         i = match.index + url.length;

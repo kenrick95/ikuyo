@@ -61,7 +61,7 @@ export function Timetable({
               return (
                 <TimetableDayHeader
                   dateString={dayGroup.startDateTime.toFormat(
-                    `ccc, dd LLL yyyy`
+                    `ccc, dd LLL yyyy`,
                   )}
                   key={dayGroup.startDateTime.toISODate()}
                   style={{
@@ -99,7 +99,7 @@ export function Timetable({
             {dayGroups.map((dayGroup) => {
               return Object.values(dayGroup.activities).map((activity) => {
                 const columnIndex = dayGroup.activityColumnIndexMap.get(
-                  activity.id
+                  activity.id,
                 );
                 return (
                   <Activity
@@ -147,7 +147,7 @@ function generateMainGridTemplateColumns(dayGroups: DayGroups): string {
   for (let dayIndex = 0; dayIndex < dayGroups.length; dayIndex++) {
     const dayGroup = dayGroups[dayIndex];
     const colWidth = `minmax(${String(120 / dayGroup.columns)}px,${String(
-      360 / dayGroup.columns
+      360 / dayGroup.columns,
     )}fr)`;
     for (let colIndex = 0; colIndex < dayGroup.columns; colIndex++) {
       const lineNames: string[] = [];
@@ -170,7 +170,7 @@ function generateMainGridTemplateColumns(dayGroups: DayGroups): string {
 }
 
 function generateAccommodationGridTemplateColumns(
-  dayGroups: DayGroups
+  dayGroups: DayGroups,
 ): string {
   let str = ``;
 
@@ -272,23 +272,23 @@ function getAccommodationIndexes(trip: DbTripWithAccommodation) {
     };
   }> = [];
   const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
-    trip.timeZone
+    trip.timeZone,
   );
   const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd).setZone(
-    trip.timeZone
+    trip.timeZone,
   );
   const tripEndDay = tripEndDateTime.diff(tripStartDateTime, 'days').days;
 
   for (const accommodation of trip.accommodation) {
     const accommodationCheckInDateTime = DateTime.fromMillis(
-      accommodation.timestampCheckIn
+      accommodation.timestampCheckIn,
     ).setZone(trip.timeZone);
     const accommodationCheckInDay =
       accommodationCheckInDateTime
         .startOf('day')
         .diff(tripStartDateTime, 'days').days + 1;
     const accommodationCheckOutDateTime = DateTime.fromMillis(
-      accommodation.timestampCheckOut
+      accommodation.timestampCheckOut,
     ).setZone(trip.timeZone);
     const accommodationCheckOutDay =
       accommodationCheckOutDateTime

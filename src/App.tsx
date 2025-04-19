@@ -15,7 +15,7 @@ const PageLogin = withLoading()(React.lazy(() => import('./Auth/Auth')));
 const PageTrips = withLoading()(React.lazy(() => import('./Trip/PageTrips')));
 const PageTrip = withLoading()(React.lazy(() => import('./Trip/PageTrip')));
 const PageAccount = withLoading()(
-  React.lazy(() => import('./Account/PageAccount'))
+  React.lazy(() => import('./Account/PageAccount')),
 );
 
 function App() {

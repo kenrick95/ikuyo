@@ -5,7 +5,7 @@ export function formatToDatetimeLocalInput(date: DateTime) {
 }
 export function getDateTimeFromDatetimeLocalInput(
   datetimeLocalInputString: string,
-  timeZone: string
+  timeZone: string,
 ): DateTime {
   return DateTime.fromFormat(datetimeLocalInputString, `yyyy-LL-dd'T'HH:mm`, {
     zone: timeZone,

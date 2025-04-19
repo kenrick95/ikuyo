@@ -71,7 +71,7 @@ function ExpenseRowView({
     <>
       <Table.RowHeaderCell>
         {formatTimestampToReadableDate(
-          DateTime.fromMillis(expense.timestampIncurred)
+          DateTime.fromMillis(expense.timestampIncurred),
         )}
       </Table.RowHeaderCell>
       <Table.Cell>{expense.title}</Table.Cell>
@@ -133,7 +133,7 @@ function ExpenseRowView({
                     .catch((error: unknown) => {
                       console.error(
                         `Error deleting expense "${expense.title}"`,
-                        error
+                        error,
                       );
                       publishToast({
                         root: {},

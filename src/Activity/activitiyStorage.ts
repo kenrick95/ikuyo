@@ -6,7 +6,7 @@ export function getNewActivityTimestamp(trip: DbTrip): number {
   try {
     const fromStorage = JSON.parse(
       globalThis.localStorage.getItem(lastNewActivityTimestampStorageKey) ??
-        '{}'
+        '{}',
     ) as { timestamp?: number; tripId?: string };
     const timestampFromStorage = fromStorage.timestamp;
     if (
@@ -40,7 +40,7 @@ export function setNewActivityTimestamp(value: {
   try {
     globalThis.localStorage.setItem(
       lastNewActivityTimestampStorageKey,
-      JSON.stringify(value)
+      JSON.stringify(value),
     );
   } catch {
     // no-op

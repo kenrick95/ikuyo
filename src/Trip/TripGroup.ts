@@ -1,5 +1,5 @@
-export enum TripGroup{
-    Upcoming,
-    Ongoing,
-    Past
+export enum TripGroup {
+  Upcoming,
+  Ongoing,
+  Past,
 }

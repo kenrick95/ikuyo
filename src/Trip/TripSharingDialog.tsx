@@ -123,7 +123,7 @@ export function TripSharingDialog({
       const elForm = e.currentTarget;
       void handleForm()(elForm);
     },
-    [handleForm]
+    [handleForm],
   );
 
   return (

@@ -73,11 +73,11 @@ export function AccommodationForm({
         (formData.get('timeCheckOut') as string | null) ?? '';
       const timeCheckInDate = getDateTimeFromDatetimeLocalInput(
         timeCheckInString,
-        tripTimeZone
+        tripTimeZone,
       );
       const timeCheckOutDate = getDateTimeFromDatetimeLocalInput(
         timeCheckOutString,
-        tripTimeZone
+        tripTimeZone,
       );
       console.log('AccommodationForm', {
         mode,
@@ -126,7 +126,7 @@ export function AccommodationForm({
           },
           {
             tripId: tripId,
-          }
+          },
         );
         console.log('AccommodationForm: dbAddAccommodation', { id, result });
         publishToast({

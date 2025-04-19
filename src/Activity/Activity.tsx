@@ -56,7 +56,7 @@ export function Activity({
             className={clsx(
               style.activity,
               isActivityOngoing ? style.activityOngoing : '',
-              className
+              className,
             )}
             onClick={() => {
               setViewDialogOpen(true);
@@ -160,13 +160,13 @@ export function Activity({
 
 function getDayStartEnd(activity: DbActivityWithTrip): [number, number] {
   const tripStart = DateTime.fromMillis(activity.trip.timestampStart).setZone(
-    activity.trip.timeZone
+    activity.trip.timeZone,
   );
   const activityStart = DateTime.fromMillis(activity.timestampStart).setZone(
-    activity.trip.timeZone
+    activity.trip.timeZone,
   );
   const activityEnd = DateTime.fromMillis(activity.timestampEnd).setZone(
-    activity.trip.timeZone
+    activity.trip.timeZone,
   );
   const diffStart = activityStart.diff(tripStart, 'day');
   const diffEnd = activityEnd.diff(tripStart, 'day');

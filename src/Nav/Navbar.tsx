@@ -1,6 +1,6 @@
 import { Box, Container, Flex, Heading } from '@radix-ui/themes';
 import s from './Navbar.module.css';
-import imgUrl from '/ikuyo.svg';
+import imgUrl from '../logo/ikuyo.svg';
 import React from 'react';
 import clsx from 'clsx';
 import { Link } from 'wouter';
@@ -31,7 +31,7 @@ export function Navbar({
             <Box
               key={index}
               className={clsx(
-                index === leftItems.length - 1 ? s.boxLeftLast : ''
+                index === leftItems.length - 1 ? s.boxLeftLast : '',
               )}
             >
               {item}

@@ -14,7 +14,7 @@ import s from './Auth.module.css';
 import { Link, RouteComponentProps, useLocation } from 'wouter';
 import { asRootRoute, ROUTES } from '../routes';
 
-import imgUrl from '/ikuyo.svg';
+import imgUrl from '../logo/ikuyo.svg';
 import { DocTitle } from '../Nav/DocTitle';
 import { CommonDialogMaxWidth } from '../dialog';
 import { ArrowLeftIcon } from '@radix-ui/react-icons';
@@ -46,7 +46,7 @@ export function PageLogin(_props: RouteComponentProps) {
         clientName: 'ikuyo.kenrick95.org',
         redirectURL: window.location.href,
       }),
-    []
+    [],
   );
 
   useEffect(() => {
@@ -234,7 +234,7 @@ function Email({
           });
         });
     },
-    [setScreen, setSentEmail, publishToast]
+    [setScreen, setSentEmail, publishToast],
   );
   const idEmail = useId();
 
@@ -301,7 +301,7 @@ function MagicCode({
           });
         });
     },
-    [publishToast, sentEmail]
+    [publishToast, sentEmail],
   );
   const idCode = useId();
 

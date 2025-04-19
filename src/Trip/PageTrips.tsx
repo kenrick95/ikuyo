@@ -150,7 +150,7 @@ function PastTrips({ user, now }: { user: DbUser | undefined; now: number }) {
             tripUser: {},
           },
         }
-      : {}
+      : {},
   );
   const trips: DbTrip[] = data?.trip ? (data.trip as DbTrip[]) : [];
   const loadMore = useCallback(() => {
@@ -187,7 +187,7 @@ function PastTrips({ user, now }: { user: DbUser | undefined; now: number }) {
                               {formatTimestampToReadableDate(
                                 DateTime.fromMillis(trip.timestampStart, {
                                   zone: trip.timeZone,
-                                })
+                                }),
                               )}{' '}
                               &ndash;{' '}
                               {formatTimestampToReadableDate(
@@ -195,7 +195,7 @@ function PastTrips({ user, now }: { user: DbUser | undefined; now: number }) {
                                   zone: trip.timeZone,
                                 }).minus({
                                   day: 1,
-                                })
+                                }),
                               )}{' '}
                               ({trip.timeZone})
                             </Text>
@@ -262,7 +262,7 @@ function Trips({
                           {formatTimestampToReadableDate(
                             DateTime.fromMillis(trip.timestampStart, {
                               zone: trip.timeZone,
-                            })
+                            }),
                           )}{' '}
                           &ndash;{' '}
                           {formatTimestampToReadableDate(
@@ -270,7 +270,7 @@ function Trips({
                               zone: trip.timeZone,
                             }).minus({
                               day: 1,
-                            })
+                            }),
                           )}{' '}
                           ({trip.timeZone})
                         </Text>

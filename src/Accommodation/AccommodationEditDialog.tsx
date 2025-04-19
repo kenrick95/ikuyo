@@ -17,24 +17,24 @@ export function AccommodationEditDialog({
 }) {
   const tripStartStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(accommodation.trip.timestampStart).setZone(
-      accommodation.trip.timeZone
-    )
+      accommodation.trip.timeZone,
+    ),
   );
   const tripEndStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(accommodation.trip.timestampEnd)
       .setZone(accommodation.trip.timeZone)
-      .minus({ minute: 1 })
+      .minus({ minute: 1 }),
   );
 
   const accommodationCheckInStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(accommodation.timestampCheckIn).setZone(
-      accommodation.trip.timeZone
-    )
+      accommodation.trip.timeZone,
+    ),
   );
   const accommodationCheckOutStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(accommodation.timestampCheckOut).setZone(
-      accommodation.trip.timeZone
-    )
+      accommodation.trip.timeZone,
+    ),
   );
 
   return (

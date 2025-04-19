@@ -66,11 +66,11 @@ export function TripForm({
 
       const dateStartDateTime = getDateTimeFromDateInput(
         dateStartStr,
-        timeZone
+        timeZone,
       );
       const dateEndDateTime = getDateTimeFromDateInput(
         dateEndStr,
-        timeZone
+        timeZone,
       ).plus({ day: 1 });
       console.log('TripForm', {
         mode,
@@ -113,7 +113,7 @@ export function TripForm({
           {
             activities,
             previousTimeZone: tripTimeZone,
-          }
+          },
         );
         publishToast({
           root: {},
@@ -134,7 +134,7 @@ export function TripForm({
           },
           {
             userId,
-          }
+          },
         );
         console.log('!dbAddTrip', newId, result);
 

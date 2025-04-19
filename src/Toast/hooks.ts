@@ -21,7 +21,7 @@ export interface ToastSlice {
 }
 
 export const createToastSlice: StateCreator<ToastSlice, [], [], ToastSlice> = (
-  set
+  set,
 ) => {
   return {
     toasts: [],

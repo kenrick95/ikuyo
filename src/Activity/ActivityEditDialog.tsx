@@ -17,19 +17,21 @@ export function ActivityEditDialog({
 }) {
   const tripStartStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(activity.trip.timestampStart).setZone(
-      activity.trip.timeZone
-    )
+      activity.trip.timeZone,
+    ),
   );
   const tripEndStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(activity.trip.timestampEnd)
       .setZone(activity.trip.timeZone)
-      .minus({ minute: 1 })
+      .minus({ minute: 1 }),
   );
   const activityStartStr = formatToDatetimeLocalInput(
-    DateTime.fromMillis(activity.timestampStart).setZone(activity.trip.timeZone)
+    DateTime.fromMillis(activity.timestampStart).setZone(
+      activity.trip.timeZone,
+    ),
   );
   const activityEndStr = formatToDatetimeLocalInput(
-    DateTime.fromMillis(activity.timestampEnd).setZone(activity.trip.timeZone)
+    DateTime.fromMillis(activity.timestampEnd).setZone(activity.trip.timeZone),
   );
   return (
     <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>

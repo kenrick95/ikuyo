@@ -19,15 +19,15 @@ const Timetable = withLoading()(
   React.lazy(() =>
     import('../Timetable/Timetable').then((module) => {
       return { default: module.Timetable };
-    })
-  )
+    }),
+  ),
 );
 const ActivityList = withLoading()(
   React.lazy(() =>
     import('../ActivityList/ActivityList').then((module) => {
       return { default: module.ActivityList };
-    })
-  )
+    }),
+  ),
 );
 import { ActivityNewDialog } from '../Activity/ActivityNewDialog';
 import { TripEditDialog } from './TripEditDialog';

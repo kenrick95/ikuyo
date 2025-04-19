@@ -16,12 +16,12 @@ export function TripEditDialog({
   setDialogOpen: (newValue: boolean) => void;
 }) {
   const tripStartStr = formatToDateInput(
-    DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone)
+    DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone),
   );
   const tripEndStr = formatToDateInput(
     DateTime.fromMillis(trip.timestampEnd)
       .setZone(trip.timeZone)
-      .minus({ days: 1 })
+      .minus({ days: 1 }),
   );
   return (
     <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>

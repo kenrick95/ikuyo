@@ -40,7 +40,7 @@ export function ActivityList({
           }),
           ...Object.values(dayGroup.activities).map((activity) => {
             const columnIndex = dayGroup.activityColumnIndexMap.get(
-              activity.id
+              activity.id,
             );
             return (
               <Activity

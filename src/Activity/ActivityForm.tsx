@@ -64,11 +64,11 @@ export function ActivityForm({
       const timeEndString = (formData.get('endTime') as string | null) ?? '';
       const timeStartDate = getDateTimeFromDatetimeLocalInput(
         timeStartString,
-        tripTimeZone
+        tripTimeZone,
       );
       const timeEndDate = getDateTimeFromDatetimeLocalInput(
         timeEndString,
-        tripTimeZone
+        tripTimeZone,
       );
       console.log('ActivityForm', {
         mode,
@@ -123,7 +123,7 @@ export function ActivityForm({
           },
           {
             tripId: tripId,
-          }
+          },
         );
         publishToast({
           root: {},

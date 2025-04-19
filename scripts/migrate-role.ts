@@ -25,7 +25,7 @@ async function main() {
       tripOwner: {},
       tripViewer: {},
     },
-  }); 
+  });
   for (const user of allUsers.user || []) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
     const tripEditor = (user as any).tripEditor || [];
@@ -33,8 +33,8 @@ async function main() {
     const tripOwner = (user as any).tripOwner || [];
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
     const tripViewer = (user as any).tripViewer || [];
-    for (const trip of  tripEditor) {
-      const tripUserId = id(); 
+    for (const trip of tripEditor) {
+      const tripUserId = id();
       await db.transact([
         db.tx.tripUser[tripUserId]
           .update({
@@ -48,9 +48,9 @@ async function main() {
             user: user.id,
           }),
       ]);
-    } 
-    for (const trip of  tripOwner) {
-      const tripUserId = id(); 
+    }
+    for (const trip of tripOwner) {
+      const tripUserId = id();
       await db.transact([
         db.tx.tripUser[tripUserId]
           .update({
@@ -66,8 +66,8 @@ async function main() {
       ]);
     }
 
-    for (const trip of  tripViewer) {
-      const tripUserId = id(); 
+    for (const trip of tripViewer) {
+      const tripUserId = id();
       await db.transact([
         db.tx.tripUser[tripUserId]
           .update({

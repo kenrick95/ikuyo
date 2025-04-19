@@ -22,29 +22,29 @@
   border-width: 1px;
   border-color: var(--gray-7);
   border-style: solid;
-  box-shadow: hsl(206 22% 7% / 35%) 0px 10px 38px -10px,
-    hsl(206 22% 7% / 20%) 0px 10px 20px -15px;
+  box-shadow: hsl(206 22% 7% / 35%) 0px 10px 38px -10px, hsl(206 22% 7% / 20%)
+    0px 10px 20px -15px;
   padding: var(--space-2) var(--space-3);
   display: grid;
-  grid-template-areas: 'title' 'description' 'action';
+  grid-template-areas: "title" "description" "action";
   align-items: center;
   text-align: start;
   position: relative;
 }
-.ToastRoot[data-state='open'] {
+.ToastRoot[data-state="open"] {
   animation: slideIn 150ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-.ToastRoot[data-state='closed'] {
+.ToastRoot[data-state="closed"] {
   animation: hide 100ms ease-in;
 }
-.ToastRoot[data-swipe='move'] {
+.ToastRoot[data-swipe="move"] {
   transform: translateX(var(--radix-toast-swipe-move-x));
 }
-.ToastRoot[data-swipe='cancel'] {
+.ToastRoot[data-swipe="cancel"] {
   transform: translateX(0);
   transition: transform 200ms ease-out;
 }
-.ToastRoot[data-swipe='end'] {
+.ToastRoot[data-swipe="end"] {
   animation: swipeOut 100ms ease-out;
 }
 

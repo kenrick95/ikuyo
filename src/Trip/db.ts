@@ -64,7 +64,7 @@ export async function dbAddTrip(
     userId,
   }: {
     userId: string;
-  }
+  },
 ) {
   const newTripId = id();
   const newTripUserId = id();
@@ -100,7 +100,7 @@ export async function dbUpdateTrip(
   }: {
     previousTimeZone: string;
     activities?: DbActivity[];
-  }
+  },
 ) {
   const tripId = trip.id;
 
@@ -133,7 +133,7 @@ export async function dbUpdateTrip(
             })
             .toMillis(),
           lastUpdatedAt: transactionTimestamp,
-        })
+        }),
       );
     }
   }
@@ -144,7 +144,7 @@ export async function dbDeleteTrip(trip: DbTripWithActivityAccommodation) {
   return db.transact([
     ...trip.activity.map((activity) => db.tx.activity[activity.id].delete()),
     ...trip.accommodation.map((accommodation) =>
-      db.tx.accommodation[accommodation.id].delete()
+      db.tx.accommodation[accommodation.id].delete(),
     ),
     db.tx.trip[trip.id].delete(),
   ]);
@@ -188,7 +188,7 @@ export async function dbAddUserToTrip({
         activated: false,
         createdAt: lastUpdatedAt,
         lastUpdatedAt: lastUpdatedAt,
-      })
+      }),
     );
   }
 
@@ -221,7 +221,7 @@ export async function dbAddUserToTrip({
         .link({
           trip: tripId,
           user: userId,
-        })
+        }),
     );
   } else {
     // Existing TripUser entity, just update the "row" column
@@ -229,7 +229,7 @@ export async function dbAddUserToTrip({
       db.tx.tripUser[tripUserId].update({
         lastUpdatedAt: lastUpdatedAt,
         role: userRole,
-      })
+      }),
     );
   }
 
@@ -278,7 +278,7 @@ export async function dbUpdateUserFromTrip({
         .link({
           trip: tripId,
           user: lookup('email', userEmail),
-        })
+        }),
     );
   } else {
     // Existing TripUser entity, just update the "row" column
@@ -286,7 +286,7 @@ export async function dbUpdateUserFromTrip({
       db.tx.tripUser[tripUserId].update({
         lastUpdatedAt: lastUpdatedAt,
         role: userRole,
-      })
+      }),
     );
   }
 

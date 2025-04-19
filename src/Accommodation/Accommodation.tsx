@@ -17,13 +17,13 @@ export function Accommodation({
   accommodation,
   tripViewMode,
   displayTimeMode,
-  style
+  style,
 }: {
   className?: string;
   accommodation: DbAccommodationWithTrip;
   tripViewMode: TripViewMode;
   displayTimeMode?: AccommodationDisplayTimeMode;
-  style?: React.CSSProperties
+  style?: React.CSSProperties;
 }) {
   const responsiveTextSize = { initial: '1' as const };
 
@@ -55,12 +55,13 @@ export function Accommodation({
               displayTimeMode === AccommodationDisplayTimeMode.CheckOut) ? (
               <>
                 <Text as="div" size={responsiveTextSize} color="gray">
-                  <ClockIcon style={{ verticalAlign: '-2px' }} /> {displayTimeMode}:{' '}
+                  <ClockIcon style={{ verticalAlign: '-2px' }} />{' '}
+                  {displayTimeMode}:{' '}
                   {formatTime(
                     displayTimeMode === AccommodationDisplayTimeMode.CheckIn
                       ? accommodation.timestampCheckIn
                       : accommodation.timestampCheckOut,
-                    accommodation.trip.timeZone
+                    accommodation.trip.timeZone,
                   )}
                 </Text>
               </>
