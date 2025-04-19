@@ -99,7 +99,7 @@ export default function Privacy() {
             <strong>Website</strong> refers to Ikuyo, accessible from{' '}
             <a
               href="https://ikuyo.kenrick95.org"
-              rel="external nofollow noopener"
+              rel="noreferrer external nofollow noopener"
               target="_blank"
             >
               https://ikuyo.kenrick95.org
@@ -263,11 +263,12 @@ export default function Privacy() {
         </li>
         <li>
           <p>
-            <strong>To contact You:</strong> To contact You by email, or other equivalent forms of electronic communication,
-            such as a mobile application's push notifications regarding updates
-            or informative communications related to the functionalities,
-            products or contracted services, including the security updates,
-            when necessary or reasonable for their implementation.
+            <strong>To contact You:</strong> To contact You by email, or other
+            equivalent forms of electronic communication, such as a mobile
+            application's push notifications regarding updates or informative
+            communications related to the functionalities, products or
+            contracted services, including the security updates, when necessary
+            or reasonable for their implementation.
           </p>
         </li>
         <li>
@@ -489,7 +490,7 @@ export default function Privacy() {
             By visiting this page on our website:{' '}
             <a
               href="https://ikuyo.kenrick95.org/"
-              rel="external nofollow noopener"
+              rel="noreferrer external nofollow noopener"
               target="_blank"
             >
               https://ikuyo.kenrick95.org/

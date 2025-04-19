@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { createToastSlice, ToastSlice } from '../Toast/hooks';
+import { type ToastSlice, createToastSlice } from '../Toast/hooks';
 
 export type BoundStoreType = ToastSlice;
 

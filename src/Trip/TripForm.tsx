@@ -1,13 +1,13 @@
-import { Flex, Text, TextField, Button, Select } from '@radix-ui/themes';
-import { useId, useCallback, useState, useMemo } from 'react';
-import { useBoundStore } from '../data/store';
-import { TripFormMode } from './TripFormMode';
-import { getDateTimeFromDateInput } from './time';
+import { Button, Flex, Select, Text, TextField } from '@radix-ui/themes';
+import { useCallback, useId, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
+import type { DbActivity } from '../Activity/db';
+import { useBoundStore } from '../data/store';
 import { ROUTES } from '../routes';
-import { DbActivity } from '../Activity/db';
-import { dbUpdateTrip, dbAddTrip } from './db';
 import { dangerToken } from '../ui';
+import { TripFormMode } from './TripFormMode';
+import { dbAddTrip, dbUpdateTrip } from './db';
+import { getDateTimeFromDateInput } from './time';
 
 export function TripForm({
   mode,
@@ -66,11 +66,11 @@ export function TripForm({
 
       const dateStartDateTime = getDateTimeFromDateInput(
         dateStartStr,
-        timeZone
+        timeZone,
       );
       const dateEndDateTime = getDateTimeFromDateInput(
         dateEndStr,
-        timeZone
+        timeZone,
       ).plus({ day: 1 });
       console.log('TripForm', {
         mode,
@@ -96,7 +96,7 @@ export function TripForm({
         return;
       }
       if (dateEndDateTime.diff(dateStartDateTime).as('minute') < 0) {
-        setErrorMessage(`End date must be after start date`);
+        setErrorMessage('End date must be after start date');
         return;
       }
       if (mode === TripFormMode.Edit && tripId) {
@@ -113,7 +113,7 @@ export function TripForm({
           {
             activities,
             previousTimeZone: tripTimeZone,
-          }
+          },
         );
         publishToast({
           root: {},
@@ -134,7 +134,7 @@ export function TripForm({
           },
           {
             userId,
-          }
+          },
         );
         console.log('!dbAddTrip', newId, result);
 
@@ -279,7 +279,7 @@ export function TripForm({
           <Text weight="light" size="1">
             This will be used as the default currency in expenses.
             {mode === TripFormMode.Edit
-              ? ` Editing this value will not change existing expenses `
+              ? ' Editing this value will not change existing expenses '
               : null}
           </Text>
         </Text>
@@ -294,7 +294,7 @@ export function TripForm({
           <Text weight="light" size="1">
             This will be used as the default origin's currency in expenses.
             {mode === TripFormMode.Edit
-              ? ` Editing this value will not change existing expenses `
+              ? ' Editing this value will not change existing expenses '
               : null}
           </Text>
         </Text>

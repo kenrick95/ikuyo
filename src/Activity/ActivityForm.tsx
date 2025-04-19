@@ -1,11 +1,11 @@
-import { Flex, Text, TextField, TextArea, Button } from '@radix-ui/themes';
-import { useId, useCallback, useState } from 'react';
+import { Button, Flex, Text, TextArea, TextField } from '@radix-ui/themes';
+import { useCallback, useId, useState } from 'react';
 import { useBoundStore } from '../data/store';
-import { ActivityFormMode } from './ActivityFormMode';
-import { getDateTimeFromDatetimeLocalInput } from './time';
-import { setNewActivityTimestamp } from './activitiyStorage';
-import { dbUpdateActivity, dbAddActivity } from './db';
 import { dangerToken } from '../ui';
+import { ActivityFormMode } from './ActivityFormMode';
+import { setNewActivityTimestamp } from './activitiyStorage';
+import { dbAddActivity, dbUpdateActivity } from './db';
+import { getDateTimeFromDatetimeLocalInput } from './time';
 
 export function ActivityForm({
   mode,
@@ -64,11 +64,11 @@ export function ActivityForm({
       const timeEndString = (formData.get('endTime') as string | null) ?? '';
       const timeStartDate = getDateTimeFromDatetimeLocalInput(
         timeStartString,
-        tripTimeZone
+        tripTimeZone,
       );
       const timeEndDate = getDateTimeFromDatetimeLocalInput(
         timeEndString,
-        tripTimeZone
+        tripTimeZone,
       );
       console.log('ActivityForm', {
         mode,
@@ -87,11 +87,11 @@ export function ActivityForm({
         return;
       }
       if (timeEndDate.diff(timeStartDate).as('minute') < 0) {
-        setErrorMessage(`End time must be after start time`);
+        setErrorMessage('End time must be after start time');
         return;
       }
       if (!timeEndDate.hasSame(timeStartDate, 'day')) {
-        setErrorMessage(`Activity must occur on same day`);
+        setErrorMessage('Activity must occur on same day');
         return;
       }
       if (mode === ActivityFormMode.Edit && activityId) {
@@ -123,7 +123,7 @@ export function ActivityForm({
           },
           {
             tripId: tripId,
-          }
+          },
         );
         publishToast({
           root: {},

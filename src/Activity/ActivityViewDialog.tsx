@@ -1,12 +1,12 @@
-import { Dialog, Flex, Text, Heading, Button } from '@radix-ui/themes';
+import { Button, Dialog, Flex, Heading, Text } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 
 import createUrlRegExp from 'url-regex-safe';
 
-import s from './Activity.module.css';
 import { useMemo } from 'react';
 import { CommonDialogMaxWidth } from '../dialog';
-import { DbActivityWithTrip } from './db';
+import s from './Activity.module.css';
+import type { DbActivityWithTrip } from './db';
 export function ActivityViewDialog({
   activity,
   dialogOpen,
@@ -51,7 +51,7 @@ export function ActivityViewDialog({
           parts.push(
             <a href={url} target="_blank" rel="noopener noreferrer">
               {url}
-            </a>
+            </a>,
           );
         }
         i = match.index + url.length;

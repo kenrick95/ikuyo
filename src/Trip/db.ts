@@ -1,10 +1,13 @@
-import { id, TransactionChunk, lookup } from '@instantdb/core';
+import { type TransactionChunk, id, lookup } from '@instantdb/core';
 import { DateTime } from 'luxon';
-import { DbActivityWithTrip, DbActivity } from '../Activity/db';
-import { db } from '../data/db';
+import type {
+  DbAccommodation,
+  DbAccommodationWithTrip,
+} from '../Accommodation/db';
+import type { DbActivity, DbActivityWithTrip } from '../Activity/db';
 import { TripUserRole } from '../data/TripUserRole';
-import { DbUser } from '../data/types';
-import { DbAccommodation, DbAccommodationWithTrip } from '../Accommodation/db';
+import { db } from '../data/db';
+import type { DbUser } from '../data/types';
 
 export type DbTripWithActivityAccommodation = Omit<
   DbTrip,
@@ -64,7 +67,7 @@ export async function dbAddTrip(
     userId,
   }: {
     userId: string;
-  }
+  },
 ) {
   const newTripId = id();
   const newTripUserId = id();
@@ -100,12 +103,12 @@ export async function dbUpdateTrip(
   }: {
     previousTimeZone: string;
     activities?: DbActivity[];
-  }
+  },
 ) {
   const tripId = trip.id;
 
   const transactionTimestamp = Date.now();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: The type should be generic
   const transactions: TransactionChunk<any, any>[] = [
     db.tx.trip[tripId].merge({
       ...trip,
@@ -133,7 +136,7 @@ export async function dbUpdateTrip(
             })
             .toMillis(),
           lastUpdatedAt: transactionTimestamp,
-        })
+        }),
       );
     }
   }
@@ -144,7 +147,7 @@ export async function dbDeleteTrip(trip: DbTripWithActivityAccommodation) {
   return db.transact([
     ...trip.activity.map((activity) => db.tx.activity[activity.id].delete()),
     ...trip.accommodation.map((accommodation) =>
-      db.tx.accommodation[accommodation.id].delete()
+      db.tx.accommodation[accommodation.id].delete(),
     ),
     db.tx.trip[trip.id].delete(),
   ]);
@@ -160,7 +163,7 @@ export async function dbAddUserToTrip({
   userRole: TripUserRole;
 }) {
   const lastUpdatedAt = Date.now();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: The type should be generic
   const transactions: TransactionChunk<any, any>[] = [];
 
   const { data: userData } = await db.queryOnce({
@@ -188,7 +191,7 @@ export async function dbAddUserToTrip({
         activated: false,
         createdAt: lastUpdatedAt,
         lastUpdatedAt: lastUpdatedAt,
-      })
+      }),
     );
   }
 
@@ -221,7 +224,7 @@ export async function dbAddUserToTrip({
         .link({
           trip: tripId,
           user: userId,
-        })
+        }),
     );
   } else {
     // Existing TripUser entity, just update the "row" column
@@ -229,7 +232,7 @@ export async function dbAddUserToTrip({
       db.tx.tripUser[tripUserId].update({
         lastUpdatedAt: lastUpdatedAt,
         role: userRole,
-      })
+      }),
     );
   }
 
@@ -246,7 +249,7 @@ export async function dbUpdateUserFromTrip({
   userRole: TripUserRole;
 }) {
   const lastUpdatedAt = Date.now();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: The type should be generic
   const transactions: TransactionChunk<any, any>[] = [];
 
   const { data: tripUserData } = await db.queryOnce({
@@ -278,7 +281,7 @@ export async function dbUpdateUserFromTrip({
         .link({
           trip: tripId,
           user: lookup('email', userEmail),
-        })
+        }),
     );
   } else {
     // Existing TripUser entity, just update the "row" column
@@ -286,7 +289,7 @@ export async function dbUpdateUserFromTrip({
       db.tx.tripUser[tripUserId].update({
         lastUpdatedAt: lastUpdatedAt,
         role: userRole,
-      })
+      }),
     );
   }
 

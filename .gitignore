@@ -1,28 +1,16 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
+# Local
+.DS_Store
 *.local
-*.tsbuildinfo
-.keys/
+*.log*
 
-# Editor directories and files
+# Dist
+node_modules
+dist/
+
+# IDE
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
 
+.keys/
 .env

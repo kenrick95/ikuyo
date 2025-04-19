@@ -1,11 +1,11 @@
-import { AlertDialog, Flex, Button, Text } from '@radix-ui/themes';
+import { AlertDialog, Button, Flex, Text } from '@radix-ui/themes';
 import { useCallback } from 'react';
-import { useBoundStore } from '../data/store';
-import { ROUTES } from '../routes';
 import { useLocation } from 'wouter';
+import { useBoundStore } from '../data/store';
 import { CommonDialogMaxWidth } from '../dialog';
-import { dbDeleteTrip, DbTripWithActivityAccommodation } from './db';
+import { ROUTES } from '../routes';
 import { dangerToken } from '../ui';
+import { type DbTripWithActivityAccommodation, dbDeleteTrip } from './db';
 
 export function TripDeleteDialog({
   trip,

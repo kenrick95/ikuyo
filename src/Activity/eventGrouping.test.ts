@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'vitest';
-import { groupActivitiesByDays } from './eventGrouping';
-import { DbTripWithActivityAccommodation } from '../Trip/db';
-import { DbActivityWithTrip } from './db';
-import { DbAccommodationWithTrip } from '../Accommodation/db';
 import { AccommodationDisplayTimeMode } from '../Accommodation/AccommodationDisplayTimeMode';
+import type { DbAccommodationWithTrip } from '../Accommodation/db';
+import type { DbTripWithActivityAccommodation } from '../Trip/db';
+import type { DbActivityWithTrip } from './db';
+import { groupActivitiesByDays } from './eventGrouping';
 
 describe('Trip', () => {
   const baseTrip: DbTripWithActivityAccommodation = {
@@ -19,7 +19,7 @@ describe('Trip', () => {
     tripUser: [],
   };
   function createActivity(
-    activity: Partial<DbActivityWithTrip>
+    activity: Partial<DbActivityWithTrip>,
   ): DbActivityWithTrip {
     return {
       id: 'act-1',
@@ -35,7 +35,7 @@ describe('Trip', () => {
     };
   }
   function createAccommodation(
-    accommodation: Partial<DbAccommodationWithTrip>
+    accommodation: Partial<DbAccommodationWithTrip>,
   ): DbAccommodationWithTrip {
     return {
       id: 'acc-1',
@@ -99,11 +99,11 @@ describe('Trip', () => {
     expect(result[1].activities.length).toBe(1);
     expect(result[0].accommodations.length).toBe(1);
     expect(result[0].accommodationProps.get('acc-0')?.displayTimeMode).toBe(
-      AccommodationDisplayTimeMode.CheckIn
+      AccommodationDisplayTimeMode.CheckIn,
     );
     expect(result[1].accommodations.length).toBe(1);
     expect(result[1].accommodationProps.get('acc-0')?.displayTimeMode).toBe(
-      AccommodationDisplayTimeMode.CheckOut
+      AccommodationDisplayTimeMode.CheckOut,
     );
   });
   test('Overlap = 2 on day 1', () => {
@@ -229,18 +229,18 @@ describe('Trip', () => {
     expect(result.length).toBe(3);
     expect(result[0].accommodations.length).toBe(1);
     expect(result[0].accommodationProps.get('acc-0')?.displayTimeMode).toBe(
-      AccommodationDisplayTimeMode.CheckIn
+      AccommodationDisplayTimeMode.CheckIn,
     );
     expect(result[1].accommodations.length).toBe(2);
     expect(result[1].accommodationProps.get('acc-0')?.displayTimeMode).toBe(
-      AccommodationDisplayTimeMode.CheckOut
+      AccommodationDisplayTimeMode.CheckOut,
     );
     expect(result[1].accommodationProps.get('acc-1')?.displayTimeMode).toBe(
-      AccommodationDisplayTimeMode.CheckIn
+      AccommodationDisplayTimeMode.CheckIn,
     );
     expect(result[2].accommodations.length).toBe(1);
     expect(result[2].accommodationProps.get('acc-1')?.displayTimeMode).toBe(
-      AccommodationDisplayTimeMode.CheckOut
+      AccommodationDisplayTimeMode.CheckOut,
     );
   });
 });

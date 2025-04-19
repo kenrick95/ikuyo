@@ -1,14 +1,14 @@
 import { Pencil1Icon, TrashIcon } from '@radix-ui/react-icons';
-import { Table, Text, Popover, Button, Flex } from '@radix-ui/themes';
+import { Button, Flex, Popover, Table, Text } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
-import { dbDeleteExpense, DbExpense } from './db';
-import { formatTimestampToReadableDate } from './time';
-import { DbTripWithActivityAccommodation } from '../Trip/db';
-import { useBoundStore } from '../data/store';
 import { useState } from 'react';
-import { ExpenseMode } from './ExpenseMode';
-import { ExpenseInlineForm } from './ExpenseInlineForm';
+import type { DbTripWithActivityAccommodation } from '../Trip/db';
+import { useBoundStore } from '../data/store';
 import { dangerToken } from '../ui';
+import { ExpenseInlineForm } from './ExpenseInlineForm';
+import { ExpenseMode } from './ExpenseMode';
+import { type DbExpense, dbDeleteExpense } from './db';
+import { formatTimestampToReadableDate } from './time';
 
 export function ExpenseRow({
   expense,
@@ -71,7 +71,7 @@ function ExpenseRowView({
     <>
       <Table.RowHeaderCell>
         {formatTimestampToReadableDate(
-          DateTime.fromMillis(expense.timestampIncurred)
+          DateTime.fromMillis(expense.timestampIncurred),
         )}
       </Table.RowHeaderCell>
       <Table.Cell>{expense.title}</Table.Cell>
@@ -133,7 +133,7 @@ function ExpenseRowView({
                     .catch((error: unknown) => {
                       console.error(
                         `Error deleting expense "${expense.title}"`,
-                        error
+                        error,
                       );
                       publishToast({
                         root: {},

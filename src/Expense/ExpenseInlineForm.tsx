@@ -1,12 +1,12 @@
-import { Button, Select, Table, TextField, Text } from '@radix-ui/themes';
-import { ExpenseMode } from './ExpenseMode';
-import { useState, useMemo, useCallback, useId } from 'react';
-import { dbAddExpense, DbExpense, dbUpdateExpense } from './db';
-import { formatToDateInput, getDateTimeFromDateInput } from './time';
-import { DbTripWithActivityAccommodation } from '../Trip/db';
+import { Button, Select, Table, Text, TextField } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
+import { useCallback, useId, useMemo, useState } from 'react';
+import type { DbTripWithActivityAccommodation } from '../Trip/db';
 import { useBoundStore } from '../data/store';
 import { dangerToken } from '../ui';
+import { ExpenseMode } from './ExpenseMode';
+import { type DbExpense, dbAddExpense, dbUpdateExpense } from './db';
+import { formatToDateInput, getDateTimeFromDateInput } from './time';
 export function ExpenseInlineForm({
   trip,
   expense,
@@ -24,10 +24,10 @@ export function ExpenseInlineForm({
         DateTime.fromMillis(
           expenseMode === ExpenseMode.Edit && expense
             ? expense.timestampIncurred
-            : trip.timestampStart
-        ).setZone(trip.timeZone)
+            : trip.timestampStart,
+        ).setZone(trip.timeZone),
       ),
-    [trip.timestampStart, trip.timeZone, expense, expenseMode]
+    [trip.timestampStart, trip.timeZone, expense, expenseMode],
   );
   const publishToast = useBoundStore((state) => state.publishToast);
   const idForm = useId();
@@ -56,7 +56,7 @@ export function ExpenseInlineForm({
           amount: '',
           currencyConversionFactor: '1',
           amountInOriginCurrency: '',
-        }
+        },
   );
   const [errorMessage, setErrorMessage] = useState('');
   const currencies = useMemo(() => Intl.supportedValuesOf('currency'), []);
@@ -80,7 +80,7 @@ export function ExpenseInlineForm({
         [name]: value,
       }));
     },
-    []
+    [],
   );
 
   const handleForm = useCallback(
@@ -99,13 +99,15 @@ export function ExpenseInlineForm({
 
       const dateTimestampIncurred = getDateTimeFromDateInput(
         timestampIncurred,
-        trip.timeZone
+        trip.timeZone,
       );
-      const amountFloat = parseFloat(amount);
-      const currencyConversionFactorFloat = parseFloat(
-        currencyConversionFactor
+      const amountFloat = Number.parseFloat(amount);
+      const currencyConversionFactorFloat = Number.parseFloat(
+        currencyConversionFactor,
       );
-      const amountInOriginCurrencyFloat = parseFloat(amountInOriginCurrency);
+      const amountInOriginCurrencyFloat = Number.parseFloat(
+        amountInOriginCurrency,
+      );
 
       console.log({
         timestampIncurred,
@@ -122,7 +124,7 @@ export function ExpenseInlineForm({
         !title ||
         !description ||
         !currency ||
-        isNaN(amountFloat)
+        Number.isNaN(amountFloat)
       ) {
         setErrorMessage('Please fill in all required fields.');
         return;
@@ -167,7 +169,7 @@ export function ExpenseInlineForm({
             amountInOriginCurrency: amountInOriginCurrencyFloat,
             timestampIncurred: dateTimestampIncurred.toMillis(),
           },
-          { tripId: trip.id }
+          { tripId: trip.id },
         )
           .then(() => {
             publishToast({
@@ -196,7 +198,7 @@ export function ExpenseInlineForm({
       expense,
       publishToast,
       resetFormState,
-    ]
+    ],
   );
 
   const handleCurrencyChange = useCallback((value: string) => {
@@ -214,7 +216,7 @@ export function ExpenseInlineForm({
         form={idForm}
       />
     ),
-    [formState.timestampIncurred, handleInputChange, idForm]
+    [formState.timestampIncurred, handleInputChange, idForm],
   );
   const fieldSelectCurrency = useMemo(() => {
     return (
@@ -244,11 +246,11 @@ export function ExpenseInlineForm({
       formState.currencyConversionFactor &&
       formState.amountInOriginCurrency
     ) {
-      const amountInOriginCurrencyFloat = parseFloat(
-        formState.amountInOriginCurrency
+      const amountInOriginCurrencyFloat = Number.parseFloat(
+        formState.amountInOriginCurrency,
       );
-      const currencyConversionFactorFloat = parseFloat(
-        formState.currencyConversionFactor
+      const currencyConversionFactorFloat = Number.parseFloat(
+        formState.currencyConversionFactor,
       );
       setFormState((prev) => ({
         ...prev,
@@ -269,9 +271,9 @@ export function ExpenseInlineForm({
       !formState.currencyConversionFactor &&
       formState.amountInOriginCurrency
     ) {
-      const amountFloat = parseFloat(formState.amount);
-      const amountInOriginCurrencyFloat = parseFloat(
-        formState.amountInOriginCurrency
+      const amountFloat = Number.parseFloat(formState.amount);
+      const amountInOriginCurrencyFloat = Number.parseFloat(
+        formState.amountInOriginCurrency,
       );
       setFormState((prev) => ({
         ...prev,
@@ -292,9 +294,9 @@ export function ExpenseInlineForm({
       formState.currencyConversionFactor &&
       !formState.amountInOriginCurrency
     ) {
-      const amountFloat = parseFloat(formState.amount);
-      const currencyConversionFactorFloat = parseFloat(
-        formState.currencyConversionFactor
+      const amountFloat = Number.parseFloat(formState.amount);
+      const currencyConversionFactorFloat = Number.parseFloat(
+        formState.currencyConversionFactor,
       );
       setFormState((prev) => ({
         ...prev,

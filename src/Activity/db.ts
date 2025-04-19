@@ -1,6 +1,6 @@
 import { id } from '@instantdb/core';
+import type { DbTrip, DbTripWithActivity } from '../Trip/db';
 import { db } from '../data/db';
-import { DbTripWithActivity, DbTrip } from '../Trip/db';
 
 export type DbActivityWithTrip = Omit<DbActivity, 'trip'> & {
   trip: DbTripWithActivity;
@@ -26,7 +26,7 @@ export async function dbAddActivity(
     tripId,
   }: {
     tripId: string;
-  }
+  },
 ) {
   return db.transact(
     db.tx.activity[id()]
@@ -37,19 +37,19 @@ export async function dbAddActivity(
       })
       .link({
         trip: tripId,
-      })
+      }),
   );
 }
 export async function dbDeleteActivity(activity: DbActivity) {
   return db.transact(db.tx.activity[activity.id].delete());
 }
 export async function dbUpdateActivity(
-  activity: Omit<DbActivity, 'createdAt' | 'lastUpdatedAt' | 'trip'>
+  activity: Omit<DbActivity, 'createdAt' | 'lastUpdatedAt' | 'trip'>,
 ) {
   return db.transact(
     db.tx.activity[activity.id].merge({
       ...activity,
       lastUpdatedAt: Date.now(),
-    })
+    }),
   );
 }

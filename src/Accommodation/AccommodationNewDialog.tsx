@@ -1,11 +1,11 @@
-import { Dialog, Box } from '@radix-ui/themes';
+import { Box, Dialog } from '@radix-ui/themes';
+import { DateTime } from 'luxon';
+import { useMemo } from 'react';
+import type { DbTrip } from '../Trip/db';
 import { CommonDialogMaxWidth } from '../dialog';
-import { DbTrip } from '../Trip/db';
 import { AccommodationForm } from './AccommodationForm';
 import { AccommodationFormMode } from './AccommodationFormMode';
 import { formatToDatetimeLocalInput } from './time';
-import { DateTime } from 'luxon';
-import { useMemo } from 'react';
 
 export function AccommodationNewDialog({
   trip,
@@ -17,12 +17,12 @@ export function AccommodationNewDialog({
   setDialogOpen: (newValue: boolean) => void;
 }) {
   const tripStartStr = formatToDatetimeLocalInput(
-    DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone)
+    DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone),
   );
   const tripEndStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(trip.timestampEnd)
       .setZone(trip.timeZone)
-      .minus({ minute: 1 })
+      .minus({ minute: 1 }),
   );
 
   const [accommodationCheckInStr, accommodationCheckOutStr] = useMemo(() => {
@@ -31,7 +31,7 @@ export function AccommodationNewDialog({
         DateTime.fromMillis(trip.timestampStart)
           .setZone(trip.timeZone)
           // Usually check-in is 3pm of the first day
-          .plus({ hour: 15 })
+          .plus({ hour: 15 }),
       ),
       formatToDatetimeLocalInput(
         DateTime.fromMillis(trip.timestampEnd)
@@ -40,7 +40,7 @@ export function AccommodationNewDialog({
             day: 1,
           })
           // Usually check-out is 11am of the last day
-          .plus({ hour: 11 })
+          .plus({ hour: 11 }),
       ),
     ];
   }, [trip]);

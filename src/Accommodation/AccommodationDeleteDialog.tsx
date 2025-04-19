@@ -1,9 +1,9 @@
-import { AlertDialog, Flex, Button } from '@radix-ui/themes';
+import { AlertDialog, Button, Flex } from '@radix-ui/themes';
 import { useCallback } from 'react';
 import { useBoundStore } from '../data/store';
 import { CommonDialogMaxWidth } from '../dialog';
-import { DbAccommodationWithTrip, dbDeleteAccommodation } from './db';
 import { dangerToken } from '../ui';
+import { type DbAccommodationWithTrip, dbDeleteAccommodation } from './db';
 
 export function AccommodationDeleteDialog({
   accommodation,

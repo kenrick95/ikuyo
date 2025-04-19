@@ -1,11 +1,11 @@
 import { Flex, Heading } from '@radix-ui/themes';
-import { Activity } from '../Activity/Activity';
-import s from './ActivityList.module.css';
-import { groupActivitiesByDays } from '../Activity/eventGrouping';
 import { useMemo } from 'react';
-import { TripViewMode } from '../Trip/TripViewMode';
-import { DbTripWithActivityAccommodation } from '../Trip/db';
 import { Accommodation } from '../Accommodation/Accommodation';
+import { Activity } from '../Activity/Activity';
+import { groupActivitiesByDays } from '../Activity/eventGrouping';
+import { TripViewMode } from '../Trip/TripViewMode';
+import type { DbTripWithActivityAccommodation } from '../Trip/db';
+import s from './ActivityList.module.css';
 
 export function ActivityList({
   trip,
@@ -24,7 +24,7 @@ export function ActivityList({
             size="4"
             className={s.listSubheader}
           >
-            {dayGroup.startDateTime.toFormat(`cccc, dd LLLL yyyy`)}
+            {dayGroup.startDateTime.toFormat('cccc, dd LLLL yyyy')}
           </Heading>,
           ...Object.values(dayGroup.accommodations).map((accommodation, i) => {
             const props = dayGroup.accommodationProps.get(accommodation.id);
@@ -40,7 +40,7 @@ export function ActivityList({
           }),
           ...Object.values(dayGroup.activities).map((activity) => {
             const columnIndex = dayGroup.activityColumnIndexMap.get(
-              activity.id
+              activity.id,
             );
             return (
               <Activity

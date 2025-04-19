@@ -1,23 +1,23 @@
-import clsx from 'clsx';
-import style from './Activity.module.css';
-import { useMemo, useState } from 'react';
 import {
   ClockIcon,
   InfoCircledIcon,
   SewingPinIcon,
 } from '@radix-ui/react-icons';
+import clsx from 'clsx';
+import { useMemo, useState } from 'react';
+import style from './Activity.module.css';
 
-import { Text, Box, ContextMenu } from '@radix-ui/themes';
-import { formatTime } from './time';
+import { Box, ContextMenu, Text } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
+import { formatTime } from './time';
 
 import { TripViewMode } from '../Trip/TripViewMode';
 
-import { ActivityViewDialog } from './ActivityViewDialog';
+import { dangerToken } from '../ui';
 import { ActivityDeleteDialog } from './ActivityDeleteDialog';
 import { ActivityEditDialog } from './ActivityEditDialog';
-import { DbActivityWithTrip } from './db';
-import { dangerToken } from '../ui';
+import { ActivityViewDialog } from './ActivityViewDialog';
+import type { DbActivityWithTrip } from './db';
 
 export function Activity({
   activity,
@@ -51,12 +51,13 @@ export function Activity({
           <Box
             p={{ initial: '1' }}
             as="div"
+            // biome-ignore lint/a11y/useSemanticElements: <Box> need to be a <div>
             role="button"
             tabIndex={0}
             className={clsx(
               style.activity,
               isActivityOngoing ? style.activityOngoing : '',
-              className
+              className,
             )}
             onClick={() => {
               setViewDialogOpen(true);
@@ -160,13 +161,13 @@ export function Activity({
 
 function getDayStartEnd(activity: DbActivityWithTrip): [number, number] {
   const tripStart = DateTime.fromMillis(activity.trip.timestampStart).setZone(
-    activity.trip.timeZone
+    activity.trip.timeZone,
   );
   const activityStart = DateTime.fromMillis(activity.timestampStart).setZone(
-    activity.trip.timeZone
+    activity.trip.timeZone,
   );
   const activityEnd = DateTime.fromMillis(activity.timestampEnd).setZone(
-    activity.trip.timeZone
+    activity.trip.timeZone,
   );
   const diffStart = activityStart.diff(tripStart, 'day');
   const diffEnd = activityEnd.diff(tripStart, 'day');
