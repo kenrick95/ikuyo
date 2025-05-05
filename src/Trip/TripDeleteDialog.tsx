@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { CommonDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
-import { ROUTES } from '../routes';
+import { ROUTES } from '../Routes/routes';
 import { dangerToken } from '../ui';
 import { type DbTripFull, dbDeleteTrip } from './db';
 

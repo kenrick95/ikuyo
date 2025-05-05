@@ -62,13 +62,6 @@ export async function dbUpdateAccommodation(
   );
 }
 
-export async function dbDeleteAccommodation(
-  accommodation: DbAccommodationWithTrip,
-) {
-  return db.transact([
-    db.tx.trip[accommodation.trip.id].unlink({
-      accommodation: [accommodation.id],
-    }),
-    db.tx.accommodation[accommodation.id].delete(),
-  ]);
+export async function dbDeleteAccommodation(accommodation: DbAccommodation) {
+  return db.transact([db.tx.accommodation[accommodation.id].delete()]);
 }

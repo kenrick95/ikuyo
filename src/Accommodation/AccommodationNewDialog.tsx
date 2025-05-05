@@ -1,19 +1,25 @@
 import { Box, Dialog } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useLocation } from 'wouter';
 import { CommonDialogMaxWidth } from '../Dialog/ui';
 import type { DbTrip } from '../Trip/db';
-import { useBoundStore } from '../data/store';
+import { ROUTES, ROUTES_TRIP, asRootRoute } from '../Routes/routes';
 import { AccommodationForm } from './AccommodationForm';
 import { AccommodationFormMode } from './AccommodationFormMode';
 import { formatToDatetimeLocalInput } from './time';
+import { useBoundStore } from '../data/store';
+import { popElseNavigate } from '../Routes/nav';
 
 export function AccommodationNewDialog({
   trip,
 }: {
   trip: DbTrip;
 }) {
-  const popDialog = useBoundStore((state) => state.popDialog);
+  const [location, setLocation] = useLocation();
+  const getPopCountFromRouteHistory = useBoundStore(
+    (state) => state.getPopCountFromRouteHistory,
+  );
   const tripStartStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone),
   );
@@ -43,15 +49,22 @@ export function AccommodationNewDialog({
     ];
   }, [trip]);
 
+  const popDialogRoute = useCallback(() => {
+    popElseNavigate({
+      setLocation,
+      getPopCountFromRouteHistory,
+      newLocation: location.includes(ROUTES_TRIP.ListView)
+        ? asRootRoute(ROUTES.Trip.asRoute(trip.id) + ROUTES_TRIP.ListView)
+        : location.includes(ROUTES_TRIP.TimetableView)
+          ? asRootRoute(
+              ROUTES.Trip.asRoute(trip.id) + ROUTES_TRIP.TimetableView,
+            )
+          : asRootRoute(ROUTES.Trip.asRoute(trip.id)),
+    });
+  }, [location, setLocation, getPopCountFromRouteHistory, trip.id]);
+
   return (
-    <Dialog.Root
-      defaultOpen
-      onOpenChange={(open) => {
-        if (!open) {
-          popDialog();
-        }
-      }}
-    >
+    <Dialog.Root defaultOpen open>
       <Dialog.Content maxWidth={CommonDialogMaxWidth}>
         <Dialog.Title>New Accommodation</Dialog.Title>
         <Dialog.Description>
@@ -70,6 +83,8 @@ export function AccommodationNewDialog({
           accommodationCheckOutStr={accommodationCheckOutStr}
           accommodationPhoneNumber=""
           accommodationNotes=""
+          closeDialogFromCancel={popDialogRoute}
+          closeDialogFromSuccess={popDialogRoute}
         />
       </Dialog.Content>
     </Dialog.Root>

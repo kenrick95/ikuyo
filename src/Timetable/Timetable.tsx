@@ -7,7 +7,10 @@ import { ContextMenu, Section, Text } from '@radix-ui/themes';
 
 import { ClockIcon, HomeIcon, StackIcon } from '@radix-ui/react-icons';
 import { useMemo, useRef } from 'react';
+import { Route, Switch, useLocation } from 'wouter';
 import { Accommodation } from '../Accommodation/Accommodation';
+import { AccommodationDeleteDialog } from '../Accommodation/AccommodationDeleteDialog';
+import { AccommodationEditDialog } from '../Accommodation/AccommodationEditDialog';
 import { AccommodationNewDialog } from '../Accommodation/AccommodationNewDialog';
 import { ActivityNewDialog } from '../Activity/ActivityNewDialog';
 import {
@@ -20,6 +23,12 @@ import { TripViewMode } from '../Trip/TripViewMode';
 import type { DbTripFull } from '../Trip/db';
 import { useBoundStore } from '../data/store';
 import {
+  asRootRoute,
+  ROUTES,
+  ROUTES_TRIP,
+  ROUTES_TRIP_DIALOGS,
+} from '../Routes/routes';
+import {
   generateAccommodationGridTemplateColumns,
   getAccommodationIndexes,
 } from './accommodation';
@@ -28,6 +37,7 @@ import {
   getMacroplanIndexes,
 } from './macroplan';
 import { pad2 } from './time';
+import { AccommodationViewDialog } from '../Accommodation/AccommodationViewDialog';
 
 const times = new Array(24).fill(0).map((_, i) => {
   return (
@@ -67,6 +77,7 @@ export function Timetable({
   }, [dayGroups]);
   const timetableRef = useRef<HTMLDivElement>(null);
   const pushDialog = useBoundStore((state) => state.pushDialog);
+  const [, setLocation] = useLocation();
 
   return (
     <Section py="0">
@@ -204,7 +215,13 @@ export function Timetable({
           <ContextMenu.Item
             onClick={() => {
               if (trip) {
-                pushDialog(AccommodationNewDialog, { trip });
+                setLocation(
+                  asRootRoute(
+                    ROUTES.Trip.asRoute(trip.id) +
+                      ROUTES_TRIP.TimetableView +
+                      ROUTES_TRIP_DIALOGS.AccommodationNew,
+                  ),
+                );
               }
             }}
           >
@@ -222,6 +239,24 @@ export function Timetable({
           </ContextMenu.Item>
         </ContextMenu.Content>
       </ContextMenu.Root>
+
+      <Switch>
+        <Route path={ROUTES_TRIP_DIALOGS.AccommodationNew}>
+          <AccommodationNewDialog trip={trip} />
+        </Route>
+        <Route
+          path={ROUTES_TRIP_DIALOGS.AccommodationDelete}
+          component={AccommodationDeleteDialog}
+        />
+        <Route
+          path={ROUTES_TRIP_DIALOGS.AccommodationEdit}
+          component={AccommodationEditDialog}
+        />
+        <Route
+          path={ROUTES_TRIP_DIALOGS.Accommodation}
+          component={AccommodationViewDialog}
+        />
+      </Switch>
     </Section>
   );
 }

@@ -32,7 +32,7 @@ const ActivityList = withLoading()(
 import { DoubleArrowRightIcon } from '@radix-ui/react-icons';
 import { ExpenseList } from '../Expense/ExpenseList';
 import { TripUserRole } from '../data/TripUserRole';
-import { ROUTES_TRIP } from '../routes';
+import { ROUTES_TRIP } from '../Routes/routes';
 import { TripMenuFloating } from './TripMenuFloating';
 import type { DbTrip, DbTripFull } from './db';
 
@@ -146,10 +146,12 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
             <Route
               path={ROUTES_TRIP.TimetableView}
               component={() => <Timetable trip={trip} />}
+              nest
             />
             <Route
               path={ROUTES_TRIP.ListView}
               component={() => <ActivityList trip={trip} />}
+              nest
             />
             <Route
               path={ROUTES_TRIP.Expenses}

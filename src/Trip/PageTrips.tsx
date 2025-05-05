@@ -15,7 +15,7 @@ import { useAuthUser } from '../Auth/hooks';
 import { Navbar } from '../Nav/Navbar';
 import { db } from '../data/db';
 import type { DbUser } from '../data/types';
-import { ROUTES } from '../routes';
+import { ROUTES } from '../Routes/routes';
 import s from './PageTrips.module.css';
 import { TripGroup } from './TripGroup';
 import { formatTimestampToReadableDate } from './time';
@@ -172,7 +172,7 @@ function PastTrips({ user, now }: { user: DbUser | undefined; now: number }) {
                     return (
                       <li className={s.tripLi} key={trip.id}>
                         <Card asChild>
-                          <Link to={ROUTES.Trip.replace(':id', trip.id)}>
+                          <Link to={ROUTES.Trip.asRoute(trip.id)}>
                             <Text as="div" weight="bold">
                               {trip.title}
                             </Text>
@@ -251,7 +251,7 @@ function Trips({
                 return (
                   <li className={s.tripLi} key={trip.id}>
                     <Card asChild>
-                      <Link to={ROUTES.Trip.replace(':id', trip.id)}>
+                      <Link to={ROUTES.Trip.asRoute(trip.id)}>
                         <Text as="div" weight="bold">
                           {trip.title}
                         </Text>

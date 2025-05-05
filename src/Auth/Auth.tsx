@@ -12,7 +12,7 @@ import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { Link, type RouteComponentProps, useLocation } from 'wouter';
 import { db, dbUpsertUser } from '../data/db';
 import { useBoundStore } from '../data/store';
-import { ROUTES, asRootRoute } from '../routes';
+import { ROUTES, asRootRoute } from '../Routes/routes';
 import s from './Auth.module.css';
 
 import { ArrowLeftIcon } from '@radix-ui/react-icons';

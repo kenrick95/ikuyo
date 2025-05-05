@@ -6,6 +6,7 @@ import type {
   ToastTitleProps,
 } from '@radix-ui/react-toast';
 import type { StateCreator } from 'zustand';
+import type { BoundStoreType } from '../data/store';
 
 export type ToastConfig = {
   root: Omit<ToastProps, 'children'>;
@@ -21,9 +22,12 @@ export interface ToastSlice {
   resetToast: () => void;
 }
 
-export const createToastSlice: StateCreator<ToastSlice, [], [], ToastSlice> = (
-  set,
-) => {
+export const createToastSlice: StateCreator<
+  BoundStoreType,
+  [],
+  [],
+  ToastSlice
+> = (set) => {
   return {
     toasts: [],
     publishToast: (newToast: ToastConfig) => {

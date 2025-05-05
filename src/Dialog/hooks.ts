@@ -1,5 +1,6 @@
 import type * as React from 'react';
 import type { StateCreator } from 'zustand';
+import type { BoundStoreType } from '../data/store';
 
 // Manage the stack of dialogs in the application
 export interface DialogSlice {
@@ -20,7 +21,7 @@ export interface DialogSlice {
 }
 
 export const createDialogSlice: StateCreator<
-  DialogSlice,
+  BoundStoreType,
   [],
   [],
   DialogSlice

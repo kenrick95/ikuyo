@@ -2,9 +2,9 @@ import { useEffect } from 'react';
 import { useLocation } from 'wouter';
 import type { StateCreator } from 'zustand';
 import { db } from '../data/db';
-import { useBoundStore } from '../data/store';
+import { useBoundStore, type BoundStoreType } from '../data/store';
 import type { DbUser } from '../data/types';
-import { ROUTES, asRootRoute } from '../routes';
+import { ROUTES, asRootRoute } from '../Routes/routes';
 
 export function useAuthUser() {
   const setCurrentUser = useBoundStore((state) => state.setCurrentUser);
@@ -46,9 +46,12 @@ export interface UserSlice {
   setCurrentUser: (user: DbUser | undefined) => void;
 }
 
-export const createUserSlice: StateCreator<UserSlice, [], [], UserSlice> = (
-  set,
-) => {
+export const createUserSlice: StateCreator<
+  BoundStoreType,
+  [],
+  [],
+  UserSlice
+> = (set) => {
   return {
     currentUser: undefined,
     setCurrentUser: (user) => {

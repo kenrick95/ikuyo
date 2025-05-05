@@ -8,7 +8,7 @@ import { MacroplanNewDialog } from '../Macroplan/MacroplanNewDialog';
 import { db } from '../data/db';
 import { useBoundStore } from '../data/store';
 import type { DbUser } from '../data/types';
-import { ROUTES, asRootRoute } from '../routes';
+import { ROUTES, asRootRoute } from '../Routes/routes';
 import { TripDeleteDialog } from './TripDeleteDialog';
 import { TripEditDialog } from './TripEditDialog';
 import s from './TripMenu.module.css';

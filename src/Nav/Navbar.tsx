@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import type React from 'react';
 import { Link } from 'wouter';
 import imgUrl from '../logo/ikuyo.svg';
-import { ROUTES } from '../routes';
+import { ROUTES } from '../Routes/routes';
 import s from './Navbar.module.css';
 
 export function Navbar({

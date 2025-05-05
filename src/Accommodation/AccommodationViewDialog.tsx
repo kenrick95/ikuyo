@@ -10,24 +10,37 @@ import { AccommodationEditDialog } from './AccommodationEditDialog';
 import type { DbAccommodationWithTrip } from './db';
 
 export function AccommodationViewDialog({
-  accommodation,
-}: {
-  accommodation: DbAccommodationWithTrip;
-}) {
-  const popDialog = useBoundStore((state) => state.popDialog);
-  const pushDialog = useBoundStore((state) => state.pushDialog);
-  const accommodationCheckInStr = DateTime.fromMillis(
+  params,
+}: RouteComponentProps<{ id: string }>) {
+  const { id: accommodationId } = params;
+  const [location, setLocation] = useLocation();
+  const { isLoading, data } = db.useQuery({
+    accommodation: {
+      trip: {},
+      $: {
+        where: {
+          id: accommodationId,
+        },
+      },
+    },
+  });
+  const accommodation = data?.accommodation[0] as
+    | DbAccommodationWithTrip
+    | undefined;
+
+     
+  const accommodationCheckInStr =accommodation ? DateTime.fromMillis(
     accommodation.timestampCheckIn,
   )
     .setZone(accommodation.trip.timeZone)
-    .toFormat('dd LLLL yyyy HH:mm');
-  const accommodationCheckOutStr = DateTime.fromMillis(
+    .toFormat('dd LLLL yyyy HH:mm') : '';
+  const accommodationCheckOutStr = accommodation ? DateTime.fromMillis(
     accommodation.timestampCheckOut,
   )
     .setZone(accommodation.trip.timeZone)
-    .toFormat('dd LLLL yyyy HH:mm');
+    .toFormat('dd LLLL yyyy HH:mm') : '';
 
-  const notes = useParseTextIntoNodes(accommodation.notes);
+  const notes =   useParseTextIntoNodes(accommodation?.notes) ;
 
   return (
     <Dialog.Root
