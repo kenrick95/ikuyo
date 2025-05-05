@@ -5,15 +5,13 @@ import { useCallback } from 'react';
 import { TripViewMode } from '../Trip/TripViewMode';
 import { dangerToken } from '../ui';
 import s from './Accommodation.module.css';
-import { AccommodationDeleteDialog } from './AccommodationDeleteDialog';
 import { AccommodationDisplayTimeMode } from './AccommodationDisplayTimeMode';
-import { AccommodationEditDialog } from './AccommodationEditDialog';
-import { AccommodationViewDialog } from './AccommodationViewDialog';
 import type { DbAccommodationWithTrip } from './db';
 import { formatTime } from './time';
 
 import type * as React from 'react';
-import { useBoundStore } from '../data/store';
+import { useLocation } from 'wouter';
+import { ROUTES_TRIP_DIALOGS } from '../Routes/routes';
 export function Accommodation({
   className,
   accommodation,
@@ -28,16 +26,20 @@ export function Accommodation({
   style?: React.CSSProperties;
 }) {
   const responsiveTextSize = { initial: '1' as const };
-  const pushDialog = useBoundStore((state) => state.pushDialog);
+  const [, setLocation] = useLocation();
   const openAccommodationViewDialog = useCallback(() => {
-    pushDialog(AccommodationViewDialog, { accommodation });
-  }, [accommodation, pushDialog]);
+    setLocation(ROUTES_TRIP_DIALOGS.Accommodation.asRoute(accommodation.id));
+  }, [accommodation, setLocation]);
   const openAccommodationEditDialog = useCallback(() => {
-    pushDialog(AccommodationEditDialog, { accommodation });
-  }, [accommodation, pushDialog]);
+    setLocation(
+      ROUTES_TRIP_DIALOGS.AccommodationEdit.asRoute(accommodation.id),
+    );
+  }, [accommodation, setLocation]);
   const openAccommodationDeleteDialog = useCallback(() => {
-    pushDialog(AccommodationDeleteDialog, { accommodation });
-  }, [accommodation, pushDialog]);
+    setLocation(
+      ROUTES_TRIP_DIALOGS.AccommodationDelete.asRoute(accommodation.id),
+    );
+  }, [accommodation, setLocation]);
 
   return (
     <>

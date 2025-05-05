@@ -3,13 +3,11 @@ import { DateTime } from 'luxon';
 import { useCallback, useMemo } from 'react';
 import { useLocation } from 'wouter';
 import { CommonDialogMaxWidth } from '../Dialog/ui';
-import type { DbTrip } from '../Trip/db';
 import { ROUTES, ROUTES_TRIP, asRootRoute } from '../Routes/routes';
+import type { DbTrip } from '../Trip/db';
 import { AccommodationForm } from './AccommodationForm';
 import { AccommodationFormMode } from './AccommodationFormMode';
 import { formatToDatetimeLocalInput } from './time';
-import { useBoundStore } from '../data/store';
-import { popElseNavigate } from '../Routes/nav';
 
 export function AccommodationNewDialog({
   trip,
@@ -17,9 +15,7 @@ export function AccommodationNewDialog({
   trip: DbTrip;
 }) {
   const [location, setLocation] = useLocation();
-  const getPopCountFromRouteHistory = useBoundStore(
-    (state) => state.getPopCountFromRouteHistory,
-  );
+
   const tripStartStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone),
   );
@@ -50,18 +46,16 @@ export function AccommodationNewDialog({
   }, [trip]);
 
   const popDialogRoute = useCallback(() => {
-    popElseNavigate({
-      setLocation,
-      getPopCountFromRouteHistory,
-      newLocation: location.includes(ROUTES_TRIP.ListView)
+    setLocation(
+      location.includes(ROUTES_TRIP.ListView)
         ? asRootRoute(ROUTES.Trip.asRoute(trip.id) + ROUTES_TRIP.ListView)
         : location.includes(ROUTES_TRIP.TimetableView)
           ? asRootRoute(
               ROUTES.Trip.asRoute(trip.id) + ROUTES_TRIP.TimetableView,
             )
           : asRootRoute(ROUTES.Trip.asRoute(trip.id)),
-    });
-  }, [location, setLocation, getPopCountFromRouteHistory, trip.id]);
+    );
+  }, [location, setLocation, trip.id]);
 
   return (
     <Dialog.Root defaultOpen open>

@@ -1,12 +1,17 @@
 import { Button, Dialog, Flex, Heading, Text } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 
+import { type RouteComponentProps, useLocation } from 'wouter';
 import { CommonDialogMaxWidth } from '../Dialog/ui';
+import {
+  ROUTES,
+  ROUTES_TRIP,
+  ROUTES_TRIP_DIALOGS,
+  asRootRoute,
+} from '../Routes/routes';
 import { useParseTextIntoNodes } from '../common/text/parseTextIntoNodes';
-import { useBoundStore } from '../data/store';
+import { db } from '../data/db';
 import s from './Accommodation.module.css';
-import { AccommodationDeleteDialog } from './AccommodationDeleteDialog';
-import { AccommodationEditDialog } from './AccommodationEditDialog';
 import type { DbAccommodationWithTrip } from './db';
 
 export function AccommodationViewDialog({
@@ -14,7 +19,7 @@ export function AccommodationViewDialog({
 }: RouteComponentProps<{ id: string }>) {
   const { id: accommodationId } = params;
   const [location, setLocation] = useLocation();
-  const { isLoading, data } = db.useQuery({
+  const { data } = db.useQuery({
     accommodation: {
       trip: {},
       $: {
@@ -28,26 +33,37 @@ export function AccommodationViewDialog({
     | DbAccommodationWithTrip
     | undefined;
 
-     
-  const accommodationCheckInStr =accommodation ? DateTime.fromMillis(
-    accommodation.timestampCheckIn,
-  )
-    .setZone(accommodation.trip.timeZone)
-    .toFormat('dd LLLL yyyy HH:mm') : '';
-  const accommodationCheckOutStr = accommodation ? DateTime.fromMillis(
-    accommodation.timestampCheckOut,
-  )
-    .setZone(accommodation.trip.timeZone)
-    .toFormat('dd LLLL yyyy HH:mm') : '';
+  const accommodationCheckInStr = accommodation
+    ? DateTime.fromMillis(accommodation.timestampCheckIn)
+        .setZone(accommodation.trip.timeZone)
+        .toFormat('dd LLLL yyyy HH:mm')
+    : '';
+  const accommodationCheckOutStr = accommodation
+    ? DateTime.fromMillis(accommodation.timestampCheckOut)
+        .setZone(accommodation.trip.timeZone)
+        .toFormat('dd LLLL yyyy HH:mm')
+    : '';
 
-  const notes =   useParseTextIntoNodes(accommodation?.notes) ;
+  const notes = useParseTextIntoNodes(accommodation?.notes);
 
   return (
     <Dialog.Root
       defaultOpen
       onOpenChange={(open) => {
-        if (!open) {
-          popDialog();
+        if (!open && accommodation) {
+          setLocation(
+            location.includes(ROUTES_TRIP.ListView)
+              ? asRootRoute(
+                  ROUTES.Trip.asRoute(accommodation.trip.id) +
+                    ROUTES_TRIP.ListView,
+                )
+              : location.includes(ROUTES_TRIP.TimetableView)
+                ? asRootRoute(
+                    ROUTES.Trip.asRoute(accommodation.trip.id) +
+                      ROUTES_TRIP.TimetableView,
+                  )
+                : asRootRoute(ROUTES.Trip.asRoute(accommodation.trip.id)),
+          );
         }
       }}
     >
@@ -58,7 +74,7 @@ export function AccommodationViewDialog({
           <Heading as="h2" size="4">
             Name
           </Heading>
-          <Text>{accommodation.name}</Text>
+          <Text>{accommodation?.name}</Text>
           <Heading as="h2" size="4">
             Check In
           </Heading>
@@ -68,7 +84,7 @@ export function AccommodationViewDialog({
           </Heading>
           <Text>{accommodationCheckOutStr}</Text>
 
-          {accommodation.address ? (
+          {accommodation?.address ? (
             <>
               <Heading as="h2" size="4">
                 Address
@@ -78,7 +94,7 @@ export function AccommodationViewDialog({
           ) : (
             <></>
           )}
-          {accommodation.phoneNumber ? (
+          {accommodation?.phoneNumber ? (
             <>
               <Heading as="h2" size="4">
                 Phone Number
@@ -88,7 +104,7 @@ export function AccommodationViewDialog({
           ) : (
             <></>
           )}
-          {accommodation.notes ? (
+          {accommodation?.notes ? (
             <>
               <Heading as="h2" size="4">
                 Notes
@@ -107,9 +123,9 @@ export function AccommodationViewDialog({
             variant="soft"
             color="gray"
             onClick={() => {
-              pushDialog(AccommodationDeleteDialog, {
-                accommodation,
-              });
+              setLocation(
+                ROUTES_TRIP_DIALOGS.AccommodationEdit.asRoute(accommodationId),
+              );
             }}
           >
             Delete
@@ -120,9 +136,9 @@ export function AccommodationViewDialog({
             variant="soft"
             color="gray"
             onClick={() => {
-              pushDialog(AccommodationEditDialog, {
-                accommodation,
-              });
+              setLocation(
+                ROUTES_TRIP_DIALOGS.AccommodationEdit.asRoute(accommodationId),
+              );
             }}
           >
             Edit

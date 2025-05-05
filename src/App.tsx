@@ -3,15 +3,14 @@ import './accent.css';
 import './maptiler/init';
 
 import { Portal, Theme } from '@radix-ui/themes';
-import React, { useEffect } from 'react';
-import { Redirect, Route, Switch, useLocation } from 'wouter';
+import React from 'react';
+import { Redirect, Route, Switch } from 'wouter';
 import s from './App.module.css';
 import { DialogRoot } from './Dialog/DialogRoot';
 import { withLoading } from './Loading/withLoading';
-import { ImperativeToastRoot } from './Toast/ImperativeToast';
 import { ROUTES } from './Routes/routes';
+import { ImperativeToastRoot } from './Toast/ImperativeToast';
 import { ThemeAppearance, useTheme } from './theme';
-import { useBoundStore } from './data/store';
 
 const PageTerms = withLoading()(React.lazy(() => import('./Docs/Terms')));
 const PagePrivacy = withLoading()(React.lazy(() => import('./Docs/Privacy')));
@@ -24,14 +23,6 @@ const PageAccount = withLoading()(
 
 function App() {
   const theme = useTheme();
-  const [location] = useLocation();
-  const pushRouteHistory = useBoundStore((state) => state.pushRouteHistory);
-  useEffect(() => {
-    // How to get notified when the location pops?
-    // https://github.com/molefrog/wouter/blob/v3/packages/wouter/src/use-browser-location.js
-    pushRouteHistory(location);
-  }, [location, pushRouteHistory]);
-
   return (
     <>
       <Theme

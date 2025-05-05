@@ -1,7 +1,7 @@
 import { AlertDialog, Button, Flex } from '@radix-ui/themes';
 import { useCallback } from 'react';
-import { CommonDialogMaxWidth } from '../Dialog/ui';
 import type { RouteComponentProps } from 'wouter';
+import { CommonDialogMaxWidth } from '../Dialog/ui';
 import { db } from '../data/db';
 import { useBoundStore } from '../data/store';
 import { dangerToken } from '../ui';
@@ -52,7 +52,7 @@ export function AccommodationDeleteDialog({
   }, [publishToast, accommodation, popDialog, clearDialogs]);
 
   return (
-    <AlertDialog.Root defaultOpen>
+    <AlertDialog.Root open>
       <AlertDialog.Content maxWidth={CommonDialogMaxWidth}>
         <AlertDialog.Title>Delete Accommodation</AlertDialog.Title>
         <AlertDialog.Description size="2">

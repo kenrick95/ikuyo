@@ -12,6 +12,7 @@ import { Accommodation } from '../Accommodation/Accommodation';
 import { AccommodationDeleteDialog } from '../Accommodation/AccommodationDeleteDialog';
 import { AccommodationEditDialog } from '../Accommodation/AccommodationEditDialog';
 import { AccommodationNewDialog } from '../Accommodation/AccommodationNewDialog';
+import { AccommodationViewDialog } from '../Accommodation/AccommodationViewDialog';
 import { ActivityNewDialog } from '../Activity/ActivityNewDialog';
 import {
   type DayGroups,
@@ -19,15 +20,15 @@ import {
 } from '../Activity/eventGrouping';
 import { Macroplan } from '../Macroplan/Macroplan';
 import { MacroplanNewDialog } from '../Macroplan/MacroplanNewDialog';
-import { TripViewMode } from '../Trip/TripViewMode';
-import type { DbTripFull } from '../Trip/db';
-import { useBoundStore } from '../data/store';
 import {
-  asRootRoute,
   ROUTES,
   ROUTES_TRIP,
   ROUTES_TRIP_DIALOGS,
+  asRootRoute,
 } from '../Routes/routes';
+import { TripViewMode } from '../Trip/TripViewMode';
+import type { DbTripFull } from '../Trip/db';
+import { useBoundStore } from '../data/store';
 import {
   generateAccommodationGridTemplateColumns,
   getAccommodationIndexes,
@@ -37,7 +38,6 @@ import {
   getMacroplanIndexes,
 } from './macroplan';
 import { pad2 } from './time';
-import { AccommodationViewDialog } from '../Accommodation/AccommodationViewDialog';
 
 const times = new Array(24).fill(0).map((_, i) => {
   return (
@@ -245,15 +245,15 @@ export function Timetable({
           <AccommodationNewDialog trip={trip} />
         </Route>
         <Route
-          path={ROUTES_TRIP_DIALOGS.AccommodationDelete}
+          path={ROUTES_TRIP_DIALOGS.AccommodationDelete.raw}
           component={AccommodationDeleteDialog}
         />
         <Route
-          path={ROUTES_TRIP_DIALOGS.AccommodationEdit}
+          path={ROUTES_TRIP_DIALOGS.AccommodationEdit.raw}
           component={AccommodationEditDialog}
         />
         <Route
-          path={ROUTES_TRIP_DIALOGS.Accommodation}
+          path={ROUTES_TRIP_DIALOGS.Accommodation.raw}
           component={AccommodationViewDialog}
         />
       </Switch>

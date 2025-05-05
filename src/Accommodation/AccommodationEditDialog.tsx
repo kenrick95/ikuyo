@@ -1,24 +1,20 @@
 import { Box, Dialog } from '@radix-ui/themes';
-import { DateTime } from 'luxon'; 
+import { DateTime } from 'luxon';
+import { useCallback } from 'react';
 import { type RouteComponentProps, useLocation } from 'wouter';
 import { CommonDialogMaxWidth } from '../Dialog/ui';
-import { db } from '../data/db';
 import { ROUTES, ROUTES_TRIP, asRootRoute } from '../Routes/routes';
+import { db } from '../data/db';
 import { AccommodationForm } from './AccommodationForm';
 import { AccommodationFormMode } from './AccommodationFormMode';
 import type { DbAccommodationWithTrip } from './db';
 import { formatToDatetimeLocalInput } from './time';
-import { popElseNavigate } from '../Routes/nav';
-import { useBoundStore } from '../data/store';
 
 export function AccommodationEditDialog({
   params,
 }: RouteComponentProps<{ id: string }>) {
   const { id: accommodationId } = params;
   const [location, setLocation] = useLocation();
-  const getPopCountFromRouteHistory = useBoundStore(
-    (state) => state.getPopCountFromRouteHistory,
-  );
   const { isLoading, data } = db.useQuery({
     accommodation: {
       trip: {},
@@ -62,29 +58,24 @@ export function AccommodationEditDialog({
       )
     : '';
 
+  const popDialogRoute = useCallback(() => {
+    setLocation(
+      location.includes(ROUTES_TRIP.ListView)
+        ? asRootRoute(
+            ROUTES.Trip.asRoute(accommodation.trip.id) + ROUTES_TRIP.ListView,
+          )
+        : location.includes(ROUTES_TRIP.TimetableView)
+          ? asRootRoute(
+              ROUTES.Trip.asRoute(accommodation.trip.id) +
+                ROUTES_TRIP.TimetableView,
+            )
+          : asRootRoute(ROUTES.Trip.asRoute(accommodation.trip.id)),
+      { replace: true },
+    );
+  }, [location, setLocation, accommodation]);
+
   return (
-    <Dialog.Root
-      defaultOpen
-      onOpenChange={(open) => {
-        if (!open && accommodation) {
-          popElseNavigate({
-            setLocation,
-            getPopCountFromRouteHistory,
-            newLocation: location.includes(ROUTES_TRIP.ListView)
-              ? asRootRoute(
-                  ROUTES.Trip.asRoute(accommodation.trip.id) +
-                    ROUTES_TRIP.ListView,
-                )
-              : location.includes(ROUTES_TRIP.TimetableView)
-                ? asRootRoute(
-                    ROUTES.Trip.asRoute(accommodation.trip.id) +
-                      ROUTES_TRIP.TimetableView,
-                  )
-                : asRootRoute(ROUTES.Trip.asRoute(accommodation.trip.id)),
-          });
-        }
-      }}
-    >
+    <Dialog.Root open>
       <Dialog.Content maxWidth={CommonDialogMaxWidth}>
         <Dialog.Title>Edit Accommodation</Dialog.Title>
         <Dialog.Description>
@@ -106,6 +97,8 @@ export function AccommodationEditDialog({
             accommodationCheckOutStr={accommodationCheckOutStr}
             accommodationPhoneNumber={accommodation.phoneNumber}
             accommodationNotes={accommodation.notes}
+            closeDialogFromCancel={popDialogRoute}
+            closeDialogFromSuccess={popDialogRoute}
           />
         ) : null}
       </Dialog.Content>
