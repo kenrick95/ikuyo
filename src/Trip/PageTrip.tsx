@@ -150,10 +150,12 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
             <Route
               path={RouteTripTimetableView.routePath}
               component={() => <Timetable trip={trip} />}
+              nest
             />
             <Route
               path={RouteTripListView.routePath}
               component={() => <ActivityList trip={trip} />}
+              nest
             />
             <Route
               path={RouteTripExpenses.routePath}

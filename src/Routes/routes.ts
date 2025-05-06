@@ -21,34 +21,34 @@ export const RouteTripExpenses = createRouteParam(
 );
 // #endregion Trip
 // #region Trip Timetable
-export const RouteTimetableViewActivity = createRouteParam(
+export const RouteTripTimetableViewActivity = createRouteParam(
   '/activity/:id',
   replaceId,
   RouteTripTimetableView,
 );
-export const RouteTimetableViewAccommodation = createRouteParam(
+export const RouteTripTimetableViewAccommodation = createRouteParam(
   '/accommodation/:id',
   replaceId,
   RouteTripTimetableView,
 );
-export const RouteTimetableViewMacroplan = createRouteParam(
+export const RouteTripTimetableViewMacroplan = createRouteParam(
   '/macroplan/:id',
   replaceId,
   RouteTripTimetableView,
 );
 // #endregion Trip Timetable
 // #region Trip List
-export const RouteListViewActivity = createRouteParam(
+export const RouteTripListViewActivity = createRouteParam(
   '/activity/:id',
   replaceId,
   RouteTripListView,
 );
-export const RouteListViewAccommodation = createRouteParam(
+export const RouteTripListViewAccommodation = createRouteParam(
   '/accommodation/:id',
   replaceId,
   RouteTripListView,
 );
-export const RouteListViewMacroplan = createRouteParam(
+export const RouteTripListViewMacroplan = createRouteParam(
   '/macroplan/:id',
   replaceId,
   RouteTripListView,

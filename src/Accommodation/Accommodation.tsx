@@ -2,18 +2,23 @@ import { ClockIcon, HomeIcon } from '@radix-ui/react-icons';
 import { Box, ContextMenu, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { useCallback } from 'react';
-import { TripViewMode } from '../Trip/TripViewMode';
+import { TripViewMode, type TripViewModeType } from '../Trip/TripViewMode';
 import { dangerToken } from '../ui';
 import s from './Accommodation.module.css';
-import { AccommodationDeleteDialog } from './AccommodationDeleteDialog';
 import { AccommodationDisplayTimeMode } from './AccommodationDisplayTimeMode';
-import { AccommodationEditDialog } from './AccommodationEditDialog';
-import { AccommodationViewDialog } from './AccommodationViewDialog';
 import type { DbAccommodationWithTrip } from './db';
 import { formatTime } from './time';
 
 import type * as React from 'react';
-import { useBoundStore } from '../data/store';
+import { useLocation } from 'wouter';
+import {
+  RouteTripListViewAccommodation,
+  RouteTripTimetableViewAccommodation,
+} from '../Routes/routes';
+import {
+  AccommodationDialogMode,
+  type AccommodationDialogModeType,
+} from './AccommodationDialogMode';
 export function Accommodation({
   className,
   accommodation,
@@ -23,21 +28,37 @@ export function Accommodation({
 }: {
   className?: string;
   accommodation: DbAccommodationWithTrip;
-  tripViewMode: TripViewMode;
+  tripViewMode: TripViewModeType;
   displayTimeMode?: AccommodationDisplayTimeMode;
   style?: React.CSSProperties;
 }) {
+  const [, setLocation] = useLocation();
   const responsiveTextSize = { initial: '1' as const };
-  const pushDialog = useBoundStore((state) => state.pushDialog);
+  const openAccommodationDialog = useCallback(
+    (mode: AccommodationDialogModeType) => {
+      if (tripViewMode === TripViewMode.List) {
+        setLocation(
+          RouteTripListViewAccommodation.asRouteTarget(accommodation.id),
+          { state: { mode: mode ?? AccommodationDialogMode.View } },
+        );
+      } else if (tripViewMode === TripViewMode.Timetable) {
+        setLocation(
+          RouteTripTimetableViewAccommodation.asRouteTarget(accommodation.id),
+          { state: { mode: mode ?? AccommodationDialogMode.View } },
+        );
+      }
+    },
+    [accommodation, setLocation, tripViewMode],
+  );
   const openAccommodationViewDialog = useCallback(() => {
-    pushDialog(AccommodationViewDialog, { accommodation });
-  }, [accommodation, pushDialog]);
+    openAccommodationDialog(AccommodationDialogMode.View);
+  }, [openAccommodationDialog]);
   const openAccommodationEditDialog = useCallback(() => {
-    pushDialog(AccommodationEditDialog, { accommodation });
-  }, [accommodation, pushDialog]);
+    openAccommodationDialog(AccommodationDialogMode.Edit);
+  }, [openAccommodationDialog]);
   const openAccommodationDeleteDialog = useCallback(() => {
-    pushDialog(AccommodationDeleteDialog, { accommodation });
-  }, [accommodation, pushDialog]);
+    openAccommodationDialog(AccommodationDialogMode.Delete);
+  }, [openAccommodationDialog]);
 
   return (
     <>

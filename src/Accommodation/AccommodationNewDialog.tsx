@@ -70,6 +70,8 @@ export function AccommodationNewDialog({
           accommodationCheckOutStr={accommodationCheckOutStr}
           accommodationPhoneNumber=""
           accommodationNotes=""
+          onFormCancel={popDialog}
+          onFormSuccess={popDialog}
         />
       </Dialog.Content>
     </Dialog.Root>

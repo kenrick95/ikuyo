@@ -7,7 +7,9 @@ import { ContextMenu, Section, Text } from '@radix-ui/themes';
 
 import { ClockIcon, HomeIcon, StackIcon } from '@radix-ui/react-icons';
 import { useMemo, useRef } from 'react';
+import { Route, Switch } from 'wouter';
 import { Accommodation } from '../Accommodation/Accommodation';
+import { AccommodationDialog } from '../Accommodation/AccommodationDialog';
 import { AccommodationNewDialog } from '../Accommodation/AccommodationNewDialog';
 import { ActivityNewDialog } from '../Activity/ActivityNewDialog';
 import {
@@ -16,6 +18,7 @@ import {
 } from '../Activity/eventGrouping';
 import { Macroplan } from '../Macroplan/Macroplan';
 import { MacroplanNewDialog } from '../Macroplan/MacroplanNewDialog';
+import { RouteTripTimetableViewAccommodation } from '../Routes/routes';
 import { TripViewMode } from '../Trip/TripViewMode';
 import type { DbTripFull } from '../Trip/db';
 import { useBoundStore } from '../data/store';
@@ -222,6 +225,12 @@ export function Timetable({
           </ContextMenu.Item>
         </ContextMenu.Content>
       </ContextMenu.Root>
+      <Switch>
+        <Route
+          path={RouteTripTimetableViewAccommodation.routePath}
+          component={AccommodationDialog}
+        />
+      </Switch>
     </Section>
   );
 }

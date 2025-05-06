@@ -21,6 +21,8 @@ export function AccommodationForm({
   accommodationCheckOutStr,
   accommodationPhoneNumber,
   accommodationNotes,
+  onFormSuccess,
+  onFormCancel,
 }: {
   mode: AccommodationFormMode;
 
@@ -37,6 +39,9 @@ export function AccommodationForm({
   accommodationCheckOutStr: string;
   accommodationPhoneNumber: string;
   accommodationNotes: string;
+
+  onFormSuccess: () => void;
+  onFormCancel: () => void;
 }) {
   const idName = useId();
   const idTimeCheckIn = useId();
@@ -44,7 +49,6 @@ export function AccommodationForm({
   const idAddress = useId();
   const idPhoneNumber = useId();
   const idNotes = useId();
-  const popDialog = useBoundStore((state) => state.popDialog);
   const publishToast = useBoundStore((state) => state.publishToast);
 
   const [errorMessage, setErrorMessage] = useState('');
@@ -133,9 +137,16 @@ export function AccommodationForm({
       }
 
       elForm.reset();
-      popDialog();
+      onFormSuccess();
     };
-  }, [accommodationId, mode, publishToast, popDialog, tripId, tripTimeZone]);
+  }, [
+    accommodationId,
+    mode,
+    publishToast,
+    onFormSuccess,
+    tripId,
+    tripTimeZone,
+  ]);
 
   return (
     <form
@@ -233,7 +244,7 @@ export function AccommodationForm({
           size="2"
           variant="soft"
           color="gray"
-          onClick={popDialog}
+          onClick={onFormCancel}
         >
           Cancel
         </Button>

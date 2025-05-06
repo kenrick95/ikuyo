@@ -2,20 +2,26 @@ import { Fragment, useMemo } from 'react';
 import type * as React from 'react';
 import createUrlRegExp from 'url-regex-safe';
 
-export function useParseTextIntoNodes(text: string): React.ReactNode[] {
+export function useParseTextIntoNodes(
+  text: undefined | null | string,
+): React.ReactNode[] {
   return useMemo(() => {
     return parseTextIntoNodes(text);
   }, [text]);
 }
 
-export function parseTextIntoNodes(text: string): React.ReactNode[] {
+export function parseTextIntoNodes(
+  text: undefined | null | string,
+): React.ReactNode[] {
+  const receivedText = text || '';
+  if (!receivedText) {
+    return [];
+  }
   const urlRegex = createUrlRegExp({
     localhost: false,
     ipv4: false,
     ipv6: false,
   });
-
-  const receivedText = text || '';
   const matchArray = receivedText.matchAll(urlRegex);
 
   const parts: Array<React.ReactNode> = [];
