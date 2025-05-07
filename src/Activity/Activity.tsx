@@ -11,7 +11,7 @@ import { Box, ContextMenu, Text } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { formatTime } from './time';
 
-import { TripViewMode } from '../Trip/TripViewMode';
+import { TripViewMode, type TripViewModeType } from '../Trip/TripViewMode';
 
 import { useBoundStore } from '../data/store';
 import { dangerToken } from '../ui';
@@ -31,7 +31,7 @@ export function Activity({
   className?: string;
   columnIndex: number;
   columnEndIndex: number;
-  tripViewMode: TripViewMode;
+  tripViewMode: TripViewModeType;
 }) {
   const timeStart = formatTime(activity.timestampStart, activity.trip.timeZone);
   const timeEnd = formatTime(activity.timestampEnd, activity.trip.timeZone);
