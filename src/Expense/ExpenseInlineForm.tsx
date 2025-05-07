@@ -1,7 +1,7 @@
 import { Button, Select, Table, Text, TextField } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import type * as React from 'react';
-import { useCallback, useId, useMemo, useState } from 'react';
+import { useCallback, useId, useMemo, useRef, useState } from 'react';
 import type { DbTripFull } from '../Trip/db';
 import { useBoundStore } from '../data/store';
 import { dangerToken } from '../ui';
@@ -180,7 +180,9 @@ export function ExpenseInlineForm({
               close: {},
             });
 
+            // TODO: UX issue: because the reset happen _after_ dbAddExpense call, user may see new form but without reset state, but we cannot reset state first because it may error
             resetFormState();
+            refTimestampIncurred.current?.focus();
           })
           .catch((error: unknown) => {
             console.error(`Error adding expense "${title}"`, error);
@@ -207,6 +209,7 @@ export function ExpenseInlineForm({
   const handleCurrencyChange = useCallback((value: string) => {
     setFormState((prev) => ({ ...prev, currency: value }));
   }, []);
+  const refTimestampIncurred = useRef<HTMLInputElement>(null);
 
   const fieldTimestampIncurred = useMemo(
     () => (
@@ -217,6 +220,7 @@ export function ExpenseInlineForm({
         onChange={handleInputChange}
         required
         form={idForm}
+        ref={refTimestampIncurred}
       />
     ),
     [formState.timestampIncurred, handleInputChange, idForm],
@@ -314,7 +318,6 @@ export function ExpenseInlineForm({
     formState.currencyConversionFactor,
   ]);
   // TODO: sticky header
-  // TODO: the UX for new entry is not good, there is a "blank" phase before user sees it... maybe need our own zustand store to make it optimistic
 
   const fieldAmount = useMemo(() => {
     return (
