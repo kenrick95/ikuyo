@@ -38,6 +38,7 @@ import {
 } from '../Routes/routes';
 import { TripUserRole } from '../data/TripUserRole';
 import { TripMenuFloating } from './TripMenuFloating';
+import { TripContext } from './context';
 import type { DbTrip, DbTripFull } from './db';
 
 export default PageTrip;
@@ -105,7 +106,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   }, [rawTrip]);
 
   return (
-    <>
+    <TripContext.Provider value={trip}>
       <DocTitle title={trip?.title ?? 'Trip'} />
       <Navbar
         leftItems={[
@@ -149,18 +150,15 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
           <Switch>
             <Route
               path={RouteTripTimetableView.routePath}
-              component={() => <Timetable trip={trip} />}
+              component={Timetable}
               nest
             />
             <Route
               path={RouteTripListView.routePath}
-              component={() => <ActivityList trip={trip} />}
+              component={ActivityList}
               nest
             />
-            <Route
-              path={RouteTripExpenses.routePath}
-              component={() => <ExpenseList trip={trip} />}
-            />
+            <Route path={RouteTripExpenses.routePath} component={ExpenseList} />
             <Redirect replace to={RouteTripTimetableView.routePath} />
           </Switch>
         ) : isLoading ? (
@@ -172,6 +170,6 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
         )}
       </Container>
       <TripMenuFloating />
-    </>
+    </TripContext.Provider>
   );
 }

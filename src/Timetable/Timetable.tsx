@@ -20,7 +20,7 @@ import { Macroplan } from '../Macroplan/Macroplan';
 import { MacroplanNewDialog } from '../Macroplan/MacroplanNewDialog';
 import { RouteTripTimetableViewAccommodation } from '../Routes/routes';
 import { TripViewMode } from '../Trip/TripViewMode';
-import type { DbTripFull } from '../Trip/db';
+import { useTrip } from '../Trip/context';
 import { useBoundStore } from '../data/store';
 import {
   generateAccommodationGridTemplateColumns,
@@ -44,11 +44,8 @@ const times = new Array(24).fill(0).map((_, i) => {
   );
 });
 
-export function Timetable({
-  trip,
-}: {
-  trip: DbTripFull;
-}) {
+export function Timetable() {
+  const trip = useTrip();
   const dayGroups = useMemo(() => groupActivitiesByDays(trip), [trip]);
   const macroplans = useMemo(() => getMacroplanIndexes(trip), [trip]);
   const acommodations = useMemo(() => getAccommodationIndexes(trip), [trip]);

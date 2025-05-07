@@ -1,6 +1,6 @@
 import { Dialog } from '@radix-ui/themes';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { RouteComponentProps } from 'wouter';
 import { CommonDialogMaxWidth } from '../Dialog/ui';
 import { db } from '../data/db';
@@ -62,15 +62,6 @@ function AccommodationDialogContent({
 export function AccommodationDialog({
   params,
 }: RouteComponentProps<{ id: string }>) {
-  console.log('AccommodationDialogInner', params);
-  // TODO: there seems to be some unmount and mount again... causing dialog to be closed and open again, which is very annoying
-  useEffect(() => {
-    console.log('AccommodationDialogInner useEffect', params);
-    return () => {
-      console.log('AccommodationDialogInner useEffect cleanup', params);
-    };
-  }, [params]);
-
   return (
     <Dialog.Root open>
       <AccommodationDialogContent params={params} />

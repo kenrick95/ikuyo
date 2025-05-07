@@ -8,10 +8,11 @@ import { groupActivitiesByDays } from '../Activity/eventGrouping';
 import { Macroplan } from '../Macroplan/Macroplan';
 import { RouteTripListViewAccommodation } from '../Routes/routes';
 import { TripViewMode } from '../Trip/TripViewMode';
-import type { DbTripFull } from '../Trip/db';
+import { useTrip } from '../Trip/context';
 import s from './ActivityList.module.css';
 
-export function ActivityList({ trip }: { trip: DbTripFull }) {
+export function ActivityList() {
+  const trip = useTrip();
   const dayGroups = useMemo(() => groupActivitiesByDays(trip), [trip]);
 
   return (

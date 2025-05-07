@@ -18,7 +18,6 @@ export function AccommodationDialogContentEdit({
   accommodation: DbAccommodationWithTrip;
   setMode: (mode: AccommodationDialogModeType) => void;
 }) {
-  // TODO: if go to edit mode directly, when saving, we're stuck at edit mode, maybe same issue with the unmount then mount again issue
   const tripStartStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(accommodation.trip.timestampStart).setZone(
       accommodation.trip.timeZone,
