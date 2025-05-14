@@ -93,6 +93,8 @@ export function Timetable() {
         let gridCell = target.closest('[data-grid-cell]');
         let attempts = 0;
         console.log('Drop event', target, gridCell);
+        // TODO: while dragging, the 'ghost' size isn't the same as the original
+        // TODO: When dropping around the original activity area, it can go a bit crazy...
 
         // Try to find a grid cell by moving around the drop point
         while (!gridCell && attempts < 5) {
