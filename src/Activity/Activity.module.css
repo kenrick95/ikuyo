@@ -19,6 +19,11 @@
 .activityOngoing {
   border-color: var(--accent-indicator);
 }
+.activityDragging {
+  opacity: 0.6;
+  cursor: grabbing;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+}
 .newForm {
   display: grid;
   grid-template-columns: 10em auto auto;

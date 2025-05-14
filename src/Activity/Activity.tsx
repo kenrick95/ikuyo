@@ -6,7 +6,7 @@ import {
 import { Box, ContextMenu, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { DateTime } from 'luxon';
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { TripViewMode, type TripViewModeType } from '../Trip/TripViewMode';
 import { dangerToken } from '../ui';
 import style from './Activity.module.css';
@@ -31,6 +31,7 @@ export function Activity({
   const timeEnd = formatTime(activity.timestampEnd, activity.trip.timeZone);
   const [dayStart, dayEnd] = getDayStartEnd(activity);
   const responsiveTextSize = { initial: '1' as const };
+  const [isDragging, setIsDragging] = useState(false);
   const isActivityOngoing = useMemo(() => {
     const now = Date.now();
     return activity.timestampStart <= now && now <= activity.timestampEnd;
@@ -40,6 +41,37 @@ export function Activity({
     openActivityDeleteDialog,
     openActivityEditDialog,
   } = useActivityDialogHooks(tripViewMode, activity.id);
+
+  // Drag handlers
+  const handleDragStart = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      setIsDragging(true);
+
+      // Store the activity data for the drop
+      e.dataTransfer.setData(
+        'text/plain',
+        JSON.stringify({
+          activityId: activity.id,
+          originalTimeStart: timeStart,
+          originalTimeEnd: timeEnd,
+          originalDayStart: dayStart,
+        }),
+      );
+
+      // Set the drag image/opacity
+      e.dataTransfer.effectAllowed = 'move';
+      if (e.currentTarget.parentElement) {
+        e.dataTransfer.setDragImage(e.currentTarget, 20, 20);
+      }
+    },
+    [activity.id, timeStart, timeEnd, dayStart],
+  );
+
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  // Handle dropping on the timetable grid is implemented in Timetable component
 
   return (
     <>
@@ -54,9 +86,13 @@ export function Activity({
             className={clsx(
               style.activity,
               isActivityOngoing ? style.activityOngoing : '',
+              isDragging ? style.activityDragging : '',
               className,
             )}
             onClick={openActivityViewDialog}
+            draggable={true}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
             style={{
               gridRowStart: `t${timeStart}`,
               gridRowEnd: `te${timeEnd}`,

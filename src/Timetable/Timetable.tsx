@@ -10,6 +10,8 @@ import { AccommodationNewDialog } from '../Accommodation/AccommodationNewDialog'
 import { Activity } from '../Activity/Activity';
 import { ActivityDialog } from '../Activity/ActivityDialog';
 import { ActivityNewDialog } from '../Activity/ActivityNewDialog';
+import { dbUpdateActivityTime } from '../Activity/db';
+import { calculateNewTimestamps } from '../Activity/dragUtils';
 import {
   type DayGroups,
   groupActivitiesByDays,
@@ -34,6 +36,7 @@ import {
   getMacroplanIndexes,
 } from './macroplan';
 import s from './Timetable.module.scss';
+import { TimetableGrid } from './TimetableGrid';
 import { pad2 } from './time';
 
 const times = new Array(24).fill(0).map((_, i) => {
@@ -70,7 +73,115 @@ export function Timetable() {
     };
   }, [dayGroups]);
   const timetableRef = useRef<HTMLDivElement>(null);
+  const publishToast = useBoundStore((state) => state.publishToast);
   const pushDialog = useBoundStore((state) => state.pushDialog);
+
+  // Handle dropping activities on the timetable
+  const handleDrop = useCallback(
+    async (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+
+      try {
+        // Get the closest grid cell where the activity was dropped
+        let target = document.elementFromPoint(
+          e.clientX,
+          e.clientY,
+        ) as HTMLElement;
+        if (!target) return;
+
+        // Get the grid position by finding the closest grid cell
+        let gridCell = target.closest('[data-grid-cell]');
+        let attempts = 0;
+
+        // Try to find a grid cell by moving around the drop point
+        while (!gridCell && attempts < 5) {
+          attempts++;
+          // Try looking at nearby points
+          const offset = attempts * 10;
+          const directions = [
+            { x: 0, y: -offset }, // up
+            { x: offset, y: 0 }, // right
+            { x: 0, y: offset }, // down
+            { x: -offset, y: 0 }, // left
+          ];
+
+          for (const dir of directions) {
+            target = document.elementFromPoint(
+              e.clientX + dir.x,
+              e.clientY + dir.y,
+            ) as HTMLElement;
+            if (target) {
+              gridCell = target.closest('[data-grid-cell]');
+              if (gridCell) break;
+            }
+          }
+        }
+
+        if (!gridCell) {
+          console.warn('No grid cell found at drop location');
+          return;
+        }
+
+        const gridRow = gridCell.getAttribute('data-grid-row');
+        const gridColumn = gridCell.getAttribute('data-grid-column');
+
+        if (!gridRow || !gridColumn) {
+          console.warn('Grid cell missing row or column data attributes');
+          return;
+        }
+
+        // Get the activity data from the drag event
+        const activityData = JSON.parse(e.dataTransfer.getData('text/plain'));
+        const { activityId } = activityData;
+
+        // Find the activity in the trip
+        const activity = trip.activity.find((a) => a.id === activityId);
+        if (!activity) {
+          console.warn('Activity not found in trip data');
+          return;
+        }
+
+        console.log('Dropping activity', {
+          activityId,
+          title: activity.title,
+          gridRow,
+          gridColumn,
+        });
+
+        // Calculate new timestamps based on the drop position
+        const { timestampStart, timestampEnd } = calculateNewTimestamps(
+          gridRow,
+          gridColumn,
+          activity,
+          trip.timestampStart,
+          trip.timeZone,
+        );
+
+        // Update the activity's timestamps in the database
+        await dbUpdateActivityTime(activityId, timestampStart, timestampEnd);
+
+        publishToast({
+          root: {},
+          title: { children: `Moved: ${activity.title}` },
+          close: {},
+        });
+      } catch (error) {
+        console.error('Error during drag and drop:', error);
+        publishToast({
+          root: {},
+          title: { children: 'Failed to move activity' },
+          close: {},
+        });
+      }
+    },
+    [trip, publishToast],
+  );
+
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  }, []);
+
   const openActivityNewDialog = useCallback(() => {
     pushDialog(ActivityNewDialog, { trip });
   }, [pushDialog, trip]);
@@ -88,7 +199,11 @@ export function Timetable() {
             className={s.timetable}
             style={timetableStyle}
             ref={timetableRef}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
           >
+            <TimetableGrid days={dayGroups.length} />
+
             <TimetableTimeHeader />
 
             {dayGroups.map((dayGroup, i) => {
@@ -105,6 +220,7 @@ export function Timetable() {
                 />
               );
             })}
+
             {macroplans.length > 0 ? <TimetableMacroplanHeader /> : null}
             {macroplans.length > 0 ? (
               <div className={s.macroplanGrid} style={timetableMacroplanStyle}>

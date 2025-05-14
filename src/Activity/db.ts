@@ -63,3 +63,16 @@ export async function dbUpdateActivity(
     }),
   );
 }
+export async function dbUpdateActivityTime(
+  activityId: string,
+  timestampStart: number,
+  timestampEnd: number,
+) {
+  return db.transact(
+    db.tx.activity[activityId].merge({
+      timestampStart,
+      timestampEnd,
+      lastUpdatedAt: Date.now(),
+    }),
+  );
+}

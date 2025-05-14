@@ -1,5 +1,5 @@
 @use 'sass:string';
-@layer timetableBase, timetableOverride;
+@layer timetableBackground, timetableBase, timetableOverride;
 
 @function pad2($num) {
   @if $num < 0 {
@@ -47,7 +47,26 @@
   @return $ret;
 }
 
-@layer timetableBase {
+@layer timetableBackground {
+  .timetableCell {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    min-height: var(--row-minute-height);
+    
+    &:hover {
+      background-color: var(--accent-2);
+    }
+    
+    &.dragOver {
+      background-color: var(--accent-3);
+      outline: 2px dashed var(--accent-8);
+    }
+  }
+}
+
+@layer timetableBase { 
+  
   .timetable {
     --row-minute-height: 2px;
     --row-minute-narrow-height: 0.8px;
