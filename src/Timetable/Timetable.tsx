@@ -92,6 +92,7 @@ export function Timetable() {
         // Get the grid position by finding the closest grid cell
         let gridCell = target.closest('[data-grid-cell]');
         let attempts = 0;
+        console.log('Drop event', target, gridCell);
 
         // Try to find a grid cell by moving around the drop point
         while (!gridCell && attempts < 5) {
