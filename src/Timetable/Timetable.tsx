@@ -159,6 +159,15 @@ export function Timetable() {
           trip.timeZone,
         );
 
+        // Handle if timestamp is the same
+        if (
+          activity.timestampStart === timestampStart &&
+          activity.timestampEnd === timestampEnd
+        ) {
+          console.log('Activity dropped in the same position, no changes made');
+          return;
+        }
+
         // Update the activity's timestamps in the database
         await dbUpdateActivityTime(activityId, timestampStart, timestampEnd);
 
