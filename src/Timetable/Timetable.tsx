@@ -2,7 +2,7 @@ import { ClockIcon, HomeIcon, StackIcon } from '@radix-ui/react-icons';
 import { ContextMenu, Section, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import type * as React from 'react';
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Route, Switch } from 'wouter';
 import { Accommodation } from '../Accommodation/Accommodation';
 import { AccommodationDialog } from '../Accommodation/AccommodationDialog';
@@ -56,6 +56,7 @@ export function Timetable() {
   const dayGroups = useMemo(() => groupActivitiesByDays(trip), [trip]);
   const macroplans = useMemo(() => getMacroplanIndexes(trip), [trip]);
   const acommodations = useMemo(() => getAccommodationIndexes(trip), [trip]);
+  const [isDragging, setDragging] = useState<boolean>(false);
 
   const timetableStyle = useMemo(() => {
     return {
@@ -80,6 +81,7 @@ export function Timetable() {
   const handleDrop = useCallback(
     async (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
+      setDragging(false);
 
       try {
         // Get the closest grid cell where the activity was dropped
@@ -92,9 +94,6 @@ export function Timetable() {
         // Get the grid position by finding the closest grid cell
         let gridCell = target.closest('[data-grid-cell]');
         let attempts = 0;
-        console.log('Drop event', target, gridCell);
-        // TODO: while dragging, the 'ghost' size isn't the same as the original
-        // TODO: When dropping around the original activity area, it can go a bit crazy...
 
         // Try to find a grid cell by moving around the drop point
         while (!gridCell && attempts < 5) {
@@ -183,6 +182,7 @@ export function Timetable() {
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+    setDragging(true);
   }, []);
 
   const openActivityNewDialog = useCallback(() => {
@@ -199,7 +199,7 @@ export function Timetable() {
       <ContextMenu.Root>
         <ContextMenu.Trigger>
           <div
-            className={s.timetable}
+            className={clsx(s.timetable, isDragging && s.dragging)}
             style={timetableStyle}
             ref={timetableRef}
             onDrop={handleDrop}

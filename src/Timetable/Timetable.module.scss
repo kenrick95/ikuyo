@@ -1,5 +1,5 @@
 @use 'sass:string';
-@layer timetableBackground, timetableBase, timetableOverride;
+@layer timetableBase, timetableOverride;
 
 @function pad2($num) {
   @if $num < 0 {
@@ -47,26 +47,8 @@
   @return $ret;
 }
 
-@layer timetableBackground {
-  .timetableCell {
-    position: relative;
-    height: 100%;
-    width: 100%;
-    min-height: var(--row-minute-height);
-    
-    // &:hover {
-    //   background-color: var(--accent-2);
-    // }
-    
-    &.dragOver {
-      background-color: var(--accent-3);
-      outline: 2px dashed var(--accent-8);
-    }
-  }
-}
+@layer timetableBase {
 
-@layer timetableBase { 
-  
   .timetable {
     --row-minute-height: 2px;
     --row-minute-narrow-height: 0.8px;
@@ -94,6 +76,18 @@
     }
   }
 
+  .timetableCell {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    min-height: var(--row-minute-height);
+    z-index: 0;
+    &.dragOver {
+      background: linear-gradient(to bottom, var(--accent-3), transparent);
+      border-top: 2px dashed var(--accent-8);
+    }
+  }
+
   .timetableTimeHeader {
     grid-row: header / span 1;
     grid-column: time / span 1;
@@ -110,6 +104,7 @@
     border: 1px solid var(--gray-6);
     z-index: 4;
   }
+
   .timetableAccommodationHeader {
     @extend .timetableTimeHeader;
     grid-column: 1 / span 1;
@@ -118,6 +113,7 @@
     min-height: 30px;
     height: fill-available;
   }
+
   .timetableMacroplanHeader {
     @extend .timetableTimeHeader;
     grid-column: 1 / span 1;
@@ -145,6 +141,7 @@
     border: 1px solid var(--gray-6);
     z-index: 2;
   }
+
   .timetableTime {
     --time-bg: var(--color-panel-solid);
 
@@ -163,10 +160,21 @@
     border: 1px solid var(--gray-6);
     z-index: 2;
   }
+
   .timetableItem {
     grid-column-end: span 1;
     grid-row-end: span 1;
     z-index: 1;
+  }
+
+  .timetable.dragging {
+    .timetableItem.timetableItem {
+      z-index: 0;
+    }
+
+    .timetableCell.timetableCell {
+      z-index: 1;
+    }
   }
 
   .macroplanGrid {
@@ -179,6 +187,7 @@
     grid-auto-flow: row;
     grid-auto-columns: 30px;
   }
+
   .accommodationGrid {
     display: grid;
     grid-row-start: accommodation;
