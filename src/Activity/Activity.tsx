@@ -45,6 +45,11 @@ export function Activity({
   // Drag handlers
   const handleDragStart = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
+      if (tripViewMode !== TripViewMode.Timetable) {
+        // Prevent dragging if the trip is not in timetable view
+        e.preventDefault();
+        return;
+      }
       setIsDragging(true);
 
       // Store the activity data for the drop
@@ -64,12 +69,20 @@ export function Activity({
         e.dataTransfer.setDragImage(e.currentTarget, 20, 20);
       }
     },
-    [activity.id, timeStart, timeEnd, dayStart],
+    [activity.id, timeStart, timeEnd, dayStart, tripViewMode],
   );
 
-  const handleDragEnd = useCallback(() => {
-    setIsDragging(false);
-  }, []);
+  const handleDragEnd = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      if (tripViewMode !== TripViewMode.Timetable) {
+        // Prevent dragging if the trip is not in timetable view
+        e.preventDefault();
+        return;
+      }
+      setIsDragging(false);
+    },
+    [tripViewMode],
+  );
 
   // Handle dropping on the timetable grid is implemented in Timetable component
 
@@ -90,7 +103,7 @@ export function Activity({
               className,
             )}
             onClick={openActivityViewDialog}
-            draggable={true}
+            draggable={tripViewMode === TripViewMode.Timetable}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             style={{
