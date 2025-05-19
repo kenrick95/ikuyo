@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@instantdb/admin": "~0.19.6",
+    "@instantdb/admin": "~0.19.7",
     "@instantdb/core": "~0.19.6",
     "@instantdb/react": "~0.19.6",
     "@maptiler/geocoding-control": "^2.1.6",
@@ -41,7 +41,7 @@
     "@rsdoctor/rspack-plugin": "^1.1.2",
     "@types/luxon": "~3.6.2",
     "@types/react": "^19.1.4",
-    "@types/react-dom": "^19.1.4",
+    "@types/react-dom": "^19.1.5",
     "@types/url-regex-safe": "^1.0.2",
     "cross-env": "^7.0.3",
     "dotenv": "^16.5.0",
@@ -55,7 +55,7 @@
     "overrides": {
       "esbuild": "0.25.2",
       "@types/react": "19.1.4",
-      "@types/react-dom": "19.1.4",
+      "@types/react-dom": "19.1.5",
       "es-set-tostringtag": "npm:@nolyfill/es-set-tostringtag@^1",
       "safe-buffer": "npm:@nolyfill/safe-buffer@^1",
       "safer-buffer": "npm:@nolyfill/safer-buffer@^1",
