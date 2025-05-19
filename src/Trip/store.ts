@@ -1,50 +1,87 @@
 import type { StateCreator } from 'zustand';
 import type { DbAccommodationWithTrip } from '../Accommodation/db';
-import type { DbActivityWithTrip } from '../Activity/db';
+import type { DbActivity } from '../Activity/db';
 import {
   COMMENT_GROUP_OBJECT_TYPE,
-  type DbCommentGroup,
   type DbCommentGroupObjectType,
 } from '../Comment/db';
+import { db } from '../data/db';
 import type { BoundStoreType } from '../data/store';
+import type { DbExpense } from '../Expense/db';
 import type { DbMacroplanWithTrip } from '../Macroplan/db';
-import type { DbTrip, DbTripFull } from './db';
+import type { DbTrip } from './db';
+export type TripSliceTrip = Omit<
+  DbTrip,
+  'accommodation' | 'activity' | 'macroplan' | 'tripUser' | 'commentGroup'
+> & {
+  accommodationIds: string[];
+  activityIds: string[];
+  macroplanIds: string[];
+  tripUserIds: string[];
+  commentGroupIds: string[];
+  expenseIds: string[];
+};
+export type TripSliceActivity = Omit<DbActivity, 'trip' | 'commentGroup'> & {
+  tripId: string;
+  commentGroupId: string | undefined;
+};
+export type TripSliceAccommodation = Omit<
+  DbAccommodationWithTrip,
+  'trip' | 'commentGroup'
+> & {
+  tripId: string;
+  commentGroupId: string | undefined;
+};
+export type TripSliceMacroplan = Omit<
+  DbMacroplanWithTrip,
+  'trip' | 'commentGroup'
+> & {
+  tripId: string;
+  commentGroupId: string | undefined;
+};
+export type TripSliceCommentGroup = {
+  id: string;
+  createdAt: number;
+  lastUpdatedAt: number;
+  /** 0: unresolved; 1: resolved; */
+  status: number;
+
+  tripId: string;
+  type: DbCommentGroupObjectType;
+  objectId: string;
+};
+export type TripSliceExpense = Omit<DbExpense, 'trip' | 'commentGroup'> & {
+  tripId: string;
+  commentGroupId: string | undefined;
+};
 
 export interface TripSlice {
   trip: {
-    [id: string]: DbTrip;
+    [id: string]: TripSliceTrip;
   };
   activity: {
-    [id: string]: DbActivityWithTrip;
+    [id: string]: TripSliceActivity;
   };
   accommodation: {
-    [id: string]: DbAccommodationWithTrip;
+    [id: string]: TripSliceAccommodation;
   };
   macroplan: {
-    [id: string]: DbMacroplanWithTrip;
+    [id: string]: TripSliceMacroplan;
+  };
+  expense: {
+    [id: string]: TripSliceExpense;
   };
   commentGroup: {
-    accommodation: {
-      [id: string]: DbCommentGroup<'accommodation'>;
-    };
-    activity: {
-      [id: string]: DbCommentGroup<'activity'>;
-    };
-    macroplan: {
-      [id: string]: DbCommentGroup<'macroplan'>;
-    };
-    trip: {
-      [id: string]: DbCommentGroup<'trip'>;
-    };
-    expense: {
-      [id: string]: DbCommentGroup<'expense'>;
-    };
+    [id: string]: TripSliceCommentGroup;
   };
-  setTrip: (trip: DbTripFull) => void;
+  /** return: unsubscribe function */
+  subscribeTrip: (id: string) => () => void;
 
-  getAccommodation: (id: string) => DbAccommodationWithTrip | undefined;
-  getActivity: (id: string) => DbActivityWithTrip | undefined;
-  getMacroplan: (id: string) => DbMacroplanWithTrip | undefined;
+  getTrip: (id: string) => TripSliceTrip | undefined;
+  getActivity: (id: string) => TripSliceActivity | undefined;
+  getAccommodation: (id: string) => TripSliceAccommodation | undefined;
+  getMacroplan: (id: string) => TripSliceMacroplan | undefined;
+  getCommentGroup: (id: string) => TripSliceCommentGroup | undefined;
 }
 
 export const createTripSlice: StateCreator<
@@ -58,104 +95,164 @@ export const createTripSlice: StateCreator<
     accommodation: {},
     activity: {},
     macroplan: {},
-    commentGroup: {
-      trip: {},
-      accommodation: {},
-      activity: {},
-      macroplan: {},
-      expense: {},
-    },
-    setTrip: (trip: DbTripFull) => {
-      set((state) => {
-        // NOTE: setTrip is kind of expensive, because it needs to set all the
-        // accommodation, activity and macroplan in the state
-        // so try to minimize calls to it
-
-        console.log('setTrip', trip);
-        const newAccommodationState = {
-          ...state.accommodation,
-        };
-        const newActivityState = {
-          ...state.activity,
-        };
-        const newMacroplanState = {
-          ...state.macroplan,
-        };
-        for (const accommodation of trip.accommodation) {
-          newAccommodationState[accommodation.id] = accommodation;
-        }
-        for (const activity of trip.activity) {
-          newActivityState[activity.id] = activity;
-        }
-        for (const macroplan of trip.macroplan) {
-          newMacroplanState[macroplan.id] = macroplan;
-        }
-        const newCommentGroup = {
-          trip: { ...state.commentGroup.trip },
-          accommodation: { ...state.commentGroup.accommodation },
-          activity: { ...state.commentGroup.activity },
-          macroplan: { ...state.commentGroup.macroplan },
-          expense: { ...state.commentGroup.expense },
-        };
-        for (const commentGroup of trip.commentGroup) {
-          if (commentGroup.object?.type === COMMENT_GROUP_OBJECT_TYPE.TRIP) {
-            newCommentGroup.trip[commentGroup.id] =
-              commentGroup as DbCommentGroup<'trip'>;
-          } else if (
-            commentGroup.object?.type ===
-            COMMENT_GROUP_OBJECT_TYPE.ACCOMMODATION
-          ) {
-            newCommentGroup.accommodation[commentGroup.id] =
-              commentGroup as DbCommentGroup<'accommodation'>;
-          } else if (
-            commentGroup.object?.type === COMMENT_GROUP_OBJECT_TYPE.ACTIVITY
-          ) {
-            newCommentGroup.activity[commentGroup.id] =
-              commentGroup as DbCommentGroup<'activity'>;
-          } else if (
-            commentGroup.object?.type === COMMENT_GROUP_OBJECT_TYPE.MACROPLAN
-          ) {
-            newCommentGroup.macroplan[commentGroup.id] =
-              commentGroup as DbCommentGroup<'macroplan'>;
-          } else if (
-            commentGroup.object?.type === COMMENT_GROUP_OBJECT_TYPE.EXPENSE
-          ) {
-            newCommentGroup.expense[commentGroup.id] =
-              commentGroup as DbCommentGroup<'expense'>;
-          }
-        }
-
-        return {
+    commentGroup: {},
+    subscribeTrip: (tripId: string) => {
+      return db.subscribeQuery(
+        {
           trip: {
-            ...state.trip,
-            [trip.id]: trip,
+            $: {
+              where: {
+                id: tripId,
+              },
+            },
+            activity: {},
+            accommodation: {},
+            macroplan: {},
+            expense: {},
+            tripUser: {
+              user: {
+                $: { fields: ['id', 'handle', 'activated'] },
+              },
+            },
+            commentGroup: {
+              comment: {
+                user: {
+                  $: { fields: ['id', 'handle', 'activated'] },
+                },
+              },
+              object: {
+                activity: { $: { fields: ['id', 'title'] } },
+                accommodation: { $: { fields: ['id', 'name'] } },
+                expense: { $: { fields: ['id', 'title'] } },
+                trip: { $: { fields: ['id', 'title'] } },
+                macroplan: { $: { fields: ['id', 'name'] } },
+                $: {
+                  fields: ['type', 'createdAt', 'lastUpdatedAt', 'id'],
+                },
+              },
+            },
           },
-          accommodation: newAccommodationState,
-          activity: newActivityState,
-          macroplan: newMacroplanState,
-          commentGroup: newCommentGroup,
-        };
-      });
-    },
+        },
+        ({ data }) => {
+          const trip = data?.trip?.[0];
 
-    getAccommodation: (id: string): DbAccommodationWithTrip | undefined => {
-      return get().accommodation[id];
-    },
-    getActivity: (id: string): DbActivityWithTrip | undefined => {
-      return get().activity[id];
-    },
-    getMacroplan: (id: string): DbMacroplanWithTrip | undefined => {
-      return get().macroplan[id];
-    },
-    getCommentGroup: <ObjectType extends DbCommentGroupObjectType>(
-      type: ObjectType,
-      id: string,
-    ): DbCommentGroup<ObjectType> | undefined => {
-      const commentGroup = get().commentGroup;
-      if (commentGroup[type][id]) {
-        return commentGroup[type][id] as DbCommentGroup<ObjectType>;
-      }
-      return undefined;
+          if (!trip) {
+            return;
+          }
+          set((state) => {
+            const newAccommodationState = {
+              ...state.accommodation,
+            };
+            const newActivityState = {
+              ...state.activity,
+            };
+            const newMacroplanState = {
+              ...state.macroplan,
+            };
+            const newCommentGroupState = {
+              ...state.commentGroup,
+            };
+
+            for (const activity of trip.activity) {
+              const commentGroup = trip.commentGroup.find((cg) => {
+                return (
+                  cg.object?.type === COMMENT_GROUP_OBJECT_TYPE.ACTIVITY &&
+                  cg.object?.id === activity.id
+                );
+              });
+              newActivityState[activity.id] = {
+                ...activity,
+                tripId: trip.id,
+                commentGroupId: commentGroup?.id ?? undefined,
+                locationLat: activity.locationLat,
+                locationLng: activity.locationLng,
+                locationZoom: activity.locationZoom,
+              } satisfies TripSliceActivity;
+            }
+            for (const accommodation of trip.accommodation) {
+              const commentGroup = trip.commentGroup.find((cg) => {
+                return (
+                  cg.object?.type === COMMENT_GROUP_OBJECT_TYPE.ACCOMMODATION &&
+                  cg.object?.id === accommodation.id
+                );
+              });
+              newAccommodationState[accommodation.id] = {
+                ...accommodation,
+                tripId: trip.id,
+                commentGroupId: commentGroup?.id ?? undefined,
+              } satisfies TripSliceAccommodation;
+            }
+            for (const macroplan of trip.macroplan) {
+              const commentGroup = trip.commentGroup.find((cg) => {
+                return (
+                  cg.object?.type === COMMENT_GROUP_OBJECT_TYPE.MACROPLAN &&
+                  cg.object?.id === macroplan.id
+                );
+              });
+              newMacroplanState[macroplan.id] = {
+                ...macroplan,
+                tripId: trip.id,
+                commentGroupId: commentGroup?.id ?? undefined,
+              } satisfies TripSliceMacroplan;
+            }
+
+            for (const commentGroup of trip.commentGroup) {
+              const objectType = commentGroup.object?.type as
+                | DbCommentGroupObjectType
+                | undefined;
+              if (!objectType) {
+                continue;
+              }
+              let objectId: string | undefined;
+              if (objectType === COMMENT_GROUP_OBJECT_TYPE.ACTIVITY) {
+                objectId = commentGroup.object?.activity?.[0]?.id;
+              } else if (
+                objectType === COMMENT_GROUP_OBJECT_TYPE.ACCOMMODATION
+              ) {
+                objectId = commentGroup.object?.accommodation?.[0]?.id;
+              } else if (objectType === COMMENT_GROUP_OBJECT_TYPE.MACROPLAN) {
+                objectId = commentGroup.object?.macroplan?.[0]?.id;
+              } else if (objectType === COMMENT_GROUP_OBJECT_TYPE.EXPENSE) {
+                objectId = commentGroup.object?.expense?.[0]?.id;
+              }
+              if (!objectId) {
+                continue;
+              }
+              newCommentGroupState[commentGroup.id] = {
+                ...commentGroup,
+                tripId: trip.id,
+                type: objectType,
+                objectId,
+              } satisfies TripSliceCommentGroup;
+            }
+            return {
+              trip: {
+                ...state.trip,
+                [trip.id]: {
+                  id: trip.id,
+                  title: trip.title,
+                  timestampStart: trip.timestampStart,
+                  timestampEnd: trip.timestampEnd,
+                  currency: trip.currency,
+                  region: trip.region,
+                  originCurrency: trip.originCurrency,
+                  timeZone: trip.timeZone,
+                  accommodationIds: trip.accommodation.map((a) => a.id),
+                  activityIds: trip.activity.map((a) => a.id),
+                  macroplanIds: trip.macroplan.map((a) => a.id),
+                  tripUserIds: trip.tripUser.map((a) => a.user?.[0]?.id),
+                  commentGroupIds: trip.commentGroup.map((a) => a.id),
+                  expenseIds: trip.expense.map((a) => a.id),
+                } satisfies TripSliceTrip,
+              },
+              accommodation: newAccommodationState,
+              activity: newActivityState,
+              macroplan: newMacroplanState,
+              commentGroup: newCommentGroupState,
+            };
+          });
+        },
+      );
     },
   };
 };

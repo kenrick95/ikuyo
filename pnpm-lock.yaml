@@ -22,11 +22,8 @@ importers:
         specifier: ~0.19.7
         version: 0.19.7
       '@instantdb/core':
-        specifier: ~0.19.6
+        specifier: ~0.19.7
         version: 0.19.7
-      '@instantdb/react':
-        specifier: ~0.19.6
-        version: 0.19.7(react@19.1.0)
       '@maptiler/geocoding-control':
         specifier: ^2.1.6
         version: 2.1.6(@maptiler/sdk@3.2.2)(maplibre-gl@5.4.0)(react@19.1.0)
@@ -427,11 +424,6 @@ packages:
 
   '@instantdb/core@0.19.7':
     resolution: {integrity: sha512-f4NOJliPS8BytQ9blU4Acu1sNvGqRwkddX5RyLxpHazpOBYvDru7RytsG7cviG5ytPpK1D0UnQdtNexKtaJBLw==}
-
-  '@instantdb/react@0.19.7':
-    resolution: {integrity: sha512-TwG7H/+JcmqFhHlv7m8WpVwcIXq9o5yD4E39iRTZs9LkBqlGgoN/xAKUgwbYqmI3V3qbdIhTIjpnn0uLVkbjCA==}
-    peerDependencies:
-      react: '>=16'
 
   '@jridgewell/gen-mapping@0.3.8':
     resolution: {integrity: sha512-imAbBGkb+ebQyxKgzv5Hu2nmROxoDOXHh80evxdoXNOrvAnVx7zimzc1Oo5h9RlfV4vPXaE2iM5pOFbvOCClWA==}
@@ -3702,11 +3694,6 @@ snapshots:
     dependencies:
       mutative: 1.1.0
       uuid: 9.0.1
-
-  '@instantdb/react@0.19.7(react@19.1.0)':
-    dependencies:
-      '@instantdb/core': 0.19.7
-      react: 19.1.0
 
   '@jridgewell/gen-mapping@0.3.8':
     dependencies:

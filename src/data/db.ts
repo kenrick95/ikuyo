@@ -1,4 +1,4 @@
-import { id, init } from '@instantdb/react';
+import { id, init } from '@instantdb/core';
 import schema from '../../instant.schema';
 import type { DbUser } from './types';
 

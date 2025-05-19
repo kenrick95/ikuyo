@@ -17,8 +17,7 @@
   },
   "dependencies": {
     "@instantdb/admin": "~0.19.7",
-    "@instantdb/core": "~0.19.6",
-    "@instantdb/react": "~0.19.6",
+    "@instantdb/core": "~0.19.7",
     "@maptiler/geocoding-control": "^2.1.6",
     "@maptiler/sdk": "~3.2.2",
     "@radix-ui/colors": "~3.0.0",

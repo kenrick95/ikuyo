@@ -1,7 +1,6 @@
 import { Heading, Skeleton, Spinner } from '@radix-ui/themes';
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Redirect, Route, type RouteComponentProps, Switch } from 'wouter';
-import { db } from '../data/db';
 import { withLoading } from '../Loading/withLoading';
 import { DocTitle } from '../Nav/DocTitle';
 import { Navbar } from '../Nav/Navbar';
@@ -53,7 +52,6 @@ const TripComment = withLoading()(
 
 import { DoubleArrowRightIcon } from '@radix-ui/react-icons';
 import { useShallow } from 'zustand/shallow';
-import type { DbCommentGroup } from '../Comment/db';
 import { useBoundStore } from '../data/store';
 import { TripUserRole } from '../data/TripUserRole';
 import {
@@ -65,13 +63,16 @@ import {
   RouteTripTimetableView,
 } from '../Routes/routes';
 import { TripContext } from './context';
-import type { DbTrip, DbTripFull } from './db';
+import type { DbTripFull } from './db';
 import { TripMenuFloating } from './TripMenuFloating';
 
 export default PageTrip;
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   const { id: tripId } = params;
-  const { trip, isLoading, error } = useStableRefTrip(tripId);
+  const subscribeTrip = useBoundStore((state) => state.subscribeTrip);
+  useEffect(() => {
+    return subscribeTrip(tripId);
+  }, [tripId, subscribeTrip]);
 
   return <PageTripInner trip={trip} isLoading={isLoading} error={error} />;
 }
@@ -176,148 +177,6 @@ function PageTripInner({
     </TripContext.Provider>
   );
 }
-function useStableRefTrip(tripId: string): {
-  trip: DbTripFull | undefined;
-  isLoading: boolean;
-  error: { message: string } | undefined;
-} {
-  const { isLoading, error, data } = db.useQuery({
-    trip: {
-      $: {
-        where: {
-          id: tripId,
-        },
-      },
-      activity: {},
-      accommodation: {},
-      macroplan: {},
-      tripUser: {
-        user: {
-          $: { fields: ['id', 'handle', 'activated'] },
-        },
-      },
-      commentGroup: {
-        comment: {
-          user: {
-            $: { fields: ['id', 'handle', 'activated'] },
-          },
-        },
-        object: {
-          activity: { $: { fields: ['id', 'title'] } },
-          accommodation: { $: { fields: ['id', 'name'] } },
-          expense: { $: { fields: ['id', 'title'] } },
-          trip: { $: { fields: ['id', 'title'] } },
-          macroplan: { $: { fields: ['id', 'name'] } },
-          $: {
-            fields: ['type'],
-          },
-        },
-      },
-    },
-  });
-  const rawTrip = data?.trip[0] as DbTrip | undefined;
-  console.log('rawTrip', rawTrip);
-  // Avoid re-render of trip object
-  // Only re-render if trip, trip.activity, trip.accommodation, trip.macroplan is different
-  const tripRef = useRef<DbTripFull | undefined>(undefined);
-
-  const trip = useMemo(() => {
-    if (rawTrip) {
-      let isObjectEqual = false;
-
-      const commentGroupActivityByActivityId = new Map<
-        string,
-        DbCommentGroup<'activity'>
-      >();
-      const commentGroup =
-        rawTrip.commentGroup?.map((commentGroup) => {
-          commentGroup.trip = rawTrip;
-          commentGroup.comment = commentGroup.comment.map((comment) => {
-            comment.group = commentGroup;
-            return comment;
-          });
-          if (
-            commentGroup.object?.type === 'activity' &&
-            commentGroup.object?.activity?.[0]
-          ) {
-            commentGroupActivityByActivityId.set(
-              commentGroup.object.activity[0].id,
-              commentGroup as DbCommentGroup<'activity'>,
-            );
-          }
-          return commentGroup;
-        }) ?? [];
-
-      // Reference to the trip in the activities, accommodations and macroplans
-      const tripWithBackReference = {
-        ...rawTrip,
-        activity:
-          rawTrip.activity?.map((activity) => {
-            activity.trip = rawTrip;
-            const commentGroup = commentGroupActivityByActivityId.get(
-              activity.id,
-            );
-            if (commentGroup) {
-              activity.commentGroup = commentGroup;
-            }
-            return activity;
-          }) ?? [],
-        accommodation:
-          rawTrip.accommodation?.map((accommodation) => {
-            accommodation.trip = rawTrip;
-            return accommodation;
-          }) ?? [],
-        macroplan:
-          rawTrip.macroplan?.map((macroplan) => {
-            macroplan.trip = rawTrip;
-            return macroplan;
-          }) ?? [],
-        commentGroup: commentGroup,
-      } as DbTripFull;
-
-      isObjectEqual =
-        isObjectEqualForSimpleKeys(tripRef.current, tripWithBackReference) &&
-        isArrayOfObjectsEqual(
-          tripRef.current?.accommodation,
-          tripWithBackReference.accommodation,
-        ) &&
-        isArrayOfObjectsEqual(
-          tripRef.current?.activity,
-          tripWithBackReference.activity,
-        ) &&
-        isArrayOfObjectsEqual(
-          tripRef.current?.macroplan,
-          tripWithBackReference.macroplan,
-        ) &&
-        isArrayOfObjectsEqual(
-          tripRef.current?.tripUser,
-          tripWithBackReference.tripUser,
-        ) &&
-        isArrayOfObjectsEqual(
-          tripRef.current?.commentGroup,
-          tripWithBackReference.commentGroup,
-        );
-
-      if (isObjectEqual) {
-        return tripRef.current;
-      }
-
-      tripRef.current = tripWithBackReference;
-      return tripWithBackReference;
-    }
-    return undefined;
-  }, [rawTrip]);
-
-  const setTrip = useBoundStore((state) => state.setTrip);
-  useEffect(() => {
-    if (trip) {
-      setTrip(trip);
-    }
-  }, [trip, setTrip]);
-
-  return { trip, isLoading, error };
-}
-
 function isObjectEqualForSimpleKeys<T extends object, K extends keyof T>(
   obj1: T | undefined,
   obj2: T | undefined,
