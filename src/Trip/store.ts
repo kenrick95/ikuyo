@@ -1,4 +1,5 @@
 import type { StateCreator } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 import type { DbAccommodationWithTrip } from '../Accommodation/db';
 import type { DbActivity } from '../Activity/db';
 import {
@@ -6,7 +7,8 @@ import {
   type DbCommentGroupObjectType,
 } from '../Comment/db';
 import { db } from '../data/db';
-import type { BoundStoreType } from '../data/store';
+import { type BoundStoreType, useBoundStore } from '../data/store';
+import type { TripUserRole } from '../data/TripUserRole';
 import type { DbExpense } from '../Expense/db';
 import type { DbMacroplanWithTrip } from '../Macroplan/db';
 import type { DbTrip } from './db';
@@ -54,6 +56,14 @@ export type TripSliceExpense = Omit<DbExpense, 'trip' | 'commentGroup'> & {
   tripId: string;
   commentGroupId: string | undefined;
 };
+export type TripSliceTripUser = {
+  id: string;
+  tripId: string;
+  userId: string;
+  role: TripUserRole;
+  activated: boolean;
+  handle: string;
+};
 
 export interface TripSlice {
   trip: {
@@ -74,6 +84,9 @@ export interface TripSlice {
   commentGroup: {
     [id: string]: TripSliceCommentGroup;
   };
+  tripUser: {
+    [tripUserId: string]: TripSliceTripUser;
+  };
   /** return: unsubscribe function */
   subscribeTrip: (id: string) => () => void;
 
@@ -82,6 +95,8 @@ export interface TripSlice {
   getAccommodation: (id: string) => TripSliceAccommodation | undefined;
   getMacroplan: (id: string) => TripSliceMacroplan | undefined;
   getCommentGroup: (id: string) => TripSliceCommentGroup | undefined;
+  getExpense: (id: string) => TripSliceExpense | undefined;
+  getTripUsers: (ids: string[]) => TripSliceTripUser[];
 }
 
 export const createTripSlice: StateCreator<
@@ -96,6 +111,8 @@ export const createTripSlice: StateCreator<
     activity: {},
     macroplan: {},
     commentGroup: {},
+    tripUser: {},
+    expense: {},
     subscribeTrip: (tripId: string) => {
       return db.subscribeQuery(
         {
@@ -104,6 +121,7 @@ export const createTripSlice: StateCreator<
               where: {
                 id: tripId,
               },
+              limit: 1,
             },
             activity: {},
             accommodation: {},
@@ -139,6 +157,7 @@ export const createTripSlice: StateCreator<
           if (!trip) {
             return;
           }
+
           set((state) => {
             const newAccommodationState = {
               ...state.accommodation,
@@ -151,6 +170,9 @@ export const createTripSlice: StateCreator<
             };
             const newCommentGroupState = {
               ...state.commentGroup,
+            };
+            const newTripUserState = {
+              ...state.tripUser,
             };
 
             for (const activity of trip.activity) {
@@ -225,6 +247,31 @@ export const createTripSlice: StateCreator<
                 objectId,
               } satisfies TripSliceCommentGroup;
             }
+            const newExpenseState = { ...state.expense };
+            for (const expense of trip.expense) {
+              const commentGroup = trip.commentGroup.find((cg) => {
+                return (
+                  cg.object?.type === COMMENT_GROUP_OBJECT_TYPE.EXPENSE &&
+                  cg.object?.id === expense.id
+                );
+              });
+              newExpenseState[expense.id] = {
+                ...expense,
+                tripId: trip.id,
+                commentGroupId: commentGroup?.id ?? undefined,
+              } satisfies TripSliceExpense;
+            }
+            for (const tripUser of trip.tripUser) {
+              newTripUserState[tripUser.id] = {
+                id: tripUser.id,
+                tripId: trip.id,
+                userId: tripUser.user?.[0]?.id ?? '',
+                role: tripUser.role as TripUserRole,
+                activated: tripUser.user?.[0]?.activated ?? false,
+                handle: tripUser.user?.[0]?.handle ?? '',
+              } satisfies TripSliceTripUser;
+            }
+
             return {
               trip: {
                 ...state.trip,
@@ -249,10 +296,100 @@ export const createTripSlice: StateCreator<
               activity: newActivityState,
               macroplan: newMacroplanState,
               commentGroup: newCommentGroupState,
-            };
+              expense: newExpenseState,
+              tripUser: newTripUserState,
+            } satisfies Partial<TripSlice>;
           });
         },
       );
     },
+    getTrip: (id: string): TripSliceTrip | undefined => {
+      const trip = get().trip[id];
+      if (!trip) {
+        return undefined;
+      }
+      return trip;
+    },
+    getActivity: (id: string): TripSliceActivity | undefined => {
+      const activity = get().activity[id];
+      if (!activity) {
+        return undefined;
+      }
+      return activity;
+    },
+    getAccommodation: (id: string): TripSliceAccommodation | undefined => {
+      const accommodation = get().accommodation[id];
+      if (!accommodation) {
+        return undefined;
+      }
+      return accommodation;
+    },
+    getMacroplan: (id: string): TripSliceMacroplan | undefined => {
+      const macroplan = get().macroplan[id];
+      if (!macroplan) {
+        return undefined;
+      }
+      return macroplan;
+    },
+    getCommentGroup: (id: string): TripSliceCommentGroup | undefined => {
+      const commentGroup = get().commentGroup[id];
+      if (!commentGroup) {
+        return undefined;
+      }
+      return commentGroup;
+    },
+    getExpense: (id: string): TripSliceExpense | undefined => {
+      const expense = get().expense[id];
+      if (!expense) {
+        return undefined;
+      }
+      return expense;
+    },
+    getTripUsers: (ids: string[]): TripSliceTripUser[] => {
+      const tripUsers = ids.map((id) => get().tripUser[id]);
+      return tripUsers;
+    },
   };
 };
+
+export function useTrip(tripId: string) {
+  const trip = useBoundStore(useShallow((state) => state.getTrip(tripId)));
+  return trip;
+}
+export function useTripActivity(activityId: string) {
+  const activity = useBoundStore(
+    useShallow((state) => state.getActivity(activityId)),
+  );
+  return activity;
+}
+export function useTripAccommodation(accommodationId: string) {
+  const accommodation = useBoundStore(
+    useShallow((state) => state.getAccommodation(accommodationId)),
+  );
+  return accommodation;
+}
+export function useTripMacroplan(macroplanId: string) {
+  const macroplan = useBoundStore(
+    useShallow((state) => state.getMacroplan(macroplanId)),
+  );
+  return macroplan;
+}
+export function useTripCommentGroup(commentGroupId: string) {
+  const commentGroup = useBoundStore(
+    useShallow((state) => state.getCommentGroup(commentGroupId)),
+  );
+  return commentGroup;
+}
+export function useTripExpense(expenseId: string) {
+  const expense = useBoundStore(
+    useShallow((state) => state.getExpense(expenseId)),
+  );
+  return expense;
+}
+
+export function useTripUserIds(userIds: string[]) {
+  const tripUsers = useBoundStore(
+    useShallow((state) => state.getTripUsers(userIds)),
+  );
+  return tripUsers;
+}

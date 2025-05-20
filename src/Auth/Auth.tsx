@@ -11,14 +11,15 @@ import {
 } from '@radix-ui/themes';
 import type React from 'react';
 import { useCallback, useEffect, useId, useMemo, useState } from 'react';
-import { Link, type RouteComponentProps, useLocation } from 'wouter';
+import { type RouteComponentProps, useLocation } from 'wouter';
 import { CommonDialogMaxWidth } from '../Dialog/ui';
-import { db, dbUpsertUser } from '../data/db';
+import { db } from '../data/db';
 import { useBoundStore } from '../data/store';
 import imgUrl from '../logo/ikuyo.svg';
 import { DocTitle } from '../Nav/DocTitle';
-import { RouteAccount, RouteTrips } from '../Routes/routes';
+import { RouteTrips } from '../Routes/routes';
 import s from './Auth.module.css';
+import { useAuthUser, useCurrentUser } from './store';
 
 export default PageLogin;
 
@@ -31,12 +32,11 @@ enum AuthScreen {
 }
 
 export function PageLogin(_props: RouteComponentProps) {
-  const { isLoading: authUserLoading, user: authUser, error } = db.useAuth();
+  const { authUser, authUserLoading, authUserError: error } = useAuthUser();
+  const currentUser = useCurrentUser();
+
   const [screen, setScreen] = useState(AuthScreen.LoginSelection);
   const [sentEmail, setSentEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const publishToast = useBoundStore((state) => state.publishToast);
-  const resetToast = useBoundStore((state) => state.resetToast);
   const [, setLocation] = useLocation();
 
   const googleAuthUrl = useMemo(
@@ -49,73 +49,20 @@ export function PageLogin(_props: RouteComponentProps) {
   );
 
   useEffect(() => {
-    async function checkUser(userEmail: string) {
-      setIsLoading(true);
-      const { data: userData } = await db.queryOnce({
-        user: {
-          $: {
-            where: {
-              email: userEmail,
-            },
-            limit: 1,
-          },
-        },
-      });
-      if (userData.user.length === 0 || !userData.user[0].activated) {
-        // Create new user if not exist, or alr exist but not yet activated
-        const defaultHandle = userEmail.toLowerCase().replace(/[@.]/g, '_');
-        void dbUpsertUser({
-          handle: defaultHandle,
-          email: userEmail,
-          activated: true,
-        }).then(() => {
-          publishToast({
-            root: { duration: Number.POSITIVE_INFINITY },
-            title: { children: 'Welcome!' },
-            description: {
-              children: `Activated account for ${userEmail}. Account handle is set as ${defaultHandle}`,
-            },
-            action: {
-              altText: 'Go to account details edit page to edit handle',
-              children: (
-                <Button asChild>
-                  <Link to={RouteAccount.asRootRoute()}>
-                    Edit account details
-                  </Link>
-                </Button>
-              ),
-            },
-            close: {},
-          });
-          setIsLoading(false);
-          setLocation(RouteTrips.asRootRoute());
-        });
-      } else if (userData.user.length > 0) {
-        const userHandle = userData.user[0].handle;
-        publishToast({
-          root: {},
-          title: { children: `Welcome back ${userHandle}!` },
-          close: {},
-        });
-        setIsLoading(false);
-        setLocation(RouteTrips.asRootRoute());
-      }
+    if (authUser && currentUser && !authUserLoading) {
+      setLocation(RouteTrips.asRootRoute());
     }
-    if (authUser?.email) {
-      resetToast();
-      void checkUser(authUser.email);
-    }
-  }, [authUser?.email, resetToast, publishToast, setLocation]);
+  }, [authUser, currentUser, authUserLoading, setLocation]);
 
   return (
     <>
       <DocTitle title={'Login'} />
       <Grid className={s.grid}>
         <Box maxWidth={CommonDialogMaxWidth} mx="2" px="2">
-          {authUserLoading || isLoading ? (
+          {authUserLoading ? (
             <Spinner m="3" />
           ) : error ? (
-            `Error: ${error.message}`
+            `Error: ${error}`
           ) : screen === AuthScreen.LoginSelection ? (
             <LoginSelection
               setScreen={setScreen}

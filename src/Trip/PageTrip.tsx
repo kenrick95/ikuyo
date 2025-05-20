@@ -1,4 +1,4 @@
-import { Heading, Skeleton, Spinner } from '@radix-ui/themes';
+import { Heading, Skeleton } from '@radix-ui/themes';
 import React, { useEffect, useMemo } from 'react';
 import { Redirect, Route, type RouteComponentProps, Switch } from 'wouter';
 import { withLoading } from '../Loading/withLoading';
@@ -62,8 +62,7 @@ import {
   RouteTripMap,
   RouteTripTimetableView,
 } from '../Routes/routes';
-import { TripContext } from './context';
-import type { DbTripFull } from './db';
+import { type TripSliceTrip, useTrip, useTripUserIds } from './store';
 import { TripMenuFloating } from './TripMenuFloating';
 
 export default PageTrip;
@@ -73,34 +72,28 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   useEffect(() => {
     return subscribeTrip(tripId);
   }, [tripId, subscribeTrip]);
+  const trip = useTrip(tripId);
 
-  return <PageTripInner trip={trip} isLoading={isLoading} error={error} />;
+  return <PageTripInner trip={trip} />;
 }
 
-function PageTripInner({
-  trip,
-  isLoading,
-  error,
-}: {
-  trip: DbTripFull | undefined;
-  isLoading: boolean;
-  error: { message: string } | undefined;
-}) {
+function PageTripInner({ trip }: { trip: TripSliceTrip | undefined }) {
   const user = useBoundStore(useShallow((state) => state.currentUser));
+  const tripUsers = useTripUserIds(trip?.tripUserIds ?? []);
 
   const currentUserIsOwner = useMemo(() => {
-    for (const tripUser of trip?.tripUser ?? []) {
+    for (const tripUser of tripUsers) {
       if (
-        user?.id === tripUser.user?.[0]?.id &&
+        user?.id === tripUser.userId &&
         tripUser.role === TripUserRole.Owner
       ) {
         return true;
       }
     }
     return false;
-  }, [trip, user]);
+  }, [tripUsers, user]);
   return (
-    <TripContext.Provider value={trip}>
+    <>
       <DocTitle title={trip?.title ?? 'Trip'} />
       <Navbar
         leftItems={[
@@ -148,33 +141,25 @@ function PageTripInner({
           />,
         ]}
       />
-      {trip ? (
-        <Switch>
-          <Route
-            path={RouteTripTimetableView.routePath}
-            component={Timetable}
-            nest
-          />
-          <Route
-            path={RouteTripListView.routePath}
-            component={ActivityList}
-            nest
-          />
-          <Route path={RouteTripMap.routePath} component={TripMap} />
-          <Route path={RouteTripExpenses.routePath} component={ExpenseList} />
-          <Route path={RouteTripComment.routePath} component={TripComment} />
-          <Route path={RouteTripHome.routePath} component={TripHome} />
-          <Redirect replace to={RouteTripHome.routePath} />
-        </Switch>
-      ) : isLoading ? (
-        <Spinner m="3" />
-      ) : error ? (
-        `Error: ${error.message}`
-      ) : (
-        ''
-      )}
+      <Switch>
+        <Route
+          path={RouteTripTimetableView.routePath}
+          component={Timetable}
+          nest
+        />
+        <Route
+          path={RouteTripListView.routePath}
+          component={ActivityList}
+          nest
+        />
+        <Route path={RouteTripMap.routePath} component={TripMap} />
+        <Route path={RouteTripExpenses.routePath} component={ExpenseList} />
+        <Route path={RouteTripComment.routePath} component={TripComment} />
+        <Route path={RouteTripHome.routePath} component={TripHome} />
+        <Redirect replace to={RouteTripHome.routePath} />
+      </Switch>
       <TripMenuFloating />
-    </TripContext.Provider>
+    </>
   );
 }
 function isObjectEqualForSimpleKeys<T extends object, K extends keyof T>(

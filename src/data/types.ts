@@ -10,8 +10,6 @@ export type DbUser = {
   createdAt: number;
   lastUpdatedAt: number;
   activated: boolean;
-
-  tripUser: DbTripUser[] | undefined;
 };
 export type DbSchema = {
   activity: DbActivity;
