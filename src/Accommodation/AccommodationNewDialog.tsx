@@ -3,12 +3,12 @@ import { DateTime } from 'luxon';
 import { useMemo } from 'react';
 import { CommonDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
-import type { DbTrip } from '../Trip/db';
+import type { TripSliceTrip } from '../Trip/store';
 import { AccommodationForm } from './AccommodationForm';
 import { AccommodationFormMode } from './AccommodationFormMode';
 import { formatToDatetimeLocalInput } from './time';
 
-export function AccommodationNewDialog({ trip }: { trip: DbTrip }) {
+export function AccommodationNewDialog({ trip }: { trip: TripSliceTrip }) {
   const popDialog = useBoundStore((state) => state.popDialog);
   const tripStartStr = formatToDatetimeLocalInput(
     DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone),

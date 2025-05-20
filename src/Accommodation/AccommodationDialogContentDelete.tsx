@@ -3,23 +3,24 @@ import { useCallback } from 'react';
 import { useLocation } from 'wouter';
 import type { DialogContentProps } from '../Dialog/DialogRoute';
 import { useBoundStore } from '../data/store';
+import type { TripSliceAccommodation } from '../Trip/store';
 import { dangerToken } from '../ui';
 import { AccommodationDialogMode } from './AccommodationDialogMode';
-import { type DbAccommodationWithTrip, dbDeleteAccommodation } from './db';
+import { dbDeleteAccommodation } from './db';
 
 export function AccommodationDialogContentDelete({
   data: accommodation,
   setMode,
   dialogContentProps,
   DialogTitleSection,
-}: DialogContentProps<DbAccommodationWithTrip>) {
+}: DialogContentProps<TripSliceAccommodation>) {
   const [, setLocation] = useLocation();
   const publishToast = useBoundStore((state) => state.publishToast);
   const deleteAccommodation = useCallback(() => {
     if (!accommodation) {
       return;
     }
-    void dbDeleteAccommodation(accommodation)
+    void dbDeleteAccommodation(accommodation.id, accommodation.tripId)
       .then(() => {
         publishToast({
           root: {},

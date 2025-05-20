@@ -53,8 +53,8 @@ export async function dbAddActivity(
       }),
   );
 }
-export async function dbDeleteActivity(activity: DbActivity) {
-  return db.transact(db.tx.activity[activity.id].delete());
+export async function dbDeleteActivity(activityId: string) {
+  return db.transact(db.tx.activity[activityId].delete());
 }
 export async function dbUpdateActivity(
   activity: Omit<DbActivity, 'createdAt' | 'lastUpdatedAt' | 'trip'>,

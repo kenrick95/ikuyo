@@ -15,14 +15,15 @@ import { useBoundStore } from '../data/store';
 import { TripUserRole } from '../data/TripUserRole';
 import type { DbUser } from '../data/types';
 import { dangerToken } from '../ui';
-import { type DbTrip, dbAddUserToTrip, dbRemoveUserFromTrip } from './db';
+import { dbAddUserToTrip, dbRemoveUserFromTrip } from './db';
+import type { TripSliceTrip } from './store';
 import s from './TripSharingDialog.module.css';
 
 export function TripSharingDialog({
   trip,
   user: currentUser,
 }: {
-  trip: DbTrip;
+  trip: TripSliceTrip;
   user: DbUser;
 }) {
   const popDialog = useBoundStore((state) => state.popDialog);

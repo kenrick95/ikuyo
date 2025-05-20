@@ -3,9 +3,9 @@ import { DateTime } from 'luxon';
 import type * as React from 'react';
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
 import { useBoundStore } from '../data/store';
-import type { DbTripFull } from '../Trip/db';
+import type { TripSliceExpense, TripSliceTrip } from '../Trip/store';
 import { dangerToken } from '../ui';
-import { type DbExpense, dbAddExpense, dbUpdateExpense } from './db';
+import { dbAddExpense, dbUpdateExpense } from './db';
 import { ExpenseMode } from './ExpenseMode';
 import { formatToDateInput, getDateTimeFromDateInput } from './time';
 export function ExpenseInlineForm({
@@ -14,8 +14,8 @@ export function ExpenseInlineForm({
   expenseMode,
   setExpenseMode,
 }: {
-  trip: DbTripFull;
-  expense: DbExpense | undefined;
+  trip: TripSliceTrip;
+  expense: TripSliceExpense | undefined;
   expenseMode: ExpenseMode;
   setExpenseMode: (mode: ExpenseMode) => void;
 }) {

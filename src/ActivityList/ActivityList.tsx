@@ -17,13 +17,13 @@ import {
   RouteTripListViewActivity,
   RouteTripListViewMacroplan,
 } from '../Routes/routes';
-import { useTrip } from '../Trip/context';
+import { useCurrentTrip } from '../Trip/store';
 import { TripViewMode } from '../Trip/TripViewMode';
 import { TripMap } from '../TripMap/TripMap';
 import s from './ActivityList.module.css';
 
 export function ActivityList() {
-  const trip = useTrip();
+  const trip = useCurrentTrip();
   const dayGroups = useMemo(() => groupActivitiesByDays(trip), [trip]);
   const pushDialog = useBoundStore((state) => state.pushDialog);
   const openActivityNewDialog = useCallback(() => {

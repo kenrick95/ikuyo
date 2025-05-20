@@ -12,28 +12,30 @@ import {
   RouteTripTimetableViewActivity,
   RouteTripTimetableViewMacroplan,
 } from '../Routes/routes';
+import {
+  type TripSliceCommentWithUser,
+  useTripCommentGroup,
+} from '../Trip/store';
 import { dangerToken } from '../ui';
 import s from './Comment.module.css';
 import { CommentForm } from './CommentForm';
 import { CommentMode, type CommentModeType } from './CommentMode';
-import {
-  type DbComment,
-  type DbCommentGroupObjectType,
-  dbDeleteComment,
-} from './db';
+import { dbDeleteComment } from './db';
 
-function CommentInner<ObjectType extends DbCommentGroupObjectType>({
+function CommentInner({
   comment,
   onFormFocus,
   showCommentObjectTarget,
   showControls,
 }: {
-  comment: DbComment<ObjectType>;
+  comment: TripSliceCommentWithUser;
   onFormFocus: () => void;
   showCommentObjectTarget: boolean;
   showControls: boolean;
 }) {
   const currentUser = useBoundStore((state) => state.currentUser);
+  const commentGroup = useTripCommentGroup(comment.commentGroupId);
+
   const { user } = comment;
   const isCommentOwnedByCurrentUser = useMemo(() => {
     return currentUser && user && currentUser.id === user.id;
@@ -53,51 +55,38 @@ function CommentInner<ObjectType extends DbCommentGroupObjectType>({
     if (!showCommentObjectTarget) {
       return ['', ''];
     }
-    if (comment.group?.object) {
-      const objectType = comment.group.object.type;
-      if (objectType === 'activity') {
-        const activity = comment.group.object.activity?.[0];
-        if (activity) {
-          return [
-            activity.title,
-            RouteTripTimetableView.asRouteTarget() +
-              RouteTripTimetableViewActivity.asRouteTarget(activity.id),
-          ];
-        }
-      } else if (objectType === 'macroplan') {
-        const macroplan = comment.group.object.macroplan?.[0];
-        if (macroplan) {
-          return [
-            macroplan.name,
-            RouteTripTimetableView.asRouteTarget() +
-              RouteTripTimetableViewMacroplan.asRouteTarget(macroplan.id),
-          ];
-        }
-      } else if (objectType === 'accommodation') {
-        const accommodation = comment.group.object.accommodation?.[0];
-        if (accommodation) {
-          return [
-            accommodation.name,
-            RouteTripTimetableView.asRouteTarget() +
-              RouteTripTimetableViewAccommodation.asRouteTarget(
-                accommodation.id,
-              ),
-          ];
-        }
-      } else if (objectType === 'expense') {
-        const expense = comment.group.object.expense?.[0];
-        if (expense) {
-          return [expense.title, RouteTripExpenses.asRouteTarget()];
-        }
-      } else if (objectType === 'trip') {
-        const trip = comment.group.object.trip?.[0];
-        if (trip) {
-          return [trip.title, '/'];
-        }
-      }
+    const objectType = commentGroup?.objectType;
+    const objectId = commentGroup?.objectId;
+    const objectName = commentGroup?.objectName;
+    if (!objectType || !objectId || !objectName) {
+      return ['', ''];
+    }
+
+    if (objectType === 'activity') {
+      return [
+        objectName,
+        RouteTripTimetableView.asRouteTarget() +
+          RouteTripTimetableViewActivity.asRouteTarget(objectId),
+      ];
+    } else if (objectType === 'macroplan') {
+      return [
+        objectName,
+        RouteTripTimetableView.asRouteTarget() +
+          RouteTripTimetableViewMacroplan.asRouteTarget(objectId),
+      ];
+    } else if (objectType === 'accommodation') {
+      return [
+        objectName,
+        RouteTripTimetableView.asRouteTarget() +
+          RouteTripTimetableViewAccommodation.asRouteTarget(objectId),
+      ];
+    } else if (objectType === 'expense') {
+      return [objectName, RouteTripExpenses.asRouteTarget()];
+    } else if (objectType === 'trip') {
+      return [objectName, '/'];
     }
     return ['', ''];
-  }, [comment.group?.object, showCommentObjectTarget]);
+  }, [commentGroup, showCommentObjectTarget]);
   return (
     <Flex gap="3" align="start">
       <UserAvatar user={user} />
@@ -128,19 +117,16 @@ function CommentInner<ObjectType extends DbCommentGroupObjectType>({
           </Text>
         </Flex>
 
-        {commentMode === CommentMode.Edit &&
-        comment.group &&
-        comment.group.trip &&
-        comment.group.object ? (
+        {commentMode === CommentMode.Edit && commentGroup ? (
           <CommentForm
             mode={CommentMode.Edit}
-            user={user}
+            user={currentUser}
             commentId={comment.id}
-            commentGroupId={comment.group.id}
+            commentGroupId={comment.commentGroupId}
             commentContent={comment.content}
-            tripId={comment.group.trip.id}
-            objectId={comment.group.object.id}
-            objectType={comment.group.object.type}
+            tripId={commentGroup.tripId}
+            objectId={commentGroup.objectId}
+            objectType={commentGroup.objectType}
             setCommentMode={setCommentMode}
             onFormFocus={onFormFocus}
           />
@@ -189,7 +175,7 @@ function CommentInner<ObjectType extends DbCommentGroupObjectType>({
                         variant="solid"
                         color={dangerToken}
                         onClick={() => {
-                          dbDeleteComment(comment)
+                          dbDeleteComment(comment.id, comment.commentGroupId)
                             .then(() => {
                               publishToast({
                                 root: {},

@@ -176,20 +176,18 @@ export async function dbUpdateComment<
   return db.transact(transactions);
 }
 
-export async function dbDeleteComment<
-  ObjectType extends DbCommentGroupObjectType,
->(
-  comment: Omit<DbComment<ObjectType>, 'createdAt' | 'lastUpdatedAt' | 'user'>,
+export async function dbDeleteComment(
+  commentId: string,
+  commentGroupId: string,
 ) {
-  const commentGroupId = comment.group?.id;
   if (!commentGroupId) {
     throw new Error('Comment group id is required to delete comment');
   }
   const transactions = [
     db.tx.commentGroup[commentGroupId].unlink({
-      comment: [comment.id],
+      comment: [commentId],
     }),
-    db.tx.comment[comment.id].delete(),
+    db.tx.comment[commentId].delete(),
   ];
   await db.transact(transactions);
 

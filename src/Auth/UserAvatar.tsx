@@ -1,8 +1,11 @@
 import { Avatar } from '@radix-ui/themes';
 import { memo } from 'react';
-import type { DbUser } from '../data/types';
 
-function UserAvatarInner({ user }: { user: DbUser | null | undefined }) {
+function UserAvatarInner({
+  user,
+}: {
+  user: { id: string; handle: string } | null | undefined;
+}) {
   return (
     <Avatar
       highContrast={true}
@@ -10,7 +13,7 @@ function UserAvatarInner({ user }: { user: DbUser | null | undefined }) {
       radius="full"
       color="gray"
       variant="soft"
-      fallback={user?.handle[0] || ''}
+      fallback={user?.handle?.[0] || ''}
     />
   );
 }

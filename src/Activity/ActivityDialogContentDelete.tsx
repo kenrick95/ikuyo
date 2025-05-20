@@ -3,15 +3,16 @@ import { useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { type DialogContentProps, DialogMode } from '../Dialog/DialogRoute';
 import { useBoundStore } from '../data/store';
+import type { TripSliceActivity } from '../Trip/store';
 import { dangerToken } from '../ui';
-import { type DbActivityWithTrip, dbDeleteActivity } from './db';
+import { dbDeleteActivity } from './db';
 
 export function ActivityDialogContentDelete({
   data: activity,
   setMode,
   dialogContentProps,
   DialogTitleSection,
-}: DialogContentProps<DbActivityWithTrip>) {
+}: DialogContentProps<TripSliceActivity>) {
   const [, setLocation] = useLocation();
   const publishToast = useBoundStore((state) => state.publishToast);
   const deleteActivity = useCallback(() => {
@@ -19,7 +20,7 @@ export function ActivityDialogContentDelete({
       console.error('Activity is undefined');
       return;
     }
-    void dbDeleteActivity(activity)
+    void dbDeleteActivity(activity.id)
       .then(() => {
         publishToast({
           root: {},

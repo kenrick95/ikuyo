@@ -2,10 +2,10 @@ import { Box, Dialog, Spinner } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { useCallback } from 'react';
 import type { DialogContentProps } from '../Dialog/DialogRoute';
+import { type TripSliceActivity, useTrip } from '../Trip/store';
 import { ActivityDialogMode } from './ActivityDialogMode';
 import { ActivityForm } from './ActivityForm';
 import { ActivityFormMode } from './ActivityFormMode';
-import type { DbActivityWithTrip } from './db';
 import { formatToDatetimeLocalInput } from './time';
 
 export function ActivityDialogContentEdit({
@@ -13,35 +13,35 @@ export function ActivityDialogContentEdit({
   setMode,
   dialogContentProps,
   DialogTitleSection,
-}: DialogContentProps<DbActivityWithTrip>) {
-  const tripStartStr = activity
-    ? formatToDatetimeLocalInput(
-        DateTime.fromMillis(activity.trip.timestampStart).setZone(
-          activity.trip.timeZone,
-        ),
-      )
-    : '';
-  const tripEndStr = activity
-    ? formatToDatetimeLocalInput(
-        DateTime.fromMillis(activity.trip.timestampEnd)
-          .setZone(activity.trip.timeZone)
-          .minus({ minute: 1 }),
-      )
-    : '';
-  const activityStartStr = activity
-    ? formatToDatetimeLocalInput(
-        DateTime.fromMillis(activity.timestampStart).setZone(
-          activity.trip.timeZone,
-        ),
-      )
-    : '';
-  const activityEndStr = activity
-    ? formatToDatetimeLocalInput(
-        DateTime.fromMillis(activity.timestampEnd).setZone(
-          activity.trip.timeZone,
-        ),
-      )
-    : '';
+}: DialogContentProps<TripSliceActivity>) {
+  const trip = useTrip(activity?.tripId);
+
+  const tripStartStr =
+    activity && trip
+      ? formatToDatetimeLocalInput(
+          DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone),
+        )
+      : '';
+  const tripEndStr =
+    activity && trip
+      ? formatToDatetimeLocalInput(
+          DateTime.fromMillis(trip.timestampEnd)
+            .setZone(trip.timeZone)
+            .minus({ minute: 1 }),
+        )
+      : '';
+  const activityStartStr =
+    activity && trip
+      ? formatToDatetimeLocalInput(
+          DateTime.fromMillis(activity.timestampStart).setZone(trip.timeZone),
+        )
+      : '';
+  const activityEndStr =
+    activity && trip
+      ? formatToDatetimeLocalInput(
+          DateTime.fromMillis(activity.timestampEnd).setZone(trip.timeZone),
+        )
+      : '';
   const backToViewMode = useCallback(() => {
     setMode(ActivityDialogMode.View);
   }, [setMode]);
@@ -53,14 +53,14 @@ export function ActivityDialogContentEdit({
         Fill in your edited activity details...
       </Dialog.Description>
       <Box height="16px" />
-      {activity ? (
+      {activity && trip ? (
         <ActivityForm
           activityId={activity.id}
           mode={ActivityFormMode.Edit}
           tripStartStr={tripStartStr}
           tripEndStr={tripEndStr}
-          tripTimeZone={activity.trip.timeZone}
-          tripRegion={activity.trip.region}
+          tripTimeZone={trip.timeZone}
+          tripRegion={trip.region}
           activityTitle={activity.title}
           activityStartStr={activityStartStr}
           activityEndStr={activityEndStr}

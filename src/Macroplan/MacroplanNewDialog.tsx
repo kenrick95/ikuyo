@@ -3,12 +3,12 @@ import { DateTime } from 'luxon';
 import { useMemo } from 'react';
 import { CommonDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
-import type { DbTrip } from '../Trip/db';
+import type { TripSliceTrip } from '../Trip/store';
 import { MacroplanForm } from './MacroplanForm';
 import { MacroplanFormMode } from './MacroplanFormMode';
 import { formatToDateInput } from './time';
 
-export function MacroplanNewDialog({ trip }: { trip: DbTrip }) {
+export function MacroplanNewDialog({ trip }: { trip: TripSliceTrip }) {
   const popDialog = useBoundStore((state) => state.popDialog);
   const tripStartStr = formatToDateInput(
     DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone),

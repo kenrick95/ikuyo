@@ -3,8 +3,9 @@ import { useCallback } from 'react';
 import { useLocation } from 'wouter';
 import type { DialogContentProps } from '../Dialog/DialogRoute';
 import { useBoundStore } from '../data/store';
+import type { TripSliceMacroplan } from '../Trip/store';
 import { dangerToken } from '../ui';
-import { type DbMacroplanWithTrip, dbDeleteMacroplan } from './db';
+import { dbDeleteMacroplan } from './db';
 import { MacroplanDialogMode } from './MacroplanDialogMode';
 
 export function MacroplanDialogContentDelete({
@@ -12,7 +13,7 @@ export function MacroplanDialogContentDelete({
   setMode,
   dialogContentProps,
   DialogTitleSection,
-}: DialogContentProps<DbMacroplanWithTrip>) {
+}: DialogContentProps<TripSliceMacroplan>) {
   const [, setLocation] = useLocation();
   const publishToast = useBoundStore((state) => state.publishToast);
   const deleteMacroplan = useCallback(() => {
@@ -20,7 +21,7 @@ export function MacroplanDialogContentDelete({
       console.error('No macroplan to delete');
       return;
     }
-    void dbDeleteMacroplan(macroplan)
+    void dbDeleteMacroplan(macroplan.id, macroplan.tripId)
       .then(() => {
         publishToast({
           root: {},

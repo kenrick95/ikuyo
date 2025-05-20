@@ -1,12 +1,12 @@
 import { Button, Flex, Select, Text, TextField } from '@radix-ui/themes';
 import { useCallback, useId, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
-import type { DbActivity } from '../Activity/db';
 import { REGIONS_LIST } from '../data/intl/regions';
 import { useBoundStore } from '../data/store';
 import { RouteTrip } from '../Routes/routes';
 import { dangerToken } from '../ui';
 import { dbAddTrip, dbUpdateTrip } from './db';
+import type { TripSliceActivity } from './store';
 import { TripFormMode } from './TripFormMode';
 import { getDateTimeFromDateInput } from './time';
 
@@ -35,7 +35,7 @@ export function TripForm({
   tripCurrency: string;
   tripOriginCurrency: string;
   userId?: string;
-  activities?: DbActivity[];
+  activities?: TripSliceActivity[];
   onFormSuccess: () => void;
   onFormCancel: () => void;
 }) {

@@ -3,28 +3,22 @@ import { Button, DropdownMenu } from '@radix-ui/themes';
 import { Link, useLocation } from 'wouter';
 import { AccommodationNewDialog } from '../Accommodation/AccommodationNewDialog';
 import { ActivityNewDialog } from '../Activity/ActivityNewDialog';
+import { useCurrentUser } from '../Auth/store';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
 import { db } from '../data/db';
 import { useBoundStore } from '../data/store';
-import type { DbUser } from '../data/types';
 import { MacroplanNewDialog } from '../Macroplan/MacroplanNewDialog';
 import { RouteAccount, RouteLogin, RouteTrips } from '../Routes/routes';
-import type { DbTripFull } from './db';
+import { useCurrentTrip } from './store';
 import { TripDeleteDialog } from './TripDeleteDialog';
 import { TripEditDialog } from './TripEditDialog';
 import s from './TripMenu.module.css';
 import { TripSharingDialog } from './TripSharingDialog';
 
-export function TripMenu({
-  trip,
-  user,
-  showTripSharing,
-}: {
-  trip: DbTripFull | undefined;
-  user: DbUser | null | undefined;
-  showTripSharing: boolean;
-}) {
+export function TripMenu({ showTripSharing }: { showTripSharing: boolean }) {
   const [, setLocation] = useLocation();
+  const trip = useCurrentTrip();
+  const user = useCurrentUser();
   const pushDialog = useBoundStore((state) => state.pushDialog);
   return (
     <>

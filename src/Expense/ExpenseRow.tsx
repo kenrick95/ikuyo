@@ -3,36 +3,22 @@ import { Button, Flex, Popover, Table, Text } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { useState } from 'react';
 import { useBoundStore } from '../data/store';
-import type { DbTripFull } from '../Trip/db';
+import { type TripSliceExpense, useTrip } from '../Trip/store';
 import { dangerToken } from '../ui';
-import { type DbExpense, dbDeleteExpense } from './db';
+import { dbDeleteExpense } from './db';
 import { ExpenseInlineForm } from './ExpenseInlineForm';
 import { ExpenseMode } from './ExpenseMode';
 import { formatTimestampToReadableDate } from './time';
 
-export function ExpenseRow({
-  expense,
-  trip,
-}: {
-  expense: DbExpense;
-  trip: DbTripFull;
-}) {
+export function ExpenseRow({ expense }: { expense: TripSliceExpense }) {
   const [expenseMode, setExpenseMode] = useState(ExpenseMode.View);
 
   return (
     <Table.Row key={expense.id}>
       {expenseMode === ExpenseMode.View ? (
-        <ExpenseRowView
-          expense={expense}
-          trip={trip}
-          setExpenseMode={setExpenseMode}
-        />
+        <ExpenseRowView expense={expense} setExpenseMode={setExpenseMode} />
       ) : (
-        <ExpenseRowEdit
-          expense={expense}
-          trip={trip}
-          setExpenseMode={setExpenseMode}
-        />
+        <ExpenseRowEdit expense={expense} setExpenseMode={setExpenseMode} />
       )}
     </Table.Row>
   );
@@ -40,41 +26,41 @@ export function ExpenseRow({
 
 function ExpenseRowEdit({
   expense,
-  trip,
   setExpenseMode,
 }: {
-  expense: DbExpense;
-  trip: DbTripFull;
+  expense: TripSliceExpense;
   setExpenseMode: (mode: ExpenseMode) => void;
 }) {
-  return (
+  const trip = useTrip(expense.tripId);
+  return trip ? (
     <ExpenseInlineForm
       expense={expense}
-      expenseMode={ExpenseMode.Edit}
       trip={trip}
+      expenseMode={ExpenseMode.Edit}
       setExpenseMode={setExpenseMode}
     />
-  );
+  ) : null;
 }
 
 function ExpenseRowView({
   expense,
-  trip,
   setExpenseMode,
 }: {
-  expense: DbExpense;
-  trip: DbTripFull;
+  expense: TripSliceExpense;
   setExpenseMode: (mode: ExpenseMode) => void;
 }) {
   const publishToast = useBoundStore((state) => state.publishToast);
+  const trip = useTrip(expense.tripId);
   return (
     <>
       <Table.RowHeaderCell>
-        {formatTimestampToReadableDate(
-          DateTime.fromMillis(expense.timestampIncurred, {
-            zone: trip.timeZone,
-          }),
-        )}
+        {trip
+          ? formatTimestampToReadableDate(
+              DateTime.fromMillis(expense.timestampIncurred, {
+                zone: trip.timeZone,
+              }),
+            )
+          : ''}
       </Table.RowHeaderCell>
       <Table.Cell>{expense.title}</Table.Cell>
       <Table.Cell>{expense.description}</Table.Cell>
@@ -121,7 +107,7 @@ function ExpenseRowView({
                 onClick={() => {
                   dbDeleteExpense({
                     expenseId: expense.id,
-                    tripId: trip.id,
+                    tripId: expense.tripId,
                   })
                     .then(() => {
                       publishToast({

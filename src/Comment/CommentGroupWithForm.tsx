@@ -1,13 +1,14 @@
 import { Spinner, Text } from '@radix-ui/themes';
 import type { DbUser } from '../data/types';
+import { useTripCommentGroup } from '../Trip/store';
 import { CommentForm } from './CommentForm';
 import { CommentGroup } from './CommentGroup';
 import { CommentMode } from './CommentMode';
-import type { DbCommentGroup, DbCommentGroupObjectType } from './db';
+import type { DbCommentGroupObjectType } from './db';
 
 export function CommentGroupWithForm({
   user,
-  commentGroup,
+  commentGroupId,
   tripId,
   objectId,
   objectType,
@@ -16,7 +17,7 @@ export function CommentGroupWithForm({
   onFormFocus,
 }: {
   user?: DbUser;
-  commentGroup?: undefined | DbCommentGroup<DbCommentGroupObjectType>;
+  commentGroupId?: string;
 
   tripId: string | undefined;
   objectId: string | undefined;
@@ -25,6 +26,8 @@ export function CommentGroupWithForm({
   error?: { message: string };
   onFormFocus: () => void;
 }) {
+  const commentGroup = useTripCommentGroup(commentGroupId);
+
   return (
     <>
       {tripId && objectId ? (

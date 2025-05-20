@@ -1,11 +1,11 @@
 import { createDialogRoute } from '../Dialog/DialogRoute';
 import { useBoundStore } from '../data/store';
+import type { TripSliceAccommodation } from '../Trip/store';
 import { AccommodationDialogContentDelete } from './AccommodationDialogContentDelete';
 import { AccommodationDialogContentEdit } from './AccommodationDialogContentEdit';
 import { AccommodationDialogContentView } from './AccommodationDialogContentView';
-import type { DbAccommodationWithTrip } from './db';
 
-export const AccommodationDialog = createDialogRoute<DbAccommodationWithTrip>({
+export const AccommodationDialog = createDialogRoute<TripSliceAccommodation>({
   DialogContentView: AccommodationDialogContentView,
   DialogContentEdit: AccommodationDialogContentEdit,
   DialogContentDelete: AccommodationDialogContentDelete,

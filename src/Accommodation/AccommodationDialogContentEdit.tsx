@@ -2,10 +2,10 @@ import { Box, Dialog, Spinner } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { useCallback } from 'react';
 import type { DialogContentProps } from '../Dialog/DialogRoute';
+import { type TripSliceAccommodation, useTrip } from '../Trip/store';
 import { AccommodationDialogMode } from './AccommodationDialogMode';
 import { AccommodationForm } from './AccommodationForm';
 import { AccommodationFormMode } from './AccommodationFormMode';
-import type { DbAccommodationWithTrip } from './db';
 import { formatToDatetimeLocalInput } from './time';
 
 export function AccommodationDialogContentEdit({
@@ -13,36 +13,38 @@ export function AccommodationDialogContentEdit({
   setMode,
   dialogContentProps,
   DialogTitleSection,
-}: DialogContentProps<DbAccommodationWithTrip>) {
-  const tripStartStr = accommodation
+}: DialogContentProps<TripSliceAccommodation>) {
+  const trip = useTrip(accommodation?.tripId);
+
+  const tripStartStr = trip
     ? formatToDatetimeLocalInput(
-        DateTime.fromMillis(accommodation.trip.timestampStart).setZone(
-          accommodation.trip.timeZone,
-        ),
+        DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone),
       )
     : '';
-  const tripEndStr = accommodation
+  const tripEndStr = trip
     ? formatToDatetimeLocalInput(
-        DateTime.fromMillis(accommodation.trip.timestampEnd)
-          .setZone(accommodation.trip.timeZone)
+        DateTime.fromMillis(trip.timestampEnd)
+          .setZone(trip.timeZone)
           .minus({ minute: 1 }),
       )
     : '';
 
-  const accommodationCheckInStr = accommodation
-    ? formatToDatetimeLocalInput(
-        DateTime.fromMillis(accommodation.timestampCheckIn).setZone(
-          accommodation.trip.timeZone,
-        ),
-      )
-    : '';
-  const accommodationCheckOutStr = accommodation
-    ? formatToDatetimeLocalInput(
-        DateTime.fromMillis(accommodation.timestampCheckOut).setZone(
-          accommodation.trip.timeZone,
-        ),
-      )
-    : '';
+  const accommodationCheckInStr =
+    accommodation && trip
+      ? formatToDatetimeLocalInput(
+          DateTime.fromMillis(accommodation.timestampCheckIn).setZone(
+            trip.timeZone,
+          ),
+        )
+      : '';
+  const accommodationCheckOutStr =
+    accommodation && trip
+      ? formatToDatetimeLocalInput(
+          DateTime.fromMillis(accommodation.timestampCheckOut).setZone(
+            trip.timeZone,
+          ),
+        )
+      : '';
   const backToViewMode = useCallback(() => {
     setMode(AccommodationDialogMode.View);
   }, [setMode]);
@@ -54,12 +56,12 @@ export function AccommodationDialogContentEdit({
         Fill in the edited accommodation details for this trip...
       </Dialog.Description>
       <Box height="16px" />
-      {accommodation ? (
+      {accommodation && trip ? (
         <AccommodationForm
           mode={AccommodationFormMode.Edit}
-          tripId={accommodation.trip.id}
+          tripId={trip.id}
           accommodationId={accommodation.id}
-          tripTimeZone={accommodation.trip.timeZone}
+          tripTimeZone={trip.timeZone}
           tripStartStr={tripStartStr}
           tripEndStr={tripEndStr}
           accommodationName={accommodation.name}

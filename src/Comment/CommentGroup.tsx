@@ -1,30 +1,23 @@
 import { Flex } from '@radix-ui/themes';
-import { useMemo } from 'react';
+import { type TripSliceCommentGroup, useTripComments } from '../Trip/store';
 import { Comment } from './Comment';
-import type { DbCommentGroup, DbCommentGroupObjectType } from './db';
 
-export function CommentGroup<ObjectType extends DbCommentGroupObjectType>({
+export function CommentGroup({
   commentGroup,
   onFormFocus,
   showCommentObjectTarget,
   showControls,
 }: {
-  commentGroup: undefined | DbCommentGroup<ObjectType>;
+  commentGroup: undefined | TripSliceCommentGroup;
   onFormFocus: () => void;
   showCommentObjectTarget: boolean;
   showControls: boolean;
 }) {
-  const sortedComments = useMemo(() => {
-    return (
-      commentGroup?.comment.sort((a, b) => {
-        // sort by createdAt descending
-        return b.createdAt - a.createdAt;
-      }) ?? []
-    );
-  }, [commentGroup]);
+  const comments = useTripComments(commentGroup?.commentIds ?? []);
+
   return (
     <Flex direction="column" gap="3">
-      {sortedComments.map((comment) => (
+      {comments.map((comment) => (
         <Comment
           key={comment.id}
           comment={comment}

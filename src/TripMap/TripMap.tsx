@@ -11,21 +11,24 @@ import {
 import { Container, Heading, Text } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { createPortal } from 'react-dom';
-import type { DbActivityWithTrip } from '../Activity/db';
-import { useTrip } from '../Trip/context';
-
+import {
+  type TripSliceActivity,
+  useCurrentTrip,
+  useTripActivities,
+} from '../Trip/store';
 export function TripMap() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<MapTilerMap>(null);
-  const trip = useTrip();
+  const trip = useCurrentTrip();
+  const activities = useTripActivities(trip?.activityIds ?? []);
 
   const activitiesWithLocation = useMemo(
     () =>
-      trip.activity.filter(
+      activities.filter(
         (activity) =>
           activity.locationLat != null && activity.locationLng != null,
       ),
-    [trip.activity],
+    [activities],
   );
 
   const mapOptions = useMemo(() => {
@@ -65,7 +68,7 @@ export function TripMap() {
   }, [activitiesWithLocation]);
 
   const [popupPortals, setPopupPortals] = useState<
-    { activity: DbActivityWithTrip; popup: HTMLDivElement }[]
+    { activity: TripSliceActivity; popup: HTMLDivElement }[]
   >([]);
 
   useEffect(() => {
@@ -114,10 +117,10 @@ export function TripMap() {
       <div ref={mapContainer} className={s.map} />
       {popupPortals.map(({ activity, popup }) => {
         const activityStartStr = DateTime.fromMillis(activity.timestampStart)
-          .setZone(activity.trip.timeZone)
+          .setZone(trip?.timeZone)
           .toFormat('dd LLLL yyyy HH:mm');
         const activityEndStr = DateTime.fromMillis(activity.timestampEnd)
-          .setZone(activity.trip.timeZone)
+          .setZone(trip?.timeZone)
           // since 1 activity must be in same day, so might as well just show the time for end
           .toFormat('HH:mm');
 

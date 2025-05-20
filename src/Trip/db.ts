@@ -1,5 +1,6 @@
 import { id, lookup, type TransactionChunk } from '@instantdb/core';
 import { DateTime } from 'luxon';
+import type { AppSchema } from '../../instant.schema';
 import type {
   DbAccommodation,
   DbAccommodationWithTrip,
@@ -10,6 +11,7 @@ import { db } from '../data/db';
 import { TripUserRole } from '../data/TripUserRole';
 import type { DbUser } from '../data/types';
 import type { DbMacroplan, DbMacroplanWithTrip } from '../Macroplan/db';
+import type { TripSliceActivity, TripSliceTrip } from './store';
 
 export type DbTripFull = Omit<
   DbTrip,
@@ -123,7 +125,7 @@ export async function dbUpdateTrip(
     activities,
   }: {
     previousTimeZone: string;
-    activities?: DbActivity[];
+    activities?: TripSliceActivity[];
   },
 ) {
   const tripId = trip.id;
@@ -164,11 +166,60 @@ export async function dbUpdateTrip(
 
   return db.transact(transactions);
 }
-export async function dbDeleteTrip(trip: DbTripFull) {
+export async function dbDeleteTrip(trip: TripSliceTrip) {
+  const tripData = await db.queryOnce({
+    trip: {
+      $: {
+        where: {
+          id: trip.id,
+        },
+        fields: ['id'],
+      },
+      activity: { $: { fields: ['id'] } },
+      accommodation: { $: { fields: ['id'] } },
+      macroplan: { $: { fields: ['id'] } },
+      expense: { $: { fields: ['id'] } },
+      tripUser: { $: { fields: ['id'] } },
+      commentGroup: {
+        $: { fields: ['id'] },
+        comment: { $: { fields: ['id'] } },
+        object: { $: { fields: ['id'] } },
+      },
+    },
+  });
+
   return db.transact([
-    ...trip.activity.map((activity) => db.tx.activity[activity.id].delete()),
-    ...trip.accommodation.map((accommodation) =>
+    ...tripData.data.trip[0].commentGroup.flatMap((commentGroup) =>
+      commentGroup.comment.map((comment) => db.tx.comment[comment.id].delete()),
+    ),
+    ...tripData.data.trip[0].commentGroup
+      .map((commentGroup) => {
+        if (commentGroup.object?.id) {
+          return db.tx.commentGroupObject[commentGroup.object.id].delete();
+        }
+        return undefined;
+      })
+      .filter(
+        (tx): tx is TransactionChunk<AppSchema, 'commentGroupObject'> =>
+          tx !== undefined,
+      ),
+    ...tripData.data.trip[0].commentGroup.map((commentGroup) =>
+      db.tx.commentGroup[commentGroup.id].delete(),
+    ),
+    ...tripData.data.trip[0].tripUser.map((tripUser) =>
+      db.tx.tripUser[tripUser.id].delete(),
+    ),
+    ...tripData.data.trip[0].expense.map((expense) =>
+      db.tx.expense[expense.id].delete(),
+    ),
+    ...tripData.data.trip[0].macroplan.map((macroplan) =>
+      db.tx.macroplan[macroplan.id].delete(),
+    ),
+    ...tripData.data.trip[0].accommodation.map((accommodation) =>
       db.tx.accommodation[accommodation.id].delete(),
+    ),
+    ...tripData.data.trip[0].activity.map((activity) =>
+      db.tx.activity[activity.id].delete(),
     ),
     db.tx.trip[trip.id].delete(),
   ]);

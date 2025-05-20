@@ -71,11 +71,11 @@ export async function dbUpdateMacroplan(
   );
 }
 
-export async function dbDeleteMacroplan(macroplan: DbMacroplanWithTrip) {
+export async function dbDeleteMacroplan(macroplanId: string, tripId: string) {
   return db.transact([
-    db.tx.trip[macroplan.trip.id].unlink({
-      macroplan: [macroplan.id],
+    db.tx.trip[tripId].unlink({
+      macroplan: [macroplanId],
     }),
-    db.tx.macroplan[macroplan.id].delete(),
+    db.tx.macroplan[macroplanId].delete(),
   ]);
 }

@@ -5,9 +5,10 @@ import { CommonDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
 import { RouteTrips } from '../Routes/routes';
 import { dangerToken } from '../ui';
-import { type DbTripFull, dbDeleteTrip } from './db';
+import { dbDeleteTrip } from './db';
+import type { TripSliceTrip } from './store';
 
-export function TripDeleteDialog({ trip }: { trip: DbTripFull }) {
+export function TripDeleteDialog({ trip }: { trip: TripSliceTrip }) {
   const [, setLocation] = useLocation();
   const publishToast = useBoundStore((state) => state.publishToast);
   const popDialog = useBoundStore((state) => state.popDialog);

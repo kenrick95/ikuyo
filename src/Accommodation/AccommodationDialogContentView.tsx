@@ -10,25 +10,28 @@ import { DateTime } from 'luxon';
 import { useCallback } from 'react';
 import { useParseTextIntoNodes } from '../common/text/parseTextIntoNodes';
 import type { DialogContentProps } from '../Dialog/DialogRoute';
+import { type TripSliceAccommodation, useTrip } from '../Trip/store';
 import { AccommodationDialogMode } from './AccommodationDialogMode';
-import type { DbAccommodationWithTrip } from './db';
 
 export function AccommodationDialogContentView({
   data: accommodation,
   setMode,
   dialogContentProps,
   DialogTitleSection,
-}: DialogContentProps<DbAccommodationWithTrip>) {
-  const accommodationCheckInStr = accommodation
-    ? DateTime.fromMillis(accommodation.timestampCheckIn)
-        .setZone(accommodation.trip.timeZone)
-        .toFormat('dd LLLL yyyy HH:mm')
-    : '';
-  const accommodationCheckOutStr = accommodation
-    ? DateTime.fromMillis(accommodation.timestampCheckOut)
-        .setZone(accommodation.trip.timeZone)
-        .toFormat('dd LLLL yyyy HH:mm')
-    : '';
+}: DialogContentProps<TripSliceAccommodation>) {
+  const trip = useTrip(accommodation?.tripId);
+  const accommodationCheckInStr =
+    accommodation && trip
+      ? DateTime.fromMillis(accommodation.timestampCheckIn)
+          .setZone(trip.timeZone)
+          .toFormat('dd LLLL yyyy HH:mm')
+      : '';
+  const accommodationCheckOutStr =
+    accommodation && trip
+      ? DateTime.fromMillis(accommodation.timestampCheckOut)
+          .setZone(trip.timeZone)
+          .toFormat('dd LLLL yyyy HH:mm')
+      : '';
   const notes = useParseTextIntoNodes(accommodation?.notes);
 
   const goToEditMode = useCallback(() => {

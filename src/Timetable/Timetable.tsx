@@ -25,7 +25,7 @@ import {
   RouteTripTimetableViewActivity,
   RouteTripTimetableViewMacroplan,
 } from '../Routes/routes';
-import { useTrip } from '../Trip/context';
+import { useCurrentTrip } from '../Trip/store';
 import { TripViewMode } from '../Trip/TripViewMode';
 import {
   generateAccommodationGridTemplateColumns,
@@ -49,7 +49,7 @@ const TimetableTime = memo(TimetableTimeInner, (prevProps, nextProps) => {
 const times = new Array(24).fill(0);
 
 export function Timetable() {
-  const trip = useTrip();
+  const trip = useCurrentTrip();
   const dayGroups = useMemo(() => groupActivitiesByDays(trip), [trip]);
   const macroplans = useMemo(() => getMacroplanIndexes(trip), [trip]);
   const acommodations = useMemo(() => getAccommodationIndexes(trip), [trip]);

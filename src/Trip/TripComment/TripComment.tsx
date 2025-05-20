@@ -2,13 +2,13 @@ import { Container, Flex, Heading, Text } from '@radix-ui/themes';
 import { useMemo } from 'react';
 import { Comment } from '../../Comment/Comment';
 import type { DbComment, DbCommentGroupObjectType } from '../../Comment/db';
-import { useTrip } from '../context';
+import { useCurrentTrip } from '../store';
 
 const containerPx = { initial: '1', md: '0' };
 const containerPb = { initial: '9', sm: '5' };
 
 export function TripComment() {
-  const trip = useTrip();
+  const trip = useCurrentTrip();
   const allComments = useMemo(() => {
     const comments: DbComment<DbCommentGroupObjectType>[] = [];
     trip.commentGroup?.forEach((commentGroup) => {

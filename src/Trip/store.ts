@@ -49,8 +49,27 @@ export type TripSliceCommentGroup = {
   status: number;
 
   tripId: string;
-  type: DbCommentGroupObjectType;
+  objectType: DbCommentGroupObjectType;
   objectId: string;
+  objectName: string;
+
+  commentIds: string[];
+};
+export type TripSliceComment = {
+  id: string;
+  content: string;
+  createdAt: number;
+  lastUpdatedAt: number;
+  commentGroupId: string;
+  userId: string;
+};
+export type TripSliceCommentUser = {
+  id: string;
+  handle: string;
+  activated: boolean;
+};
+export type TripSliceCommentWithUser = TripSliceComment & {
+  user: TripSliceCommentUser;
 };
 export type TripSliceExpense = Omit<DbExpense, 'trip' | 'commentGroup'> & {
   tripId: string;
@@ -87,15 +106,33 @@ export interface TripSlice {
   tripUser: {
     [tripUserId: string]: TripSliceTripUser;
   };
+  comment: {
+    [commentId: string]: TripSliceComment;
+  };
+  commentUser: {
+    [userId: string]: TripSliceCommentUser;
+  };
+  currentTripId: string | undefined;
+  setCurrentTripId: (tripId: string | undefined) => void;
+  getCurrentTrip: () => TripSliceTrip | undefined;
+
   /** return: unsubscribe function */
   subscribeTrip: (id: string) => () => void;
 
-  getTrip: (id: string) => TripSliceTrip | undefined;
+  getTrip: (id: string | undefined) => TripSliceTrip | undefined;
   getActivity: (id: string) => TripSliceActivity | undefined;
+  getActivities: (ids: string[]) => TripSliceActivity[];
   getAccommodation: (id: string) => TripSliceAccommodation | undefined;
   getMacroplan: (id: string) => TripSliceMacroplan | undefined;
-  getCommentGroup: (id: string) => TripSliceCommentGroup | undefined;
+  getCommentGroup: (
+    id: string | undefined,
+  ) => TripSliceCommentGroup | undefined;
+  getComments: (
+    ids: string[],
+  ) => Array<TripSliceComment & { user: TripSliceCommentUser }>;
   getExpense: (id: string) => TripSliceExpense | undefined;
+  getExpenses: (ids: string[]) => TripSliceExpense[];
+
   getTripUsers: (ids: string[]) => TripSliceTripUser[];
 }
 
@@ -106,11 +143,15 @@ export const createTripSlice: StateCreator<
   TripSlice
 > = (set, get) => {
   return {
+    currentTripId: undefined,
+    currentTrip: undefined,
     trip: {},
     accommodation: {},
     activity: {},
     macroplan: {},
     commentGroup: {},
+    comment: {},
+    commentUser: {},
     tripUser: {},
     expense: {},
     subscribeTrip: (tripId: string) => {
@@ -222,20 +263,29 @@ export const createTripSlice: StateCreator<
               const objectType = commentGroup.object?.type as
                 | DbCommentGroupObjectType
                 | undefined;
+              let objectName = '';
               if (!objectType) {
                 continue;
               }
               let objectId: string | undefined;
               if (objectType === COMMENT_GROUP_OBJECT_TYPE.ACTIVITY) {
                 objectId = commentGroup.object?.activity?.[0]?.id;
+                objectName = commentGroup.object?.activity?.[0]?.title ?? '';
               } else if (
                 objectType === COMMENT_GROUP_OBJECT_TYPE.ACCOMMODATION
               ) {
                 objectId = commentGroup.object?.accommodation?.[0]?.id;
+                objectName =
+                  commentGroup.object?.accommodation?.[0]?.name ?? '';
               } else if (objectType === COMMENT_GROUP_OBJECT_TYPE.MACROPLAN) {
                 objectId = commentGroup.object?.macroplan?.[0]?.id;
+                objectName = commentGroup.object?.macroplan?.[0]?.name ?? '';
               } else if (objectType === COMMENT_GROUP_OBJECT_TYPE.EXPENSE) {
                 objectId = commentGroup.object?.expense?.[0]?.id;
+                objectName = commentGroup.object?.expense?.[0]?.title ?? '';
+              } else if (objectType === COMMENT_GROUP_OBJECT_TYPE.TRIP) {
+                objectId = commentGroup.object?.trip?.[0]?.id;
+                objectName = commentGroup.object?.trip?.[0]?.title ?? '';
               }
               if (!objectId) {
                 continue;
@@ -243,8 +293,10 @@ export const createTripSlice: StateCreator<
               newCommentGroupState[commentGroup.id] = {
                 ...commentGroup,
                 tripId: trip.id,
-                type: objectType,
+                objectType,
+                objectName,
                 objectId,
+                commentIds: commentGroup.comment.map((c) => c.id),
               } satisfies TripSliceCommentGroup;
             }
             const newExpenseState = { ...state.expense };
@@ -270,6 +322,25 @@ export const createTripSlice: StateCreator<
                 activated: tripUser.user?.[0]?.activated ?? false,
                 handle: tripUser.user?.[0]?.handle ?? '',
               } satisfies TripSliceTripUser;
+            }
+
+            const newCommentState = { ...state.comment };
+            const newCommentUserState = { ...state.commentUser };
+            for (const commentGroup of trip.commentGroup) {
+              for (const comment of commentGroup.comment) {
+                const commentUserId = comment.user?.id ?? '';
+
+                newCommentState[comment.id] = {
+                  ...comment,
+                  commentGroupId: commentGroup.id,
+                  userId: commentUserId,
+                } satisfies TripSliceComment;
+                newCommentUserState[commentUserId] = {
+                  id: commentUserId,
+                  handle: comment.user?.handle ?? '',
+                  activated: comment.user?.activated ?? false,
+                } satisfies TripSliceCommentUser;
+              }
             }
 
             return {
@@ -303,7 +374,23 @@ export const createTripSlice: StateCreator<
         },
       );
     },
-    getTrip: (id: string): TripSliceTrip | undefined => {
+    setCurrentTripId: (tripId: string | undefined) => {
+      set(() => ({
+        currentTripId: tripId,
+      }));
+    },
+    getCurrentTrip: () => {
+      const state = get();
+      const tripId = state.currentTripId;
+      if (!tripId) {
+        return undefined;
+      }
+      return state.getTrip(tripId);
+    },
+    getTrip: (id: string | undefined): TripSliceTrip | undefined => {
+      if (!id) {
+        return undefined;
+      }
       const trip = get().trip[id];
       if (!trip) {
         return undefined;
@@ -311,13 +398,23 @@ export const createTripSlice: StateCreator<
       return trip;
     },
     getActivity: (id: string): TripSliceActivity | undefined => {
+      if (!id) {
+        return undefined;
+      }
       const activity = get().activity[id];
       if (!activity) {
         return undefined;
       }
       return activity;
     },
+    getActivities: (ids: string[]): TripSliceActivity[] => {
+      const activities = ids.map((id) => get().activity[id]);
+      return activities;
+    },
     getAccommodation: (id: string): TripSliceAccommodation | undefined => {
+      if (!id) {
+        return undefined;
+      }
       const accommodation = get().accommodation[id];
       if (!accommodation) {
         return undefined;
@@ -325,25 +422,62 @@ export const createTripSlice: StateCreator<
       return accommodation;
     },
     getMacroplan: (id: string): TripSliceMacroplan | undefined => {
+      if (!id) {
+        return undefined;
+      }
       const macroplan = get().macroplan[id];
       if (!macroplan) {
         return undefined;
       }
       return macroplan;
     },
-    getCommentGroup: (id: string): TripSliceCommentGroup | undefined => {
+    getCommentGroup: (
+      id: string | undefined,
+    ): TripSliceCommentGroup | undefined => {
+      if (!id) {
+        return undefined;
+      }
       const commentGroup = get().commentGroup[id];
       if (!commentGroup) {
         return undefined;
       }
       return commentGroup;
     },
+    getComments: (ids: string[]): TripSliceCommentWithUser[] => {
+      const comments = ids
+        .map((id) => {
+          const comment = get().comment[id];
+          if (!comment) {
+            return undefined;
+          }
+          const user = get().commentUser[comment.userId];
+          return {
+            ...comment,
+            user: user,
+          } satisfies TripSliceCommentWithUser;
+        })
+        .filter((comment): comment is TripSliceCommentWithUser => {
+          return comment !== undefined;
+        });
+      comments.sort((a, b) => {
+        // sort by createdAt descending
+        return b.createdAt - a.createdAt;
+      });
+      return comments;
+    },
     getExpense: (id: string): TripSliceExpense | undefined => {
+      if (!id) {
+        return undefined;
+      }
       const expense = get().expense[id];
       if (!expense) {
         return undefined;
       }
       return expense;
+    },
+    getExpenses: (ids: string[]): TripSliceExpense[] => {
+      const expenses = ids.map((id) => get().expense[id]);
+      return expenses;
     },
     getTripUsers: (ids: string[]): TripSliceTripUser[] => {
       const tripUsers = ids.map((id) => get().tripUser[id]);
@@ -352,15 +486,27 @@ export const createTripSlice: StateCreator<
   };
 };
 
-export function useTrip(tripId: string) {
+export function useTrip(tripId: string | undefined) {
   const trip = useBoundStore(useShallow((state) => state.getTrip(tripId)));
   return trip;
 }
+export function useCurrentTrip() {
+  const trip = useBoundStore(useShallow((state) => state.getCurrentTrip()));
+  return trip;
+}
+
 export function useTripActivity(activityId: string) {
   const activity = useBoundStore(
     useShallow((state) => state.getActivity(activityId)),
   );
   return activity;
+}
+
+export function useTripActivities(activityIds: string[]) {
+  const tripUsers = useBoundStore(
+    useShallow((state) => state.getActivities(activityIds)),
+  );
+  return tripUsers;
 }
 export function useTripAccommodation(accommodationId: string) {
   const accommodation = useBoundStore(
@@ -374,7 +520,7 @@ export function useTripMacroplan(macroplanId: string) {
   );
   return macroplan;
 }
-export function useTripCommentGroup(commentGroupId: string) {
+export function useTripCommentGroup(commentGroupId: string | undefined) {
   const commentGroup = useBoundStore(
     useShallow((state) => state.getCommentGroup(commentGroupId)),
   );
@@ -385,6 +531,17 @@ export function useTripExpense(expenseId: string) {
     useShallow((state) => state.getExpense(expenseId)),
   );
   return expense;
+}
+export function useTripExpenses(expenseIds: string[]) {
+  const tripUsers = useBoundStore(
+    useShallow((state) => state.getExpenses(expenseIds)),
+  );
+  return tripUsers;
+}
+
+export function useTripComments(ids: string[]) {
+  const comments = useBoundStore(useShallow((state) => state.getComments(ids)));
+  return comments;
 }
 
 export function useTripUserIds(userIds: string[]) {

@@ -2,7 +2,7 @@ import { Box, Dialog, Spinner } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { useCallback } from 'react';
 import type { DialogContentProps } from '../Dialog/DialogRoute';
-import type { DbMacroplanWithTrip } from './db';
+import { type TripSliceMacroplan, useTrip } from '../Trip/store';
 import { MacroplanDialogMode } from './MacroplanDialogMode';
 import { MacroplanForm } from './MacroplanForm';
 import { MacroplanFormMode } from './MacroplanFormMode';
@@ -13,36 +13,38 @@ export function MacroplanDialogContentEdit({
   setMode,
   dialogContentProps,
   DialogTitleSection,
-}: DialogContentProps<DbMacroplanWithTrip>) {
-  const tripStartStr = macroplan
-    ? formatToDateInput(
-        DateTime.fromMillis(macroplan.trip.timestampStart).setZone(
-          macroplan.trip.timeZone,
-        ),
-      )
-    : '';
-  const tripEndStr = macroplan
-    ? formatToDateInput(
-        DateTime.fromMillis(macroplan.trip.timestampEnd)
-          .setZone(macroplan.trip.timeZone)
-          .minus({ minute: 1 }),
-      )
-    : '';
+}: DialogContentProps<TripSliceMacroplan>) {
+  const trip = useTrip(macroplan?.tripId);
 
-  const macroplanDateStartStr = macroplan
-    ? formatToDateInput(
-        DateTime.fromMillis(macroplan.timestampStart).setZone(
-          macroplan.trip.timeZone,
-        ),
-      )
-    : '';
-  const macroplanDateEndStr = macroplan
-    ? formatToDateInput(
-        DateTime.fromMillis(macroplan.timestampEnd)
-          .setZone(macroplan.trip.timeZone)
-          .minus({ minute: 1 }),
-      )
-    : '';
+  const tripStartStr =
+    macroplan && trip
+      ? formatToDateInput(
+          DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone),
+        )
+      : '';
+  const tripEndStr =
+    macroplan && trip
+      ? formatToDateInput(
+          DateTime.fromMillis(trip.timestampEnd)
+            .setZone(trip.timeZone)
+            .minus({ minute: 1 }),
+        )
+      : '';
+
+  const macroplanDateStartStr =
+    macroplan && trip
+      ? formatToDateInput(
+          DateTime.fromMillis(macroplan.timestampStart).setZone(trip.timeZone),
+        )
+      : '';
+  const macroplanDateEndStr =
+    macroplan && trip
+      ? formatToDateInput(
+          DateTime.fromMillis(macroplan.timestampEnd)
+            .setZone(trip.timeZone)
+            .minus({ minute: 1 }),
+        )
+      : '';
   const backToViewMode = useCallback(() => {
     setMode(MacroplanDialogMode.View);
   }, [setMode]);
@@ -54,12 +56,12 @@ export function MacroplanDialogContentEdit({
         Fill in the edited day plan details for this trip...
       </Dialog.Description>
       <Box height="16px" />
-      {macroplan ? (
+      {macroplan && trip ? (
         <MacroplanForm
           mode={MacroplanFormMode.Edit}
-          tripId={macroplan.trip.id}
+          tripId={macroplan.tripId}
           macroplanId={macroplan.id}
-          tripTimeZone={macroplan.trip.timeZone}
+          tripTimeZone={trip.timeZone}
           tripStartStr={tripStartStr}
           tripEndStr={tripEndStr}
           macroplanName={macroplan.name}

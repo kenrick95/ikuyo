@@ -1,8 +1,8 @@
-import type { DbTrip } from '../Trip/db';
+import type { TripSliceTrip } from '../Trip/store';
 
 const lastNewActivityTimestampStorageKey = 'ikuyo:last-new-activity-timestamp';
 
-export function getNewActivityTimestamp(trip: DbTrip): number {
+export function getNewActivityTimestamp(trip: TripSliceTrip): number {
   try {
     const fromStorage = JSON.parse(
       globalThis.localStorage.getItem(lastNewActivityTimestampStorageKey) ??
