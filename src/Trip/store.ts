@@ -414,7 +414,11 @@ export const createTripSlice: StateCreator<
       return activity;
     },
     getActivities: (ids: string[]): TripSliceActivity[] => {
-      const activities = ids.map((id) => get().activity[id]);
+      const activities = ids
+        .map((id) => get().activity[id])
+        .filter((activity): activity is TripSliceActivity => {
+          return activity !== undefined;
+        });
       return activities;
     },
     getAccommodation: (id: string): TripSliceAccommodation | undefined => {
@@ -438,7 +442,11 @@ export const createTripSlice: StateCreator<
       return macroplan;
     },
     getCommentGroups: (ids: string[]): TripSliceCommentGroup[] => {
-      const commentGroups = ids.map((id) => get().commentGroup[id]);
+      const commentGroups = ids
+        .map((id) => get().commentGroup[id])
+        .filter((commentGroup): commentGroup is TripSliceCommentGroup => {
+          return commentGroup !== undefined;
+        });
       return commentGroups;
     },
     getCommentGroup: (
@@ -524,19 +532,35 @@ export const createTripSlice: StateCreator<
       return expense;
     },
     getExpenses: (ids: string[]): TripSliceExpense[] => {
-      const expenses = ids.map((id) => get().expense[id]);
+      const expenses = ids
+        .map((id) => get().expense[id])
+        .filter((expense): expense is TripSliceExpense => {
+          return expense !== undefined;
+        });
       return expenses;
     },
     getTripUsers: (ids: string[]): TripSliceTripUser[] => {
-      const tripUsers = ids.map((id) => get().tripUser[id]);
+      const tripUsers = ids
+        .map((id) => get().tripUser[id])
+        .filter((tripUser): tripUser is TripSliceTripUser => {
+          return tripUser !== undefined;
+        });
       return tripUsers;
     },
     getAccommodations: (ids: string[]): TripSliceAccommodation[] => {
-      const accommodations = ids.map((id) => get().accommodation[id]);
+      const accommodations = ids
+        .map((id) => get().accommodation[id])
+        .filter((accommodation): accommodation is TripSliceAccommodation => {
+          return accommodation !== undefined;
+        });
       return accommodations;
     },
     getMacroplans: (ids: string[]): TripSliceMacroplan[] => {
-      const macroplans = ids.map((id) => get().macroplan[id]);
+      const macroplans = ids
+        .map((id) => get().macroplan[id])
+        .filter((macroplan): macroplan is TripSliceMacroplan => {
+          return macroplan !== undefined;
+        });
       return macroplans;
     },
   };
