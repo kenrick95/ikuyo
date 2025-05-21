@@ -1,11 +1,16 @@
 import { DateTime } from 'luxon';
 import type { DayGroups } from '../Activity/eventGrouping';
-import type { DbMacroplanWithTrip } from '../Macroplan/db';
-import type { DbTripWithMacroplan } from '../Trip/db';
+import type { TripSliceMacroplan, TripSliceTrip } from '../Trip/store';
 
-export function getMacroplanIndexes(trip: DbTripWithMacroplan) {
+export function getMacroplanIndexes({
+  trip,
+  macroplans,
+}: {
+  trip: TripSliceTrip;
+  macroplans: TripSliceMacroplan[];
+}) {
   const res: Array<{
-    macroplan: DbMacroplanWithTrip;
+    macroplan: TripSliceMacroplan;
     day: {
       start: number;
       end: number;
@@ -16,7 +21,7 @@ export function getMacroplanIndexes(trip: DbTripWithMacroplan) {
   const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
     trip.timeZone,
   );
-  for (const macroplan of trip.macroplan) {
+  for (const macroplan of macroplans) {
     const startDateTime = DateTime.fromMillis(macroplan.timestampStart).setZone(
       trip.timeZone,
     );

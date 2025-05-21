@@ -1,29 +1,41 @@
 import { DateTime } from 'luxon';
 import { AccommodationDisplayTimeMode } from '../Accommodation/AccommodationDisplayTimeMode';
-import type { DbAccommodationWithTrip } from '../Accommodation/db';
-import type { DbMacroplanWithTrip } from '../Macroplan/db';
-import type { DbTripFull } from '../Trip/db';
-import type { DbActivityWithTrip } from './db';
+import type {
+  TripSliceAccommodation,
+  TripSliceActivity,
+  TripSliceMacroplan,
+  TripSliceTrip,
+} from '../Trip/store';
 
 export type DayGroups = Array<{
   /** DateTime in trip time zone */
   startDateTime: DateTime;
   columns: number;
-  activities: DbActivityWithTrip[];
+  activities: TripSliceActivity[];
   /** activity id --> {start: column index (1-based), end: column index (1-based)} */
   activityColumnIndexMap: Map<string, { start: number; end: number }>;
-  accommodations: DbAccommodationWithTrip[];
+  accommodations: TripSliceAccommodation[];
   /** accommodation id --> { displayTimeMode } */
   accommodationProps: Map<
     string,
     { displayTimeMode: AccommodationDisplayTimeMode }
   >;
 
-  macroplans: DbMacroplanWithTrip[];
+  macroplans: TripSliceMacroplan[];
 }>;
 
 /** Return `DateTime` objects for each of day in the trip */
-export function groupActivitiesByDays(trip: DbTripFull): DayGroups {
+export function groupActivitiesByDays({
+  trip,
+  activities,
+  macroplans,
+  accommodations,
+}: {
+  trip: TripSliceTrip;
+  activities: TripSliceActivity[];
+  macroplans: TripSliceMacroplan[];
+  accommodations: TripSliceAccommodation[];
+}): DayGroups {
   const res: DayGroups = [];
   const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
     trip.timeZone,
@@ -35,9 +47,9 @@ export function groupActivitiesByDays(trip: DbTripFull): DayGroups {
   for (let d = 0; d < tripDuration.days; d++) {
     const dayStartDateTime = tripStartDateTime.plus({ day: d });
     const dayEndDateTime = tripStartDateTime.plus({ day: d + 1 });
-    const dayActivities: DbActivityWithTrip[] = [];
-    const dayAccommodations: DbAccommodationWithTrip[] = [];
-    const dayMacroplans: DbMacroplanWithTrip[] = [];
+    const dayActivities: TripSliceActivity[] = [];
+    const dayAccommodations: TripSliceAccommodation[] = [];
+    const dayMacroplans: TripSliceMacroplan[] = [];
 
     const accommodationProps: Map<
       string,
@@ -45,7 +57,7 @@ export function groupActivitiesByDays(trip: DbTripFull): DayGroups {
     > = new Map();
     const activityColumnIndexMap: Map<string, { start: number; end: number }> =
       new Map();
-    for (const activity of trip.activity) {
+    for (const activity of activities) {
       activityColumnIndexMap.set(activity.id, { start: 1, end: 1 });
       const activityStartDateTime = DateTime.fromMillis(
         activity.timestampStart,
@@ -67,7 +79,7 @@ export function groupActivitiesByDays(trip: DbTripFull): DayGroups {
       return a.timestampStart - b.timestampStart;
     });
 
-    for (const macroplan of trip.macroplan) {
+    for (const macroplan of macroplans) {
       const macroplanStartDateTime = DateTime.fromMillis(
         macroplan.timestampStart,
       ).setZone(trip.timeZone);
@@ -83,7 +95,7 @@ export function groupActivitiesByDays(trip: DbTripFull): DayGroups {
       }
     }
 
-    for (const accommodation of trip.accommodation) {
+    for (const accommodation of accommodations) {
       const accommodationCheckInDateTime = DateTime.fromMillis(
         accommodation.timestampCheckIn,
       ).setZone(trip.timeZone);
@@ -127,7 +139,7 @@ export function groupActivitiesByDays(trip: DbTripFull): DayGroups {
       Start = 0,
       End = 1,
     }
-    const ranges: Array<[number, Token, DbActivityWithTrip]> = [];
+    const ranges: Array<[number, Token, TripSliceActivity]> = [];
     for (const activity of dayActivities) {
       ranges.push([activity.timestampStart, Token.Start, activity]);
       // "End" is half a millisecond before start so that we don't count event that ends at exact time as next start one as overlapping
@@ -143,7 +155,7 @@ export function groupActivitiesByDays(trip: DbTripFull): DayGroups {
     let maxOverlaps = 0;
     let overlaps = 0;
 
-    const activitiesByTrack: Array<DbActivityWithTrip[]> = [];
+    const activitiesByTrack: Array<TripSliceActivity[]> = [];
 
     for (const range of ranges) {
       if (range[1] === Token.Start) {

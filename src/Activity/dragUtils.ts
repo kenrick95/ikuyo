@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import type { DbActivityWithTrip } from './db';
+import type { TripSliceActivity } from '../Trip/store';
 
 /**
  * Converts a grid row value (time string like "0900") to a time offset in milliseconds
@@ -37,7 +37,7 @@ export function gridColumnToDay(gridColumn: string): number {
 export function calculateNewTimestamps(
   gridRow: string,
   gridColumn: string,
-  activity: DbActivityWithTrip,
+  activity: TripSliceActivity,
   tripStartTimestamp: number,
   tripTimeZone: string,
 ): { timestampStart: number; timestampEnd: number } {

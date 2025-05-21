@@ -2,12 +2,12 @@ import { ClockIcon, HomeIcon } from '@radix-ui/react-icons';
 import { Box, ContextMenu, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { memo, useMemo } from 'react';
+import type { TripSliceAccommodation } from '../Trip/store';
 import { TripViewMode, type TripViewModeType } from '../Trip/TripViewMode';
 import { dangerToken } from '../ui';
 import s from './Accommodation.module.css';
 import { AccommodationDisplayTimeMode } from './AccommodationDisplayTimeMode';
 import { useAccommodationDialogHooks } from './accommodationDialogHooks';
-import type { DbAccommodationWithTrip } from './db';
 import { formatTime } from './time';
 
 function AccommodationInner({
@@ -17,13 +17,15 @@ function AccommodationInner({
   displayTimeMode,
   gridColumnStart,
   gridColumnEnd,
+  timeZone,
 }: {
   className?: string;
-  accommodation: DbAccommodationWithTrip;
+  accommodation: TripSliceAccommodation;
   tripViewMode: TripViewModeType;
   displayTimeMode?: AccommodationDisplayTimeMode;
   gridColumnStart?: string;
   gridColumnEnd?: string;
+  timeZone: string;
 }) {
   const responsiveTextSize = { initial: '1' as const };
   const {
@@ -65,7 +67,7 @@ function AccommodationInner({
                   displayTimeMode === AccommodationDisplayTimeMode.CheckIn
                     ? accommodation.timestampCheckIn
                     : accommodation.timestampCheckOut,
-                  accommodation.trip.timeZone,
+                  timeZone,
                 )}
               </Text>
             ) : null}
@@ -100,7 +102,8 @@ export const Accommodation = memo(
       prevProps.tripViewMode === nextProps.tripViewMode &&
       prevProps.displayTimeMode === nextProps.displayTimeMode &&
       prevProps.gridColumnStart === nextProps.gridColumnStart &&
-      prevProps.gridColumnEnd === nextProps.gridColumnEnd
+      prevProps.gridColumnEnd === nextProps.gridColumnEnd &&
+      prevProps.timeZone === nextProps.timeZone
     );
   },
 );

@@ -1,11 +1,16 @@
 import { DateTime } from 'luxon';
-import type { DbAccommodationWithTrip } from '../Accommodation/db';
 import type { DayGroups } from '../Activity/eventGrouping';
-import type { DbTripWithAccommodation } from '../Trip/db';
+import type { TripSliceAccommodation, TripSliceTrip } from '../Trip/store';
 
-export function getAccommodationIndexes(trip: DbTripWithAccommodation) {
+export function getAccommodationIndexes({
+  trip,
+  accommodations,
+}: {
+  trip: TripSliceTrip;
+  accommodations: TripSliceAccommodation[];
+}) {
   const res: Array<{
-    accommodation: DbAccommodationWithTrip;
+    accommodation: TripSliceAccommodation;
     day: {
       start: number;
       end: number;
@@ -21,7 +26,7 @@ export function getAccommodationIndexes(trip: DbTripWithAccommodation) {
   );
   const tripEndDay = tripEndDateTime.diff(tripStartDateTime, 'days').days;
 
-  for (const accommodation of trip.accommodation) {
+  for (const accommodation of accommodations) {
     const accommodationCheckInDateTime = DateTime.fromMillis(
       accommodation.timestampCheckIn,
     ).setZone(trip.timeZone);

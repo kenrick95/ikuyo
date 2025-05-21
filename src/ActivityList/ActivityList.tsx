@@ -17,22 +17,45 @@ import {
   RouteTripListViewActivity,
   RouteTripListViewMacroplan,
 } from '../Routes/routes';
-import { useCurrentTrip } from '../Trip/store';
+import {
+  useCurrentTrip,
+  useTripAccommodations,
+  useTripActivities,
+  useTripMacroplans,
+} from '../Trip/store';
 import { TripViewMode } from '../Trip/TripViewMode';
 import { TripMap } from '../TripMap/TripMap';
 import s from './ActivityList.module.css';
 
 export function ActivityList() {
   const trip = useCurrentTrip();
-  const dayGroups = useMemo(() => groupActivitiesByDays(trip), [trip]);
+  const activities = useTripActivities(trip?.activityIds ?? []);
+  const tripAccommodations = useTripAccommodations(
+    trip?.accommodationIds ?? [],
+  );
+  const tripMacroplans = useTripMacroplans(trip?.macroplanIds ?? []);
+
+  const dayGroups = useMemo(() => {
+    if (!trip || !activities || !tripAccommodations || !tripMacroplans)
+      return [];
+    return groupActivitiesByDays({
+      trip,
+      activities,
+      accommodations: tripAccommodations,
+      macroplans: tripMacroplans,
+    });
+  }, [trip, activities, tripAccommodations, tripMacroplans]);
   const pushDialog = useBoundStore((state) => state.pushDialog);
   const openActivityNewDialog = useCallback(() => {
+    if (!trip) return;
     pushDialog(ActivityNewDialog, { trip });
   }, [pushDialog, trip]);
   const openAccommodationNewDialog = useCallback(() => {
+    if (!trip) return;
     pushDialog(AccommodationNewDialog, { trip });
   }, [pushDialog, trip]);
   const openMacroplanNewDialog = useCallback(() => {
+    if (!trip) return;
     pushDialog(MacroplanNewDialog, { trip });
   }, [pushDialog, trip]);
   return (
@@ -82,6 +105,7 @@ export function ActivityList() {
                           accommodation={accommodation}
                           tripViewMode={TripViewMode.List}
                           className={s.listItem}
+                          timeZone={trip?.timeZone ?? ''}
                           {...props}
                         />
                       );
@@ -99,6 +123,8 @@ export function ActivityList() {
                         columnIndex={columnIndex?.start ?? 1}
                         columnEndIndex={columnIndex?.end ?? 1}
                         tripViewMode={TripViewMode.List}
+                        tripTimeZone={trip?.timeZone ?? ''}
+                        tripTimestampStart={trip?.timestampStart ?? 0}
                       />
                     );
                   }),
@@ -107,7 +133,7 @@ export function ActivityList() {
             </Flex>
           </ContextMenu.Trigger>
           <ContextMenu.Content>
-            <ContextMenu.Label>{trip.title}</ContextMenu.Label>
+            <ContextMenu.Label>{trip?.title}</ContextMenu.Label>
             <ContextMenu.Item onClick={openActivityNewDialog}>
               New activity
             </ContextMenu.Item>

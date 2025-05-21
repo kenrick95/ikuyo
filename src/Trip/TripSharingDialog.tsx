@@ -10,62 +10,49 @@ import {
   TextField,
 } from '@radix-ui/themes';
 import { type SyntheticEvent, useCallback, useMemo, useState } from 'react';
+import { useCurrentUser } from '../Auth/store';
 import { CommonDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
 import { TripUserRole } from '../data/TripUserRole';
-import type { DbUser } from '../data/types';
 import { dangerToken } from '../ui';
 import { dbAddUserToTrip, dbRemoveUserFromTrip } from './db';
-import type { TripSliceTrip } from './store';
+import { type TripSliceTripUser, useTrip, useTripUserIds } from './store';
 import s from './TripSharingDialog.module.css';
 
-export function TripSharingDialog({
-  trip,
-  user: currentUser,
-}: {
-  trip: TripSliceTrip;
-  user: DbUser;
-}) {
+export function TripSharingDialog({ tripId }: { tripId: string }) {
+  const trip = useTrip(tripId);
+  const currentUser = useCurrentUser();
+  const tripUsers = useTripUserIds(trip?.tripUserIds ?? []);
   const popDialog = useBoundStore((state) => state.popDialog);
   const publishToast = useBoundStore((state) => state.publishToast);
   const [errorMessage, setErrorMessage] = useState('');
-  const { userAndRoles, currentUserIsOwner } = useMemo(() => {
-    const res: Array<{ user: DbUser; role: TripUserRole }> = [];
-    let currentUserIsOwner = false;
-
-    for (const tripUser of trip.tripUser ?? []) {
-      if (tripUser.user?.[0]?.id === currentUser.id) {
+  const currentUserIsOwner = useMemo(() => {
+    for (const tripUser of tripUsers ?? []) {
+      if (tripUser.id === currentUser?.id) {
         if (tripUser.role === TripUserRole.Owner) {
-          currentUserIsOwner = true;
+          return true;
         }
       }
-      if (tripUser.user?.[0]) {
-        res.push({
-          user: tripUser.user[0],
-          role: tripUser.role,
-        });
-      }
     }
-
-    return { userAndRoles: res, currentUserIsOwner };
-  }, [trip, currentUser.id]);
+    return false;
+  }, [tripUsers, currentUser]);
 
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserRole, setNewUserRole] = useState(TripUserRole.Viewer);
 
   const handleDeleteUser = useCallback(() => {
-    return async ({ user }: { user: DbUser; role: TripUserRole }) => {
-      await dbRemoveUserFromTrip({
-        tripId: trip.id,
-        userEmail: user.email,
-      });
+    return async (tripUser: TripSliceTripUser) => {
+      await dbRemoveUserFromTrip(tripUser.id);
     };
-  }, [trip.id]);
+  }, []);
 
   const handleForm = useCallback(() => {
     return async (elForm: HTMLFormElement) => {
       setErrorMessage('');
       if (!elForm.reportValidity()) {
+        return;
+      }
+      if (!trip || !currentUser) {
         return;
       }
       const formData = new FormData(elForm);
@@ -81,7 +68,7 @@ export function TripSharingDialog({
         return;
       }
 
-      if (currentUserIsOwner && newUserEmail === currentUser.email) {
+      if (currentUserIsOwner && newUserEmail === currentUser?.email) {
         setErrorMessage(`Cannot change current user's owner permission`);
         return;
       }
@@ -107,13 +94,7 @@ export function TripSharingDialog({
       setNewUserEmail('');
       setNewUserRole(TripUserRole.Viewer);
     };
-  }, [
-    currentUserIsOwner,
-    currentUser.email,
-    trip.id,
-    trip.title,
-    publishToast,
-  ]);
+  }, [currentUserIsOwner, currentUser, trip, publishToast]);
 
   const handleFormSubmit = useCallback(
     (e: SyntheticEvent<HTMLFormElement>) => {
@@ -203,22 +184,22 @@ export function TripSharingDialog({
             </Table.Header>
 
             <Table.Body>
-              {userAndRoles.map(({ user, role }) => {
+              {tripUsers.map((tripUser) => {
                 return (
-                  <Table.Row key={user.id}>
+                  <Table.Row key={tripUser.id}>
                     <Table.RowHeaderCell>
-                      {user.activated ? (
-                        user.handle
+                      {tripUser.activated ? (
+                        tripUser.handle
                       ) : (
                         <>
-                          {user.email} <Text size="1">(not activated)</Text>
+                          {tripUser.email} <Text size="1">(not activated)</Text>
                         </>
                       )}
                     </Table.RowHeaderCell>
-                    <Table.Cell>{capitalizeFirst(role)}</Table.Cell>
+                    <Table.Cell>{capitalizeFirst(tripUser.role)}</Table.Cell>
                     {currentUserIsOwner ? (
                       <Table.Cell>
-                        {currentUser.id === user.id ? (
+                        {currentUser?.id === tripUser.userId ? (
                           ''
                         ) : (
                           <Button
@@ -226,7 +207,7 @@ export function TripSharingDialog({
                             color="gray"
                             size="1"
                             onClick={() => {
-                              void handleDeleteUser()({ user, role });
+                              void handleDeleteUser()(tripUser);
                             }}
                           >
                             <TrashIcon /> Delete

@@ -367,32 +367,6 @@ export async function dbUpdateUserFromTrip({
 
   return db.transact(transactions);
 }
-export async function dbRemoveUserFromTrip({
-  tripId,
-  userEmail,
-}: {
-  tripId: string;
-  userEmail: string;
-}) {
-  const { data: tripUserData } = await db.queryOnce({
-    tripUser: {
-      $: {
-        where: {
-          'trip.id': tripId,
-          'user.email': userEmail,
-        },
-        limit: 1,
-      },
-    },
-  });
-  const tripUser = tripUserData.tripUser[0] as
-    | undefined
-    | Omit<DbTripUser, 'trip' | 'user'>;
-
-  const tripUserId = tripUser?.id;
-  if (!tripUserId) {
-    return;
-  }
-
+export async function dbRemoveUserFromTrip(tripUserId: string) {
   return db.transact([db.tx.tripUser[tripUserId].delete()]);
 }

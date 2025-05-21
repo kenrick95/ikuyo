@@ -1,9 +1,9 @@
 import { Box, ContextMenu, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { memo, useMemo } from 'react';
+import type { TripSliceMacroplan } from '../Trip/store';
 import type { TripViewModeType } from '../Trip/TripViewMode';
 import { dangerToken } from '../ui';
-import type { DbMacroplanWithTrip } from './db';
 import s from './Macroplan.module.css';
 import { useMacroplanDialogHooks } from './macroplanDialogHooks';
 
@@ -17,7 +17,7 @@ function MacroplanInner({
   tripViewMode,
 }: {
   className?: string;
-  macroplan: DbMacroplanWithTrip;
+  macroplan: TripSliceMacroplan;
   gridColumnStart?: string;
   gridColumnEnd?: string;
   tripViewMode: TripViewModeType;

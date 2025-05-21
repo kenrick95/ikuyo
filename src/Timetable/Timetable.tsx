@@ -25,7 +25,12 @@ import {
   RouteTripTimetableViewActivity,
   RouteTripTimetableViewMacroplan,
 } from '../Routes/routes';
-import { useCurrentTrip } from '../Trip/store';
+import {
+  useCurrentTrip,
+  useTripAccommodations,
+  useTripActivities,
+  useTripMacroplans,
+} from '../Trip/store';
 import { TripViewMode } from '../Trip/TripViewMode';
 import {
   generateAccommodationGridTemplateColumns,
@@ -50,9 +55,33 @@ const times = new Array(24).fill(0);
 
 export function Timetable() {
   const trip = useCurrentTrip();
-  const dayGroups = useMemo(() => groupActivitiesByDays(trip), [trip]);
-  const macroplans = useMemo(() => getMacroplanIndexes(trip), [trip]);
-  const acommodations = useMemo(() => getAccommodationIndexes(trip), [trip]);
+  const activities = useTripActivities(trip?.activityIds ?? []);
+  const tripAccommodations = useTripAccommodations(
+    trip?.accommodationIds ?? [],
+  );
+  const tripMacroplans = useTripMacroplans(trip?.macroplanIds ?? []);
+
+  const dayGroups = useMemo(() => {
+    if (!trip || !activities || !tripAccommodations || !tripMacroplans)
+      return [];
+    return groupActivitiesByDays({
+      trip,
+      activities,
+      accommodations: tripAccommodations,
+      macroplans: tripMacroplans,
+    });
+  }, [trip, activities, tripAccommodations, tripMacroplans]);
+  const macroplans = useMemo(() => {
+    if (!trip) return [];
+    return getMacroplanIndexes({ trip, macroplans: tripMacroplans });
+  }, [trip, tripMacroplans]);
+  const acommodations = useMemo(() => {
+    if (!trip) return [];
+    return getAccommodationIndexes({
+      trip,
+      accommodations: tripAccommodations,
+    });
+  }, [trip, tripAccommodations]);
   const [isDragging, setDragging] = useState<boolean>(false);
 
   const timetableStyle = useMemo(() => {
@@ -79,6 +108,10 @@ export function Timetable() {
     async (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       setDragging(false);
+      if (!trip) {
+        console.warn('No trip found for dropping activity');
+        return;
+      }
 
       try {
         // Get the closest grid cell where the activity was dropped
@@ -134,7 +167,7 @@ export function Timetable() {
         const { activityId } = activityData;
 
         // Find the activity in the trip
-        const activity = trip.activity.find((a) => a.id === activityId);
+        const activity = activities.find((a) => a.id === activityId);
         if (!activity) {
           console.warn('Activity not found in trip data');
           return;
@@ -182,7 +215,7 @@ export function Timetable() {
         });
       }
     },
-    [trip, publishToast],
+    [trip, activities, publishToast],
   );
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -192,12 +225,15 @@ export function Timetable() {
   }, []);
 
   const openActivityNewDialog = useCallback(() => {
+    if (!trip) return;
     pushDialog(ActivityNewDialog, { trip });
   }, [pushDialog, trip]);
   const openAccommodationNewDialog = useCallback(() => {
+    if (!trip) return;
     pushDialog(AccommodationNewDialog, { trip });
   }, [pushDialog, trip]);
   const openMacroplanNewDialog = useCallback(() => {
+    if (!trip) return;
     pushDialog(MacroplanNewDialog, { trip });
   }, [pushDialog, trip]);
   return (
@@ -251,7 +287,7 @@ export function Timetable() {
             ) : null}
 
             {acommodations.length > 0 ? <TimetableAccommodationHeader /> : null}
-            {acommodations.length > 0 ? (
+            {trip && acommodations.length > 0 ? (
               <div
                 className={s.accommodationGrid}
                 style={timetableAccommodationStyle}
@@ -268,6 +304,7 @@ export function Timetable() {
                       gridColumnEnd={`d${String(columnIndex.end)}-ce${String(
                         columnIndex.endColumn,
                       )}`}
+                      timeZone={trip.timeZone}
                     />
                   );
                 })}
@@ -297,6 +334,8 @@ export function Timetable() {
                     columnIndex={columnIndex?.start ?? 1}
                     columnEndIndex={columnIndex?.end ?? 1}
                     tripViewMode={TripViewMode.Timetable}
+                    tripTimeZone={trip?.timeZone ?? ''}
+                    tripTimestampStart={trip?.timestampStart ?? 0}
                   />
                 );
               });
@@ -305,7 +344,7 @@ export function Timetable() {
         </ContextMenu.Trigger>
 
         <ContextMenu.Content>
-          <ContextMenu.Label>{trip.title}</ContextMenu.Label>
+          <ContextMenu.Label>{trip?.title}</ContextMenu.Label>
           <ContextMenu.Item onClick={openActivityNewDialog}>
             New activity
           </ContextMenu.Item>

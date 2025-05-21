@@ -7,11 +7,11 @@ import { Box, ContextMenu, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { DateTime } from 'luxon';
 import { memo, useCallback, useMemo, useState } from 'react';
+import type { TripSliceActivity } from '../Trip/store';
 import { TripViewMode, type TripViewModeType } from '../Trip/TripViewMode';
 import { dangerToken } from '../ui';
 import style from './Activity.module.css';
 import { useActivityDialogHooks } from './activityDialogHooks';
-import type { DbActivityWithTrip } from './db';
 import { formatTime } from './time';
 
 function ActivityInner({
@@ -20,16 +20,25 @@ function ActivityInner({
   columnIndex,
   columnEndIndex,
   tripViewMode,
+  tripTimeZone,
+  tripTimestampStart,
 }: {
-  activity: DbActivityWithTrip;
+  activity: TripSliceActivity;
   className?: string;
   columnIndex: number;
   columnEndIndex: number;
   tripViewMode: TripViewModeType;
+
+  tripTimeZone: string;
+  tripTimestampStart: number;
 }) {
-  const timeStart = formatTime(activity.timestampStart, activity.trip.timeZone);
-  const timeEnd = formatTime(activity.timestampEnd, activity.trip.timeZone);
-  const [dayStart, dayEnd] = getDayStartEnd(activity);
+  const timeStart = formatTime(activity.timestampStart, tripTimeZone);
+  const timeEnd = formatTime(activity.timestampEnd, tripTimeZone);
+  const [dayStart, dayEnd] = getDayStartEnd(
+    activity,
+    tripTimestampStart,
+    tripTimeZone,
+  );
   const responsiveTextSize = { initial: '1' as const };
   const [isDragging, setIsDragging] = useState(false);
   const isActivityOngoing = useMemo(() => {
@@ -168,15 +177,18 @@ function ActivityInner({
   );
 }
 
-function getDayStartEnd(activity: DbActivityWithTrip): [number, number] {
-  const tripStart = DateTime.fromMillis(activity.trip.timestampStart).setZone(
-    activity.trip.timeZone,
-  );
+function getDayStartEnd(
+  activity: TripSliceActivity,
+  tripTimestampStart: number,
+  tripTimeZone: string,
+): [number, number] {
+  const tripStart =
+    DateTime.fromMillis(tripTimestampStart).setZone(tripTimeZone);
   const activityStart = DateTime.fromMillis(activity.timestampStart).setZone(
-    activity.trip.timeZone,
+    tripTimeZone,
   );
   const activityEnd = DateTime.fromMillis(activity.timestampEnd).setZone(
-    activity.trip.timeZone,
+    tripTimeZone,
   );
   const diffStart = activityStart.diff(tripStart, 'day');
   const diffEnd = activityEnd.diff(tripStart, 'day');
@@ -192,6 +204,8 @@ export const Activity = memo(ActivityInner, (prevProps, nextProps) => {
     prevProps.className === nextProps.className &&
     prevProps.columnIndex === nextProps.columnIndex &&
     prevProps.columnEndIndex === nextProps.columnEndIndex &&
-    prevProps.tripViewMode === nextProps.tripViewMode
+    prevProps.tripViewMode === nextProps.tripViewMode &&
+    prevProps.tripTimeZone === nextProps.tripTimeZone &&
+    prevProps.tripTimestampStart === nextProps.tripTimestampStart
   );
 });

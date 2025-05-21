@@ -79,7 +79,7 @@ export function TripMenu({ showTripSharing }: { showTripSharing: boolean }) {
             <DropdownMenu.Item
               onClick={() => {
                 if (trip && user) {
-                  pushDialog(TripSharingDialog, { trip, user });
+                  pushDialog(TripSharingDialog, { tripId: trip.id });
                 }
               }}
             >
