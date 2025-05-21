@@ -19,7 +19,7 @@ import imgUrl from '../logo/ikuyo.svg';
 import { DocTitle } from '../Nav/DocTitle';
 import { RouteTrips } from '../Routes/routes';
 import s from './Auth.module.css';
-import { useAuthUser, useCurrentUser } from './store';
+import { useAuthUser, useCurrentUser } from './hooks';
 
 export default PageLogin;
 

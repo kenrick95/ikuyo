@@ -6,12 +6,15 @@ import {
   Container,
   Flex,
   Heading,
+  Spinner,
   Text,
 } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
+import { useEffect, useState } from 'react';
 import { Link, type RouteComponentProps } from 'wouter';
-import { useCurrentUser } from '../Auth/store';
+import { useCurrentUser } from '../Auth/hooks';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
+import { useDeepEqual } from '../data/hooks';
 import { useBoundStore } from '../data/store';
 import type { DbUser } from '../data/types';
 import { DocTitle } from '../Nav/DocTitle';
@@ -27,7 +30,21 @@ export default PageTrips;
 
 export function PageTrips(_props: RouteComponentProps) {
   const currentUser = useCurrentUser();
-  const tripGroups = useTripsGrouped(currentUser?.id);
+  const [now] = useState(Date.now());
+  const subscribeTrips = useBoundStore((state) => state.subscribeTrips);
+  useEffect(() => {
+    let unsubscribe = () => {};
+    if (currentUser) {
+      unsubscribe = subscribeTrips(currentUser.id, now);
+    }
+    return unsubscribe;
+  }, [currentUser, subscribeTrips, now]);
+  const tripGroups = useTripsGrouped(currentUser?.id, now);
+  const tripsLoading = useBoundStore(
+    useDeepEqual((state) => state.tripsLoading),
+  );
+  // TODO: how to show error
+  // const tripsError = useBoundStore(useDeepEqual((state) => state.tripsError));
 
   return (
     <>
@@ -50,18 +67,21 @@ export function PageTrips(_props: RouteComponentProps) {
             groupTitle="Ongoing Trips"
             trips={tripGroups[TripGroup.Ongoing]}
             user={currentUser}
+            isLoading={tripsLoading}
           />
           <Trips
             type={TripGroup.Upcoming}
             groupTitle="Upcoming Trips"
             trips={tripGroups[TripGroup.Upcoming]}
             user={currentUser}
+            isLoading={tripsLoading}
           />
           <Trips
             type={TripGroup.Past}
             groupTitle="Past Trips"
             trips={tripGroups[TripGroup.Past]}
             user={currentUser}
+            isLoading={tripsLoading}
           />
         </Flex>
       </Container>
@@ -74,11 +94,13 @@ function Trips({
   groupTitle,
   trips,
   user,
+  isLoading,
 }: {
   type: TripGroupType;
   groupTitle: string;
   trips: TripsSliceTrip[];
   user: DbUser | undefined;
+  isLoading: boolean;
 }) {
   const pushDialog = useBoundStore((state) => state.pushDialog);
 
@@ -87,7 +109,7 @@ function Trips({
       <Heading as="h2" mb="1">
         {groupTitle}
 
-        {type === TripGroup.Upcoming ? (
+        {type === TripGroup.Upcoming && !isLoading ? (
           <Button
             variant="outline"
             onClick={() => {
@@ -102,39 +124,43 @@ function Trips({
         ) : null}
       </Heading>
       <Flex asChild gap="2" p="0" wrap="wrap">
-        <ul>
-          {trips.length === 0
-            ? 'None'
-            : trips.map((trip) => {
-                return (
-                  <li className={s.tripLi} key={trip.id}>
-                    <Card asChild>
-                      <Link to={RouteTrip.asRouteTarget(trip.id)}>
-                        <Text as="div" weight="bold">
-                          {trip.title}
-                        </Text>
-                        <Text as="div" size="2" color="gray">
-                          {formatTimestampToReadableDate(
-                            DateTime.fromMillis(trip.timestampStart, {
-                              zone: trip.timeZone,
-                            }),
-                          )}{' '}
-                          &ndash;{' '}
-                          {formatTimestampToReadableDate(
-                            DateTime.fromMillis(trip.timestampEnd, {
-                              zone: trip.timeZone,
-                            }).minus({
-                              day: 1,
-                            }),
-                          )}{' '}
-                          ({trip.timeZone})
-                        </Text>
-                      </Link>
-                    </Card>
-                  </li>
-                );
-              })}
-        </ul>
+        {isLoading ? (
+          <Spinner size="2" />
+        ) : (
+          <ul>
+            {trips.length === 0
+              ? 'None'
+              : trips.map((trip) => {
+                  return (
+                    <li className={s.tripLi} key={trip.id}>
+                      <Card asChild>
+                        <Link to={RouteTrip.asRouteTarget(trip.id)}>
+                          <Text as="div" weight="bold">
+                            {trip.title}
+                          </Text>
+                          <Text as="div" size="2" color="gray">
+                            {formatTimestampToReadableDate(
+                              DateTime.fromMillis(trip.timestampStart, {
+                                zone: trip.timeZone,
+                              }),
+                            )}{' '}
+                            &ndash;{' '}
+                            {formatTimestampToReadableDate(
+                              DateTime.fromMillis(trip.timestampEnd, {
+                                zone: trip.timeZone,
+                              }).minus({
+                                day: 1,
+                              }),
+                            )}{' '}
+                            ({trip.timeZone})
+                          </Text>
+                        </Link>
+                      </Card>
+                    </li>
+                  );
+                })}
+          </ul>
+        )}
       </Flex>
     </Box>
   );

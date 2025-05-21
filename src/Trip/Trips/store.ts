@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand';
-import { useShallow } from 'zustand/shallow';
 import { db } from '../../data/db';
+import { useDeepEqual } from '../../data/hooks';
 import { type BoundStoreType, useBoundStore } from '../../data/store';
 import { TripGroup, type TripGroupType } from '../TripGroup';
 
@@ -17,9 +17,12 @@ export type TripsSlice = {
   trips: {
     [queryKey: string]: TripsSliceTrip[];
   };
-  subscribeTrips: (currentUserId: string) => () => void;
+  tripsLoading: boolean;
+  tripsError: string | null;
+  subscribeTrips: (currentUserId: string, now: number) => () => void;
   getTripsGrouped: (
     currentUserId: string | undefined,
+    now: number,
   ) => Record<TripGroupType, TripsSliceTrip[]>;
 };
 export const createTripsSlice: StateCreator<
@@ -30,41 +33,51 @@ export const createTripsSlice: StateCreator<
 > = (set, get) => {
   return {
     trips: {},
-    subscribeTrips: (currentUserId: string) => {
+    tripsLoading: true,
+    tripsError: null,
+    subscribeTrips: (currentUserId: string, now: number) => {
       const queryKey = getQueryKey(currentUserId);
       return db.subscribeQuery(
         {
           trip: {
             $: {
               where: {
-                and: [
-                  { 'tripUser.user.id': currentUserId },
-                  //   Fetch upcoming and ongoing only
-                  //   { timestampEnd: { $gte: now } },
-                ],
+                and: [{ 'tripUser.user.id': currentUserId }],
               },
             },
           },
         },
-        ({ data }) => {
-          const trips = data?.trip?.map((trip) => {
+        ({ data, error }) => {
+          if (error) {
+            console.error('subscribeTrips error', error);
+            set(() => ({
+              tripsLoading: false,
+              tripsError: error.message,
+            }));
+            return;
+          }
+          const trips =
+            data?.trip?.map((trip) => {
+              return {
+                id: trip.id,
+                title: trip.title,
+                timestampStart: trip.timestampStart,
+                timestampEnd: trip.timestampEnd,
+                timeZone: trip.timeZone,
+                createdAt: trip.createdAt,
+                lastUpdatedAt: trip.lastUpdatedAt,
+              } satisfies TripsSliceTrip;
+            }) ?? [];
+          set((state) => {
             return {
-              id: trip.id,
-              title: trip.title,
-              timestampStart: trip.timestampStart,
-              timestampEnd: trip.timestampEnd,
-              timeZone: trip.timeZone,
-              createdAt: trip.createdAt,
-              lastUpdatedAt: trip.lastUpdatedAt,
-            } satisfies TripsSliceTrip;
+              trips: { ...state.trips, [queryKey]: trips },
+              tripsLoading: false,
+            };
           });
-          const state = get();
-          const newTripsState = { ...state.trips, [queryKey]: trips };
-          set(newTripsState);
         },
       );
     },
-    getTripsGrouped: (currentUserId: string | undefined) => {
+    getTripsGrouped: (currentUserId: string | undefined, now: number) => {
       const groups: Record<TripGroupType, TripsSliceTrip[]> = {
         [TripGroup.Upcoming]: [],
         [TripGroup.Ongoing]: [],
@@ -74,7 +87,6 @@ export const createTripsSlice: StateCreator<
         return groups;
       }
 
-      const now = Date.now();
       const state = get();
       const queryKey = getQueryKey(currentUserId);
       const trips = state.trips[queryKey] ?? [];
@@ -115,9 +127,12 @@ function sortTripFn(tripA: TripsSliceTrip, tripB: TripsSliceTrip): number {
 
 export function useTripsGrouped(
   currentUserId: string | undefined,
+  now: number,
 ): Record<TripGroupType, TripsSliceTrip[]> {
   const tripGroups = useBoundStore(
-    useShallow((state) => state.getTripsGrouped(currentUserId)),
+    useDeepEqual((state) => {
+      return state.getTripsGrouped(currentUserId, now);
+    }),
   );
   return tripGroups;
 }

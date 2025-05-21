@@ -1,11 +1,7 @@
-import { useEffect } from 'react';
-import { useLocation } from 'wouter';
 import type { StateCreator } from 'zustand';
-import { useShallow } from 'zustand/shallow';
 import { db, dbUpsertUser } from '../data/db';
-import { type BoundStoreType, useBoundStore } from '../data/store';
+import type { BoundStoreType } from '../data/store';
 import type { DbUser } from '../data/types';
-import { RouteLogin, UnauthenticatedRoutes } from '../Routes/routes';
 
 export interface UserSlice {
   subscribeUser: () => () => void;
@@ -107,42 +103,3 @@ export const createUserSlice: StateCreator<
     },
   };
 };
-
-export function useCurrentUser() {
-  const currentUser = useBoundStore(useShallow((state) => state.currentUser));
-  return currentUser;
-}
-export function useAuthUser() {
-  const { authUser, authUserLoading, authUserError } = useBoundStore(
-    useShallow((state) => ({
-      authUser: state.authUser,
-      authUserLoading: state.authUserLoading,
-      authUserError: state.authUserError,
-    })),
-  );
-  return { authUser, authUserLoading, authUserError };
-}
-export function useSubscribeUser() {
-  const subscribeUser = useBoundStore((state) => state.subscribeUser);
-  useEffect(() => {
-    subscribeUser();
-  }, [subscribeUser]);
-}
-export function useRedirectUnauthenticatedRoutes() {
-  const { authUser, authUserLoading } = useAuthUser();
-  const [location, setLocation] = useLocation();
-
-  useEffect(() => {
-    if (!authUserLoading && !authUser) {
-      if (
-        UnauthenticatedRoutes.some((route) => {
-          return `~${location}` === route.asRootRoute();
-        })
-      ) {
-        // nothing
-      } else {
-        setLocation(RouteLogin.asRootRoute());
-      }
-    }
-  }, [authUserLoading, location, authUser, setLocation]);
-}

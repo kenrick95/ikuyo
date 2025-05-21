@@ -1,5 +1,5 @@
 import type { StateCreator } from 'zustand';
-import { useShallow } from 'zustand/react/shallow';
+
 import type { DbAccommodationWithTrip } from '../Accommodation/db';
 import type { DbActivity } from '../Activity/db';
 import {
@@ -7,6 +7,7 @@ import {
   type DbCommentGroupObjectType,
 } from '../Comment/db';
 import { db } from '../data/db';
+import { useDeepEqual } from '../data/hooks';
 import { type BoundStoreType, useBoundStore } from '../data/store';
 import type { TripUserRole } from '../data/TripUserRole';
 import type { DbExpense } from '../Expense/db';
@@ -542,72 +543,74 @@ export const createTripSlice: StateCreator<
 };
 
 export function useTrip(tripId: string | undefined) {
-  const trip = useBoundStore(useShallow((state) => state.getTrip(tripId)));
+  const trip = useBoundStore(useDeepEqual((state) => state.getTrip(tripId)));
   return trip;
 }
 export function useCurrentTrip() {
-  const trip = useBoundStore(useShallow((state) => state.getCurrentTrip()));
+  const trip = useBoundStore(useDeepEqual((state) => state.getCurrentTrip()));
   return trip;
 }
 
 export function useTripActivity(activityId: string) {
   const activity = useBoundStore(
-    useShallow((state) => state.getActivity(activityId)),
+    useDeepEqual((state) => state.getActivity(activityId)),
   );
   return activity;
 }
 
 export function useTripActivities(activityIds: string[]) {
   const tripUsers = useBoundStore(
-    useShallow((state) => state.getActivities(activityIds)),
+    useDeepEqual((state) => state.getActivities(activityIds)),
   );
   return tripUsers;
 }
 export function useTripAccommodation(accommodationId: string) {
   const accommodation = useBoundStore(
-    useShallow((state) => state.getAccommodation(accommodationId)),
+    useDeepEqual((state) => state.getAccommodation(accommodationId)),
   );
   return accommodation;
 }
 export function useTripMacroplan(macroplanId: string) {
   const macroplan = useBoundStore(
-    useShallow((state) => state.getMacroplan(macroplanId)),
+    useDeepEqual((state) => state.getMacroplan(macroplanId)),
   );
   return macroplan;
 }
 export function useTripAllComments(tripId: string | undefined) {
   const comments = useBoundStore(
-    useShallow((state) => state.getAllComments(tripId)),
+    useDeepEqual((state) => state.getAllComments(tripId)),
   );
   return comments;
 }
 export function useTripCommentGroup(commentGroupId: string | undefined) {
   const commentGroup = useBoundStore(
-    useShallow((state) => state.getCommentGroup(commentGroupId)),
+    useDeepEqual((state) => state.getCommentGroup(commentGroupId)),
   );
   return commentGroup;
 }
 export function useTripExpense(expenseId: string) {
   const expense = useBoundStore(
-    useShallow((state) => state.getExpense(expenseId)),
+    useDeepEqual((state) => state.getExpense(expenseId)),
   );
   return expense;
 }
 export function useTripExpenses(expenseIds: string[]) {
   const tripUsers = useBoundStore(
-    useShallow((state) => state.getExpenses(expenseIds)),
+    useDeepEqual((state) => state.getExpenses(expenseIds)),
   );
   return tripUsers;
 }
 
 export function useTripComments(ids: string[]) {
-  const comments = useBoundStore(useShallow((state) => state.getComments(ids)));
+  const comments = useBoundStore(
+    useDeepEqual((state) => state.getComments(ids)),
+  );
   return comments;
 }
 
 export function useTripUserIds(userIds: string[]) {
   const tripUsers = useBoundStore(
-    useShallow((state) => state.getTripUsers(userIds)),
+    useDeepEqual((state) => state.getTripUsers(userIds)),
   );
   return tripUsers;
 }
@@ -615,7 +618,7 @@ export function useTripAccommodations(
   accommodationIds: string[],
 ): TripSliceAccommodation[] {
   const accommodations = useBoundStore(
-    useShallow((state) => state.getAccommodations(accommodationIds)),
+    useDeepEqual((state) => state.getAccommodations(accommodationIds)),
   );
   return accommodations;
 }
@@ -623,7 +626,7 @@ export function useTripMacroplans(
   macroplanIds: string[],
 ): TripSliceMacroplan[] {
   const macroplans = useBoundStore(
-    useShallow((state) => state.getMacroplans(macroplanIds)),
+    useDeepEqual((state) => state.getMacroplans(macroplanIds)),
   );
   return macroplans;
 }

@@ -8,7 +8,7 @@ import s from './App.module.css';
 import {
   useRedirectUnauthenticatedRoutes,
   useSubscribeUser,
-} from './Auth/store';
+} from './Auth/hooks';
 import { DialogRoot } from './Dialog/DialogRoot';
 import { withLoading } from './Loading/withLoading';
 import {

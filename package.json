@@ -28,6 +28,7 @@
     "luxon": "~3.6.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-fast-compare": "^3.2.2",
     "url-regex-safe": "^4.0.0",
     "wouter": "~3.7.0",
     "zustand": "~5.0.4"

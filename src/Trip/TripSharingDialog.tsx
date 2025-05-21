@@ -10,7 +10,7 @@ import {
   TextField,
 } from '@radix-ui/themes';
 import { type SyntheticEvent, useCallback, useMemo, useState } from 'react';
-import { useCurrentUser } from '../Auth/store';
+import { useCurrentUser } from '../Auth/hooks';
 import { CommonDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
 import { TripUserRole } from '../data/TripUserRole';

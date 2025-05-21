@@ -3,7 +3,7 @@ import { Button, DropdownMenu } from '@radix-ui/themes';
 import { Link, useLocation } from 'wouter';
 import { AccommodationNewDialog } from '../Accommodation/AccommodationNewDialog';
 import { ActivityNewDialog } from '../Activity/ActivityNewDialog';
-import { useCurrentUser } from '../Auth/store';
+import { useCurrentUser } from '../Auth/hooks';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
 import { db } from '../data/db';
 import { useBoundStore } from '../data/store';

@@ -51,7 +51,7 @@ const TripComment = withLoading()(
 );
 
 import { DoubleArrowRightIcon } from '@radix-ui/react-icons';
-import { useShallow } from 'zustand/shallow';
+import { useDeepEqual } from '../data/hooks';
 import { useBoundStore } from '../data/store';
 import { TripUserRole } from '../data/TripUserRole';
 import {
@@ -85,7 +85,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
 }
 
 function PageTripInner({ trip }: { trip: TripSliceTrip | undefined }) {
-  const user = useBoundStore(useShallow((state) => state.currentUser));
+  const user = useBoundStore(useDeepEqual((state) => state.currentUser));
   const tripUsers = useTripUserIds(trip?.tripUserIds ?? []);
 
   const currentUserIsOwner = useMemo(() => {
