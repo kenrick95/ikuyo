@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { AccommodationDisplayTimeMode } from '../Accommodation/AccommodationDisplayTimeMode';
+import { TripUserRole } from '../data/TripUserRole';
 import type {
   TripSliceAccommodation,
   TripSliceActivity,
@@ -23,7 +24,8 @@ describe('Trip', () => {
     commentGroupIds: [],
     tripUserIds: [],
     expenseIds: [],
-  };
+    currentUserRole: TripUserRole.Owner,
+  } satisfies TripSliceTrip;
   function createActivity(
     activity: Partial<TripSliceActivity>,
   ): TripSliceActivity {
