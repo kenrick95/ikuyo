@@ -154,6 +154,7 @@ export function ActivityDialogContentView({
             objectType={COMMENT_GROUP_OBJECT_TYPE.ACTIVITY}
             user={currentUser}
             onFormFocus={setDialogUnclosable}
+            commentGroupId={activity?.commentGroupId}
           />
         </Flex>
       </Flex>

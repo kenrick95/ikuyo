@@ -85,7 +85,7 @@ export function deriveNewActivityState(
     const commentGroup = trip.commentGroup?.find((cg) => {
       return (
         cg.object?.type === COMMENT_GROUP_OBJECT_TYPE.ACTIVITY &&
-        cg.object?.id === activity.id
+        cg.object?.activity?.[0]?.id === activity.id
       );
     });
     newActivityState[activity.id] = {
@@ -110,7 +110,7 @@ export function deriveNewMacroplanState(
     const commentGroup = trip.commentGroup?.find((cg) => {
       return (
         cg.object?.type === COMMENT_GROUP_OBJECT_TYPE.MACROPLAN &&
-        cg.object?.id === macroplan.id
+        cg.object?.macroplan?.[0]?.id === macroplan.id
       );
     });
     newMacroplanState[macroplan.id] = {
@@ -178,7 +178,7 @@ export function deriveNewExpenseState(
     const commentGroup = trip.commentGroup?.find((cg) => {
       return (
         cg.object?.type === COMMENT_GROUP_OBJECT_TYPE.EXPENSE &&
-        cg.object?.id === expense.id
+        cg.object?.expense?.[0]?.id === expense.id
       );
     });
     newExpenseState[expense.id] = {

@@ -17,7 +17,7 @@ export function CommentGroupWithForm({
   onFormFocus,
 }: {
   user?: DbUser;
-  commentGroupId?: string;
+  commentGroupId: undefined | string;
 
   tripId: string | undefined;
   objectId: string | undefined;
