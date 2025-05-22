@@ -3,7 +3,7 @@ import { DateTime } from 'luxon';
 import { useCallback } from 'react';
 import type { DialogContentProps } from '../Dialog/DialogRoute';
 import { useTrip } from '../Trip/hooks';
-import type { TripSliceMacroplan } from '../Trip/store';
+import type { TripSliceMacroplan } from '../Trip/store/types';
 import { MacroplanDialogMode } from './MacroplanDialogMode';
 import { MacroplanForm } from './MacroplanForm';
 import { MacroplanFormMode } from './MacroplanFormMode';

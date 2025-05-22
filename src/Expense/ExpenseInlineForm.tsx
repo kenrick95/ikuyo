@@ -3,7 +3,7 @@ import { DateTime } from 'luxon';
 import type * as React from 'react';
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
 import { useBoundStore } from '../data/store';
-import type { TripSliceExpense, TripSliceTrip } from '../Trip/store';
+import type { TripSliceExpense, TripSliceTrip } from '../Trip/store/types';
 import { dangerToken } from '../ui';
 import { dbAddExpense, dbUpdateExpense } from './db';
 import { ExpenseMode } from './ExpenseMode';

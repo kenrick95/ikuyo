@@ -1,5 +1,5 @@
 import { useDeepBoundStore } from '../data/store';
-import type { TripSliceAccommodation, TripSliceMacroplan } from './store';
+import type { TripSliceAccommodation, TripSliceMacroplan } from './store/types';
 
 export function useTrip(tripId: string | undefined) {
   const trip = useDeepBoundStore((state) => state.getTrip(tripId));

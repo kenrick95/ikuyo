@@ -11,7 +11,7 @@ import { useCallback } from 'react';
 import { useParseTextIntoNodes } from '../common/text/parseTextIntoNodes';
 import type { DialogContentProps } from '../Dialog/DialogRoute';
 import { useTrip } from '../Trip/hooks';
-import type { TripSliceAccommodation } from '../Trip/store';
+import type { TripSliceAccommodation } from '../Trip/store/types';
 import { AccommodationDialogMode } from './AccommodationDialogMode';
 
 export function AccommodationDialogContentView({

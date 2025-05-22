@@ -4,7 +4,7 @@ import type {
   TripSliceAccommodation,
   TripSliceActivity,
   TripSliceTrip,
-} from '../Trip/store';
+} from '../Trip/store/types';
 import { groupActivitiesByDays } from './eventGrouping';
 
 describe('Trip', () => {

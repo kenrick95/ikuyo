@@ -1,7 +1,7 @@
 import type { StateCreator } from 'zustand';
-import { db } from '../../data/db';
-import type { BoundStoreType } from '../../data/store';
-import { TripGroup, type TripGroupType } from '../TripGroup';
+import { db } from '../data/db';
+import type { BoundStoreType } from '../data/store';
+import { TripGroup, type TripGroupType } from '../Trip/TripGroup';
 
 export type TripsSliceTrip = {
   id: string;

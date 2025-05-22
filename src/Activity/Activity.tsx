@@ -7,7 +7,7 @@ import { Box, ContextMenu, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { DateTime } from 'luxon';
 import { memo, useCallback, useMemo, useState } from 'react';
-import type { TripSliceActivity } from '../Trip/store';
+import type { TripSliceActivity } from '../Trip/store/types';
 import { TripViewMode, type TripViewModeType } from '../Trip/TripViewMode';
 import { dangerToken } from '../ui';
 import style from './Activity.module.css';

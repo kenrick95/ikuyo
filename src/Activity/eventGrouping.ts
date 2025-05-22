@@ -5,7 +5,7 @@ import type {
   TripSliceActivity,
   TripSliceMacroplan,
   TripSliceTrip,
-} from '../Trip/store';
+} from '../Trip/store/types';
 
 export type DayGroups = Array<{
   /** DateTime in trip time zone */

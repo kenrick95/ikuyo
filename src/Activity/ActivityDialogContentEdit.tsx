@@ -3,7 +3,7 @@ import { DateTime } from 'luxon';
 import { useCallback } from 'react';
 import type { DialogContentProps } from '../Dialog/DialogRoute';
 import { useTrip } from '../Trip/hooks';
-import type { TripSliceActivity } from '../Trip/store';
+import type { TripSliceActivity } from '../Trip/store/types';
 import { ActivityDialogMode } from './ActivityDialogMode';
 import { ActivityForm } from './ActivityForm';
 import { ActivityFormMode } from './ActivityFormMode';

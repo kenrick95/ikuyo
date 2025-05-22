@@ -1,6 +1,6 @@
 import { createDialogRoute } from '../Dialog/DialogRoute';
 import { useDeepBoundStore } from '../data/store';
-import type { TripSliceActivity } from '../Trip/store';
+import type { TripSliceActivity } from '../Trip/store/types';
 import { ActivityDialogContentDelete } from './ActivityDialogContentDelete';
 import { ActivityDialogContentEdit } from './ActivityDialogContentEdit';
 import { ActivityDialogContentView } from './ActivityDialogContentView';

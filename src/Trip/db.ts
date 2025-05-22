@@ -11,7 +11,7 @@ import { db } from '../data/db';
 import { TripUserRole } from '../data/TripUserRole';
 import type { DbUser } from '../data/types';
 import type { DbMacroplan, DbMacroplanWithTrip } from '../Macroplan/db';
-import type { TripSliceActivity, TripSliceTrip } from './store';
+import type { TripSliceActivity, TripSliceTrip } from './store/types';
 
 export type DbTripFull = Omit<
   DbTrip,

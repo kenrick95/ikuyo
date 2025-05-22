@@ -1,6 +1,9 @@
 import { DateTime } from 'luxon';
 import type { DayGroups } from '../Activity/eventGrouping';
-import type { TripSliceAccommodation, TripSliceTrip } from '../Trip/store';
+import type {
+  TripSliceAccommodation,
+  TripSliceTrip,
+} from '../Trip/store/types';
 
 export function getAccommodationIndexes({
   trip,

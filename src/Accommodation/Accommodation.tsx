@@ -2,7 +2,7 @@ import { ClockIcon, HomeIcon } from '@radix-ui/react-icons';
 import { Box, ContextMenu, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { memo, useMemo } from 'react';
-import type { TripSliceAccommodation } from '../Trip/store';
+import type { TripSliceAccommodation } from '../Trip/store/types';
 import { TripViewMode, type TripViewModeType } from '../Trip/TripViewMode';
 import { dangerToken } from '../ui';
 import s from './Accommodation.module.css';

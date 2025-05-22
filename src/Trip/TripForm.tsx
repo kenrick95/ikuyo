@@ -6,7 +6,7 @@ import { useBoundStore } from '../data/store';
 import { RouteTrip } from '../Routes/routes';
 import { dangerToken } from '../ui';
 import { dbAddTrip, dbUpdateTrip } from './db';
-import type { TripSliceActivity } from './store';
+import type { TripSliceActivity } from './store/types';
 import { TripFormMode } from './TripFormMode';
 import { getDateTimeFromDateInput } from './time';
 

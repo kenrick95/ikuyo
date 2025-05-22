@@ -3,7 +3,7 @@ import { DateTime } from 'luxon';
 import { useMemo } from 'react';
 import { CommonDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
-import type { TripSliceTrip } from '../Trip/store';
+import type { TripSliceTrip } from '../Trip/store/types';
 import { MacroplanForm } from './MacroplanForm';
 import { MacroplanFormMode } from './MacroplanFormMode';
 import { formatToDateInput } from './time';

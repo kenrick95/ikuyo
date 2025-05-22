@@ -4,7 +4,7 @@ import { DateTime } from 'luxon';
 import { useState } from 'react';
 import { useBoundStore } from '../data/store';
 import { useTrip } from '../Trip/hooks';
-import type { TripSliceExpense } from '../Trip/store';
+import type { TripSliceExpense } from '../Trip/store/types';
 import { dangerToken } from '../ui';
 import { dbDeleteExpense } from './db';
 import { ExpenseInlineForm } from './ExpenseInlineForm';

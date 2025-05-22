@@ -12,7 +12,7 @@ import { Container, Heading, Text } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { createPortal } from 'react-dom';
 import { useCurrentTrip, useTripActivities } from '../Trip/hooks';
-import type { TripSliceActivity } from '../Trip/store';
+import type { TripSliceActivity } from '../Trip/store/types';
 export function TripMap() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<MapTilerMap>(null);

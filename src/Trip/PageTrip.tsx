@@ -51,7 +51,8 @@ const TripComment = withLoading()(
 );
 
 import { DoubleArrowRightIcon } from '@radix-ui/react-icons';
-import { useBoundStore, useDeepBoundStore } from '../data/store';
+import { useCurrentUser } from '../Auth/hooks';
+import { useBoundStore } from '../data/store';
 import { TripUserRole } from '../data/TripUserRole';
 import {
   RouteTripComment,
@@ -62,7 +63,7 @@ import {
   RouteTripTimetableView,
 } from '../Routes/routes';
 import { useTrip, useTripUserIds } from './hooks';
-import type { TripSliceTrip } from './store';
+import type { TripSliceTrip } from './store/types';
 import { TripMenuFloating } from './TripMenuFloating';
 
 export default PageTrip;
@@ -85,20 +86,20 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
 }
 
 function PageTripInner({ trip }: { trip: TripSliceTrip | undefined }) {
-  const user = useDeepBoundStore((state) => state.currentUser);
+  const currentUser = useCurrentUser();
   const tripUsers = useTripUserIds(trip?.tripUserIds ?? []);
 
   const currentUserIsOwner = useMemo(() => {
     for (const tripUser of tripUsers) {
       if (
-        user?.id === tripUser.userId &&
+        currentUser?.id === tripUser.userId &&
         tripUser.role === TripUserRole.Owner
       ) {
         return true;
       }
     }
     return false;
-  }, [tripUsers, user]);
+  }, [tripUsers, currentUser]);
   return (
     <>
       <DocTitle title={trip?.title ?? 'Trip'} />

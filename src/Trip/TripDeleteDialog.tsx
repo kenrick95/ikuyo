@@ -6,7 +6,7 @@ import { useBoundStore } from '../data/store';
 import { RouteTrips } from '../Routes/routes';
 import { dangerToken } from '../ui';
 import { dbDeleteTrip } from './db';
-import type { TripSliceTrip } from './store';
+import type { TripSliceTrip } from './store/types';
 
 export function TripDeleteDialog({ trip }: { trip: TripSliceTrip }) {
   const [, setLocation] = useLocation();

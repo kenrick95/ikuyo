@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon';
 import type { DayGroups } from '../Activity/eventGrouping';
-import type { TripSliceMacroplan, TripSliceTrip } from '../Trip/store';
+import type { TripSliceMacroplan, TripSliceTrip } from '../Trip/store/types';
 
 export function getMacroplanIndexes({
   trip,

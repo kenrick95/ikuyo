@@ -1,5 +1,5 @@
-import { useDeepBoundStore } from '../../data/store';
-import type { TripGroupType } from '../TripGroup';
+import { useDeepBoundStore } from '../data/store';
+import type { TripGroupType } from '../Trip/TripGroup';
 import type { TripsSliceTrip } from './store';
 
 export function useTripsGrouped(

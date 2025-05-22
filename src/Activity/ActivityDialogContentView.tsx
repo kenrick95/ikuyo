@@ -15,7 +15,7 @@ import type { DialogContentProps } from '../Dialog/DialogRoute';
 import { CommonCommentDialogMaxWidth } from '../Dialog/ui';
 import { useDeepBoundStore } from '../data/store';
 import { useTrip } from '../Trip/hooks';
-import type { TripSliceActivity } from '../Trip/store';
+import type { TripSliceActivity } from '../Trip/store/types';
 import s from './Activity.module.css';
 import { ActivityMap } from './ActivityDialogMap';
 import { ActivityDialogMode } from './ActivityDialogMode';

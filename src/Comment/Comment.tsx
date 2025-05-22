@@ -13,7 +13,7 @@ import {
   RouteTripTimetableViewMacroplan,
 } from '../Routes/routes';
 import { useTripCommentGroup } from '../Trip/hooks';
-import type { TripSliceCommentWithUser } from '../Trip/store';
+import type { TripSliceCommentWithUser } from '../Trip/store/types';
 import { dangerToken } from '../ui';
 import s from './Comment.module.css';
 import { CommentForm } from './CommentForm';

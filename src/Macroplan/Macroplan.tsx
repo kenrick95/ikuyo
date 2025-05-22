@@ -1,7 +1,7 @@
 import { Box, ContextMenu, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { memo, useMemo } from 'react';
-import type { TripSliceMacroplan } from '../Trip/store';
+import type { TripSliceMacroplan } from '../Trip/store/types';
 import type { TripViewModeType } from '../Trip/TripViewMode';
 import { dangerToken } from '../ui';
 import s from './Macroplan.module.css';

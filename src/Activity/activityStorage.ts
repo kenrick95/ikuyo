@@ -1,4 +1,4 @@
-import type { TripSliceTrip } from '../Trip/store';
+import type { TripSliceTrip } from '../Trip/store/types';
 
 const lastNewActivityTimestampStorageKey = 'ikuyo:last-new-activity-timestamp';
 

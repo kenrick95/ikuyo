@@ -1,6 +1,6 @@
 import { createDialogRoute } from '../Dialog/DialogRoute';
 import { useDeepBoundStore } from '../data/store';
-import type { TripSliceAccommodation } from '../Trip/store';
+import type { TripSliceAccommodation } from '../Trip/store/types';
 import { AccommodationDialogContentDelete } from './AccommodationDialogContentDelete';
 import { AccommodationDialogContentEdit } from './AccommodationDialogContentEdit';
 import { AccommodationDialogContentView } from './AccommodationDialogContentView';

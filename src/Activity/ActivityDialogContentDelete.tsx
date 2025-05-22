@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { type DialogContentProps, DialogMode } from '../Dialog/DialogRoute';
 import { useBoundStore } from '../data/store';
-import type { TripSliceActivity } from '../Trip/store';
+import type { TripSliceActivity } from '../Trip/store/types';
 import { dangerToken } from '../ui';
 import { dbDeleteActivity } from './db';
 

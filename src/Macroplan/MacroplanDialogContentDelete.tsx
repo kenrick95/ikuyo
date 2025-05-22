@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { useLocation } from 'wouter';
 import type { DialogContentProps } from '../Dialog/DialogRoute';
 import { useBoundStore } from '../data/store';
-import type { TripSliceMacroplan } from '../Trip/store';
+import type { TripSliceMacroplan } from '../Trip/store/types';
 import { dangerToken } from '../ui';
 import { dbDeleteMacroplan } from './db';
 import { MacroplanDialogMode } from './MacroplanDialogMode';

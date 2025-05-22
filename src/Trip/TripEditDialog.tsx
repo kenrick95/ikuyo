@@ -3,7 +3,7 @@ import { DateTime } from 'luxon';
 import { CommonDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
 import { useTripActivities } from './hooks';
-import type { TripSliceTrip } from './store';
+import type { TripSliceTrip } from './store/types';
 import { TripForm } from './TripForm';
 import { TripFormMode } from './TripFormMode';
 import { formatToDateInput } from './time';

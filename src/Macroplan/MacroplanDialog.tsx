@@ -1,6 +1,6 @@
 import { createDialogRoute } from '../Dialog/DialogRoute';
 import { useDeepBoundStore } from '../data/store';
-import type { TripSliceMacroplan } from '../Trip/store';
+import type { TripSliceMacroplan } from '../Trip/store/types';
 import { MacroplanDialogContentDelete } from './MacroplanDialogContentDelete';
 import { MacroplanDialogContentEdit } from './MacroplanDialogContentEdit';
 import { MacroplanDialogContentView } from './MacroplanDialogContentView';

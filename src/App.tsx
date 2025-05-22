@@ -25,9 +25,7 @@ import { ThemeAppearance, useTheme } from './theme';
 const PageTerms = withLoading()(React.lazy(() => import('./Docs/Terms')));
 const PagePrivacy = withLoading()(React.lazy(() => import('./Docs/Privacy')));
 const PageLogin = withLoading()(React.lazy(() => import('./Auth/Auth')));
-const PageTrips = withLoading()(
-  React.lazy(() => import('./Trip/Trips/PageTrips')),
-);
+const PageTrips = withLoading()(React.lazy(() => import('./Trips/PageTrips')));
 const PageTrip = withLoading()(React.lazy(() => import('./Trip/PageTrip')));
 const PageAccount = withLoading()(
   React.lazy(() => import('./Account/PageAccount')),

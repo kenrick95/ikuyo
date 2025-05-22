@@ -11,7 +11,7 @@ import { useCallback } from 'react';
 import { useParseTextIntoNodes } from '../common/text/parseTextIntoNodes';
 import type { DialogContentProps } from '../Dialog/DialogRoute';
 import { useTrip } from '../Trip/hooks';
-import type { TripSliceMacroplan } from '../Trip/store';
+import type { TripSliceMacroplan } from '../Trip/store/types';
 import s from './Macroplan.module.css';
 import { MacroplanDialogMode } from './MacroplanDialogMode';
 

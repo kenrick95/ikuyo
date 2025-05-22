@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import type { TripSliceActivity } from '../Trip/store';
+import type { TripSliceActivity } from '../Trip/store/types';
 
 /**
  * Converts a grid row value (time string like "0900") to a time offset in milliseconds
