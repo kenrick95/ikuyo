@@ -1,7 +1,7 @@
-import { useBoundStore } from '../data/store';
+import { useDeepBoundStore } from '../data/store';
 
 export function DialogRoot() {
-  const dialogs = useBoundStore((state) => state.dialogs);
+  const dialogs = useDeepBoundStore((state) => state.dialogs);
 
   if (dialogs.length > 0) {
     const DialogComponent = dialogs[dialogs.length - 1].component;

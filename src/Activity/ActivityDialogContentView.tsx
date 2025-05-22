@@ -13,7 +13,7 @@ import { COMMENT_GROUP_OBJECT_TYPE } from '../Comment/db';
 import { useParseTextIntoNodes } from '../common/text/parseTextIntoNodes';
 import type { DialogContentProps } from '../Dialog/DialogRoute';
 import { CommonCommentDialogMaxWidth } from '../Dialog/ui';
-import { useBoundStore } from '../data/store';
+import { useDeepBoundStore } from '../data/store';
 import { useTrip } from '../Trip/hooks';
 import type { TripSliceActivity } from '../Trip/store';
 import s from './Activity.module.css';
@@ -41,7 +41,7 @@ export function ActivityDialogContentView({
           // since 1 activity must be in same day, so might as well just show the time for end
           .toFormat('HH:mm')
       : undefined;
-  const currentUser = useBoundStore((state) => state.currentUser);
+  const currentUser = useDeepBoundStore((state) => state.currentUser);
 
   const descriptions = useParseTextIntoNodes(activity?.description);
 

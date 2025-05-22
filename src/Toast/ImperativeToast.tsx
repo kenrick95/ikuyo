@@ -1,9 +1,9 @@
 import * as ToastPrimitive from '@radix-ui/react-toast';
-import { useBoundStore } from '../data/store';
+import { useDeepBoundStore } from '../data/store';
 import s from './Toast.module.css';
 
 export const ImperativeToastRoot = () => {
-  const toasts = useBoundStore((state) => state.toasts);
+  const toasts = useDeepBoundStore((state) => state.toasts);
 
   console.log('ImperativeToastRoot| toasts', toasts);
   return (

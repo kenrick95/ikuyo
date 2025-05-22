@@ -10,14 +10,14 @@ import { useCallback, useId, useState } from 'react';
 import type { RouteComponentProps } from 'wouter';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
 import { dbUpsertUser } from '../data/db';
-import { useBoundStore } from '../data/store';
+import { useBoundStore, useDeepBoundStore } from '../data/store';
 import { DocTitle } from '../Nav/DocTitle';
 import { Navbar } from '../Nav/Navbar';
 import { dangerToken } from '../ui';
 
 export default PageAccount;
 export function PageAccount(_props: RouteComponentProps) {
-  const currentUser = useBoundStore((state) => state.currentUser);
+  const currentUser = useDeepBoundStore((state) => state.currentUser);
   const resetToast = useBoundStore((state) => state.resetToast);
   const publishToast = useBoundStore((state) => state.publishToast);
 

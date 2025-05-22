@@ -1,20 +1,19 @@
 import { useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { useDeepEqual } from '../data/hooks';
-import { useBoundStore } from '../data/store';
+import { useBoundStore, useDeepBoundStore } from '../data/store';
 import { RouteLogin, UnauthenticatedRoutes } from '../Routes/routes';
 
 export function useCurrentUser() {
-  const currentUser = useBoundStore(useDeepEqual((state) => state.currentUser));
+  const currentUser = useDeepBoundStore((state) => state.currentUser);
   return currentUser;
 }
 export function useAuthUser() {
-  const { authUser, authUserLoading, authUserError } = useBoundStore(
-    useDeepEqual((state) => ({
+  const { authUser, authUserLoading, authUserError } = useDeepBoundStore(
+    (state) => ({
       authUser: state.authUser,
       authUserLoading: state.authUserLoading,
       authUserError: state.authUserError,
-    })),
+    }),
   );
   return { authUser, authUserLoading, authUserError };
 }

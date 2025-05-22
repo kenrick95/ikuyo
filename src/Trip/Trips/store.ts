@@ -34,7 +34,7 @@ export const createTripsSlice: StateCreator<
     trips: {},
     tripsLoading: true,
     tripsError: null,
-    subscribeTrips: (currentUserId: string, now: number) => {
+    subscribeTrips: (currentUserId: string, _now: number) => {
       const queryKey = getQueryKey(currentUserId);
       return db.subscribeQuery(
         {

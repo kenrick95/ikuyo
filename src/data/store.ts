@@ -4,6 +4,7 @@ import { createDialogSlice, type DialogSlice } from '../Dialog/hooks';
 import { createToastSlice, type ToastSlice } from '../Toast/hooks';
 import { createTripSlice, type TripSlice } from '../Trip/store';
 import { createTripsSlice, type TripsSlice } from '../Trip/Trips/store';
+import { useDeepEqual } from './useDeepEqual';
 
 export type BoundStoreType = ToastSlice &
   UserSlice &
@@ -18,3 +19,9 @@ export const useBoundStore = create<BoundStoreType>()((...args) => ({
   ...createTripSlice(...args),
   ...createTripsSlice(...args),
 }));
+
+export function useDeepBoundStore<U>(
+  selector: (state: BoundStoreType) => U,
+): U {
+  return useBoundStore(useDeepEqual<BoundStoreType, U>(selector));
+}

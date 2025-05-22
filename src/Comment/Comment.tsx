@@ -4,7 +4,7 @@ import { memo, useMemo, useState } from 'react';
 import { Link } from 'wouter';
 import { UserAvatar } from '../Auth/UserAvatar';
 import { useParseTextIntoNodes } from '../common/text/parseTextIntoNodes';
-import { useBoundStore } from '../data/store';
+import { useBoundStore, useDeepBoundStore } from '../data/store';
 import {
   RouteTripExpenses,
   RouteTripTimetableView,
@@ -31,7 +31,7 @@ function CommentInner({
   showCommentObjectTarget: boolean;
   showControls: boolean;
 }) {
-  const currentUser = useBoundStore((state) => state.currentUser);
+  const currentUser = useDeepBoundStore((state) => state.currentUser);
   const commentGroup = useTripCommentGroup(comment.commentGroupId);
 
   const { user } = comment;

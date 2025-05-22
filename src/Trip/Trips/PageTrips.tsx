@@ -14,8 +14,7 @@ import { useEffect, useState } from 'react';
 import { Link, type RouteComponentProps } from 'wouter';
 import { useCurrentUser } from '../../Auth/hooks';
 import { UserAvatarMenu } from '../../Auth/UserAvatarMenu';
-import { useDeepEqual } from '../../data/hooks';
-import { useBoundStore } from '../../data/store';
+import { useBoundStore, useDeepBoundStore } from '../../data/store';
 import type { DbUser } from '../../data/types';
 import { DocTitle } from '../../Nav/DocTitle';
 import { Navbar } from '../../Nav/Navbar';
@@ -41,11 +40,9 @@ export function PageTrips(_props: RouteComponentProps) {
     return unsubscribe;
   }, [currentUser, subscribeTrips, now]);
   const tripGroups = useTripsGrouped(currentUser?.id, now);
-  const tripsLoading = useBoundStore(
-    useDeepEqual((state) => state.tripsLoading),
-  );
+  const tripsLoading = useDeepBoundStore((state) => state.tripsLoading);
   // TODO: how to show error
-  // const tripsError = useBoundStore(useDeepEqual((state) => state.tripsError));
+  // const tripsError = useDeepBoundStore((state) => state.tripsError);
 
   return (
     <>
