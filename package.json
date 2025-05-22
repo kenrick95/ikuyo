@@ -34,7 +34,7 @@
     "zustand": "~5.0.4"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.0.0-beta.4",
+    "@biomejs/biome": "2.0.0-beta.5",
     "@rsbuild/core": "^1.3.19",
     "@rsbuild/plugin-react": "^1.3.1",
     "@rsbuild/plugin-sass": "^1.3.1",
@@ -76,19 +76,7 @@
     "onlyBuiltDependencies": [
       "@biomejs/biome",
       "lefthook"
-    ],
-    "supportedArchitectures": {
-      "os": [
-        "darwin",
-        "linux",
-        "win32",
-        "current"
-      ],
-      "cpu": [
-        "x64",
-        "arm64"
-      ]
-    }
+    ]
   },
   "browserslist": [
     "> 0.4%",
