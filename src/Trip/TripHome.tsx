@@ -1,7 +1,7 @@
 import { Container, DataList, Heading, Text } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { REGIONS_MAP } from '../data/intl/regions';
-import { useCurrentTrip } from './store';
+import { useCurrentTrip } from './hooks';
 import { formatTimestampToReadableDate } from './time';
 
 const containerPx = { initial: '1', md: '0' };

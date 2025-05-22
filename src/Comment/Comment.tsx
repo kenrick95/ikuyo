@@ -12,10 +12,8 @@ import {
   RouteTripTimetableViewActivity,
   RouteTripTimetableViewMacroplan,
 } from '../Routes/routes';
-import {
-  type TripSliceCommentWithUser,
-  useTripCommentGroup,
-} from '../Trip/store';
+import { useTripCommentGroup } from '../Trip/hooks';
+import type { TripSliceCommentWithUser } from '../Trip/store';
 import { dangerToken } from '../ui';
 import s from './Comment.module.css';
 import { CommentForm } from './CommentForm';

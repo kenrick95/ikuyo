@@ -1,5 +1,6 @@
 import { Flex } from '@radix-ui/themes';
-import { type TripSliceCommentGroup, useTripComments } from '../Trip/store';
+import { useTripComments } from '../Trip/hooks';
+import type { TripSliceCommentGroup } from '../Trip/store';
 import { Comment } from './Comment';
 
 export function CommentGroup({

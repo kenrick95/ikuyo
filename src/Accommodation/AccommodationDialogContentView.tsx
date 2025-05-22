@@ -10,7 +10,8 @@ import { DateTime } from 'luxon';
 import { useCallback } from 'react';
 import { useParseTextIntoNodes } from '../common/text/parseTextIntoNodes';
 import type { DialogContentProps } from '../Dialog/DialogRoute';
-import { type TripSliceAccommodation, useTrip } from '../Trip/store';
+import { useTrip } from '../Trip/hooks';
+import type { TripSliceAccommodation } from '../Trip/store';
 import { AccommodationDialogMode } from './AccommodationDialogMode';
 
 export function AccommodationDialogContentView({

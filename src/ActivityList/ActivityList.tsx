@@ -22,7 +22,7 @@ import {
   useTripAccommodations,
   useTripActivities,
   useTripMacroplans,
-} from '../Trip/store';
+} from '../Trip/hooks';
 import { TripViewMode } from '../Trip/TripViewMode';
 import { TripMap } from '../TripMap/TripMap';
 import s from './ActivityList.module.css';

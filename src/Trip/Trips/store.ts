@@ -1,7 +1,6 @@
 import type { StateCreator } from 'zustand';
 import { db } from '../../data/db';
-import { useDeepEqual } from '../../data/hooks';
-import { type BoundStoreType, useBoundStore } from '../../data/store';
+import type { BoundStoreType } from '../../data/store';
 import { TripGroup, type TripGroupType } from '../TripGroup';
 
 export type TripsSliceTrip = {
@@ -123,16 +122,4 @@ function sortTripFn(tripA: TripsSliceTrip, tripB: TripsSliceTrip): number {
     return tripA.timestampEnd - tripB.timestampEnd;
   }
   return tripA.timestampStart - tripB.timestampStart;
-}
-
-export function useTripsGrouped(
-  currentUserId: string | undefined,
-  now: number,
-): Record<TripGroupType, TripsSliceTrip[]> {
-  const tripGroups = useBoundStore(
-    useDeepEqual((state) => {
-      return state.getTripsGrouped(currentUserId, now);
-    }),
-  );
-  return tripGroups;
 }

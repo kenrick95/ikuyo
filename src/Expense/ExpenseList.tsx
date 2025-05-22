@@ -1,7 +1,7 @@
 import { PlusIcon, QuestionMarkCircledIcon } from '@radix-ui/react-icons';
 import { Button, Section, Table, Tooltip } from '@radix-ui/themes';
 import { useState } from 'react';
-import { useCurrentTrip, useTripExpenses } from '../Trip/store';
+import { useCurrentTrip, useTripExpenses } from '../Trip/hooks';
 import { ExpenseInlineForm } from './ExpenseInlineForm';
 import s from './ExpenseList.module.css';
 import { ExpenseMode } from './ExpenseMode';

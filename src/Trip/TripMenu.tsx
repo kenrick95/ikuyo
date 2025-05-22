@@ -9,7 +9,7 @@ import { db } from '../data/db';
 import { useBoundStore } from '../data/store';
 import { MacroplanNewDialog } from '../Macroplan/MacroplanNewDialog';
 import { RouteAccount, RouteLogin, RouteTrips } from '../Routes/routes';
-import { useCurrentTrip } from './store';
+import { useCurrentTrip } from './hooks';
 import { TripDeleteDialog } from './TripDeleteDialog';
 import { TripEditDialog } from './TripEditDialog';
 import s from './TripMenu.module.css';

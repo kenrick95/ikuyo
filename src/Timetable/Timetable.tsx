@@ -30,7 +30,7 @@ import {
   useTripAccommodations,
   useTripActivities,
   useTripMacroplans,
-} from '../Trip/store';
+} from '../Trip/hooks';
 import { TripViewMode } from '../Trip/TripViewMode';
 import {
   generateAccommodationGridTemplateColumns,

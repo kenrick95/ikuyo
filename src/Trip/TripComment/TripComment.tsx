@@ -1,6 +1,6 @@
 import { Container, Flex, Heading, Text } from '@radix-ui/themes';
 import { Comment } from '../../Comment/Comment';
-import { useCurrentTrip, useTripAllComments } from '../store';
+import { useCurrentTrip, useTripAllComments } from '../hooks';
 
 const containerPx = { initial: '1', md: '0' };
 const containerPb = { initial: '9', sm: '5' };

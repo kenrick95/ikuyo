@@ -1,6 +1,6 @@
 import { Spinner, Text } from '@radix-ui/themes';
 import type { DbUser } from '../data/types';
-import { useTripCommentGroup } from '../Trip/store';
+import { useTripCommentGroup } from '../Trip/hooks';
 import { CommentForm } from './CommentForm';
 import { CommentGroup } from './CommentGroup';
 import { CommentMode } from './CommentMode';

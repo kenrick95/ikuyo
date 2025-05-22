@@ -12,19 +12,20 @@ import {
 import { DateTime } from 'luxon';
 import { useEffect, useState } from 'react';
 import { Link, type RouteComponentProps } from 'wouter';
-import { useCurrentUser } from '../Auth/hooks';
-import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
-import { useDeepEqual } from '../data/hooks';
-import { useBoundStore } from '../data/store';
-import type { DbUser } from '../data/types';
-import { DocTitle } from '../Nav/DocTitle';
-import { Navbar } from '../Nav/Navbar';
-import { RouteTrip } from '../Routes/routes';
+import { useCurrentUser } from '../../Auth/hooks';
+import { UserAvatarMenu } from '../../Auth/UserAvatarMenu';
+import { useDeepEqual } from '../../data/hooks';
+import { useBoundStore } from '../../data/store';
+import type { DbUser } from '../../data/types';
+import { DocTitle } from '../../Nav/DocTitle';
+import { Navbar } from '../../Nav/Navbar';
+import { RouteTrip } from '../../Routes/routes';
+import { TripGroup, type TripGroupType } from '../TripGroup';
+import { TripNewDialog } from '../TripNewDialog';
+import { formatTimestampToReadableDate } from '../time';
+import { useTripsGrouped } from './hooks';
 import s from './PageTrips.module.css';
-import { TripGroup, type TripGroupType } from './TripGroup';
-import { TripNewDialog } from './TripNewDialog';
-import { type TripsSliceTrip, useTripsGrouped } from './Trips/store';
-import { formatTimestampToReadableDate } from './time';
+import type { TripsSliceTrip } from './store';
 
 export default PageTrips;
 

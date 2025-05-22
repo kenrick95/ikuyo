@@ -62,7 +62,8 @@ import {
   RouteTripMap,
   RouteTripTimetableView,
 } from '../Routes/routes';
-import { type TripSliceTrip, useTrip, useTripUserIds } from './store';
+import { useTrip, useTripUserIds } from './hooks';
+import type { TripSliceTrip } from './store';
 import { TripMenuFloating } from './TripMenuFloating';
 
 export default PageTrip;

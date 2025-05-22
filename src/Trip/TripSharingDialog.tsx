@@ -16,7 +16,8 @@ import { useBoundStore } from '../data/store';
 import { TripUserRole } from '../data/TripUserRole';
 import { dangerToken } from '../ui';
 import { dbAddUserToTrip, dbRemoveUserFromTrip } from './db';
-import { type TripSliceTripUser, useTrip, useTripUserIds } from './store';
+import { useTrip, useTripUserIds } from './hooks';
+import type { TripSliceTripUser } from './store';
 import s from './TripSharingDialog.module.css';
 
 export function TripSharingDialog({ tripId }: { tripId: string }) {
