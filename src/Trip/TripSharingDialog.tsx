@@ -28,15 +28,8 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
   const publishToast = useBoundStore((state) => state.publishToast);
   const [errorMessage, setErrorMessage] = useState('');
   const currentUserIsOwner = useMemo(() => {
-    for (const tripUser of tripUsers ?? []) {
-      if (tripUser.id === currentUser?.id) {
-        if (tripUser.role === TripUserRole.Owner) {
-          return true;
-        }
-      }
-    }
-    return false;
-  }, [tripUsers, currentUser]);
+    return trip?.currentUserRole === TripUserRole.Owner;
+  }, [trip?.currentUserRole]);
 
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserRole, setNewUserRole] = useState(TripUserRole.Viewer);

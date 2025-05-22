@@ -33,7 +33,6 @@ export const createTripSlice: StateCreator<
 > = (set, get) => {
   return {
     currentTripId: undefined,
-    currentTrip: undefined,
     trip: {},
     accommodation: {},
     activity: {},

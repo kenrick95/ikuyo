@@ -2,10 +2,10 @@ import {
   COMMENT_GROUP_OBJECT_TYPE,
   type DbCommentGroupObjectType,
 } from '../../Comment/db';
-import type { TripUserRole } from '../../data/TripUserRole';
+import type { BoundStoreType } from '../../data/store';
+import { TripUserRole } from '../../data/TripUserRole';
 import type {
   DbTripQueryReturnType,
-  TripSlice,
   TripSliceAccommodation,
   TripSliceActivity,
   TripSliceComment,
@@ -18,11 +18,16 @@ import type {
 } from './types';
 
 export function deriveNewTripState(
-  state: TripSlice,
+  state: BoundStoreType,
   trip: DbTripQueryReturnType,
 ): {
   [id: string]: TripSliceTrip;
 } {
+  const currentUser = state.currentUser;
+  const currentUserTripUser = trip.tripUser.find((tu) => {
+    return tu.user?.[0]?.id === currentUser?.id;
+  });
+
   const newTripState = {
     ...state.trip,
     [trip.id]: {
@@ -40,12 +45,15 @@ export function deriveNewTripState(
       tripUserIds: trip.tripUser.map((a) => a.id),
       commentGroupIds: trip.commentGroup.map((a) => a.id),
       expenseIds: trip.expense.map((a) => a.id),
+      currentUserRole:
+        (currentUserTripUser?.role as TripUserRole | undefined) ??
+        TripUserRole.Viewer,
     } satisfies TripSliceTrip,
   };
   return newTripState;
 }
 export function deriveNewAccommodationState(
-  state: TripSlice,
+  state: BoundStoreType,
   trip: DbTripQueryReturnType,
 ): {
   [id: string]: TripSliceAccommodation;
@@ -67,7 +75,7 @@ export function deriveNewAccommodationState(
   return newAccommodationState;
 }
 export function deriveNewActivityState(
-  state: TripSlice,
+  state: BoundStoreType,
   trip: DbTripQueryReturnType,
 ): {
   [id: string]: TripSliceActivity;
@@ -92,7 +100,7 @@ export function deriveNewActivityState(
   return newActivityState;
 }
 export function deriveNewMacroplanState(
-  state: TripSlice,
+  state: BoundStoreType,
   trip: DbTripQueryReturnType,
 ): {
   [id: string]: TripSliceMacroplan;
@@ -114,7 +122,7 @@ export function deriveNewMacroplanState(
   return newMacroplanState;
 }
 export function deriveNewCommentGroupState(
-  state: TripSlice,
+  state: BoundStoreType,
   trip: DbTripQueryReturnType,
 ): {
   [id: string]: TripSliceCommentGroup;
@@ -160,7 +168,7 @@ export function deriveNewCommentGroupState(
   return newCommentGroupState;
 }
 export function deriveNewExpenseState(
-  state: TripSlice,
+  state: BoundStoreType,
   trip: DbTripQueryReturnType,
 ): {
   [id: string]: TripSliceExpense;
@@ -182,7 +190,7 @@ export function deriveNewExpenseState(
   return newExpenseState;
 }
 export function deriveNewTripUserState(
-  state: TripSlice,
+  state: BoundStoreType,
   trip: DbTripQueryReturnType,
 ): {
   [id: string]: TripSliceTripUser;
@@ -202,7 +210,7 @@ export function deriveNewTripUserState(
   return newTripUserState;
 }
 export function deriveNewCommentAndCommentUserState(
-  state: TripSlice,
+  state: BoundStoreType,
   trip: DbTripQueryReturnType,
 ): {
   newCommentState: { [id: string]: TripSliceComment };

@@ -17,6 +17,8 @@ export type TripSliceTrip = Omit<
   tripUserIds: string[];
   commentGroupIds: string[];
   expenseIds: string[];
+
+  currentUserRole: TripUserRole;
 };
 export type TripSliceActivity = Omit<DbActivity, 'trip' | 'commentGroup'> & {
   tripId: string;
