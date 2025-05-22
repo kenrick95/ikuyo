@@ -38,7 +38,7 @@ export function calculateNewTimestamps(
   gridRow: string,
   gridColumn: string,
   activity: TripSliceActivity,
-  tripStartTimestamp: number,
+  tripTimestampStart: number,
   tripTimeZone: string,
 ): { timestampStart: number; timestampEnd: number } {
   console.log('Calculating new timestamps', { gridRow, gridColumn });
@@ -54,7 +54,7 @@ export function calculateNewTimestamps(
 
   // Calculate the start of the day for the activity's new position
   const tripStart =
-    DateTime.fromMillis(tripStartTimestamp).setZone(tripTimeZone);
+    DateTime.fromMillis(tripTimestampStart).setZone(tripTimeZone);
   const newDayStart = tripStart.plus({ days: newDayIndex }).startOf('day');
 
   // Add the time offset to get the new start timestamp
