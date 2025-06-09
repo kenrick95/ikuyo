@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@instantdb/admin": "~0.19.14",
+    "@instantdb/admin": "~0.19.18",
     "@instantdb/core": "~0.19.7",
     "@maptiler/geocoding-control": "^2.1.6",
     "@maptiler/sdk": "~3.3.0",
@@ -41,14 +41,14 @@
     "@rsdoctor/rspack-plugin": "^1.1.2",
     "@types/luxon": "~3.6.2",
     "@types/react": "^19.1.6",
-    "@types/react-dom": "^19.1.5",
+    "@types/react-dom": "^19.1.6",
     "@types/url-regex-safe": "^1.0.2",
     "cross-env": "^7.0.3",
     "dotenv": "^16.5.0",
     "instant-cli": "~0.19.6",
     "lefthook": "^1.11.12",
     "typescript": "^5.8.3",
-    "vitest": "3.2.0"
+    "vitest": "3.2.2"
   },
   "packageManager": "pnpm@10.10.0",
   "pnpm": {
@@ -56,7 +56,7 @@
       "caniuse-lite": "1.0.30001718",
       "esbuild": "0.25.2",
       "@types/react": "19.1.6",
-      "@types/react-dom": "19.1.5",
+      "@types/react-dom": "19.1.6",
       "es-set-tostringtag": "npm:@nolyfill/es-set-tostringtag@^1",
       "safe-buffer": "npm:@nolyfill/safe-buffer@^1",
       "safer-buffer": "npm:@nolyfill/safer-buffer@^1",
