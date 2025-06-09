@@ -90,7 +90,7 @@ function TripMenuFloatingInner() {
               <TableIcon className={s.controlIcon} />
             </SegmentedControl.Item>
           </Tooltip>
-          <Tooltip content="Comment">
+          <Tooltip content="Comments">
             <SegmentedControl.Item
               value={RouteTripComment.routePath}
               data-state={
