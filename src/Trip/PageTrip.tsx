@@ -1,11 +1,19 @@
-import { Container, Heading, Skeleton, Spinner, Text } from '@radix-ui/themes';
-import React, { useEffect } from 'react';
+import {
+  Container,
+  Heading,
+  Select,
+  Skeleton,
+  Spinner,
+  Text,
+} from '@radix-ui/themes';
+import React, { useCallback, useEffect } from 'react';
 import {
   Link,
   Redirect,
   Route,
   type RouteComponentProps,
   Switch,
+  useLocation,
 } from 'wouter';
 import { withLoading } from '../Loading/withLoading';
 import { DocTitle } from '../Nav/DocTitle';
@@ -102,6 +110,13 @@ function PageTripInner({
 }) {
   const tripDefinitelyNotFound = !trip && !loading && !error;
   const currentUser = useCurrentUser();
+  const [location, setLocation] = useLocation();
+  const handleLocationSelectorChange = useCallback(
+    (value: string) => {
+      setLocation(value);
+    },
+    [setLocation],
+  );
   return (
     <>
       <DocTitle title={trip?.title ?? 'Trip'} />
@@ -113,33 +128,31 @@ function PageTripInner({
             className={s.tripTitle}
             key="title"
           >
-            {trip?.title ?? <Skeleton>Trip title</Skeleton>}
-            {
-              <Switch>
-                <Route path={RouteTripTimetableView.routePath}>
-                  {' '}
-                  <DoubleArrowRightIcon /> Timetable
-                </Route>
-                <Route path={RouteTripListView.routePath}>
-                  {' '}
-                  <DoubleArrowRightIcon />
+            {trip?.title ?? <Skeleton>Trip title</Skeleton>}{' '}
+            <DoubleArrowRightIcon />{' '}
+            <Select.Root
+              value={location}
+              onValueChange={handleLocationSelectorChange}
+              size="2"
+            >
+              <Select.Trigger radius="large" variant="ghost" color="gray" />
+              <Select.Content position="popper">
+                <Select.Item value={RouteTripHome.routePath}>Home</Select.Item>
+                <Select.Item value={RouteTripTimetableView.routePath}>
+                  Timetable
+                </Select.Item>
+                <Select.Item value={RouteTripListView.routePath}>
                   List
-                </Route>
-                <Route path={RouteTripMap.routePath}>
-                  {' '}
-                  <DoubleArrowRightIcon />
-                  Map
-                </Route>
-                <Route path={RouteTripExpenses.routePath}>
-                  {' '}
-                  <DoubleArrowRightIcon /> Expenses
-                </Route>
-                <Route path={RouteTripComment.routePath}>
-                  {' '}
-                  <DoubleArrowRightIcon /> Comments
-                </Route>
-              </Switch>
-            }
+                </Select.Item>
+                <Select.Item value={RouteTripMap.routePath}>Map</Select.Item>
+                <Select.Item value={RouteTripExpenses.routePath}>
+                  Expenses
+                </Select.Item>
+                <Select.Item value={RouteTripComment.routePath}>
+                  Comment
+                </Select.Item>
+              </Select.Content>
+            </Select.Root>
           </Heading>,
         ]}
         rightItems={[<TripMenu key="menu" />]}
