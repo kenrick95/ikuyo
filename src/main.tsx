@@ -1,5 +1,5 @@
 import './index.css';
-import { init as sentryInit } from '@sentry/react';
+import { reactErrorHandler, init as sentryInit } from '@sentry/react';
 // import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
@@ -36,7 +36,18 @@ setTimeout(() => {
   });
 }, 1000);
 
-createRoot(document.getElementById('root') as HTMLDivElement).render(
+const root = createRoot(document.getElementById('root') as HTMLDivElement, {
+  // Callback called when an error is thrown and not caught by an ErrorBoundary.
+  onUncaughtError: reactErrorHandler((error, errorInfo) => {
+    console.warn('Uncaught error', error, errorInfo.componentStack);
+  }),
+  // Callback called when React catches an error in an ErrorBoundary.
+  onCaughtError: reactErrorHandler(),
+  // Callback called when React automatically recovers from errors.
+  onRecoverableError: reactErrorHandler(),
+});
+
+root.render(
   // <StrictMode>
   <App />,
   // </StrictMode>,
