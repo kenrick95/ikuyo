@@ -1,4 +1,3 @@
-import { type GeocodingOptions, geocoding } from '@maptiler/sdk';
 import {
   Button,
   Flex,
@@ -8,10 +7,10 @@ import {
   TextField,
 } from '@radix-ui/themes';
 import { useCallback, useId, useReducer, useState } from 'react';
-import { REGIONS_MAP } from '../data/intl/regions';
 import { useBoundStore } from '../data/store';
 import { dangerToken } from '../ui';
 import { AccommodationMap } from './AccommodationDialogMap';
+import { geocodingRequest } from './AccommodationFormGeocoding';
 import {
   AccommodationFormMode,
   type AccommodationFormModeType,
@@ -152,39 +151,8 @@ export function AccommodationForm({
           const elAddress = document.getElementById(
             idAddress,
           ) as HTMLInputElement;
-          let address = elAddress.value;
-          const geocodingOptions: GeocodingOptions = {
-            language: 'en',
-            limit: 5,
-            country: [tripRegion.toLowerCase()],
-            types: ['poi'],
-
-            apiKey: process.env.MAPTILER_API_KEY,
-          };
-
-          if (!address) {
-            // if location is not yet set, set location as the trip region
-            const region = REGIONS_MAP[tripRegion] ?? 'Japan';
-            address = region;
-            geocodingOptions.types = ['country'];
-          }
-
-          let lat: number | undefined | null;
-          let lng: number | undefined | null;
-          console.log('geocoding: request', address, geocodingOptions);
-          if (address) {
-            const res = await geocoding.forward(address, geocodingOptions);
-            console.log('geocoding: response', res);
-            [lng, lat] = res?.features[0]?.center ?? [];
-          }
-          if (lng == null || lat == null) {
-            // if location coordinate couldn't be found, set location as the trip region
-            const region = REGIONS_MAP[tripRegion] ?? 'Japan';
-            geocodingOptions.types = ['country'];
-            const res = await geocoding.forward(region, geocodingOptions);
-            console.log('geocoding: response 2', res);
-            [lng, lat] = res?.features[0]?.center ?? [];
-          }
+          const address = elAddress.value;
+          const [lng, lat] = await geocodingRequest(address, tripRegion);
           dispatchCoordinateState({
             type: 'setEnabled',
             lat: lat,

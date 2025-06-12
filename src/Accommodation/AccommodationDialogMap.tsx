@@ -73,7 +73,7 @@ export function AccommodationMap({
         limit: 5,
         country: mapOptions?.region?.toLowerCase(),
         proximity: [{ type: 'map-center' }],
-        types: ['poi'],
+        types: ['poi', 'major_landform', 'address'],
         marker: false,
       });
       gc.on('pick', ({ feature }) => {
