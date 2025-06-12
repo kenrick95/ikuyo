@@ -6,12 +6,17 @@ import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
 
 const INSTANT_APP_ID = process.env.INSTANT_APP_ID;
 const MAPTILER_API_KEY = process.env.MAPTILER_API_KEY;
+const SENTRY_DSN = process.env.SENTRY_DSN;
+const isProduction = process.env.NODE_ENV === 'production';
 
 if (!INSTANT_APP_ID) {
   throw new Error('process.env.INSTANT_APP_ID is not set');
 }
 if (!MAPTILER_API_KEY) {
   throw new Error('process.env.MAPTILER_API_KEY is not set');
+}
+if (!SENTRY_DSN && isProduction) {
+  throw new Error('process.env.SENTRY_DSN is not set');
 }
 
 export default defineConfig({
@@ -52,6 +57,7 @@ export default defineConfig({
       'process.env.MAPTILER_API_KEY': JSON.stringify(
         process.env.MAPTILER_API_KEY,
       ),
+      'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN),
     },
   },
   output: {
@@ -59,10 +65,7 @@ export default defineConfig({
     injectStyles: process.env.NODE_ENV === 'development',
     sourceMap: {
       css: true,
-      js:
-        process.env.NODE_ENV === 'production'
-          ? 'source-map'
-          : 'cheap-module-source-map',
+      js: isProduction ? 'source-map' : 'cheap-module-source-map',
     },
   },
   plugins: [pluginReact(), pluginSass()],
