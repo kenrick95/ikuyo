@@ -54,10 +54,11 @@
     --row-minute-narrow-height: 0.8px;
     /* Reduce for Navbar (height); then TripMenuFloating (height + border) */
     --timetable-height: calc(100vh - var(--space-8) - var(--space-7) - 1px); 
+    --day-count: 5;
   
     display: grid;
     // grid-template-columns will be overridden in "style" at <Timetable />
-    grid-template-columns: [time] 45px repeat(5, [d] 1fr);
+    grid-template-columns: [time] 45px repeat(var(--day-count), [d] 1fr);
     // "[macroplan] min-content" and "[accommodation] min-content"
     // so it can "collapse" when there is no content in macroplan and accommodation (respectively)
     grid-template-rows: [header] 50px [macroplan] min-content [accommodation] min-content string.unquote(timeTemplateRow());
@@ -79,6 +80,11 @@
 
        /* Reduce for Navbar (height) */
       --timetable-height: calc(100vh - var(--space-8))
+    }
+
+    .timetableClamped {
+      max-width: var(--container-4);
+      margin: 0 auto;
     }
   }
 

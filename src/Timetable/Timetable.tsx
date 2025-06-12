@@ -82,9 +82,11 @@ export function Timetable() {
   }, [trip, tripAccommodations]);
   const [isDragging, setDragging] = useState<boolean>(false);
 
+  const isUsingClampedTable = dayGroups.length < 5;
   const timetableStyle = useMemo(() => {
     return {
       gridTemplateColumns: generateMainGridTemplateColumns(dayGroups),
+      '--day-count': dayGroups.length,
     };
   }, [dayGroups]);
   const timetableAccommodationStyle = useMemo(() => {
@@ -243,7 +245,11 @@ export function Timetable() {
     <Section py="0">
       {/** biome-ignore lint/a11y/noStaticElementInteractions: Only drag-and-drop */}
       <div
-        className={clsx(s.timetable, isDragging && s.dragging)}
+        className={clsx(
+          s.timetable,
+          isDragging && s.dragging,
+          isUsingClampedTable && s.timetableClamped,
+        )}
         style={timetableStyle}
         ref={timetableRef}
         onDrop={handleDrop}
