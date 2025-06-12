@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react';
 import type { StateCreator } from 'zustand';
 import { db, dbUpsertUser } from '../data/db';
 import type { BoundStoreType } from '../data/store';
@@ -44,10 +43,6 @@ export const createUserSlice: StateCreator<
               authUser: authResult.user,
               authUserError: null,
             }));
-            Sentry.setUser({
-              id: authResult.user.id,
-              email: authResult.user.email,
-            });
 
             const userEmail = authResult.user.email;
             const { data: userData } = await db.queryOnce({

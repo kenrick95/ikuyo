@@ -6,7 +6,6 @@ import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
 
 const INSTANT_APP_ID = process.env.INSTANT_APP_ID;
 const MAPTILER_API_KEY = process.env.MAPTILER_API_KEY;
-const SENTRY_DSN = process.env.SENTRY_DSN;
 const isProduction = process.env.NODE_ENV === 'production';
 
 if (!INSTANT_APP_ID) {
@@ -14,9 +13,6 @@ if (!INSTANT_APP_ID) {
 }
 if (!MAPTILER_API_KEY) {
   throw new Error('process.env.MAPTILER_API_KEY is not set');
-}
-if (!SENTRY_DSN && isProduction) {
-  throw new Error('process.env.SENTRY_DSN is not set');
 }
 
 export default defineConfig({
@@ -57,7 +53,6 @@ export default defineConfig({
       'process.env.MAPTILER_API_KEY': JSON.stringify(
         process.env.MAPTILER_API_KEY,
       ),
-      'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN),
     },
   },
   output: {
@@ -77,7 +72,6 @@ export default defineConfig({
         'lib-maptiler': /node_modules[\\/]@maptiler/,
         'lib-instant': /node_modules[\\/](@instantdb|mutative|uuid)/,
         'lib-radix': /node_modules[\\/](@radix-ui|@floating-ui)/,
-        'lib-sentry': /node_modules[\\/](@sentry)/,
       },
     },
   },

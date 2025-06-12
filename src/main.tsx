@@ -1,16 +1,7 @@
 import './index.css';
-import { reactErrorHandler, init as sentryInit } from '@sentry/react';
 // import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
-
-if (process.env.SENTRY_DSN) {
-  sentryInit({
-    dsn: process.env.SENTRY_DSN,
-    sendDefaultPii: true,
-    allowUrls: ['https://ikuyo.kenrick95.org'],
-  });
-}
 
 /** Delete all service worker generated from previous build tooling... It was kind of unnecessarily complicated since fetching data still need internet connection, maybe we don't need it for now... */
 async function unregisterServiceWorker() {
@@ -36,16 +27,7 @@ setTimeout(() => {
   });
 }, 1000);
 
-const root = createRoot(document.getElementById('root') as HTMLDivElement, {
-  // Callback called when an error is thrown and not caught by an ErrorBoundary.
-  onUncaughtError: reactErrorHandler((error, errorInfo) => {
-    console.warn('Uncaught error', error, errorInfo.componentStack);
-  }),
-  // Callback called when React catches an error in an ErrorBoundary.
-  onCaughtError: reactErrorHandler(),
-  // Callback called when React automatically recovers from errors.
-  onRecoverableError: reactErrorHandler(),
-});
+const root = createRoot(document.getElementById('root') as HTMLDivElement);
 
 root.render(
   // <StrictMode>
