@@ -31,8 +31,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
       - name: Build
-        run: pnpm build
-      - uses: up9cloud/action-rsync@v1.4
+        run: pnpm build 
+      - name: Upload dist folder
+        uses: up9cloud/action-rsync@v1.4
         env:
           HOST: ${{ vars.DEPLOY_HOST }}
           KEY: ${{ secrets.DEPLOY_SSH_KEY }}
@@ -42,4 +43,4 @@ jobs:
           VERBOSE: true
           PORT: ${{ vars.DEPLOY_PORT }}
           USER: ${{ vars.DEPLOY_USER }}
-          ARGS: -avz --exclude-from=.gitignore --exclude=/.git/ --exclude=/.github/
+          ARGS: -avz --exclude-from=.gitignore --exclude=/.git/ --exclude=/.github/ --delay-updates
