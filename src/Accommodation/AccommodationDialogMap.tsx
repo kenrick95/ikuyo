@@ -27,19 +27,24 @@ export function AccommodationMap({
     if (map.current) return;
     if (!mapContainer.current) return;
 
-    map.current = new MapTilerMap({
-      container: mapContainer.current,
-      style:
-        theme === ThemeAppearance.Dark
-          ? MapStyle.OPENSTREETMAP_DARK
-          : MapStyle.OPENSTREETMAP,
-      center: [mapOptions.lng, mapOptions.lat],
-      zoom: mapOptions.zoom,
-      apiKey: process.env.MAPTILER_API_KEY,
-      logoPosition: 'bottom-right',
-      terrainControl: false,
-      geolocateControl: false,
-    });
+    try {
+      map.current = new MapTilerMap({
+        container: mapContainer.current,
+        style:
+          theme === ThemeAppearance.Dark
+            ? MapStyle.OPENSTREETMAP_DARK
+            : MapStyle.OPENSTREETMAP,
+        center: [mapOptions.lng, mapOptions.lat],
+        zoom: mapOptions.zoom,
+        apiKey: process.env.MAPTILER_API_KEY,
+        logoPosition: 'bottom-right',
+        terrainControl: false,
+        geolocateControl: false,
+      });
+    } catch (e) {
+      console.error('Error initializing MapTilerMap:', e);
+      return;
+    }
 
     map.current.on('zoomend', () => {
       if (!map.current) return;

@@ -190,23 +190,28 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
     if (currentTripLoading) return;
     console.log('TripMap init', { mapOptions });
 
-    map.current = new MapTilerMap({
-      container: mapContainer.current,
-      style:
-        theme === ThemeAppearance.Dark
-          ? MapStyle.OPENSTREETMAP_DARK
-          : MapStyle.OPENSTREETMAP,
-      bounds: mapOptions ? mapOptions.bounds : undefined,
-      center: mapOptions ? mapOptions.center : undefined,
-      fitBoundsOptions: {
-        padding: 20,
-      },
-      apiKey: process.env.MAPTILER_API_KEY,
-      logoPosition: 'bottom-right',
-      terrainControl: false,
-      fullscreenControl: true,
-      geolocateControl: useCase === 'map',
-    });
+    try {
+      map.current = new MapTilerMap({
+        container: mapContainer.current,
+        style:
+          theme === ThemeAppearance.Dark
+            ? MapStyle.OPENSTREETMAP_DARK
+            : MapStyle.OPENSTREETMAP,
+        bounds: mapOptions ? mapOptions.bounds : undefined,
+        center: mapOptions ? mapOptions.center : undefined,
+        fitBoundsOptions: {
+          padding: 20,
+        },
+        apiKey: process.env.MAPTILER_API_KEY,
+        logoPosition: 'bottom-right',
+        terrainControl: false,
+        fullscreenControl: true,
+        geolocateControl: useCase === 'map',
+      });
+    } catch (e) {
+      console.error('MapTiler Map initialization failed:', e);
+      return;
+    }
 
     // Add line layer to connect origin and destination
     const addLineLayer = () => {
