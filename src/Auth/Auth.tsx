@@ -145,12 +145,15 @@ function Email({
   setScreen: (screen: AuthScreen) => void;
 }) {
   const publishToast = useBoundStore((state) => state.publishToast);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
+      setIsLoading(true);
       e.preventDefault();
       const elForm = e.currentTarget;
       if (!elForm.reportValidity()) {
+        setIsLoading(false);
         return;
       }
       const formData = new FormData(elForm);
@@ -167,6 +170,7 @@ function Email({
             description: { children: `Please check your mailbox for ${email}` },
             close: {},
           });
+          setIsLoading(false);
         })
         .catch((err: unknown) => {
           setSentEmail('');
@@ -178,6 +182,7 @@ function Email({
             },
             close: {},
           });
+          setIsLoading(false);
         });
     },
     [setScreen, setSentEmail, publishToast],
@@ -195,6 +200,7 @@ function Email({
             onClick={() => {
               setScreen(AuthScreen.LoginSelection);
             }}
+            loading={isLoading}
           >
             <ArrowLeftIcon />
           </Button>
@@ -209,8 +215,11 @@ function Email({
           name="email"
           defaultValue=""
           required
+          disabled={isLoading}
         />
-        <Button type="submit">Send Code</Button>
+        <Button type="submit" loading={isLoading}>
+          Send Code
+        </Button>
       </Flex>
     </form>
   );
@@ -224,18 +233,24 @@ function MagicCode({
   setScreen: (screen: AuthScreen) => void;
 }) {
   const publishToast = useBoundStore((state) => state.publishToast);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
+      setIsLoading(true);
       const elForm = e.currentTarget;
       if (!elForm.reportValidity()) {
+        setIsLoading(false);
         return;
       }
       const formData = new FormData(elForm);
       const code = (formData.get('code') as string | null) ?? '';
       db.auth
         .signInWithMagicCode({ email: sentEmail, code })
+        .then(() => {
+          setIsLoading(false);
+        })
         .catch((err: unknown) => {
           publishToast({
             root: { duration: Number.POSITIVE_INFINITY },
@@ -245,6 +260,7 @@ function MagicCode({
             },
             close: {},
           });
+          setIsLoading(false);
         });
     },
     [publishToast, sentEmail],
@@ -262,6 +278,7 @@ function MagicCode({
             onClick={() => {
               setScreen(AuthScreen.LoginViaEmailInput);
             }}
+            loading={isLoading}
           >
             <ArrowLeftIcon />
           </Button>
@@ -283,8 +300,11 @@ function MagicCode({
           required
           minLength={6}
           maxLength={6}
+          disabled={isLoading}
         />
-        <Button type="submit">Verify code</Button>
+        <Button type="submit" loading={isLoading}>
+          Verify code
+        </Button>
       </Flex>
     </form>
   );
