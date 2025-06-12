@@ -26,13 +26,27 @@ import { useCurrentUser } from '../Auth/hooks';
 import imgUrl from '../logo/ikuyo.svg';
 import { DocTitle } from '../Nav/DocTitle';
 import { RouteLogin, RouteTrips } from '../Routes/routes';
-import ScreenshotTripComment from './assets/ScreenshotTripComment.png';
-import ScreenshotTripExpense from './assets/ScreenshotTripExpense.png';
-import ScreenshotTripHome from './assets/ScreenshotTripHome.png';
-import ScreenshotTripList from './assets/ScreenshotTripList.png';
-import ScreenshotTripMap from './assets/ScreenshotTripMap.png';
-import ScreenshotTripTimetable from './assets/ScreenshotTripTimetable.png';
+import ScreenshotTripCommentAvif from './assets/ScreenshotTripComment_resized.avif';
+import ScreenshotTripComment from './assets/ScreenshotTripComment_resized.png';
+import ScreenshotTripCommentWebp from './assets/ScreenshotTripComment_resized.webp';
+import ScreenshotTripExpenseAvif from './assets/ScreenshotTripExpense_resized.avif';
+import ScreenshotTripExpense from './assets/ScreenshotTripExpense_resized.png';
+import ScreenshotTripExpenseWebp from './assets/ScreenshotTripExpense_resized.webp';
+import ScreenshotTripHomeAvif from './assets/ScreenshotTripHome_resized.avif';
+import ScreenshotTripHome from './assets/ScreenshotTripHome_resized.png';
+import ScreenshotTripHomeWebp from './assets/ScreenshotTripHome_resized.webp';
+import ScreenshotTripListAvif from './assets/ScreenshotTripList_resized.avif';
+import ScreenshotTripList from './assets/ScreenshotTripList_resized.png';
+import ScreenshotTripListWebp from './assets/ScreenshotTripList_resized.webp';
+import ScreenshotTripMapAvif from './assets/ScreenshotTripMap_resized.avif';
+import ScreenshotTripMap from './assets/ScreenshotTripMap_resized.png';
+import ScreenshotTripMapWebp from './assets/ScreenshotTripMap_resized.webp';
+import ScreenshotTripTimetableAvif from './assets/ScreenshotTripTimetable_resized.avif';
+import ScreenshotTripTimetable from './assets/ScreenshotTripTimetable_resized.png';
+import ScreenshotTripTimetableWebp from './assets/ScreenshotTripTimetable_resized.webp';
 import s from './PageLanding.module.css';
+
+const EXAMPLE_TRIP_ID = '2617cd98-a229-45d4-9617-5265d52317cd';
 
 export default PageLanding;
 
@@ -213,32 +227,20 @@ export function PageLanding() {
                   Set your destination, dates, and time zone. Add basic trip
                   information to get started with your itinerary planning.
                 </Text>
-                <a
-                  href={ScreenshotTripHome}
-                  className={s.screenshotLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <img
-                    src={ScreenshotTripHome}
-                    className={s.screenshot}
-                    alt="Trip Home Screenshot"
-                    loading="lazy"
-                  />
-                </a>
-                <a
-                  href={ScreenshotTripMap}
-                  className={s.screenshotLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <img
-                    src={ScreenshotTripMap}
-                    className={s.screenshot}
-                    alt="Trip Map Screenshot"
-                    loading="lazy"
-                  />
-                </a>
+                <Screenshot
+                  src={ScreenshotTripHome}
+                  avifSrc={ScreenshotTripHomeAvif}
+                  webpSrc={ScreenshotTripHomeWebp}
+                  linkTo={`~/trip/${EXAMPLE_TRIP_ID}/home`}
+                  alt="Trip Home Screenshot"
+                />
+                <Screenshot
+                  src={ScreenshotTripMap}
+                  avifSrc={ScreenshotTripMapAvif}
+                  webpSrc={ScreenshotTripMapWebp}
+                  linkTo={`~/trip/${EXAMPLE_TRIP_ID}/map`}
+                  alt="Trip Map Screenshot"
+                />
               </Flex>
 
               <Flex
@@ -254,32 +256,20 @@ export function PageLanding() {
                   interactive timetable to visualize your schedule and avoid
                   conflicts.
                 </Text>
-                <a
-                  href={ScreenshotTripTimetable}
-                  className={s.screenshotLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <img
-                    src={ScreenshotTripTimetable}
-                    className={s.screenshot}
-                    alt="Trip Timetable Screenshot"
-                    loading="lazy"
-                  />
-                </a>
-                <a
-                  href={ScreenshotTripList}
-                  className={s.screenshotLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <img
-                    src={ScreenshotTripList}
-                    className={s.screenshot}
-                    alt="Trip List Screenshot"
-                    loading="lazy"
-                  />
-                </a>
+                <Screenshot
+                  src={ScreenshotTripTimetable}
+                  avifSrc={ScreenshotTripTimetableAvif}
+                  webpSrc={ScreenshotTripTimetableWebp}
+                  linkTo={`~/trip/${EXAMPLE_TRIP_ID}/timetable`}
+                  alt="Trip Timetable Screenshot"
+                />
+                <Screenshot
+                  src={ScreenshotTripList}
+                  avifSrc={ScreenshotTripListAvif}
+                  webpSrc={ScreenshotTripListWebp}
+                  linkTo={`~/trip/${EXAMPLE_TRIP_ID}/list`}
+                  alt="Trip List Screenshot"
+                />
               </Flex>
 
               <Flex
@@ -294,37 +284,25 @@ export function PageLanding() {
                   Invite travel companions to collaborate on planning. Track
                   expenses and manage all trip details in one place.
                 </Text>
-                <a
-                  href={ScreenshotTripExpense}
-                  className={s.screenshotLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <img
-                    src={ScreenshotTripExpense}
-                    className={s.screenshot}
-                    alt="Trip Expense Screenshot"
-                    loading="lazy"
-                  />
-                </a>
-                <a
-                  href={ScreenshotTripComment}
-                  className={s.screenshotLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <img
-                    src={ScreenshotTripComment}
-                    className={s.screenshot}
-                    alt="Trip Comment Screenshot"
-                    loading="lazy"
-                  />
-                </a>
+                <Screenshot
+                  src={ScreenshotTripExpense}
+                  avifSrc={ScreenshotTripExpenseAvif}
+                  webpSrc={ScreenshotTripExpenseWebp}
+                  linkTo={`~/trip/${EXAMPLE_TRIP_ID}/expense`}
+                  alt="Trip Expense Screenshot"
+                />
+                <Screenshot
+                  src={ScreenshotTripComment}
+                  avifSrc={ScreenshotTripCommentAvif}
+                  webpSrc={ScreenshotTripCommentWebp}
+                  linkTo={`~/trip/${EXAMPLE_TRIP_ID}/comment`}
+                  alt="Trip Comment Screenshot"
+                />
               </Flex>
             </Grid>
             <Flex justify="center">
               <Button size="3" variant="outline" asChild>
-                <Link to="~/trip/2617cd98-a229-45d4-9617-5265d52317cd/home">
+                <Link to={`~/trip/${EXAMPLE_TRIP_ID}/home`}>
                   View Example Trip
                 </Link>
               </Button>
@@ -491,5 +469,29 @@ export function PageLanding() {
         </Container>
       </Section>
     </Box>
+  );
+}
+
+function Screenshot({
+  src,
+  webpSrc,
+  avifSrc,
+  alt,
+  linkTo,
+}: {
+  src: string;
+  webpSrc: string;
+  avifSrc: string;
+  alt: string;
+  linkTo: string;
+}) {
+  return (
+    <Link to={linkTo} className={s.screenshotLink}>
+      <picture>
+        <source srcSet={avifSrc} type="image/avif" />
+        <source srcSet={webpSrc} type="image/webp" />
+        <img src={src} className={s.screenshot} alt={alt} loading="lazy" />
+      </picture>
+    </Link>
   );
 }
