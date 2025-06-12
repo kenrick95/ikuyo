@@ -77,6 +77,7 @@ export default defineConfig({
         'lib-maptiler': /node_modules[\\/]@maptiler/,
         'lib-instant': /node_modules[\\/](@instantdb|mutative|uuid)/,
         'lib-radix': /node_modules[\\/](@radix-ui|@floating-ui)/,
+        'lib-sentry': /node_modules[\\/](@sentry)/,
       },
     },
   },
