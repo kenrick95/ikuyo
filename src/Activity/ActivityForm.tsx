@@ -349,14 +349,23 @@ export function ActivityForm({
         endTime: timeEndDate,
         coordinateState: locationFieldsState,
       });
-      if (!title || !timeStartString || !timeEndString) {
+      if (!title) {
         return;
       }
-      if (timeEndDate.diff(timeStartDate).as('minute') < 0) {
+      if (
+        timeEndDate &&
+        timeStartDate &&
+        timeEndDate.diff(timeStartDate).as('minute') < 0
+      ) {
         setErrorMessage('End time must be after start time');
         return;
       }
-      if (!timeEndDate.hasSame(timeStartDate, 'day')) {
+      // TODO: remove this validation when timetable support showing activities spanning more than 1 day
+      if (
+        timeEndDate &&
+        timeStartDate &&
+        !timeEndDate.hasSame(timeStartDate, 'day')
+      ) {
         setErrorMessage('Activity must occur on same day');
         return;
       }
@@ -390,8 +399,8 @@ export function ActivityForm({
               ? locationFieldsState.zoom[1]
               : null,
 
-          timestampStart: timeStartDate.toMillis(),
-          timestampEnd: timeEndDate.toMillis(),
+          timestampStart: timeStartDate ? timeStartDate.toMillis() : null,
+          timestampEnd: timeEndDate ? timeEndDate.toMillis() : null,
         });
         publishToast({
           root: {},
@@ -399,10 +408,12 @@ export function ActivityForm({
           close: {},
         });
       } else if (mode === ActivityFormMode.New && tripId) {
-        setNewActivityTimestamp({
-          timestamp: timeEndDate.toMillis(),
-          tripId: tripId,
-        });
+        if (timeEndDate) {
+          setNewActivityTimestamp({
+            timestamp: timeEndDate.toMillis(),
+            tripId: tripId,
+          });
+        }
         await dbAddActivity(
           {
             title,
@@ -430,8 +441,8 @@ export function ActivityForm({
               locationFieldsState.enabled[1] && locationFieldsState.count === 2
                 ? locationFieldsState.zoom[1]
                 : null,
-            timestampStart: timeStartDate.toMillis(),
-            timestampEnd: timeEndDate.toMillis(),
+            timestampStart: timeStartDate ? timeStartDate.toMillis() : null,
+            timestampEnd: timeEndDate ? timeEndDate.toMillis() : null,
           },
           {
             tripId: tripId,
@@ -586,10 +597,7 @@ export function ActivityForm({
         ) : null}
 
         <Text as="label" htmlFor={idTimeStart}>
-          Start time{' '}
-          <Text weight="light" size="1">
-            (required)
-          </Text>
+          Start time
         </Text>
         <TextField.Root
           id={idTimeStart}
@@ -598,13 +606,9 @@ export function ActivityForm({
           min={tripStartStr}
           max={tripEndStr}
           defaultValue={activityStartStr}
-          required
         />
         <Text as="label" htmlFor={idTimeEnd}>
-          End time{' '}
-          <Text weight="light" size="1">
-            (required)
-          </Text>
+          End time
         </Text>
         <TextField.Root
           id={idTimeEnd}
@@ -613,7 +617,6 @@ export function ActivityForm({
           min={tripStartStr}
           max={tripEndStr}
           defaultValue={activityEndStr}
-          required
         />
         <Text as="label" htmlFor={idDescription}>
           Description
