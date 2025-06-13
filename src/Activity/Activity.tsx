@@ -6,7 +6,8 @@ import {
 import { Box, ContextMenu, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { DateTime } from 'luxon';
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'wouter';
 import type { TripSliceActivity } from '../Trip/store/types';
 import { TripViewMode, type TripViewModeType } from '../Trip/TripViewMode';
 import { dangerToken } from '../ui';
@@ -43,6 +44,8 @@ function ActivityInner({
   );
   const responsiveTextSize = { initial: '1' as const };
   const [isDragging, setIsDragging] = useState(false);
+  const activityRef = useRef<HTMLDivElement>(null);
+  const [location] = useLocation();
   const isActivityOngoing = useMemo(() => {
     const now = Date.now();
     return activity.timestampStart <= now && now <= activity.timestampEnd;
@@ -52,6 +55,18 @@ function ActivityInner({
     openActivityDeleteDialog,
     openActivityEditDialog,
   } = useActivityDialogHooks(tripViewMode, activity.id);
+
+  // Track if we should restore focus after dialog closes
+  const shouldRestoreFocus = useRef(false);
+
+  // Detect when dialog closes and restore focus
+  useEffect(() => {
+    // If we were in a dialog state and now we're not, restore focus
+    if (shouldRestoreFocus.current && location === '/') {
+      activityRef.current?.focus();
+      shouldRestoreFocus.current = false;
+    }
+  }, [location]);
 
   // Drag handlers
   const handleDragStart = useCallback(
@@ -95,7 +110,6 @@ function ActivityInner({
     },
     [tripViewMode],
   );
-
   // Handle keyboard navigation for accessibility
   // Use onKeyDown for Enter to open the dialog
   // Use onKeyUp for Space to open the dialog
@@ -105,6 +119,7 @@ function ActivityInner({
         // To avoid scrolling for both keys
         e.preventDefault();
         if (e.key === 'Enter') {
+          shouldRestoreFocus.current = true;
           openActivityViewDialog();
         }
       }
@@ -115,15 +130,37 @@ function ActivityInner({
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === ' ') {
         e.preventDefault();
+        shouldRestoreFocus.current = true;
         openActivityViewDialog();
       }
     },
     [openActivityViewDialog],
   );
 
+  const handleClick = useCallback(() => {
+    shouldRestoreFocus.current = true;
+    openActivityViewDialog();
+  }, [openActivityViewDialog]);
+
+  const handleContextMenuView = useCallback(() => {
+    shouldRestoreFocus.current = true;
+    openActivityViewDialog();
+  }, [openActivityViewDialog]);
+
+  const handleContextMenuEdit = useCallback(() => {
+    shouldRestoreFocus.current = true;
+    openActivityEditDialog();
+  }, [openActivityEditDialog]);
+
+  const handleContextMenuDelete = useCallback(() => {
+    shouldRestoreFocus.current = true;
+    openActivityDeleteDialog();
+  }, [openActivityDeleteDialog]);
+
   return (
     <>
       <ContextMenu.Root>
+        {' '}
         <ContextMenu.Trigger>
           <Box
             p={{ initial: '1' }}
@@ -131,14 +168,14 @@ function ActivityInner({
             // biome-ignore lint/a11y/useSemanticElements: <Box> need to be a <div>
             role="button"
             tabIndex={0}
+            ref={activityRef}
             className={clsx(
               style.activity,
               isActivityOngoing ? style.activityOngoing : '',
               isDragging ? style.activityDragging : '',
               className,
             )}
-            onClick={openActivityViewDialog}
-            // TODO: when the dialog is closed, the focus should return here?
+            onClick={handleClick}
             onKeyDown={handleKeyDown}
             onKeyUp={handleKeyUp}
             draggable={
@@ -189,14 +226,14 @@ function ActivityInner({
               </Text>
             ) : null}
           </Box>
-        </ContextMenu.Trigger>
+        </ContextMenu.Trigger>{' '}
         <ContextMenu.Content>
           <ContextMenu.Label>{activity.title}</ContextMenu.Label>
-          <ContextMenu.Item onClick={openActivityViewDialog}>
+          <ContextMenu.Item onClick={handleContextMenuView}>
             View
           </ContextMenu.Item>
           <ContextMenu.Item
-            onClick={userCanEditOrDelete ? openActivityEditDialog : undefined}
+            onClick={userCanEditOrDelete ? handleContextMenuEdit : undefined}
             disabled={!userCanEditOrDelete}
           >
             Edit
@@ -204,7 +241,7 @@ function ActivityInner({
           <ContextMenu.Separator />
           <ContextMenu.Item
             color={dangerToken}
-            onClick={userCanEditOrDelete ? openActivityDeleteDialog : undefined}
+            onClick={userCanEditOrDelete ? handleContextMenuDelete : undefined}
             disabled={!userCanEditOrDelete}
           >
             Delete

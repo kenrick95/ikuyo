@@ -1,7 +1,8 @@
 import { ClockIcon, HomeIcon } from '@radix-ui/react-icons';
 import { Box, ContextMenu, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useLocation } from 'wouter';
 import type { TripSliceAccommodation } from '../Trip/store/types';
 import { TripViewMode, type TripViewModeType } from '../Trip/TripViewMode';
 import { dangerToken } from '../ui';
@@ -30,18 +31,31 @@ function AccommodationInner({
   userCanEditOrDelete: boolean;
 }) {
   const responsiveTextSize = { initial: '1' as const };
+  const accommodationRef = useRef<HTMLDivElement>(null);
+  const [location] = useLocation();
   const {
     openAccommodationDeleteDialog,
     openAccommodationEditDialog,
     openAccommodationViewDialog,
   } = useAccommodationDialogHooks(tripViewMode, accommodation.id);
+
+  // Track if we should restore focus after dialog closes
+  const shouldRestoreFocus = useRef(false);
+
+  // Detect when dialog closes and restore focus
+  useEffect(() => {
+    // If we were in a dialog state and now we're not, restore focus
+    if (shouldRestoreFocus.current && location === '/') {
+      accommodationRef.current?.focus();
+      shouldRestoreFocus.current = false;
+    }
+  }, [location]);
   const style = useMemo(() => {
     return {
       gridColumnStart: gridColumnStart,
       gridColumnEnd: gridColumnEnd,
     };
   }, [gridColumnStart, gridColumnEnd]);
-
   // Handle keyboard navigation for accessibility
   // Use onKeyDown for Enter to open the dialog
   // Use onKeyUp for Space to open the dialog
@@ -51,6 +65,7 @@ function AccommodationInner({
         // To avoid scrolling for both keys
         e.preventDefault();
         if (e.key === 'Enter') {
+          shouldRestoreFocus.current = true;
           openAccommodationViewDialog();
         }
       }
@@ -61,15 +76,37 @@ function AccommodationInner({
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === ' ') {
         e.preventDefault();
+        shouldRestoreFocus.current = true;
         openAccommodationViewDialog();
       }
     },
     [openAccommodationViewDialog],
   );
 
+  const handleClick = useCallback(() => {
+    shouldRestoreFocus.current = true;
+    openAccommodationViewDialog();
+  }, [openAccommodationViewDialog]);
+
+  const handleContextMenuView = useCallback(() => {
+    shouldRestoreFocus.current = true;
+    openAccommodationViewDialog();
+  }, [openAccommodationViewDialog]);
+
+  const handleContextMenuEdit = useCallback(() => {
+    shouldRestoreFocus.current = true;
+    openAccommodationEditDialog();
+  }, [openAccommodationEditDialog]);
+
+  const handleContextMenuDelete = useCallback(() => {
+    shouldRestoreFocus.current = true;
+    openAccommodationDeleteDialog();
+  }, [openAccommodationDeleteDialog]);
+
   return (
     <>
       <ContextMenu.Root>
+        {' '}
         <ContextMenu.Trigger>
           <Box
             p={{ initial: '1' }}
@@ -77,10 +114,10 @@ function AccommodationInner({
             // biome-ignore lint/a11y/useSemanticElements: <Box> need to be a <div>
             role="button"
             tabIndex={0}
+            ref={accommodationRef}
             className={clsx(s.accommodation, className)}
             style={style}
-            // TODO: when the dialog is closed, the focus should return here?
-            onClick={openAccommodationViewDialog}
+            onClick={handleClick}
             onKeyDown={handleKeyDown}
             onKeyUp={handleKeyUp}
           >
@@ -103,16 +140,14 @@ function AccommodationInner({
               </Text>
             ) : null}
           </Box>
-        </ContextMenu.Trigger>
+        </ContextMenu.Trigger>{' '}
         <ContextMenu.Content>
           <ContextMenu.Label>{accommodation.name}</ContextMenu.Label>
-          <ContextMenu.Item onClick={openAccommodationViewDialog}>
+          <ContextMenu.Item onClick={handleContextMenuView}>
             View
           </ContextMenu.Item>
           <ContextMenu.Item
-            onClick={
-              userCanEditOrDelete ? openAccommodationEditDialog : undefined
-            }
+            onClick={userCanEditOrDelete ? handleContextMenuEdit : undefined}
             disabled={!userCanEditOrDelete}
           >
             Edit
@@ -120,9 +155,7 @@ function AccommodationInner({
           <ContextMenu.Separator />
           <ContextMenu.Item
             color={dangerToken}
-            onClick={
-              userCanEditOrDelete ? openAccommodationDeleteDialog : undefined
-            }
+            onClick={userCanEditOrDelete ? handleContextMenuDelete : undefined}
             disabled={!userCanEditOrDelete}
           >
             Delete
