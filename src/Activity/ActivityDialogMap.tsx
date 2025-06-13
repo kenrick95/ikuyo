@@ -1,4 +1,12 @@
-import { type GeoJSONSource, Map as MapTilerMap, Marker } from '@maptiler/sdk';
+import {
+  type GeoJSONSource,
+  Map as MapTilerMap,
+  Marker,
+  config as mapTilerConfig,
+} from '@maptiler/sdk';
+
+mapTilerConfig.session = false;
+
 import { useEffect, useRef, useState } from 'react';
 import { MapStyle } from '../maptiler/style';
 import s from './ActivityDialogMap.module.css';

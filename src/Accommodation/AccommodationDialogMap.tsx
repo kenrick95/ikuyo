@@ -1,4 +1,11 @@
-import { Map as MapTilerMap, Marker } from '@maptiler/sdk';
+import {
+  Map as MapTilerMap,
+  Marker,
+  config as mapTilerConfig,
+} from '@maptiler/sdk';
+
+mapTilerConfig.session = false;
+
 import { useEffect, useRef } from 'react';
 import s from '../Activity/ActivityDialogMap.module.css';
 import { MapStyle } from '../maptiler/style';

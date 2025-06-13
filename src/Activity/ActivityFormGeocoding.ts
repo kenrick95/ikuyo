@@ -1,4 +1,11 @@
-import { type GeocodingOptions, geocoding } from '@maptiler/sdk';
+import {
+  type GeocodingOptions,
+  geocoding,
+  config as mapTilerConfig,
+} from '@maptiler/sdk';
+
+mapTilerConfig.session = false;
+
 import { REGIONS_MAP } from '../data/intl/regions';
 
 export async function geocodingRequest(

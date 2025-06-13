@@ -1,4 +1,7 @@
-import { Popup } from '@maptiler/sdk';
+import { config as mapTilerConfig, Popup } from '@maptiler/sdk';
+
+mapTilerConfig.session = false;
+
 import {
   LocationType,
   type MarkerLocation,
