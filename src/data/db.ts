@@ -10,12 +10,23 @@ if (!INSTANT_APP_ID) {
   throw new Error('process.env.INSTANT_APP_ID not set');
 }
 
+const additionalConfig: {
+  apiURI?: string;
+  websocketURI?: string;
+} = {};
+
+if (INSTANT_API_URI) {
+  additionalConfig.apiURI = INSTANT_API_URI;
+}
+if (INSTANT_API_URI) {
+  additionalConfig.websocketURI = INSTANT_WEBSOCKET_URI;
+}
+
 export const db = init({
   schema,
   appId: INSTANT_APP_ID,
   devtool: false,
-  apiURI: INSTANT_API_URI || undefined,
-  websocketURI: INSTANT_WEBSOCKET_URI || undefined,
+  ...additionalConfig,
 });
 
 export async function dbUpsertUser(
