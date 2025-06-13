@@ -1,5 +1,6 @@
 import type { TripSliceTrip } from '../Trip/store/types';
 
+// TODO: store this info in TripSlice, persist it at useBoundStore, and deprecate this function
 const lastNewActivityTimestampStorageKey = 'ikuyo:last-new-activity-timestamp';
 
 export function getNewActivityTimestamp(trip: TripSliceTrip): number {
