@@ -32,13 +32,13 @@ export function ActivityDialogContentEdit({
         )
       : '';
   const activityStartStr =
-    activity && trip
+    activity && trip && activity.timestampStart != null
       ? formatToDatetimeLocalInput(
           DateTime.fromMillis(activity.timestampStart).setZone(trip.timeZone),
         )
       : '';
   const activityEndStr =
-    activity && trip
+    activity && trip && activity.timestampEnd != null
       ? formatToDatetimeLocalInput(
           DateTime.fromMillis(activity.timestampEnd).setZone(trip.timeZone),
         )

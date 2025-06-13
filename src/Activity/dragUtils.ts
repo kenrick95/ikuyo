@@ -50,7 +50,17 @@ export function calculateNewTimestamps(
   const timeOffset = gridRowToTimeOffset(gridRow);
 
   // Calculate the original duration of the activity
-  const originalDuration = activity.timestampEnd - activity.timestampStart;
+  /** -1 if either timestamp is not set! */
+  let originalDuration =
+    activity.timestampStart != null && activity.timestampEnd != null
+      ? activity.timestampEnd - activity.timestampStart
+      : -1;
+  if (originalDuration < 0) {
+    console.log(
+      'Activity duration not set or invalid, using default duration of 30 minutes',
+    );
+    originalDuration = 30 * 60 * 1000; // Default to 30 minutes if duration is not set
+  }
 
   // Calculate the start of the day for the activity's new position
   const tripStart =

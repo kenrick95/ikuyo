@@ -3,26 +3,35 @@ import { AccommodationDisplayTimeMode } from '../Accommodation/AccommodationDisp
 import type {
   TripSliceAccommodation,
   TripSliceActivity,
+  TripSliceActivityWithTime,
   TripSliceMacroplan,
   TripSliceTrip,
 } from '../Trip/store/types';
 
-export type DayGroups = Array<{
-  /** DateTime in trip time zone */
-  startDateTime: DateTime;
-  columns: number;
-  activities: TripSliceActivity[];
-  /** activity id --> {start: column index (1-based), end: column index (1-based)} */
-  activityColumnIndexMap: Map<string, { start: number; end: number }>;
-  accommodations: TripSliceAccommodation[];
-  /** accommodation id --> { displayTimeMode } */
-  accommodationProps: Map<
-    string,
-    { displayTimeMode: AccommodationDisplayTimeMode }
-  >;
+export type DayGroups = {
+  /** entities that are in "bucket list" or "idea list", and don't have both timestamp start & end yet */
+  outTrip: {
+    activities: TripSliceActivity[];
+    accommodations: TripSliceAccommodation[];
+    macroplans: TripSliceMacroplan[];
+  };
+  inTrip: Array<{
+    /** DateTime in trip time zone */
+    startDateTime: DateTime;
+    columns: number;
+    activities: TripSliceActivityWithTime[];
+    /** activity id --> {start: column index (1-based), end: column index (1-based)} */
+    activityColumnIndexMap: Map<string, { start: number; end: number }>;
+    accommodations: TripSliceAccommodation[];
+    /** accommodation id --> { displayTimeMode } */
+    accommodationProps: Map<
+      string,
+      { displayTimeMode: AccommodationDisplayTimeMode }
+    >;
 
-  macroplans: TripSliceMacroplan[];
-}>;
+    macroplans: TripSliceMacroplan[];
+  }>;
+};
 
 /** Return `DateTime` objects for each of day in the trip */
 export function groupActivitiesByDays({
@@ -36,7 +45,14 @@ export function groupActivitiesByDays({
   macroplans: TripSliceMacroplan[];
   accommodations: TripSliceAccommodation[];
 }): DayGroups {
-  const res: DayGroups = [];
+  const res: DayGroups = {
+    inTrip: [],
+    outTrip: {
+      activities: [],
+      accommodations: [],
+      macroplans: [],
+    },
+  };
   const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
     trip.timeZone,
   );
@@ -44,10 +60,30 @@ export function groupActivitiesByDays({
     trip.timeZone,
   );
   const tripDuration = tripEndDateTime.diff(tripStartDateTime, 'days');
+  const activitiesWithTime: TripSliceActivityWithTime[] = [];
+  const acitivitiesWithoutTime: TripSliceActivity[] = [];
+  for (const activity of activities) {
+    if (
+      activity.timestampStart !== undefined &&
+      activity.timestampEnd !== undefined &&
+      activity.timestampStart !== null &&
+      activity.timestampEnd !== null
+    ) {
+      activitiesWithTime.push({
+        ...activity,
+        timestampStart: activity.timestampStart,
+        timestampEnd: activity.timestampEnd,
+      });
+    } else {
+      acitivitiesWithoutTime.push(activity);
+    }
+  }
+  res.outTrip.activities = acitivitiesWithoutTime;
+
   for (let d = 0; d < tripDuration.days; d++) {
     const dayStartDateTime = tripStartDateTime.plus({ day: d });
     const dayEndDateTime = tripStartDateTime.plus({ day: d + 1 });
-    const dayActivities: TripSliceActivity[] = [];
+    const dayActivities: TripSliceActivityWithTime[] = [];
     const dayAccommodations: TripSliceAccommodation[] = [];
     const dayMacroplans: TripSliceMacroplan[] = [];
 
@@ -57,7 +93,7 @@ export function groupActivitiesByDays({
     > = new Map();
     const activityColumnIndexMap: Map<string, { start: number; end: number }> =
       new Map();
-    for (const activity of activities) {
+    for (const activity of activitiesWithTime) {
       activityColumnIndexMap.set(activity.id, { start: 1, end: 1 });
       const activityStartDateTime = DateTime.fromMillis(
         activity.timestampStart,
@@ -139,7 +175,7 @@ export function groupActivitiesByDays({
       Start = 0,
       End = 1,
     }
-    const ranges: Array<[number, Token, TripSliceActivity]> = [];
+    const ranges: Array<[number, Token, TripSliceActivityWithTime]> = [];
     for (const activity of dayActivities) {
       ranges.push([activity.timestampStart, Token.Start, activity]);
       // "End" is half a millisecond before start so that we don't count event that ends at exact time as next start one as overlapping
@@ -155,7 +191,7 @@ export function groupActivitiesByDays({
     let maxOverlaps = 0;
     let overlaps = 0;
 
-    const activitiesByTrack: Array<TripSliceActivity[]> = [];
+    const activitiesByTrack: Array<TripSliceActivityWithTime[]> = [];
 
     for (const range of ranges) {
       if (range[1] === Token.Start) {
@@ -252,7 +288,7 @@ export function groupActivitiesByDays({
         }
       }
     }
-    res.push({
+    res.inTrip.push({
       startDateTime: dayStartDateTime,
       columns: Math.max(maxOverlaps, 1),
       activities: dayActivities,

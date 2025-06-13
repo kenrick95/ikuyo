@@ -77,7 +77,7 @@ export function generateAccommodationGridTemplateColumns(
   // [d4-ce2]
 
   const maxColumns = 2;
-  for (let dayIndex = 0; dayIndex < dayGroups.length; dayIndex++) {
+  for (let dayIndex = 0; dayIndex < dayGroups.inTrip.length; dayIndex++) {
     const colWidth = `minmax(${String(150 / 2)}px,${String(360 / 2)}fr)`;
     for (let colIndex = 0; colIndex < maxColumns; colIndex++) {
       const lineNames: string[] = [];
@@ -94,7 +94,7 @@ export function generateAccommodationGridTemplateColumns(
     }
   }
 
-  str += ` [d${String(dayGroups.length)}-ce${String(maxColumns)}]`;
+  str += ` [d${String(dayGroups.inTrip.length)}-ce${String(maxColumns)}]`;
 
   return str;
 }

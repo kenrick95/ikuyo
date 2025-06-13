@@ -46,8 +46,8 @@ const _schema = i.schema({
       locationDestinationLng: i.number().optional(),
       locationDestinationZoom: i.number().optional(),
 
-      timestampEnd: i.number(),
-      timestampStart: i.number(),
+      timestampEnd: i.number().optional(),
+      timestampStart: i.number().optional(),
       title: i.string(),
     }),
     expense: i.entity({

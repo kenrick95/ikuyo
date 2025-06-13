@@ -61,7 +61,10 @@ export function Timetable() {
 
   const dayGroups = useMemo(() => {
     if (!trip || !activities || !tripAccommodations || !tripMacroplans)
-      return [];
+      return {
+        inTrip: [],
+        outTrip: { accommodations: [], activities: [], macroplans: [] },
+      } satisfies DayGroups;
     return groupActivitiesByDays({
       trip,
       activities,
@@ -82,11 +85,11 @@ export function Timetable() {
   }, [trip, tripAccommodations]);
   const [isDragging, setDragging] = useState<boolean>(false);
 
-  const isUsingClampedTable = dayGroups.length < 5;
+  const isUsingClampedTable = dayGroups.inTrip.length < 5;
   const timetableStyle = useMemo(() => {
     return {
       gridTemplateColumns: generateMainGridTemplateColumns(dayGroups),
-      '--day-count': dayGroups.length,
+      '--day-count': dayGroups.inTrip.length,
     };
   }, [dayGroups]);
   const timetableAccommodationStyle = useMemo(() => {
@@ -255,11 +258,11 @@ export function Timetable() {
         onDrop={handleDrop}
         onDragOver={handleDragOver}
       >
-        <TimetableGrid days={dayGroups.length} />
+        <TimetableGrid days={dayGroups.inTrip.length} />
 
         <TimetableTimeHeader />
 
-        {dayGroups.map((dayGroup, i) => {
+        {dayGroups.inTrip.map((dayGroup, i) => {
           return (
             <TimetableDayHeader
               dateString={dayGroup.startDateTime.toFormat('ccc, dd LLL yyyy')}
@@ -328,7 +331,7 @@ export function Timetable() {
           );
         })}
 
-        {dayGroups.map((dayGroup) => {
+        {dayGroups.inTrip.map((dayGroup) => {
           return Object.values(dayGroup.activities).map((activity) => {
             const columnIndex = dayGroup.activityColumnIndexMap.get(
               activity.id,
@@ -381,8 +384,8 @@ function generateMainGridTemplateColumns(dayGroups: DayGroups): string {
   // [d4-c2]        360 / 2 fr
   // [de4]
 
-  for (let dayIndex = 0; dayIndex < dayGroups.length; dayIndex++) {
-    const dayGroup = dayGroups[dayIndex];
+  for (let dayIndex = 0; dayIndex < dayGroups.inTrip.length; dayIndex++) {
+    const dayGroup = dayGroups.inTrip[dayIndex];
     const colWidth = `minmax(${String(150 / dayGroup.columns)}px,${String(
       360 / dayGroup.columns,
     )}fr)`;
@@ -401,7 +404,7 @@ function generateMainGridTemplateColumns(dayGroups: DayGroups): string {
   }
 
   // Then add final "day end" line name
-  str += ` [de${String(dayGroups.length)}]`;
+  str += ` [de${String(dayGroups.inTrip.length)}]`;
 
   return str;
 }

@@ -37,13 +37,13 @@ export function ActivityDialogContentView({
   }, [trip?.currentUserRole]);
 
   const activityStartStr =
-    activity && trip
+    activity && trip && activity.timestampStart != null
       ? DateTime.fromMillis(activity.timestampStart)
           .setZone(trip.timeZone)
           .toFormat('dd LLLL yyyy HH:mm')
       : undefined;
   const activityEndStr =
-    activity && trip
+    activity && trip && activity.timestampEnd != null
       ? DateTime.fromMillis(activity.timestampEnd)
           .setZone(trip.timeZone)
           // since 1 activity must be in same day, so might as well just show the time for end

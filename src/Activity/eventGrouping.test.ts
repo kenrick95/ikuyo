@@ -99,6 +99,12 @@ describe('Trip', () => {
         timestampStart: new Date('2024-09-24T02:00:00Z').getTime(),
         timestampEnd: new Date('2024-09-24T03:00:00Z').getTime(),
       }),
+      createActivity({
+        id: 'act-outside-1',
+        title: 'act-outside-1',
+        timestampStart: null,
+        timestampEnd: null,
+      }),
     ];
     const accommodations: TripSliceAccommodation[] = [
       createAccommodation({
@@ -119,19 +125,20 @@ describe('Trip', () => {
       accommodations,
       macroplans: [],
     });
-    expect(result.length).toBe(2);
-    expect(result[0].columns).toBe(1);
-    expect(result[0].activities.length).toBe(3);
-    expect(result[1].columns).toBe(1);
-    expect(result[1].activities.length).toBe(1);
-    expect(result[0].accommodations.length).toBe(1);
-    expect(result[0].accommodationProps.get('acc-0')?.displayTimeMode).toBe(
-      AccommodationDisplayTimeMode.CheckIn,
-    );
-    expect(result[1].accommodations.length).toBe(1);
-    expect(result[1].accommodationProps.get('acc-0')?.displayTimeMode).toBe(
-      AccommodationDisplayTimeMode.CheckOut,
-    );
+    expect(result.outTrip.activities.length).toBe(1);
+    expect(result.inTrip.length).toBe(2);
+    expect(result.inTrip[0].columns).toBe(1);
+    expect(result.inTrip[0].activities.length).toBe(3);
+    expect(result.inTrip[1].columns).toBe(1);
+    expect(result.inTrip[1].activities.length).toBe(1);
+    expect(result.inTrip[0].accommodations.length).toBe(1);
+    expect(
+      result.inTrip[0].accommodationProps.get('acc-0')?.displayTimeMode,
+    ).toBe(AccommodationDisplayTimeMode.CheckIn);
+    expect(result.inTrip[1].accommodations.length).toBe(1);
+    expect(
+      result.inTrip[1].accommodationProps.get('acc-0')?.displayTimeMode,
+    ).toBe(AccommodationDisplayTimeMode.CheckOut);
   });
   test('Overlap = 2 on day 1', () => {
     /***
@@ -177,10 +184,10 @@ describe('Trip', () => {
       macroplans: [],
       accommodations: [],
     });
-    expect(result.length).toBe(2);
-    expect(result[0].columns).toBe(2);
-    expect(result[0].activities.length).toBe(3);
-    const day1Columns = result[0].activityColumnIndexMap;
+    expect(result.inTrip.length).toBe(2);
+    expect(result.inTrip[0].columns).toBe(2);
+    expect(result.inTrip[0].activities.length).toBe(3);
+    const day1Columns = result.inTrip[0].activityColumnIndexMap;
     expect(day1Columns.get('act-0')?.start).toBe(1);
     expect(day1Columns.get('act-0')?.end).toBe(1);
     expect(day1Columns.get('act-1')?.start).toBe(2);
@@ -229,10 +236,10 @@ describe('Trip', () => {
       macroplans: [],
       accommodations: [],
     });
-    expect(result.length).toBe(2);
-    expect(result[0].columns).toBe(2);
-    expect(result[0].activities.length).toBe(3);
-    const day1Columns = result[0].activityColumnIndexMap;
+    expect(result.inTrip.length).toBe(2);
+    expect(result.inTrip[0].columns).toBe(2);
+    expect(result.inTrip[0].activities.length).toBe(3);
+    const day1Columns = result.inTrip[0].activityColumnIndexMap;
     expect(day1Columns.get('act-0')?.start).toBe(1);
     expect(day1Columns.get('act-0')?.end).toBe(1);
     expect(day1Columns.get('act-1')?.start).toBe(2);
@@ -268,21 +275,21 @@ describe('Trip', () => {
       macroplans: [],
       accommodations,
     });
-    expect(result.length).toBe(3);
-    expect(result[0].accommodations.length).toBe(1);
-    expect(result[0].accommodationProps.get('acc-0')?.displayTimeMode).toBe(
-      AccommodationDisplayTimeMode.CheckIn,
-    );
-    expect(result[1].accommodations.length).toBe(2);
-    expect(result[1].accommodationProps.get('acc-0')?.displayTimeMode).toBe(
-      AccommodationDisplayTimeMode.CheckOut,
-    );
-    expect(result[1].accommodationProps.get('acc-1')?.displayTimeMode).toBe(
-      AccommodationDisplayTimeMode.CheckIn,
-    );
-    expect(result[2].accommodations.length).toBe(1);
-    expect(result[2].accommodationProps.get('acc-1')?.displayTimeMode).toBe(
-      AccommodationDisplayTimeMode.CheckOut,
-    );
+    expect(result.inTrip.length).toBe(3);
+    expect(result.inTrip[0].accommodations.length).toBe(1);
+    expect(
+      result.inTrip[0].accommodationProps.get('acc-0')?.displayTimeMode,
+    ).toBe(AccommodationDisplayTimeMode.CheckIn);
+    expect(result.inTrip[1].accommodations.length).toBe(2);
+    expect(
+      result.inTrip[1].accommodationProps.get('acc-0')?.displayTimeMode,
+    ).toBe(AccommodationDisplayTimeMode.CheckOut);
+    expect(
+      result.inTrip[1].accommodationProps.get('acc-1')?.displayTimeMode,
+    ).toBe(AccommodationDisplayTimeMode.CheckIn);
+    expect(result.inTrip[2].accommodations.length).toBe(1);
+    expect(
+      result.inTrip[2].accommodationProps.get('acc-1')?.displayTimeMode,
+    ).toBe(AccommodationDisplayTimeMode.CheckOut);
   });
 });
