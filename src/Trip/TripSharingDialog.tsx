@@ -39,6 +39,7 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
   const currentUserIsOwner = useMemo(() => {
     return trip?.currentUserRole === TripUserRole.Owner;
   }, [trip?.currentUserRole]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserRole, setNewUserRole] = useState(TripUserRole.Viewer);
@@ -50,7 +51,9 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
 
   const handleDeleteUser = useCallback(() => {
     return async (tripUser: TripSliceTripUser) => {
+      setIsLoading(true);
       await dbRemoveUserFromTrip(tripUser.id);
+      setIsLoading(false);
     };
   }, []);
 
@@ -85,6 +88,7 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
         setErrorMessage('Cannot set other person as owner');
         return;
       }
+      setIsLoading(true);
 
       await dbAddUserToTrip({
         tripId: trip.id,
@@ -99,6 +103,7 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
         close: {},
       });
       elForm.reset();
+      setIsLoading(false);
       setNewUserEmail('');
       setNewUserRole(TripUserRole.Viewer);
     };
@@ -121,8 +126,10 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
       if (trip.sharingLevel === newTripSharingLevel) {
         return;
       }
+      setIsLoading(true);
       setTripSharingLevel(newTripSharingLevel);
       await dbUpdateTripSharingLevel(trip.id, newTripSharingLevel);
+      setIsLoading(false);
     },
     [trip],
   );
@@ -167,6 +174,7 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
                 onValueChange={handleTripSharingLevelChange}
                 required
                 size="2"
+                disabled={isLoading}
               >
                 <Select.Trigger className={s.tripSharingLevelField} />
                 <Select.Content>
@@ -205,6 +213,7 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
                   onChange={(ev) => {
                     setNewUserEmail(ev.currentTarget.value);
                   }}
+                  disabled={isLoading}
                 />
 
                 <Select.Root
@@ -214,6 +223,7 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
                     setNewUserRole(v as TripUserRole);
                   }}
                   required
+                  disabled={isLoading}
                 >
                   <Select.Trigger className={s.roleField} />
                   <Select.Content>
@@ -225,7 +235,12 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
                     </Select.Item>
                   </Select.Content>
                 </Select.Root>
-                <Button type="submit" size="2" variant="outline">
+                <Button
+                  type="submit"
+                  size="2"
+                  variant="outline"
+                  loading={isLoading}
+                >
                   <PlusIcon /> Add
                 </Button>
               </Flex>
@@ -271,6 +286,7 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
                             onClick={() => {
                               void handleDeleteUser()(tripUser);
                             }}
+                            loading={isLoading}
                           >
                             <TrashIcon /> Delete
                           </Button>
@@ -293,6 +309,7 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
               popDialog();
               setDialogClosable(true);
             }}
+            loading={isLoading}
           >
             Close
           </Button>
