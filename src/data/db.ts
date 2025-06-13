@@ -2,14 +2,25 @@ import { id, init } from '@instantdb/core';
 import schema from '../../instant.schema';
 import type { DbUser } from './types';
 
-// ID for app: ikuyo
 const INSTANT_APP_ID = process.env.INSTANT_APP_ID;
+const INSTANT_API_URI = process.env.INSTANT_API_URI;
+const INSTANT_WEBSOCKET_URI = process.env.INSTANT_WEBSOCKET_URI;
 
 if (!INSTANT_APP_ID) {
   throw new Error('process.env.INSTANT_APP_ID not set');
 }
-
-export const db = init({ schema, appId: INSTANT_APP_ID, devtool: false });
+const instantDbConfig: Parameters<typeof init>[0] = {
+  schema,
+  appId: INSTANT_APP_ID,
+  devtool: false as const,
+};
+if (INSTANT_API_URI) {
+  instantDbConfig.apiURI = INSTANT_API_URI;
+}
+if (INSTANT_WEBSOCKET_URI) {
+  instantDbConfig.websocketURI = INSTANT_WEBSOCKET_URI;
+}
+export const db = init(instantDbConfig);
 
 export async function dbUpsertUser(
   newUser: Omit<DbUser, 'id' | 'createdAt' | 'lastUpdatedAt' | 'tripUser'>,

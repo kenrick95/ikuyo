@@ -4,7 +4,8 @@ import { reactErrorHandler, init as sentryInit } from '@sentry/react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 
-if (process.env.SENTRY_DSN) {
+if (process.env.SENTRY_DSN && process.env.SENTRY_ENABLED) {
+  console.log('Sentry is enabled, initializing...');
   sentryInit({
     dsn: process.env.SENTRY_DSN,
     sendDefaultPii: true,
@@ -36,16 +37,24 @@ setTimeout(() => {
   });
 }, 1000);
 
-const root = createRoot(document.getElementById('root') as HTMLDivElement, {
-  // Callback called when an error is thrown and not caught by an ErrorBoundary.
-  onUncaughtError: reactErrorHandler((error, errorInfo) => {
-    console.warn('Uncaught error', error, errorInfo.componentStack);
-  }),
-  // Callback called when React catches an error in an ErrorBoundary.
-  onCaughtError: reactErrorHandler(),
-  // Callback called when React automatically recovers from errors.
-  onRecoverableError: reactErrorHandler(),
-});
+const createRootConfig: Parameters<typeof createRoot>[1] = process.env
+  .SENTRY_ENABLED
+  ? ({
+      // Callback called when an error is thrown and not caught by an ErrorBoundary.
+      onUncaughtError: reactErrorHandler((error, errorInfo) => {
+        console.warn('Uncaught error', error, errorInfo.componentStack);
+      }),
+      // Callback called when React catches an error in an ErrorBoundary.
+      onCaughtError: reactErrorHandler(),
+      // Callback called when React automatically recovers from errors.
+      onRecoverableError: reactErrorHandler(),
+    } satisfies Parameters<typeof createRoot>[1])
+  : {};
+
+const root = createRoot(
+  document.getElementById('root') as HTMLDivElement,
+  createRootConfig,
+);
 
 root.render(
   // <StrictMode>

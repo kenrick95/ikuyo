@@ -4,10 +4,36 @@ import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSass } from '@rsbuild/plugin-sass';
 import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
 
-const INSTANT_APP_ID = process.env.INSTANT_APP_ID;
-const MAPTILER_API_KEY = process.env.MAPTILER_API_KEY;
-const SENTRY_DSN = process.env.SENTRY_DSN;
-const isProduction = process.env.NODE_ENV === 'production';
+const {
+  INSTANT_APP_ID,
+  INSTANT_API_URI,
+  INSTANT_WEBSOCKET_URI,
+  SENTRY_ENABLED,
+  SENTRY_DSN,
+  MAPTILER_API_KEY,
+  MAPTILER_MAP_STYLE_LIGHT,
+  MAPTILER_MAP_STYLE_DARK,
+  NODE_ENV,
+} = process.env;
+const isSentryEnabled = !!JSON.parse(SENTRY_ENABLED || 'true');
+const isProduction = NODE_ENV === 'production';
+const isDevelopment = NODE_ENV === 'development';
+
+console.log('Building Ikuyo for', NODE_ENV);
+console.log('Configurations from env variables', {
+  INSTANT_APP_ID,
+  INSTANT_API_URI,
+  INSTANT_WEBSOCKET_URI,
+  SENTRY_ENABLED,
+  SENTRY_DSN,
+  MAPTILER_API_KEY,
+  MAPTILER_MAP_STYLE_LIGHT,
+  MAPTILER_MAP_STYLE_DARK,
+  NODE_ENV,
+  isSentryEnabled,
+  isProduction,
+  isDevelopment,
+});
 
 if (!INSTANT_APP_ID) {
   throw new Error('process.env.INSTANT_APP_ID is not set');
@@ -15,7 +41,7 @@ if (!INSTANT_APP_ID) {
 if (!MAPTILER_API_KEY) {
   throw new Error('process.env.MAPTILER_API_KEY is not set');
 }
-if (!SENTRY_DSN && isProduction) {
+if (isSentryEnabled && !SENTRY_DSN && isProduction) {
   throw new Error('process.env.SENTRY_DSN is not set');
 }
 
@@ -53,16 +79,25 @@ export default defineConfig({
       index: './src/main.tsx',
     },
     define: {
-      'process.env.INSTANT_APP_ID': JSON.stringify(process.env.INSTANT_APP_ID),
-      'process.env.MAPTILER_API_KEY': JSON.stringify(
-        process.env.MAPTILER_API_KEY,
+      'process.env.INSTANT_APP_ID': JSON.stringify(INSTANT_APP_ID),
+      'process.env.INSTANT_API_URI': JSON.stringify(INSTANT_API_URI || ''),
+      'process.env.INSTANT_WEBSOCKET_URI': JSON.stringify(
+        INSTANT_WEBSOCKET_URI || '',
       ),
-      'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN),
+      'process.env.SENTRY_ENABLED': JSON.stringify(isSentryEnabled),
+      'process.env.SENTRY_DSN': JSON.stringify(SENTRY_DSN),
+      'process.env.MAPTILER_API_KEY': JSON.stringify(MAPTILER_API_KEY),
+      'process.env.MAPTILER_MAP_STYLE_LIGHT': JSON.stringify(
+        MAPTILER_MAP_STYLE_LIGHT || 'BASIC.LIGHT',
+      ),
+      'process.env.MAPTILER_MAP_STYLE_DARK': JSON.stringify(
+        MAPTILER_MAP_STYLE_DARK || 'BASIC.DARK',
+      ),
     },
   },
   output: {
     polyfill: 'usage',
-    injectStyles: process.env.NODE_ENV === 'development',
+    injectStyles: isDevelopment,
     sourceMap: {
       css: true,
       js: isProduction ? 'source-map' : 'cheap-module-source-map',
