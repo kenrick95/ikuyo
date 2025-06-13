@@ -383,7 +383,7 @@ function generateMainGridTemplateColumns(dayGroups: DayGroups): string {
 
   for (let dayIndex = 0; dayIndex < dayGroups.length; dayIndex++) {
     const dayGroup = dayGroups[dayIndex];
-    const colWidth = `minmax(${String(120 / dayGroup.columns)}px,${String(
+    const colWidth = `minmax(${String(150 / dayGroup.columns)}px,${String(
       360 / dayGroup.columns,
     )}fr)`;
     for (let colIndex = 0; colIndex < dayGroup.columns; colIndex++) {

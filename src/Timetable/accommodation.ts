@@ -78,7 +78,7 @@ export function generateAccommodationGridTemplateColumns(
 
   const maxColumns = 2;
   for (let dayIndex = 0; dayIndex < dayGroups.length; dayIndex++) {
-    const colWidth = `minmax(${String(120 / 2)}px,${String(360 / 2)}fr)`;
+    const colWidth = `minmax(${String(150 / 2)}px,${String(360 / 2)}fr)`;
     for (let colIndex = 0; colIndex < maxColumns; colIndex++) {
       const lineNames: string[] = [];
       if (colIndex === 0 && dayIndex > 0) {

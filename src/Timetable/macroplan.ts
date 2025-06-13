@@ -65,7 +65,7 @@ export function generateMacroplanGridTemplateColumns(
 
   const maxColumns = 1;
   for (let dayIndex = 0; dayIndex < dayGroups.length; dayIndex++) {
-    const colWidth = `minmax(${String(120 / 1)}px,${String(360 / 1)}fr)`;
+    const colWidth = `minmax(${String(150 / 1)}px,${String(360 / 1)}fr)`;
     for (let colIndex = 0; colIndex < maxColumns; colIndex++) {
       const lineNames: string[] = [];
       if (colIndex === 0 && dayIndex > 0) {
