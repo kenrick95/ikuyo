@@ -9,18 +9,14 @@ const INSTANT_WEBSOCKET_URI = process.env.INSTANT_WEBSOCKET_URI;
 if (!INSTANT_APP_ID) {
   throw new Error('process.env.INSTANT_APP_ID not set');
 }
-const instantDbConfig: Parameters<typeof init>[0] = {
+
+export const db = init({
   schema,
   appId: INSTANT_APP_ID,
-  devtool: false as const,
-};
-if (INSTANT_API_URI) {
-  instantDbConfig.apiURI = INSTANT_API_URI;
-}
-if (INSTANT_WEBSOCKET_URI) {
-  instantDbConfig.websocketURI = INSTANT_WEBSOCKET_URI;
-}
-export const db = init(instantDbConfig);
+  devtool: false,
+  apiURI: INSTANT_API_URI || undefined,
+  websocketURI: INSTANT_WEBSOCKET_URI || undefined,
+});
 
 export async function dbUpsertUser(
   newUser: Omit<DbUser, 'id' | 'createdAt' | 'lastUpdatedAt' | 'tripUser'>,
