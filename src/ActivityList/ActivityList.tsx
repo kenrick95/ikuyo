@@ -7,7 +7,10 @@ import { AccommodationNewDialog } from '../Accommodation/AccommodationNewDialog'
 import { Activity } from '../Activity/Activity';
 import { ActivityDialog } from '../Activity/ActivityDialog';
 import { ActivityNewDialog } from '../Activity/ActivityNewDialog';
-import { groupActivitiesByDays } from '../Activity/eventGrouping';
+import {
+  type DayGroups,
+  groupActivitiesByDays,
+} from '../Activity/eventGrouping';
 import { useBoundStore } from '../data/store';
 import { TripUserRole } from '../data/TripUserRole';
 import { Macroplan } from '../Macroplan/Macroplan';
@@ -44,7 +47,10 @@ export function ActivityList() {
 
   const dayGroups = useMemo(() => {
     if (!trip || !activities || !tripAccommodations || !tripMacroplans)
-      return [];
+      return {
+        inTrip: [],
+        outTrip: { accommodations: [], activities: [], macroplans: [] },
+      } satisfies DayGroups;
     return groupActivitiesByDays({
       trip,
       activities,
@@ -81,7 +87,7 @@ export function ActivityList() {
               flexGrow="1"
               maxWidth={{ initial: '100%', sm: '50%' }}
             >
-              {dayGroups.map((dayGroup) => {
+              {dayGroups.inTrip.map((dayGroup) => {
                 return [
                   <Heading
                     key={dayGroup.startDateTime.toISO()}

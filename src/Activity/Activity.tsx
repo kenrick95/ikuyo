@@ -8,7 +8,7 @@ import clsx from 'clsx';
 import { DateTime } from 'luxon';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
-import type { TripSliceActivity } from '../Trip/store/types';
+import type { TripSliceActivityWithTime } from '../Trip/store/types';
 import { TripViewMode, type TripViewModeType } from '../Trip/TripViewMode';
 import { dangerToken } from '../ui';
 import style from './Activity.module.css';
@@ -25,7 +25,7 @@ function ActivityInner({
   tripTimestampStart,
   userCanEditOrDelete,
 }: {
-  activity: TripSliceActivity;
+  activity: TripSliceActivityWithTime;
   className?: string;
   columnIndex: number;
   columnEndIndex: number;
@@ -253,7 +253,7 @@ function ActivityInner({
 }
 
 function getDayStartEnd(
-  activity: TripSliceActivity,
+  activity: TripSliceActivityWithTime,
   tripTimestampStart: number,
   tripTimeZone: string,
 ): [number, number] {

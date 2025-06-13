@@ -28,6 +28,13 @@ export type TripSliceActivity = Omit<DbActivity, 'trip' | 'commentGroup'> & {
   tripId: string;
   commentGroupId: string | undefined;
 };
+export type TripSliceActivityWithTime = Omit<
+  TripSliceActivity,
+  'timestampStart' | 'timestampEnd'
+> & {
+  timestampStart: number;
+  timestampEnd: number;
+};
 export type TripSliceAccommodation = Omit<
   DbAccommodationWithTrip,
   'trip' | 'commentGroup'
@@ -116,8 +123,8 @@ export type DbTripQueryReturnType = {
     description: string;
     createdAt: number;
     lastUpdatedAt: number;
-    timestampStart: number;
-    timestampEnd: number;
+    timestampStart?: number | null | undefined;
+    timestampEnd?: number | null | undefined;
     location: string;
     locationLat?: number | null | undefined;
     locationLng?: number | null | undefined;

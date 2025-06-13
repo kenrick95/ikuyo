@@ -96,6 +96,8 @@ export function deriveNewActivityState(
     newActivityState[activity.id] = {
       ...activity,
       tripId: trip.id,
+      timestampStart: activity.timestampStart,
+      timestampEnd: activity.timestampEnd,
       commentGroupId: commentGroup?.id ?? undefined,
       locationLat: activity.locationLat,
       locationLng: activity.locationLng,

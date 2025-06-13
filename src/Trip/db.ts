@@ -148,21 +148,30 @@ export async function dbUpdateTrip(
     for (const activity of activities) {
       transactions.push(
         db.tx.activity[activity.id].merge({
-          timestampStart: DateTime.fromMillis(activity.timestampStart, {
-            zone: previousTimeZone,
-          })
-            .setZone(trip.timeZone, {
-              keepLocalTime: true,
-            })
-            .toMillis(),
-          timestampEnd: DateTime.fromMillis(activity.timestampEnd, {
-            zone: previousTimeZone,
-          })
-            .setZone(trip.timeZone, {
-              keepLocalTime: true,
-            })
-            .toMillis(),
-          lastUpdatedAt: transactionTimestamp,
+          timestampStart:
+            activity.timestampStart != null
+              ? DateTime.fromMillis(activity.timestampStart, {
+                  zone: previousTimeZone,
+                })
+                  .setZone(trip.timeZone, {
+                    keepLocalTime: true,
+                  })
+                  .toMillis()
+              : undefined,
+          timestampEnd:
+            activity.timestampEnd != null
+              ? DateTime.fromMillis(activity.timestampEnd, {
+                  zone: previousTimeZone,
+                })
+                  .setZone(trip.timeZone, {
+                    keepLocalTime: true,
+                  })
+                  .toMillis()
+              : undefined,
+          lastUpdatedAt:
+            activity.timestampStart != null || activity.timestampEnd != null
+              ? transactionTimestamp
+              : undefined,
         }),
       );
     }

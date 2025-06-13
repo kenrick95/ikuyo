@@ -64,7 +64,7 @@ export function generateMacroplanGridTemplateColumns(
   // [d4-ce1]
 
   const maxColumns = 1;
-  for (let dayIndex = 0; dayIndex < dayGroups.length; dayIndex++) {
+  for (let dayIndex = 0; dayIndex < dayGroups.inTrip.length; dayIndex++) {
     const colWidth = `minmax(${String(150 / 1)}px,${String(360 / 1)}fr)`;
     for (let colIndex = 0; colIndex < maxColumns; colIndex++) {
       const lineNames: string[] = [];
@@ -81,7 +81,7 @@ export function generateMacroplanGridTemplateColumns(
     }
   }
 
-  str += ` [d${String(dayGroups.length)}-ce${String(maxColumns)}]`;
+  str += ` [d${String(dayGroups.inTrip.length)}-ce${String(maxColumns)}]`;
 
   return str;
 }

@@ -29,9 +29,9 @@ export type DbActivity = {
 
   description: string;
   /** ms */
-  timestampStart: number;
+  timestampStart: number | null | undefined;
   /** ms */
-  timestampEnd: number;
+  timestampEnd: number | null | undefined;
   /** ms */
   createdAt: number;
   /** ms */

@@ -30,17 +30,19 @@ export function ActivityPopup({
 }) {
   const activity = useTripActivity(activityId);
   const { trip } = useTrip(activity?.tripId);
-  const activityStartStr = activity
-    ? DateTime.fromMillis(activity.timestampStart)
-        .setZone(trip?.timeZone)
-        .toFormat('dd LLLL yyyy HH:mm')
-    : '';
-  const activityEndStr = activity
-    ? DateTime.fromMillis(activity.timestampEnd)
-        .setZone(trip?.timeZone)
-        // since 1 activity must be in same day, so might as well just show the time for end
-        .toFormat('HH:mm')
-    : '';
+  const activityStartStr =
+    activity && activity.timestampStart != null
+      ? DateTime.fromMillis(activity.timestampStart)
+          .setZone(trip?.timeZone)
+          .toFormat('dd LLLL yyyy HH:mm')
+      : '';
+  const activityEndStr =
+    activity && activity.timestampEnd != null
+      ? DateTime.fromMillis(activity.timestampEnd)
+          .setZone(trip?.timeZone)
+          // since 1 activity must be in same day, so might as well just show the time for end
+          .toFormat('HH:mm')
+      : '';
   const description = useParseTextIntoNodes(activity?.description);
   const linkTarget = activity?.tripId
     ? `~${RouteTrip.asRouteTarget(activity?.tripId)}${
