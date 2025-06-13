@@ -1,6 +1,6 @@
 import { Box, ContextMenu, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
-import { memo, useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import type { TripSliceMacroplan } from '../Trip/store/types';
 import type { TripViewModeType } from '../Trip/TripViewMode';
 import { dangerToken } from '../ui';
@@ -36,6 +36,31 @@ function MacroplanInner({
     };
   }, [gridColumnStart, gridColumnEnd]);
 
+  // Handle keyboard navigation for accessibility
+  // Use onKeyDown for Enter to open the dialog
+  // Use onKeyUp for Space to open the dialog
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        // To avoid scrolling for both keys
+        e.preventDefault();
+        if (e.key === 'Enter') {
+          openMacroplanViewDialog();
+        }
+      }
+    },
+    [openMacroplanViewDialog],
+  );
+  const handleKeyUp = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === ' ') {
+        e.preventDefault();
+        openMacroplanViewDialog();
+      }
+    },
+    [openMacroplanViewDialog],
+  );
+
   return (
     <>
       <ContextMenu.Root>
@@ -46,6 +71,9 @@ function MacroplanInner({
             // biome-ignore lint/a11y/useSemanticElements: <Box> need to be a <div>
             role="button"
             tabIndex={0}
+            // TODO: when the dialog is closed, the focus should return here?
+            onKeyDown={handleKeyDown}
+            onKeyUp={handleKeyUp}
             className={clsx(s.macroplan, className)}
             style={style}
             onClick={openMacroplanViewDialog}

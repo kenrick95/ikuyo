@@ -83,6 +83,7 @@ function ActivityInner({
     [activity.id, timeStart, timeEnd, dayStart, tripViewMode],
   );
 
+  // Handle dropping on the timetable grid is implemented in Timetable component
   const handleDragEnd = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       if (tripViewMode !== TripViewMode.Timetable) {
@@ -95,7 +96,30 @@ function ActivityInner({
     [tripViewMode],
   );
 
-  // Handle dropping on the timetable grid is implemented in Timetable component
+  // Handle keyboard navigation for accessibility
+  // Use onKeyDown for Enter to open the dialog
+  // Use onKeyUp for Space to open the dialog
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        // To avoid scrolling for both keys
+        e.preventDefault();
+        if (e.key === 'Enter') {
+          openActivityViewDialog();
+        }
+      }
+    },
+    [openActivityViewDialog],
+  );
+  const handleKeyUp = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === ' ') {
+        e.preventDefault();
+        openActivityViewDialog();
+      }
+    },
+    [openActivityViewDialog],
+  );
 
   return (
     <>
@@ -114,6 +138,9 @@ function ActivityInner({
               className,
             )}
             onClick={openActivityViewDialog}
+            // TODO: when the dialog is closed, the focus should return here?
+            onKeyDown={handleKeyDown}
+            onKeyUp={handleKeyUp}
             draggable={
               tripViewMode === TripViewMode.Timetable && userCanEditOrDelete
             }

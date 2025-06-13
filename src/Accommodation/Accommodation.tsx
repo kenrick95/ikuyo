@@ -1,7 +1,7 @@
 import { ClockIcon, HomeIcon } from '@radix-ui/react-icons';
 import { Box, ContextMenu, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
-import { memo, useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import type { TripSliceAccommodation } from '../Trip/store/types';
 import { TripViewMode, type TripViewModeType } from '../Trip/TripViewMode';
 import { dangerToken } from '../ui';
@@ -41,6 +41,32 @@ function AccommodationInner({
       gridColumnEnd: gridColumnEnd,
     };
   }, [gridColumnStart, gridColumnEnd]);
+
+  // Handle keyboard navigation for accessibility
+  // Use onKeyDown for Enter to open the dialog
+  // Use onKeyUp for Space to open the dialog
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        // To avoid scrolling for both keys
+        e.preventDefault();
+        if (e.key === 'Enter') {
+          openAccommodationViewDialog();
+        }
+      }
+    },
+    [openAccommodationViewDialog],
+  );
+  const handleKeyUp = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === ' ') {
+        e.preventDefault();
+        openAccommodationViewDialog();
+      }
+    },
+    [openAccommodationViewDialog],
+  );
+
   return (
     <>
       <ContextMenu.Root>
@@ -53,7 +79,10 @@ function AccommodationInner({
             tabIndex={0}
             className={clsx(s.accommodation, className)}
             style={style}
+            // TODO: when the dialog is closed, the focus should return here?
             onClick={openAccommodationViewDialog}
+            onKeyDown={handleKeyDown}
+            onKeyUp={handleKeyUp}
           >
             <Text as="div" size={responsiveTextSize} weight="bold">
               <HomeIcon style={{ verticalAlign: '-3px' }} />{' '}
