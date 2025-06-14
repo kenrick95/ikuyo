@@ -21,7 +21,7 @@ jobs:
       MAPTILER_MAP_STYLE_DARK: ${{ vars.MAPTILER_MAP_STYLE_DARK }}
       SENTRY_DSN: ${{ vars.SENTRY_DSN }}
       SENTRY_ENABLED: ${{ vars.SENTRY_ENABLED }}
-      SENTRY_RELEASE: ${{ github.ref }}
+      SENTRY_RELEASE: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4.0.0
