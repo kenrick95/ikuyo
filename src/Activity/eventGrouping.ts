@@ -61,7 +61,7 @@ export function groupActivitiesByDays({
   );
   const tripDuration = tripEndDateTime.diff(tripStartDateTime, 'days');
   const activitiesWithTime: TripSliceActivityWithTime[] = [];
-  const acitivitiesWithoutTime: TripSliceActivity[] = [];
+  const activitiesWithoutTime: TripSliceActivity[] = [];
   for (const activity of activities) {
     if (
       activity.timestampStart !== undefined &&
@@ -75,10 +75,10 @@ export function groupActivitiesByDays({
         timestampEnd: activity.timestampEnd,
       });
     } else {
-      acitivitiesWithoutTime.push(activity);
+      activitiesWithoutTime.push(activity);
     }
   }
-  res.outTrip.activities = acitivitiesWithoutTime;
+  res.outTrip.activities = activitiesWithoutTime;
 
   for (let d = 0; d < tripDuration.days; d++) {
     const dayStartDateTime = tripStartDateTime.plus({ day: d });
