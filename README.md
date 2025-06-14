@@ -29,3 +29,22 @@ Preview the production build locally:
 ```bash
 pnpm preview
 ```
+
+## Docker
+
+Copy the example environment file and fill in the required values:
+
+```bash
+cp .env.example .env
+# edit .env and provide the correct settings
+```
+
+Build and run the container:
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+Build arguments are loaded from `.env`, so the file must be present before running `docker compose build`. After the containers start, open `http://localhost:8080` in your browser.
+
