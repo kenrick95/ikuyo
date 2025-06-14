@@ -53,9 +53,9 @@
     --row-minute-height: 2px;
     --row-minute-narrow-height: 0.8px;
     /* Reduce for Navbar (height); then TripMenuFloating (height + border) */
-    --timetable-height: calc(100vh - var(--space-8) - var(--space-7) - 1px); 
+    --timetable-height: calc(100vh - var(--space-8) - var(--space-7) - 1px);
     --day-count: 5;
-  
+
     display: grid;
     // grid-template-columns will be overridden in "style" at <Timetable />
     grid-template-columns: [time] 45px repeat(var(--day-count), [d] 1fr);
@@ -78,7 +78,7 @@
       --row-minute-height: 1px;
       --row-minute-narrow-height: 0.5px;
 
-       /* Reduce for Navbar (height) */
+      /* Reduce for Navbar (height) */
       --timetable-height: calc(100vh - var(--space-8))
     }
 
@@ -94,6 +94,7 @@
     width: 100%;
     min-height: var(--row-minute-height);
     z-index: 0;
+
     &.dragOver {
       background: linear-gradient(to bottom, var(--accent-3), transparent);
       border-top: 2px dashed var(--accent-8);
@@ -209,5 +210,36 @@
     min-height: 30px;
     grid-auto-flow: row dense;
     grid-auto-columns: 30px;
+  }
+
+}
+.sidebarToggle {
+  position: fixed;
+  top: 50%;
+  right: 16px;
+  transform: translateY(-50%);
+  z-index: 101;
+  transition: transform 0.3s ease;
+  will-change: transform;
+  background-color: var(--color-panel-solid);
+
+  @media (max-width: 768px) {
+    right: 8px;
+  }
+
+  @media (max-width: 480px) {
+    right: 8px;
+  }
+
+  &.sidebarToggleActive {
+    transform: translateY(-50%) translateX(-284px);
+
+    @media (max-width: 768px) {
+      transform: translateY(-50%) translateX(-264px);
+    }
+
+    @media (max-width: 480px) {
+      transform: translateY(-50%) translateX(calc(-100vw + 48px));
+    }
   }
 }
