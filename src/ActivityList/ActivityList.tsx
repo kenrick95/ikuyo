@@ -6,6 +6,7 @@ import { AccommodationDialog } from '../Accommodation/AccommodationDialog';
 import { AccommodationNewDialog } from '../Accommodation/AccommodationNewDialog';
 import { Activity } from '../Activity/Activity';
 import { ActivityDialog } from '../Activity/ActivityDialog';
+import { ActivityIdea } from '../Activity/ActivityIdea';
 import { ActivityNewDialog } from '../Activity/ActivityNewDialog';
 import {
   type DayGroups,
@@ -71,6 +72,12 @@ export function ActivityList() {
     if (!trip) return;
     pushDialog(MacroplanNewDialog, { trip });
   }, [pushDialog, trip]);
+
+  const hasOutTrip =
+    dayGroups.outTrip.activities.length > 0 ||
+    dayGroups.outTrip.accommodations.length > 0 ||
+    dayGroups.outTrip.macroplans.length > 0;
+
   return (
     <>
       <Flex
@@ -87,6 +94,47 @@ export function ActivityList() {
               flexGrow="1"
               maxWidth={{ initial: '100%', sm: '50%' }}
             >
+              {hasOutTrip ? (
+                <>
+                  <Heading as="h2" size="4" className={s.listSubheader}>
+                    Ideas
+                  </Heading>
+                  {dayGroups.outTrip.macroplans.map((macroplan) => {
+                    return (
+                      <Macroplan
+                        key={macroplan.id}
+                        macroplan={macroplan}
+                        className={s.listItem}
+                        tripViewMode={TripViewMode.List}
+                        userCanEditOrDelete={userCanEditOrDelete}
+                      />
+                    );
+                  })}
+                  {dayGroups.outTrip.accommodations.map((accommodation) => {
+                    return (
+                      <Accommodation
+                        key={`${accommodation.id}`}
+                        accommodation={accommodation}
+                        tripViewMode={TripViewMode.List}
+                        className={s.listItem}
+                        timeZone={trip?.timeZone ?? ''}
+                        userCanEditOrDelete={userCanEditOrDelete}
+                      />
+                    );
+                  })}
+                  {dayGroups.outTrip.activities.map((activity) => {
+                    return (
+                      <ActivityIdea
+                        key={activity.id}
+                        className={s.listItem}
+                        activity={activity}
+                        userCanEditOrDelete={userCanEditOrDelete}
+                        tripViewMode={TripViewMode.List}
+                      />
+                    );
+                  })}
+                </>
+              ) : null}
               {dayGroups.inTrip.map((dayGroup) => {
                 return [
                   <Heading
