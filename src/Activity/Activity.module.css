@@ -6,12 +6,16 @@
   cursor: var(--cursor-link);
   display: block;
   text-align: start;
+  &:hover {
+    border-color: var(--accent-7);
+    background-color: var(--accent-2);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
 }
 .activity:focus-visible {
-  outline-style: solid;
+  outline: 2px solid var(--accent-9);
   outline-offset: 2px;
-  outline-width: 2px;
-  outline-color: var(--accent-9);
 }
 .activityDescription {
   word-break: break-all;
@@ -23,6 +27,7 @@
 .activityDragging {
   opacity: 0.6;
   cursor: grabbing;
+  transform: rotate(2deg);
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
 }
 .newForm {

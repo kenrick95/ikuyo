@@ -160,7 +160,6 @@ function ActivityInner({
   return (
     <>
       <ContextMenu.Root>
-        {' '}
         <ContextMenu.Trigger>
           <Box
             p={{ initial: '1' }}
@@ -226,7 +225,7 @@ function ActivityInner({
               </Text>
             ) : null}
           </Box>
-        </ContextMenu.Trigger>{' '}
+        </ContextMenu.Trigger>
         <ContextMenu.Content>
           <ContextMenu.Label>{activity.title}</ContextMenu.Label>
           <ContextMenu.Item onClick={handleContextMenuView}>
