@@ -12,6 +12,7 @@ interface ActivityIdeaProps {
   userCanEditOrDelete: boolean;
   tripViewMode: TripViewModeType;
   className?: string;
+  isDragDisabled?: boolean;
 }
 
 export function ActivityIdea({
@@ -19,6 +20,7 @@ export function ActivityIdea({
   userCanEditOrDelete,
   className,
   tripViewMode,
+  isDragDisabled = false,
 }: ActivityIdeaProps) {
   const [isDragging, setIsDragging] = useState(false);
   const {
@@ -28,8 +30,8 @@ export function ActivityIdea({
   } = useActivityDialogHooks(tripViewMode, activity.id);
   const handleDragStart = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
-      if (tripViewMode !== TripViewMode.Timetable) {
-        // Prevent dragging if the trip is not in timetable view
+      if (tripViewMode !== TripViewMode.Timetable || isDragDisabled) {
+        // Prevent dragging if the trip is not in timetable view or drag is disabled
         e.preventDefault();
         return;
       }
@@ -51,19 +53,18 @@ export function ActivityIdea({
         e.dataTransfer.setDragImage(e.currentTarget, 20, 20);
       }
     },
-    [activity.id, tripViewMode],
+    [activity.id, tripViewMode, isDragDisabled],
   );
-
   const handleDragEnd = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
-      if (tripViewMode !== TripViewMode.Timetable) {
-        // Prevent dragging if the trip is not in timetable view
+      if (tripViewMode !== TripViewMode.Timetable || isDragDisabled) {
+        // Prevent dragging if the trip is not in timetable view or drag is disabled
         e.preventDefault();
         return;
       }
       setIsDragging(false);
     },
-    [tripViewMode],
+    [tripViewMode, isDragDisabled],
   );
 
   const handleKeyDown = useCallback(
@@ -90,7 +91,9 @@ export function ActivityIdea({
             isDragging && s.draggingCard,
           )}
           draggable={
-            tripViewMode === TripViewMode.Timetable && userCanEditOrDelete
+            tripViewMode === TripViewMode.Timetable &&
+            userCanEditOrDelete &&
+            !isDragDisabled
           }
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}

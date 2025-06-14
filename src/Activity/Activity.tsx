@@ -8,6 +8,7 @@ import clsx from 'clsx';
 import { DateTime } from 'luxon';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
+import { useShouldDisableDragAndDrop } from '../common/deviceUtils';
 import type { TripSliceActivityWithTime } from '../Trip/store/types';
 import { TripViewMode, type TripViewModeType } from '../Trip/TripViewMode';
 import { dangerToken } from '../ui';
@@ -46,6 +47,7 @@ function ActivityInner({
   const [isDragging, setIsDragging] = useState(false);
   const activityRef = useRef<HTMLDivElement>(null);
   const [location] = useLocation();
+  const isDragAndDropDisabled = useShouldDisableDragAndDrop();
   const isActivityOngoing = useMemo(() => {
     const now = Date.now();
     return activity.timestampStart <= now && now <= activity.timestampEnd;
@@ -71,8 +73,8 @@ function ActivityInner({
   // Drag handlers
   const handleDragStart = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
-      if (tripViewMode !== TripViewMode.Timetable) {
-        // Prevent dragging if the trip is not in timetable view
+      if (tripViewMode !== TripViewMode.Timetable || isDragAndDropDisabled) {
+        // Prevent dragging if the trip is not in timetable view or drag is disabled
         e.preventDefault();
         return;
       }
@@ -95,20 +97,26 @@ function ActivityInner({
         e.dataTransfer.setDragImage(e.currentTarget, 20, 20);
       }
     },
-    [activity.id, timeStart, timeEnd, dayStart, tripViewMode],
+    [
+      activity.id,
+      timeStart,
+      timeEnd,
+      dayStart,
+      tripViewMode,
+      isDragAndDropDisabled,
+    ],
   );
-
   // Handle dropping on the timetable grid is implemented in Timetable component
   const handleDragEnd = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
-      if (tripViewMode !== TripViewMode.Timetable) {
-        // Prevent dragging if the trip is not in timetable view
+      if (tripViewMode !== TripViewMode.Timetable || isDragAndDropDisabled) {
+        // Prevent dragging if the trip is not in timetable view or drag is disabled
         e.preventDefault();
         return;
       }
       setIsDragging(false);
     },
-    [tripViewMode],
+    [tripViewMode, isDragAndDropDisabled],
   );
   // Handle keyboard navigation for accessibility
   // Use onKeyDown for Enter to open the dialog
@@ -178,7 +186,9 @@ function ActivityInner({
             onKeyDown={handleKeyDown}
             onKeyUp={handleKeyUp}
             draggable={
-              tripViewMode === TripViewMode.Timetable && userCanEditOrDelete
+              tripViewMode === TripViewMode.Timetable &&
+              userCanEditOrDelete &&
+              !isDragAndDropDisabled
             }
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
