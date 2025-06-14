@@ -30,19 +30,26 @@ export function ActivityPopup({
 }) {
   const activity = useTripActivity(activityId);
   const { trip } = useTrip(activity?.tripId);
-  const activityStartStr =
-    activity && activity.timestampStart != null
-      ? DateTime.fromMillis(activity.timestampStart)
-          .setZone(trip?.timeZone)
-          .toFormat('dd LLLL yyyy HH:mm')
-      : '';
-  const activityEndStr =
-    activity && activity.timestampEnd != null
-      ? DateTime.fromMillis(activity.timestampEnd)
-          .setZone(trip?.timeZone)
-          // since 1 activity must be in same day, so might as well just show the time for end
-          .toFormat('HH:mm')
-      : '';
+
+  const activityStartDateTime =
+    activity && trip && activity.timestampStart != null
+      ? DateTime.fromMillis(activity.timestampStart).setZone(trip.timeZone)
+      : undefined;
+  const activityEndDateTime =
+    activity && trip && activity.timestampEnd != null
+      ? DateTime.fromMillis(activity.timestampEnd).setZone(trip.timeZone)
+      : undefined;
+
+  const activityStartStr = activityStartDateTime
+    ? activityStartDateTime.toFormat('dd MMMM yyyy HH:mm')
+    : undefined;
+  const activityEndStr = activityEndDateTime
+    ? activityStartDateTime?.hasSame(activityEndDateTime, 'day')
+      ? // If same day, only show time
+        activityEndDateTime.toFormat('HH:mm')
+      : activityEndDateTime.toFormat('dd MMMM yyyy HH:mm')
+    : undefined;
+
   const description = useParseTextIntoNodes(activity?.description);
   const linkTarget = activity?.tripId
     ? `~${RouteTrip.asRouteTarget(activity?.tripId)}${
@@ -57,10 +64,29 @@ export function ActivityPopup({
       <Heading as="h3" size="2">
         {linkTarget ? <Link to={linkTarget}>{activity?.title}</Link> : ''}
       </Heading>
-      <Text as="p" size="1">
-        <ClockIcon style={{ verticalAlign: '-2px' }} /> {activityStartStr} to{' '}
-        {activityEndStr}
-      </Text>
+      {activity ? (
+        activityStartStr && activityEndStr ? (
+          // Both are set
+          <Text as="p" size="1">
+            <ClockIcon style={{ verticalAlign: '-2px' }} /> {activityStartStr}
+            &ndash;{activityEndStr}
+          </Text>
+        ) : activityStartStr ? (
+          // Only start is set
+          <Text as="p" size="1">
+            <ClockIcon style={{ verticalAlign: '-2px' }} /> {activityStartStr}
+            &ndash;No end time
+          </Text>
+        ) : activityEndStr ? (
+          // Only end is set
+          <Text as="p" size="1">
+            <ClockIcon style={{ verticalAlign: '-2px' }} /> No start time&ndash;
+            {activityEndStr}
+          </Text>
+        ) : // Both are not set
+        null
+      ) : null}
+
       {type === LocationType.Activity ? (
         activity?.location ? (
           <Text as="p" size="1">
