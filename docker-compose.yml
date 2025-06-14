@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  web:
+    build:
+      context: .
+      args:
+        INSTANT_APP_ID: ${INSTANT_APP_ID}
+        INSTANT_API_URI: ${INSTANT_API_URI}
+        INSTANT_WEBSOCKET_URI: ${INSTANT_WEBSOCKET_URI}
+        SENTRY_ENABLED: ${SENTRY_ENABLED}
+        SENTRY_DSN: ${SENTRY_DSN}
+        MAPTILER_API_KEY: ${MAPTILER_API_KEY}
+        MAPTILER_MAP_STYLE_LIGHT: ${MAPTILER_MAP_STYLE_LIGHT}
+        MAPTILER_MAP_STYLE_DARK: ${MAPTILER_MAP_STYLE_DARK}
+    ports:
+      - "8080:80"
