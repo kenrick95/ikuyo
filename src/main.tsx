@@ -6,10 +6,12 @@ import App from './App.tsx';
 
 if (process.env.SENTRY_DSN && process.env.SENTRY_ENABLED) {
   console.log('Sentry is enabled, initializing...');
+  const SENTRY_RELEASE = process.env.SENTRY_RELEASE || undefined;
   sentryInit({
     dsn: process.env.SENTRY_DSN,
     sendDefaultPii: true,
     allowUrls: ['https://ikuyo.kenrick95.org'],
+    release: SENTRY_RELEASE,
   });
 }
 

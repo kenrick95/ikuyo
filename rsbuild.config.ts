@@ -10,6 +10,7 @@ const {
   INSTANT_WEBSOCKET_URI,
   SENTRY_ENABLED,
   SENTRY_DSN,
+  SENTRY_RELEASE,
   MAPTILER_API_KEY,
   MAPTILER_MAP_STYLE_LIGHT,
   MAPTILER_MAP_STYLE_DARK,
@@ -26,6 +27,7 @@ console.log('Configurations from env variables', {
   INSTANT_WEBSOCKET_URI,
   SENTRY_ENABLED,
   SENTRY_DSN,
+  SENTRY_RELEASE,
   MAPTILER_API_KEY,
   MAPTILER_MAP_STYLE_LIGHT,
   MAPTILER_MAP_STYLE_DARK,
@@ -86,6 +88,7 @@ export default defineConfig({
       ),
       'process.env.SENTRY_ENABLED': JSON.stringify(isSentryEnabled),
       'process.env.SENTRY_DSN': JSON.stringify(SENTRY_DSN),
+      'process.env.SENTRY_RELEASE': JSON.stringify(SENTRY_RELEASE),
       'process.env.MAPTILER_API_KEY': JSON.stringify(MAPTILER_API_KEY),
       'process.env.MAPTILER_MAP_STYLE_LIGHT': JSON.stringify(
         MAPTILER_MAP_STYLE_LIGHT || 'BASIC.LIGHT',
