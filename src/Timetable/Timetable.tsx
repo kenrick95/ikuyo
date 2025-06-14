@@ -91,7 +91,14 @@ export function Timetable() {
     });
   }, [trip, tripAccommodations]);
   const [isDragging, setDragging] = useState<boolean>(false);
-  const [isSidebarVisible, setSidebarVisible] = useState<boolean>(true);
+
+  // Hide sidebar initially on small screens
+  const initialWindowWidth = useMemo(() => {
+    return window.innerWidth;
+  }, []);
+  const [isSidebarVisible, setSidebarVisible] = useState<boolean>(
+    initialWindowWidth > 768,
+  );
 
   const unscheduledActivitiesCount = dayGroups.outTrip.activities.length;
 

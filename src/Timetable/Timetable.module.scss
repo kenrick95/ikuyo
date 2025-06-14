@@ -4,46 +4,53 @@
 @function pad2($num) {
   @if $num < 0 {
     @return '0';
-  } @else if $num >= 10 {
+  }
+
+  @else if $num >=10 {
     @return $num;
   }
-  @return '0' + $num;
+
+  @return '0'+$num;
 }
 
 @function timeTemplateRow() {
   $ret: '';
   // "previous hh & mm", to be used in case of current = 2100 and need to refer to previous minute (2059)
   $phhmm: '';
+
   @for $i from 0 to 24 {
     $hh: pad2($i);
+
     @for $j from 0 to 60 {
       $mm: pad2($j);
+
       // Generate [t0000] var(--row-minute-height), [te000 t0001] var(--row-minute-height), ..., [te2357 t2358] var(--row-minute-height), [te2358 t2359] var(--row-minute-height) [te2359]
-      @if $i == 0 and $j == 0 {
+      @if $i ==0 and $j ==0 {
         // first one
         $ret: $ret + '[t#{$hh}#{$mm}]' + ' var(--row-minute-narrow-height) ';
-      } @else if not ($i == 0 and $j == 0) and not ($i == 23 and $j == 59) {
+      }
+
+      @else if not ($i ==0 and $j ==0) and not ($i ==23 and $j ==59) {
         // middle ones
 
-        @if (0 <= $i and $i <= 5) {
-          $ret: $ret +
-            '[te#{$phhmm} t#{$hh}#{$mm}]' +
-            ' var(--row-minute-narrow-height) ';
-        } @else {
-          $ret: $ret +
-            '[te#{$phhmm} t#{$hh}#{$mm}]' +
-            ' var(--row-minute-height) ';
+        @if (0 <=$i and $i <=5) {
+          $ret: $ret + '[te#{$phhmm} t#{$hh}#{$mm}]' + ' var(--row-minute-narrow-height) ';
         }
-      } @else if $i == 23 and $j == 59 {
-        // final one
-        $ret: $ret +
-          '[te#{$phhmm} t#{$hh}#{$mm}]' +
-          ' var(--row-minute-height) ' +
-          '[te#{$hh}#{$mm}]';
+
+        @else {
+          $ret: $ret + '[te#{$phhmm} t#{$hh}#{$mm}]' + ' var(--row-minute-height) ';
+        }
       }
+
+      @else if $i ==23 and $j ==59 {
+        // final one
+        $ret: $ret + '[te#{$phhmm} t#{$hh}#{$mm}]' + ' var(--row-minute-height) ' + '[te#{$hh}#{$mm}]';
+      }
+
       $phhmm: '#{$hh}#{$mm}';
     }
   }
+
   @return $ret;
 }
 
@@ -213,6 +220,7 @@
   }
 
 }
+
 .sidebarToggle {
   position: fixed;
   top: 50%;
