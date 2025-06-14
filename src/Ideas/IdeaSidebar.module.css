@@ -69,6 +69,7 @@
 .activityItem {
   padding: var(--space-3);
   border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-2);
 }
 
 .locationIcon,

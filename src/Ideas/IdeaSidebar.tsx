@@ -37,9 +37,9 @@ function IdeaSidebarInner({
       <Box className={s.header}>
         <Text size="2" weight="medium" className={s.title}>
           <ClockIcon className={s.titleIcon} />
-          Activities Idea List
+          Activity Idea List
         </Text>
-        <Badge variant="soft" color="amber" size="1">
+        <Badge variant="soft" color="gray" size="1">
           {ideaActivities.length}
         </Badge>
       </Box>
