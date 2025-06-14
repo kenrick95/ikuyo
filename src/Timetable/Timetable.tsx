@@ -1,5 +1,11 @@
-import { ClockIcon, HomeIcon, StackIcon } from '@radix-ui/react-icons';
-import { Section, Text } from '@radix-ui/themes';
+import {
+  ClockIcon,
+  EyeClosedIcon,
+  EyeOpenIcon,
+  HomeIcon,
+  StackIcon,
+} from '@radix-ui/react-icons';
+import { IconButton, Section, Text, Tooltip } from '@radix-ui/themes';
 import clsx from 'clsx';
 import type * as React from 'react';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
@@ -16,6 +22,7 @@ import {
 } from '../Activity/eventGrouping';
 import { useBoundStore } from '../data/store';
 import { TripUserRole } from '../data/TripUserRole';
+import { IdeaSidebar } from '../Ideas/IdeaSidebar';
 import { Macroplan } from '../Macroplan/Macroplan';
 import { MacroplanDialog } from '../Macroplan/MacroplanDialog';
 import {
@@ -84,6 +91,9 @@ export function Timetable() {
     });
   }, [trip, tripAccommodations]);
   const [isDragging, setDragging] = useState<boolean>(false);
+  const [isSidebarVisible, setSidebarVisible] = useState<boolean>(true);
+
+  const unscheduledActivitiesCount = dayGroups.outTrip.activities.length;
 
   const isUsingClampedTable = dayGroups.inTrip.length < 5;
   const timetableStyle = useMemo(() => {
@@ -237,12 +247,15 @@ export function Timetable() {
     },
     [trip, activities, publishToast, userCanModifyTrip],
   );
-
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setDragging(true);
   }, []);
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarVisible(!isSidebarVisible);
+  }, [isSidebarVisible]);
 
   return (
     <Section py="0">
@@ -259,9 +272,7 @@ export function Timetable() {
         onDragOver={handleDragOver}
       >
         <TimetableGrid days={dayGroups.inTrip.length} />
-
         <TimetableTimeHeader />
-
         {dayGroups.inTrip.map((dayGroup, i) => {
           return (
             <TimetableDayHeader
@@ -272,7 +283,6 @@ export function Timetable() {
             />
           );
         })}
-
         {macroplans.length > 0 ? <TimetableMacroplanHeader /> : null}
         {macroplans.length > 0 ? (
           <div className={s.macroplanGrid} style={timetableMacroplanStyle}>
@@ -294,7 +304,6 @@ export function Timetable() {
             })}
           </div>
         ) : null}
-
         {acommodations.length > 0 ? <TimetableAccommodationHeader /> : null}
         {trip && acommodations.length > 0 ? (
           <div
@@ -320,7 +329,6 @@ export function Timetable() {
             })}
           </div>
         ) : null}
-
         {times.map((_, i) => {
           return (
             <TimetableTime
@@ -330,7 +338,6 @@ export function Timetable() {
             />
           );
         })}
-
         {dayGroups.inTrip.map((dayGroup) => {
           return Object.values(dayGroup.activities).map((activity) => {
             const columnIndex = dayGroup.activityColumnIndexMap.get(
@@ -352,7 +359,28 @@ export function Timetable() {
           });
         })}
       </div>
-
+      <IdeaSidebar
+        activities={activities || []}
+        userCanEditOrDelete={userCanModifyTrip}
+        isVisible={isSidebarVisible}
+      />
+      {unscheduledActivitiesCount > 0 && (
+        <Tooltip
+          content={`${isSidebarVisible ? 'Hide' : 'Show'} unscheduled activities (${unscheduledActivitiesCount})`}
+        >
+          <IconButton
+            variant="outline"
+            size="2"
+            onClick={toggleSidebar}
+            className={clsx(
+              s.sidebarToggle,
+              isSidebarVisible && s.sidebarToggleActive,
+            )}
+          >
+            {isSidebarVisible ? <EyeClosedIcon /> : <EyeOpenIcon />}
+          </IconButton>
+        </Tooltip>
+      )}
       <Switch>
         <Route
           path={RouteTripTimetableViewActivity.routePath}

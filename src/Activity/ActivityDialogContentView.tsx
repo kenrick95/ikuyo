@@ -36,19 +36,24 @@ export function ActivityDialogContentView({
     );
   }, [trip?.currentUserRole]);
 
-  const activityStartStr =
+  const activityStartDateTime =
     activity && trip && activity.timestampStart != null
-      ? DateTime.fromMillis(activity.timestampStart)
-          .setZone(trip.timeZone)
-          .toFormat('dd LLLL yyyy HH:mm')
+      ? DateTime.fromMillis(activity.timestampStart).setZone(trip.timeZone)
       : undefined;
-  const activityEndStr =
+  const activityEndDateTime =
     activity && trip && activity.timestampEnd != null
-      ? DateTime.fromMillis(activity.timestampEnd)
-          .setZone(trip.timeZone)
-          // since 1 activity must be in same day, so might as well just show the time for end
-          .toFormat('HH:mm')
+      ? DateTime.fromMillis(activity.timestampEnd).setZone(trip.timeZone)
       : undefined;
+
+  const activityStartStr = activityStartDateTime
+    ? activityStartDateTime.toFormat('dd MMMM yyyy HH:mm')
+    : undefined;
+  const activityEndStr = activityEndDateTime
+    ? activityStartDateTime?.hasSame(activityEndDateTime, 'day')
+      ? // If same day, only show time
+        activityEndDateTime.toFormat('HH:mm')
+      : activityEndDateTime.toFormat('dd MMMM yyyy HH:mm')
+    : undefined;
   const currentUser = useDeepBoundStore((state) => state.currentUser);
 
   const descriptions = useParseTextIntoNodes(activity?.description);
@@ -114,10 +119,34 @@ export function ActivityDialogContentView({
             Time
           </Heading>
           <Text>
-            {activityStartStr ?? <Skeleton>1 January 2025 15:00</Skeleton>}
-            &ndash;{activityEndStr ?? <Skeleton>18:00</Skeleton>}
+            {activity ? (
+              activityStartStr && activityEndStr ? (
+                // Both are set
+                <>
+                  {activityStartStr}
+                  &ndash;{activityEndStr}
+                </>
+              ) : activityStartStr ? (
+                // Only start is set
+                <>
+                  {activityStartStr}
+                  &ndash;No end time
+                </>
+              ) : activityEndStr ? (
+                // Only end is set
+                <>No start time&ndash;{activityEndStr}</>
+              ) : (
+                // Both are not set
+                'No time set'
+              )
+            ) : (
+              // Loading
+              <>
+                <Skeleton>1 January 2025 15:00</Skeleton>
+                &ndash;<Skeleton>18:00</Skeleton>
+              </>
+            )}
           </Text>
-
           {activity?.location ? (
             <>
               <Heading as="h2" size="4">
@@ -128,7 +157,6 @@ export function ActivityDialogContentView({
           ) : (
             <></>
           )}
-
           {activity?.locationDestination ? (
             <>
               <Heading as="h2" size="4">
@@ -139,7 +167,6 @@ export function ActivityDialogContentView({
           ) : (
             <></>
           )}
-
           {activity?.description ? (
             <>
               <Heading as="h2" size="4">
@@ -150,7 +177,6 @@ export function ActivityDialogContentView({
           ) : (
             <></>
           )}
-
           {activity?.locationLat != null && activity?.locationLng != null ? (
             <ActivityMap
               mapOptions={{
