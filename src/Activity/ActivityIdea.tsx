@@ -1,7 +1,8 @@
 import { InfoCircledIcon, SewingPinIcon } from '@radix-ui/react-icons';
 import { Box, ContextMenu, Flex, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
+import { useTripTimetableDragging } from '../Trip/store/hooks';
 import type { TripSliceActivity } from '../Trip/store/types';
 import { TripViewMode, type TripViewModeType } from '../Trip/TripViewMode';
 import s from './ActivityIdea.module.css';
@@ -22,12 +23,13 @@ export function ActivityIdea({
   tripViewMode,
   isDragDisabled = false,
 }: ActivityIdeaProps) {
-  const [isDragging, setIsDragging] = useState(false);
   const {
     openActivityViewDialog,
     openActivityDeleteDialog,
     openActivityEditDialog,
   } = useActivityDialogHooks(tripViewMode, activity.id);
+  const { timetableDragging, setTimetableDragging } =
+    useTripTimetableDragging();
   const handleDragStart = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       if (tripViewMode !== TripViewMode.Timetable || isDragDisabled) {
@@ -35,7 +37,9 @@ export function ActivityIdea({
         e.preventDefault();
         return;
       }
-      setIsDragging(true);
+      setTimetableDragging(true, {
+        activityId: activity.id,
+      });
       // Store the activity data for the drop
       e.dataTransfer.setData(
         'text/plain',
@@ -53,7 +57,7 @@ export function ActivityIdea({
         e.dataTransfer.setDragImage(e.currentTarget, 20, 20);
       }
     },
-    [activity.id, tripViewMode, isDragDisabled],
+    [activity.id, tripViewMode, isDragDisabled, setTimetableDragging],
   );
   const handleDragEnd = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
@@ -62,9 +66,9 @@ export function ActivityIdea({
         e.preventDefault();
         return;
       }
-      setIsDragging(false);
+      setTimetableDragging(false);
     },
-    [tripViewMode, isDragDisabled],
+    [tripViewMode, isDragDisabled, setTimetableDragging],
   );
 
   const handleKeyDown = useCallback(
@@ -88,7 +92,9 @@ export function ActivityIdea({
           className={clsx(
             s.activityCard,
             className,
-            isDragging && s.draggingCard,
+            timetableDragging.dragging &&
+              timetableDragging.source.activityId === activity.id &&
+              s.draggingCard,
           )}
           draggable={
             tripViewMode === TripViewMode.Timetable &&

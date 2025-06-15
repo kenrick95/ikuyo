@@ -35,6 +35,7 @@ import {
   useTripAccommodations,
   useTripActivities,
   useTripMacroplans,
+  useTripTimetableDragging,
 } from '../Trip/store/hooks';
 import { TripViewMode } from '../Trip/TripViewMode';
 import {
@@ -90,8 +91,8 @@ export function Timetable() {
       accommodations: tripAccommodations,
     });
   }, [trip, tripAccommodations]);
-  const [isDragging, setDragging] = useState<boolean>(false);
-
+  const { timetableDragging, setTimetableDragging } =
+    useTripTimetableDragging();
   // Hide sidebar initially on small screens
   const initialWindowWidth = useMemo(() => {
     return window.innerWidth;
@@ -133,7 +134,7 @@ export function Timetable() {
   const handleDrop = useCallback(
     async (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
-      setDragging(false);
+      setTimetableDragging(false);
       if (!trip) {
         console.warn('No trip found for dropping activity');
         return;
@@ -252,13 +253,16 @@ export function Timetable() {
         });
       }
     },
-    [trip, activities, publishToast, userCanModifyTrip],
+    [trip, activities, publishToast, userCanModifyTrip, setTimetableDragging],
   );
-  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setDragging(true);
-  }, []);
+  const handleDragOver = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      setTimetableDragging(true);
+    },
+    [setTimetableDragging],
+  );
 
   const toggleSidebar = useCallback(() => {
     setSidebarVisible(!isSidebarVisible);
@@ -270,7 +274,7 @@ export function Timetable() {
       <div
         className={clsx(
           s.timetable,
-          isDragging && s.dragging,
+          timetableDragging.dragging && s.dragging,
           isUsingClampedTable && s.timetableClamped,
         )}
         style={timetableStyle}

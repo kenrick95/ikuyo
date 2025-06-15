@@ -1,4 +1,4 @@
-import { useDeepBoundStore } from '../../data/store';
+import { useBoundStore, useDeepBoundStore } from '../../data/store';
 import type { TripSliceAccommodation, TripSliceMacroplan } from './types';
 
 export function useTrip(tripId: string | undefined) {
@@ -86,4 +86,13 @@ export function useTripMacroplans(
     state.getMacroplans(macroplanIds),
   );
   return macroplans;
+}
+export function useTripTimetableDragging() {
+  const timetableDragging = useDeepBoundStore(
+    (state) => state.timetableDragging,
+  );
+  const setTimetableDragging = useBoundStore(
+    (state) => state.setTimetableDragging,
+  );
+  return { timetableDragging, setTimetableDragging };
 }

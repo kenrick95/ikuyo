@@ -44,6 +44,32 @@ export const createTripSlice: StateCreator<
     commentUser: {},
     tripUser: {},
     expense: {},
+    timetableDragging: {
+      dragging: false,
+      source: {
+        activityId: undefined,
+      },
+    },
+    setTimetableDragging: (
+      dragging: boolean,
+      source?: {
+        activityId?: string;
+      },
+    ) => {
+      set((state) => {
+        return {
+          timetableDragging: {
+            dragging,
+            source: {
+              activityId: dragging
+                ? (source?.activityId ??
+                  state.timetableDragging.source.activityId)
+                : undefined,
+            },
+          },
+        };
+      });
+    },
     subscribeTrip: (tripId: string) => {
       console.log('subscribeTrip', { tripId });
       set((state) => ({
@@ -168,7 +194,12 @@ export const createTripSlice: StateCreator<
       if (!tripId) {
         return { loading: true, error: undefined };
       }
-      return state.getTripMeta(tripId) ?? { loading: false, error: undefined };
+      return (
+        state.getTripMeta(tripId) ?? {
+          loading: false,
+          error: undefined,
+        }
+      );
     },
     getTrip: (id: string | undefined): TripSliceTrip | undefined => {
       if (!id) {

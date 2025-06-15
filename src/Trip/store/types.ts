@@ -258,6 +258,18 @@ export interface TripSlice {
     [userId: string]: TripSliceCommentUser;
   };
   currentTripId: string | undefined;
+  timetableDragging: {
+    dragging: boolean;
+    source: {
+      activityId: string | undefined;
+    };
+  };
+  setTimetableDragging: (
+    dragging: boolean,
+    source?: {
+      activityId?: string;
+    },
+  ) => void;
   setCurrentTripId: (tripId: string | undefined) => void;
   getCurrentTrip: () => TripSliceTrip | undefined;
   getCurrentTripMeta: () => TripSliceTripMeta;

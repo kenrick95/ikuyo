@@ -6,9 +6,10 @@ import {
 import { Box, ContextMenu, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { DateTime } from 'luxon';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { useShouldDisableDragAndDrop } from '../common/deviceUtils';
+import { useTripTimetableDragging } from '../Trip/store/hooks';
 import type { TripSliceActivityWithTime } from '../Trip/store/types';
 import { TripViewMode, type TripViewModeType } from '../Trip/TripViewMode';
 import { dangerToken } from '../ui';
@@ -44,7 +45,8 @@ function ActivityInner({
     tripTimeZone,
   );
   const responsiveTextSize = { initial: '1' as const };
-  const [isDragging, setIsDragging] = useState(false);
+  const { timetableDragging, setTimetableDragging } =
+    useTripTimetableDragging();
   const activityRef = useRef<HTMLDivElement>(null);
   const [location] = useLocation();
   const isDragAndDropDisabled = useShouldDisableDragAndDrop();
@@ -78,7 +80,9 @@ function ActivityInner({
         e.preventDefault();
         return;
       }
-      setIsDragging(true);
+      setTimetableDragging(true, {
+        activityId: activity.id,
+      });
 
       // Store the activity data for the drop
       e.dataTransfer.setData(
@@ -104,6 +108,7 @@ function ActivityInner({
       dayStart,
       tripViewMode,
       isDragAndDropDisabled,
+      setTimetableDragging,
     ],
   );
   // Handle dropping on the timetable grid is implemented in Timetable component
@@ -114,9 +119,9 @@ function ActivityInner({
         e.preventDefault();
         return;
       }
-      setIsDragging(false);
+      setTimetableDragging(false);
     },
-    [tripViewMode, isDragAndDropDisabled],
+    [tripViewMode, isDragAndDropDisabled, setTimetableDragging],
   );
   // Handle keyboard navigation for accessibility
   // Use onKeyDown for Enter to open the dialog
@@ -179,7 +184,10 @@ function ActivityInner({
             className={clsx(
               style.activity,
               isActivityOngoing ? style.activityOngoing : '',
-              isDragging ? style.activityDragging : '',
+              timetableDragging.dragging &&
+                timetableDragging.source.activityId === activity.id
+                ? style.activityDragging
+                : '',
               className,
             )}
             onClick={handleClick}
