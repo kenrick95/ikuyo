@@ -34,7 +34,7 @@ export const createToastSlice: StateCreator<
       set((state) => {
         if (!newToast.uid) {
           const uid =
-            crypto.randomUUID() ?? Math.random().toString(36).slice(2);
+            crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
           newToast.uid = uid;
         }
         return {
