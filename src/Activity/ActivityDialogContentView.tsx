@@ -16,7 +16,7 @@ import { useDeepBoundStore } from '../data/store';
 import { TripUserRole } from '../data/TripUserRole';
 import { useTrip } from '../Trip/store/hooks';
 import type { TripSliceActivity } from '../Trip/store/types';
-import s from './Activity.module.css';
+import s from './ActivityDialog.module.css';
 import { ActivityMap } from './ActivityDialogMap';
 import { ActivityDialogMode } from './ActivityDialogMode';
 
@@ -172,7 +172,7 @@ export function ActivityDialogContentView({
               <Heading as="h2" size="4">
                 Description
               </Heading>
-              <Text className={s.activityDescription}>{descriptions}</Text>
+              <Text className={s.description}>{descriptions}</Text>
             </>
           ) : (
             <></>

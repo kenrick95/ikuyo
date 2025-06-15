@@ -16,7 +16,7 @@ import { useDeepBoundStore } from '../data/store';
 import { TripUserRole } from '../data/TripUserRole';
 import { useTrip } from '../Trip/store/hooks';
 import type { TripSliceMacroplan } from '../Trip/store/types';
-import s from './Macroplan.module.css';
+import s from './MacroplanDialog.module.css';
 import { MacroplanDialogMode } from './MacroplanDialogMode';
 
 export function MacroplanDialogContentView({
@@ -117,7 +117,7 @@ export function MacroplanDialogContentView({
               <Heading as="h2" size="4">
                 Notes
               </Heading>
-              <Text className={s.activityDescription}>{notes}</Text>
+              <Text className={s.notes}>{notes}</Text>
             </>
           ) : (
             <></>

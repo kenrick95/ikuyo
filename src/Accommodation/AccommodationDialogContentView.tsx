@@ -16,6 +16,7 @@ import { useDeepBoundStore } from '../data/store';
 import { TripUserRole } from '../data/TripUserRole';
 import { useTrip } from '../Trip/store/hooks';
 import type { TripSliceAccommodation } from '../Trip/store/types';
+import s from './AccommodationDialog.module.css';
 import { AccommodationMap } from './AccommodationDialogMap';
 import { AccommodationDialogMode } from './AccommodationDialogMode';
 
@@ -150,7 +151,7 @@ export function AccommodationDialogContentView({
               <Heading as="h2" size="4">
                 Notes
               </Heading>
-              <Text style={{ whiteSpace: 'pre-wrap' }}>{notes}</Text>
+              <Text className={s.notes}>{notes}</Text>
             </>
           ) : (
             <></>
