@@ -54,6 +54,7 @@ export function TripForm({
   const idOriginCurrency = useId();
   const idRegion = useId();
   const publishToast = useBoundStore((state) => state.publishToast);
+  const [isFormLoading, setIsFormLoading] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState('');
   const timeZones = useMemo(() => Intl.supportedValuesOf('timeZone'), []);
@@ -62,6 +63,7 @@ export function TripForm({
     return async (elForm: HTMLFormElement) => {
       setErrorMessage('');
       if (!elForm.reportValidity()) {
+        setIsFormLoading(false);
         return;
       }
       const formData = new FormData(elForm);
@@ -105,10 +107,12 @@ export function TripForm({
         !originCurrency ||
         !region
       ) {
+        setIsFormLoading(false);
         return;
       }
       if (dateEndDateTime.diff(dateStartDateTime).as('minute') < 0) {
         setErrorMessage('End date must be after start date');
+        setIsFormLoading(false);
         return;
       }
       if (mode === TripFormMode.Edit && tripId) {
@@ -135,6 +139,7 @@ export function TripForm({
           close: {},
         });
         elForm.reset();
+        setIsFormLoading(false);
         onFormSuccess();
       } else if (mode === TripFormMode.New && userId) {
         const { id: newId, result } = await dbAddTrip(
@@ -160,12 +165,14 @@ export function TripForm({
           close: {},
         });
         elForm.reset();
+        setIsFormLoading(false);
         onFormSuccess();
 
         setLocation(RouteTrip.asRouteTarget(newId));
       } else {
         // Shouldn't reach this block, but included for completeness
         elForm.reset();
+        setIsFormLoading(false);
         onFormSuccess();
       }
     };
@@ -183,7 +190,12 @@ export function TripForm({
 
   const fieldSelectCurrency = useMemo(() => {
     return (
-      <Select.Root name="currency" defaultValue={tripCurrency} required>
+      <Select.Root
+        name="currency"
+        defaultValue={tripCurrency}
+        required
+        disabled={isFormLoading}
+      >
         <Select.Trigger id={idCurrency} />
         <Select.Content>
           {currencies.map((currency) => {
@@ -196,11 +208,16 @@ export function TripForm({
         </Select.Content>
       </Select.Root>
     );
-  }, [currencies, tripCurrency, idCurrency]);
+  }, [currencies, tripCurrency, idCurrency, isFormLoading]);
 
   const fieldSelectTimeZone = useMemo(() => {
     return (
-      <Select.Root name="timeZone" defaultValue={tripTimeZone} required>
+      <Select.Root
+        name="timeZone"
+        defaultValue={tripTimeZone}
+        required
+        disabled={isFormLoading}
+      >
         <Select.Trigger id={idTimeZone} />
         <Select.Content>
           {timeZones.map((tz) => {
@@ -213,11 +230,16 @@ export function TripForm({
         </Select.Content>
       </Select.Root>
     );
-  }, [timeZones, tripTimeZone, idTimeZone]);
+  }, [timeZones, tripTimeZone, idTimeZone, isFormLoading]);
 
   const fieldSelectRegion = useMemo(() => {
     return (
-      <Select.Root name="region" defaultValue={tripRegion} required>
+      <Select.Root
+        name="region"
+        defaultValue={tripRegion}
+        required
+        disabled={isFormLoading}
+      >
         <Select.Trigger id={idRegion} />
         <Select.Content>
           {REGIONS_LIST.map(([regionCode, regionName]) => {
@@ -230,7 +252,7 @@ export function TripForm({
         </Select.Content>
       </Select.Root>
     );
-  }, [tripRegion, idRegion]);
+  }, [tripRegion, idRegion, isFormLoading]);
 
   return (
     <form
@@ -240,6 +262,7 @@ export function TripForm({
       onSubmit={(e) => {
         e.preventDefault();
         const elForm = e.currentTarget;
+        setIsFormLoading(true);
         void handleForm()(elForm);
       }}
     >
@@ -260,6 +283,7 @@ export function TripForm({
           type="text"
           id={idTitle}
           required
+          disabled={isFormLoading}
         />
         <Text as="label" htmlFor={idTimeZone}>
           Destination's time zone{' '}
@@ -289,6 +313,7 @@ export function TripForm({
           type="date"
           defaultValue={tripStartStr}
           required
+          disabled={isFormLoading}
         />
         <Text as="label" htmlFor={idTimeEnd}>
           End date{' '}
@@ -302,6 +327,7 @@ export function TripForm({
           type="date"
           defaultValue={tripEndStr}
           required
+          disabled={isFormLoading}
         />
 
         <Text as="label" htmlFor={idRegion}>
@@ -349,6 +375,7 @@ export function TripForm({
           name="originCurrency"
           defaultValue={tripOriginCurrency}
           required
+          disabled={isFormLoading}
         >
           <Select.Trigger id={idOriginCurrency} />
           <Select.Content>
@@ -369,10 +396,11 @@ export function TripForm({
           variant="soft"
           color="gray"
           onClick={onFormCancel}
+          loading={isFormLoading}
         >
           Cancel
         </Button>
-        <Button type="submit" size="2" variant="solid">
+        <Button type="submit" size="2" variant="solid" loading={isFormLoading}>
           Save
         </Button>
       </Flex>
