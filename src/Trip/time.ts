@@ -11,6 +11,34 @@ export function getDateTimeFromDateInput(
     zone: timeZone,
   });
 }
-export function formatTimestampToReadableDate(dateTime: DateTime) {
-  return dateTime.toFormat('d LLLL yyyy');
+export function formatTripDateRange(trip: {
+  timestampStart: number;
+  timestampEnd: number;
+  timeZone: string;
+}): string {
+  const dtStart = DateTime.fromMillis(trip.timestampStart, {
+    zone: trip.timeZone,
+  });
+  const dtEnd = DateTime.fromMillis(trip.timestampEnd, {
+    zone: trip.timeZone,
+  }).minus({
+    day: 1,
+  });
+
+  const tripEndString = dtEnd.toFormat('d LLLL yyyy');
+
+  if (dtStart.hasSame(dtEnd, 'year')) {
+    if (dtStart.hasSame(dtEnd, 'month')) {
+      if (dtStart.hasSame(dtEnd, 'day')) {
+        // e.g. "1 January 2025"
+        return tripEndString;
+      }
+      // e.g. "1-15 January 2025"
+      return `${dtStart.toFormat('d')}–${tripEndString}`;
+    }
+    // e.g. "1 January-15 February 2025"
+    return `${dtStart.toFormat('d LLLL')}–${tripEndString}`;
+  }
+  // e.g. "1 December 2025-15 February 2026"
+  return `${dtStart.toFormat('d LLLL yyyy')}–${tripEndString}`;
 }

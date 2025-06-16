@@ -6,10 +6,10 @@ import {
   Container,
   Flex,
   Heading,
+  Skeleton,
   Spinner,
   Text,
 } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
 import { useEffect, useState } from 'react';
 import { Link, type RouteComponentProps } from 'wouter';
 import { useCurrentUser } from '../Auth/hooks';
@@ -21,7 +21,7 @@ import { Navbar } from '../Nav/Navbar';
 import { RouteTrip } from '../Routes/routes';
 import { TripGroup, type TripGroupType } from '../Trip/TripGroup';
 import { TripNewDialog } from '../Trip/TripNewDialog';
-import { formatTimestampToReadableDate } from '../Trip/time';
+import { formatTripDateRange } from '../Trip/time';
 import { useTripsGrouped } from './hooks';
 import s from './PageTrips.module.css';
 import type { TripsSliceTrip } from './store';
@@ -107,6 +107,8 @@ function Trips({
       <Heading as="h2" mb="1">
         {groupTitle}
 
+        {isLoading ? <Spinner size="2" className={s.headingSpinner} /> : null}
+
         {type === TripGroup.Upcoming && !isLoading ? (
           <Button
             variant="outline"
@@ -122,43 +124,43 @@ function Trips({
         ) : null}
       </Heading>
       <Flex asChild gap="2" p="0" wrap="wrap">
-        {isLoading ? (
-          <Spinner size="2" />
-        ) : (
-          <ul>
-            {trips.length === 0
-              ? 'None'
-              : trips.map((trip) => {
-                  return (
-                    <li className={s.tripLi} key={trip.id}>
-                      <Card asChild>
-                        <Link to={RouteTrip.asRouteTarget(trip.id)}>
-                          <Text as="div" weight="bold">
-                            {trip.title}
-                          </Text>
-                          <Text as="div" size="2" color="gray">
-                            {formatTimestampToReadableDate(
-                              DateTime.fromMillis(trip.timestampStart, {
-                                zone: trip.timeZone,
-                              }),
-                            )}{' '}
-                            &ndash;{' '}
-                            {formatTimestampToReadableDate(
-                              DateTime.fromMillis(trip.timestampEnd, {
-                                zone: trip.timeZone,
-                              }).minus({
-                                day: 1,
-                              }),
-                            )}{' '}
-                            ({trip.timeZone})
-                          </Text>
-                        </Link>
-                      </Card>
-                    </li>
-                  );
-                })}
-          </ul>
-        )}
+        <ul>
+          {trips.length === 0 ? (
+            isLoading ? (
+              <Skeleton>
+                <li className={s.tripLi}>
+                  <Card>
+                    <Text as="div" weight="bold">
+                      Trip title
+                    </Text>
+                    <Text as="div" size="2" color="gray">
+                      Trip dates and time zone
+                    </Text>
+                  </Card>
+                </li>
+              </Skeleton>
+            ) : (
+              'None'
+            )
+          ) : (
+            trips.map((trip) => {
+              return (
+                <li className={s.tripLi} key={trip.id}>
+                  <Card asChild>
+                    <Link to={RouteTrip.asRouteTarget(trip.id)}>
+                      <Text as="div" weight="bold">
+                        {trip.title}
+                      </Text>
+                      <Text as="div" size="2" color="gray">
+                        {formatTripDateRange(trip)} ({trip.timeZone})
+                      </Text>
+                    </Link>
+                  </Card>
+                </li>
+              );
+            })
+          )}
+        </ul>
       </Flex>
     </Box>
   );

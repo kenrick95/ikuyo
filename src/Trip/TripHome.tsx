@@ -6,7 +6,7 @@ import { REGIONS_MAP } from '../data/intl/regions';
 import { RouteTripComment } from '../Routes/routes';
 import { TripMap } from '../TripMap/TripMap';
 import { useCurrentTrip, useTripAllCommentsWithLimit } from './store/hooks';
-import { formatTimestampToReadableDate } from './time';
+import { formatTripDateRange } from './time';
 
 const containerPx = { initial: '1', md: '0' };
 const containerPb = { initial: '9', sm: '5' };
@@ -34,20 +34,7 @@ export function TripHome() {
       <Text as="p" size="2" mb="4">
         {trip ? (
           <>
-            {formatTimestampToReadableDate(
-              DateTime.fromMillis(trip.timestampStart, {
-                zone: trip.timeZone,
-              }),
-            )}{' '}
-            &ndash;{' '}
-            {formatTimestampToReadableDate(
-              DateTime.fromMillis(trip.timestampEnd, {
-                zone: trip.timeZone,
-              }).minus({
-                day: 1,
-              }),
-            )}{' '}
-            ({trip.timeZone})
+            {formatTripDateRange(trip)} ({trip.timeZone})
           </>
         ) : null}
       </Text>
