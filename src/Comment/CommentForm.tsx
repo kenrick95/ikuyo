@@ -38,11 +38,12 @@ export function CommentForm({
   const refTextArea = useRef<HTMLTextAreaElement>(null);
   const idForm = useId();
   const idContent = useId();
+  const [isFormLoading, setIsFormLoading] = useState(false);
   useEffect(() => {
     if (mode === CommentMode.Edit && refTextArea.current) {
       refTextArea.current.focus();
     }
-  });
+  }, [mode]);
   const handleCancel = useCallback(() => {
     setCommentMode(CommentMode.View);
   }, [setCommentMode]);
@@ -67,6 +68,7 @@ export function CommentForm({
       if (!content) {
         return;
       }
+      setIsFormLoading(true);
       if (mode === CommentMode.Edit && commentId) {
         await dbUpdateComment({
           content,
@@ -78,6 +80,7 @@ export function CommentForm({
           title: { children: 'Comment updated' },
           close: {},
         });
+        setIsFormLoading(false);
       } else if (mode === CommentMode.Add && user) {
         const { id, result } = await dbAddComment(
           {
@@ -97,6 +100,7 @@ export function CommentForm({
           title: { children: 'Comment added' },
           close: {},
         });
+        setIsFormLoading(false);
         refTextArea.current?.focus();
       }
 
@@ -137,6 +141,7 @@ export function CommentForm({
             defaultValue={commentContent}
             style={{ height: 80 }}
             ref={refTextArea}
+            disabled={isFormLoading}
           />
           <Flex gap="3" mt="3" justify="between">
             <Flex align="center" gap="2" asChild>
@@ -155,15 +160,26 @@ export function CommentForm({
                     color="gray"
                     form={idForm}
                     onClick={handleCancel}
+                    loading={isFormLoading}
                   >
                     Cancel
                   </Button>
-                  <Button size="1" type="submit" formTarget={idForm}>
+                  <Button
+                    size="1"
+                    type="submit"
+                    formTarget={idForm}
+                    loading={isFormLoading}
+                  >
                     Save
                   </Button>
                 </>
               ) : (
-                <Button size="1" type="submit" formTarget={idForm}>
+                <Button
+                  size="1"
+                  type="submit"
+                  formTarget={idForm}
+                  loading={isFormLoading}
+                >
                   Comment
                 </Button>
               )}
