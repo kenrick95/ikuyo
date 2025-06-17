@@ -33,13 +33,13 @@ export function AccommodationDialogContentView({
     accommodation && trip
       ? DateTime.fromMillis(accommodation.timestampCheckIn)
           .setZone(trip.timeZone)
-          .toFormat('dd LLLL yyyy HH:mm')
+          .toFormat('d LLLL yyyy HH:mm')
       : undefined;
   const accommodationCheckOutStr =
     accommodation && trip
       ? DateTime.fromMillis(accommodation.timestampCheckOut)
           .setZone(trip.timeZone)
-          .toFormat('dd LLLL yyyy HH:mm')
+          .toFormat('d LLLL yyyy HH:mm')
       : undefined;
   const notes = useParseTextIntoNodes(accommodation?.notes);
   const currentUser = useDeepBoundStore((state) => state.currentUser);

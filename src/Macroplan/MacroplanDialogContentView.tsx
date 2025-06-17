@@ -6,7 +6,6 @@ import {
   Skeleton,
   Text,
 } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
 import { useCallback, useMemo } from 'react';
 import { CommentGroupWithForm } from '../Comment/CommentGroupWithForm';
 import { COMMENT_GROUP_OBJECT_TYPE } from '../Comment/db';
@@ -18,6 +17,7 @@ import { useTrip } from '../Trip/store/hooks';
 import type { TripSliceMacroplan } from '../Trip/store/types';
 import s from './MacroplanDialog.module.css';
 import { MacroplanDialogMode } from './MacroplanDialogMode';
+import { formatMacroplanDateRange } from './time';
 
 export function MacroplanDialogContentView({
   data: macroplan,
@@ -33,19 +33,13 @@ export function MacroplanDialogContentView({
       trip?.currentUserRole === TripUserRole.Editor
     );
   }, [trip?.currentUserRole]);
-
-  const macroplanDateStartStr =
-    macroplan && trip
-      ? DateTime.fromMillis(macroplan.timestampStart)
-          .setZone(trip.timeZone)
-          .toFormat('dd LLLL yyyy')
-      : undefined;
-  const macroplanDateEndStr =
-    macroplan && trip
-      ? DateTime.fromMillis(macroplan.timestampEnd)
-          .setZone(trip.timeZone)
-          .minus({ minute: 1 })
-          .toFormat('dd LLLL yyyy')
+  const macroplanDateRangeString =
+    trip && macroplan
+      ? formatMacroplanDateRange({
+          timestampStart: macroplan.timestampStart,
+          timestampEnd: macroplan.timestampEnd,
+          timeZone: trip.timeZone,
+        })
       : undefined;
   const notes = useParseTextIntoNodes(macroplan?.notes);
   const currentUser = useDeepBoundStore((state) => state.currentUser);
@@ -108,9 +102,11 @@ export function MacroplanDialogContentView({
             Date
           </Heading>
           <Text>
-            {macroplanDateStartStr ?? <Skeleton>1 January 2025</Skeleton>}
-            &ndash;
-            {macroplanDateEndStr ?? <Skeleton>15 January 2025</Skeleton>}
+            {trip && macroplan ? (
+              macroplanDateRangeString
+            ) : (
+              <Skeleton>1 January 2025</Skeleton>
+            )}
           </Text>
           {macroplan?.notes ? (
             <>

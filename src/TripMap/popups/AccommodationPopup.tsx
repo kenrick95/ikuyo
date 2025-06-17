@@ -4,8 +4,8 @@ import {
   SewingPinIcon,
 } from '@radix-ui/react-icons';
 import { Container, Heading, Text } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
 import { Link } from 'wouter';
+import { formatAccommodationTimeRange } from '../../Accommodation/time';
 import { useParseTextIntoNodes } from '../../common/text/parseTextIntoNodes';
 import {
   RouteTrip,
@@ -28,18 +28,6 @@ export function AccommodationPopup({
   const accommodation = useTripAccommodation(accommodationId);
   const { trip } = useTrip(accommodation?.tripId);
 
-  const accommodationCheckInStr =
-    accommodation && trip
-      ? DateTime.fromMillis(accommodation.timestampCheckIn)
-          .setZone(trip.timeZone)
-          .toFormat('dd LLLL yyyy HH:mm')
-      : '';
-  const accommodationCheckOutStr =
-    accommodation && trip
-      ? DateTime.fromMillis(accommodation.timestampCheckOut)
-          .setZone(trip.timeZone)
-          .toFormat('dd LLLL yyyy HH:mm')
-      : '';
   const notes = useParseTextIntoNodes(accommodation?.notes);
   const linkTarget = accommodation?.tripId
     ? `~${RouteTrip.asRouteTarget(accommodation?.tripId)}${
@@ -56,7 +44,13 @@ export function AccommodationPopup({
       </Heading>
       <Text as="p" size="1">
         <ClockIcon style={{ verticalAlign: '-2px' }} />{' '}
-        {accommodationCheckInStr} to {accommodationCheckOutStr}
+        {trip && accommodation
+          ? formatAccommodationTimeRange({
+              timestampCheckIn: accommodation.timestampCheckIn,
+              timestampCheckOut: accommodation.timestampCheckOut,
+              timeZone: trip.timeZone,
+            })
+          : null}
       </Text>
       {accommodation?.address ? (
         <Text as="p" size="1">

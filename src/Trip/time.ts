@@ -26,16 +26,15 @@ export function formatTripDateRange(trip: {
   });
 
   const tripEndString = dtEnd.toFormat('d LLLL yyyy');
-
-  if (dtStart.hasSame(dtEnd, 'year')) {
-    if (dtStart.hasSame(dtEnd, 'month')) {
-      if (dtStart.hasSame(dtEnd, 'day')) {
-        // e.g. "1 January 2025"
-        return tripEndString;
-      }
-      // e.g. "1-15 January 2025"
-      return `${dtStart.toFormat('d')}–${tripEndString}`;
-    }
+  if (dtStart.hasSame(dtEnd, 'day')) {
+    // implies same month & year
+    // e.g. "1 January 2025"
+    return tripEndString;
+  } else if (dtStart.hasSame(dtEnd, 'month')) {
+    // implies same year
+    // e.g. "1-15 January 2025"
+    return `${dtStart.toFormat('d')}–${tripEndString}`;
+  } else if (dtStart.hasSame(dtEnd, 'year')) {
     // e.g. "1 January-15 February 2025"
     return `${dtStart.toFormat('d LLLL')}–${tripEndString}`;
   }
