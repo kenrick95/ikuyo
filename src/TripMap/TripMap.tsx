@@ -1,5 +1,8 @@
 import {
+  type GeocodingOptions,
   type GeoJSONSource,
+  geocoding,
+  type MapOptions,
   Map as MapTilerMap,
   Marker,
   config as mapTilerConfig,
@@ -7,13 +10,14 @@ import {
 
 mapTilerConfig.session = false;
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MapStyle } from '../maptiler/style';
 import s from './TripMap.module.css';
 
 import '@maptiler/sdk/style.css';
 import { Spinner } from '@radix-ui/themes';
 import { createPortal } from 'react-dom';
+import { REGIONS_MAP } from '../data/intl/regions';
 import {
   useCurrentTrip,
   useTripAccommodations,
@@ -189,6 +193,32 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
     };
   }, [allLocations]);
 
+  // Function to get region center coordinates via geocoding
+  const getRegionCenter = useCallback(
+    async (regionCode: string): Promise<[number, number] | null> => {
+      try {
+        const region = REGIONS_MAP[regionCode] ?? 'Japan';
+        const geocodingOptions: GeocodingOptions = {
+          language: 'en',
+          limit: 1,
+          types: ['country'],
+          apiKey: process.env.MAPTILER_API_KEY,
+        };
+
+        const res = await geocoding.forward(region, geocodingOptions);
+        const [lng, lat] = res?.features[0]?.center ?? [];
+
+        if (lng !== undefined && lat !== undefined) {
+          return [lng, lat];
+        }
+      } catch (e) {
+        console.error('Failed to get region center:', e);
+      }
+      return null;
+    },
+    [],
+  );
+
   const theme = useTheme();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: This hook should only run once during the component mount and unmount! so we don't get flashes of map initialization
@@ -198,8 +228,11 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
     if (currentTripLoading) return;
     console.log('TripMap init', { mapOptions });
 
-    try {
-      map.current = new MapTilerMap({
+    const initializeMap = async () => {
+      if (!mapContainer.current) {
+        return;
+      }
+      const mapConfig: MapOptions = {
         container: mapContainer.current,
         style:
           theme === ThemeAppearance.Dark
@@ -215,90 +248,105 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
         terrainControl: false,
         fullscreenControl: true,
         geolocateControl: useCase === 'map',
-      });
-    } catch (e) {
-      console.error('MapTiler Map initialization failed:', e);
-      return;
-    }
+      };
 
-    // Add line layer to connect origin and destination
-    const addLineLayer = () => {
-      if (!map.current || !allLines.length) return;
-
-      // Remove existing line soruce & layer if it exists
-      if (map.current.getLayer(routeLineLayerId)) {
-        map.current.removeLayer(routeLineLayerId);
+      // If no locations are available but trip has a region, center on region
+      if (!mapOptions && trip?.region && allLocations.length === 0) {
+        const regionCenter = await getRegionCenter(trip.region);
+        if (regionCenter) {
+          mapConfig.center = regionCenter;
+          mapConfig.zoom = 6; // Set a reasonable zoom level for country view
+        }
       }
-      if (map.current.getSource(routeSourceId)) {
-        map.current.removeSource(routeSourceId);
+
+      try {
+        map.current = new MapTilerMap(mapConfig);
+      } catch (e) {
+        console.error('MapTiler Map initialization failed:', e);
+        return;
       }
-      // Add source and layer
 
-      map.current.addSource(routeSourceId, {
-        type: 'geojson',
-        data: createGeoJsonData(allLines),
-      });
+      // Add line layer to connect origin and destination
+      const addLineLayer = () => {
+        if (!map.current || !allLines.length) return;
 
-      map.current.addLayer({
-        id: routeLineLayerId,
-        type: 'line',
-        source: routeSourceId,
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': 'hsla(0, 100%, 60%, 0.9)',
-          'line-width': 2,
-          'line-dasharray': [2, 4],
-        },
-      });
+        // Remove existing line soruce & layer if it exists
+        if (map.current.getLayer(routeLineLayerId)) {
+          map.current.removeLayer(routeLineLayerId);
+        }
+        if (map.current.getSource(routeSourceId)) {
+          map.current.removeSource(routeSourceId);
+        }
+        // Add source and layer
 
-      // Add arrow head at the destination
-      map.current.addLayer({
-        id: routeArrowLayerId,
-        type: 'symbol',
-        source: routeSourceId,
-        layout: {
-          'symbol-placement': 'line-center',
-          'symbol-avoid-edges': true,
-          'text-field': '▶',
-          'text-size': 16,
-          'text-rotate': 0,
-          'text-allow-overlap': true,
-          'text-keep-upright': false,
-          'text-pitch-alignment': 'map',
-          'text-rotation-alignment': 'map',
-        },
-        paint: {
-          'text-color': 'hsla(0, 100%, 60%, 0.9)',
-        },
-      });
+        map.current.addSource(routeSourceId, {
+          type: 'geojson',
+          data: createGeoJsonData(allLines),
+        });
+
+        map.current.addLayer({
+          id: routeLineLayerId,
+          type: 'line',
+          source: routeSourceId,
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+          },
+          paint: {
+            'line-color': 'hsla(0, 100%, 60%, 0.9)',
+            'line-width': 2,
+            'line-dasharray': [2, 4],
+          },
+        });
+
+        // Add arrow head at the destination
+        map.current.addLayer({
+          id: routeArrowLayerId,
+          type: 'symbol',
+          source: routeSourceId,
+          layout: {
+            'symbol-placement': 'line-center',
+            'symbol-avoid-edges': true,
+            'text-field': '▶',
+            'text-size': 16,
+            'text-rotate': 0,
+            'text-allow-overlap': true,
+            'text-keep-upright': false,
+            'text-pitch-alignment': 'map',
+            'text-rotation-alignment': 'map',
+          },
+          paint: {
+            'text-color': 'hsla(0, 100%, 60%, 0.9)',
+          },
+        });
+      };
+      map.current.on('load', addLineLayer);
+      // If map is already loaded, add immediately
+      if (map.current.isStyleLoaded()) {
+        addLineLayer();
+      }
+
+      const newPopupPortals: Record<string, PopupPortal> = {};
+      for (const location of allLocations) {
+        const [popup, popupPortal] = createPopup(location, s.popup);
+
+        const markerElement = createMarkerElement(location);
+        const markerKey = `${location.type}-${location.id}`;
+        newPopupPortals[markerKey] = popupPortal;
+
+        mapMarkers.current[markerKey] = new Marker({
+          element: markerElement,
+          draggable: false,
+        })
+          .setLngLat([location.lng, location.lat])
+          .setPopup(popup) // Attach the popup to the marker
+          .addTo(map.current);
+      }
+
+      setPopupPortals(newPopupPortals);
     };
-    map.current.on('load', addLineLayer);
-    // If map is already loaded, add immediately
-    if (map.current.isStyleLoaded()) {
-      addLineLayer();
-    }
 
-    const newPopupPortals: Record<string, PopupPortal> = {};
-    for (const location of allLocations) {
-      const [popup, popupPortal] = createPopup(location, s.popup);
-
-      const markerElement = createMarkerElement(location);
-      const markerKey = `${location.type}-${location.id}`;
-      newPopupPortals[markerKey] = popupPortal;
-
-      mapMarkers.current[markerKey] = new Marker({
-        element: markerElement,
-        draggable: false,
-      })
-        .setLngLat([location.lng, location.lat])
-        .setPopup(popup) // Attach the popup to the marker
-        .addTo(map.current);
-    }
-
-    setPopupPortals(newPopupPortals);
+    initializeMap();
 
     return () => {
       if (map.current) {
@@ -306,7 +354,15 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
         map.current = null;
       }
     };
-  }, [currentTripLoading, theme]);
+  }, [
+    currentTripLoading,
+    theme,
+    trip,
+    allLocations,
+    mapOptions,
+    allLines,
+    getRegionCenter,
+  ]);
   useEffect(() => {
     if (!map.current) return;
     if (theme === ThemeAppearance.Dark) {
