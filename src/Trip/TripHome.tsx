@@ -1,10 +1,19 @@
-import { Container, DataList, Flex, Heading, Text } from '@radix-ui/themes';
+import {
+  Badge,
+  Container,
+  DataList,
+  Flex,
+  Heading,
+  Text,
+} from '@radix-ui/themes';
 import { DateTime } from 'luxon';
+import { useMemo } from 'react';
 import { Link } from 'wouter';
 import { Comment } from '../Comment/Comment';
 import { REGIONS_MAP } from '../data/intl/regions';
 import { RouteTripComment } from '../Routes/routes';
 import { TripMap } from '../TripMap/TripMap';
+import { getTripStatus } from './getTripStatus';
 import { useCurrentTrip, useTripAllCommentsWithLimit } from './store/hooks';
 import { formatTripDateRange } from './time';
 
@@ -26,18 +35,28 @@ export function TripHome() {
 
   const latestComments = useTripAllCommentsWithLimit(trip?.id, 5);
 
+  const tripStatus = useMemo(
+    () => getTripStatus(tripStartDateTime, tripEndDateTime),
+    [tripStartDateTime, tripEndDateTime],
+  );
+
   return (
     <Container mt="2" pb={containerPb} px={containerPx}>
       <Heading as="h2" size="5" mb="2">
         {trip?.title}
       </Heading>
-      <Text as="p" size="2" mb="4">
+      <Text as="p" size="2" mb="2">
         {trip ? (
           <>
             {formatTripDateRange(trip)} ({trip.timeZone})
           </>
         ) : null}
       </Text>
+      {tripStatus && (
+        <Badge color={tripStatus.color} size="2" mb="4">
+          {tripStatus.text}
+        </Badge>
+      )}
 
       <Flex
         gap="1"
