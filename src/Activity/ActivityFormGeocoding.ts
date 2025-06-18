@@ -6,12 +6,13 @@ import {
 
 mapTilerConfig.session = false;
 
+import { calculateZoomFromFeature } from '../common/geocodingUtils';
 import { REGIONS_MAP } from '../data/intl/regions';
 
 export async function geocodingRequest(
   currentLocation: string,
   tripRegion: string,
-): Promise<[number | undefined, number | undefined]> {
+): Promise<[number | undefined, number | undefined, number | undefined]> {
   // if coordinates are not set, use geocoding from location to get the coordinates
   let location = currentLocation;
   const geocodingOptions: GeocodingOptions = {
@@ -31,12 +32,20 @@ export async function geocodingRequest(
 
   let lat: number | undefined;
   let lng: number | undefined;
+  let zoom: number | undefined;
   console.log('geocoding: request', location, geocodingOptions);
   if (location) {
     try {
       const res = await geocoding.forward(location, geocodingOptions);
       console.log('geocoding: response', res);
-      [lng, lat] = res?.features[0]?.center ?? [];
+
+      const feature = res?.features[0];
+      if (feature) {
+        [lng, lat] = feature.center ?? [];
+
+        // Calculate zoom level from response
+        zoom = calculateZoomFromFeature(feature);
+      }
     } catch (e) {
       console.error('Geocoding request failed:', e);
     }
@@ -48,11 +57,18 @@ export async function geocodingRequest(
       geocodingOptions.types = ['country'];
       const res = await geocoding.forward(region, geocodingOptions);
       console.log('geocoding: response 2', res);
-      [lng, lat] = res?.features[0]?.center ?? [];
+
+      const feature = res?.features[0];
+      if (feature) {
+        [lng, lat] = feature.center ?? [];
+
+        // For country-level fallback, use appropriate zoom
+        zoom = calculateZoomFromFeature(feature);
+      }
     } catch (e) {
       console.error('Geocoding request failed:', e);
     }
   }
 
-  return [lng, lat];
+  return [lng, lat, zoom];
 }

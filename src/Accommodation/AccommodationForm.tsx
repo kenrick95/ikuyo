@@ -46,6 +46,7 @@ function coordinateStateReducer(
         ...state,
         lat: action.lat,
         lng: action.lng,
+        zoom: action.zoom,
         enabled: true,
       };
     case 'setDisabled':
@@ -152,12 +153,12 @@ export function AccommodationForm({
             idAddress,
           ) as HTMLInputElement;
           const address = elAddress.value;
-          const [lng, lat] = await geocodingRequest(address, tripRegion);
+          const [lng, lat, zoom] = await geocodingRequest(address, tripRegion);
           dispatchCoordinateState({
             type: 'setEnabled',
             lat: lat,
             lng: lng,
-            zoom: coordinateState.zoom,
+            zoom: zoom ?? coordinateState.zoom,
           });
         }
       } else {
