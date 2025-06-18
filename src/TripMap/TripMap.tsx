@@ -11,6 +11,7 @@ import {
 mapTilerConfig.session = false;
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { calculateZoomFromFeature } from '../common/geocodingUtils';
 import { MapStyle } from '../maptiler/style';
 import s from './TripMap.module.css';
 
@@ -195,7 +196,7 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
 
   // Function to get region center coordinates via geocoding
   const getRegionCenter = useCallback(
-    async (regionCode: string): Promise<[number, number] | null> => {
+    async (regionCode: string): Promise<[number, number, number] | null> => {
       try {
         const region = REGIONS_MAP[regionCode] ?? 'Japan';
         const geocodingOptions: GeocodingOptions = {
@@ -206,10 +207,14 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
         };
 
         const res = await geocoding.forward(region, geocodingOptions);
-        const [lng, lat] = res?.features[0]?.center ?? [];
+        const feature = res?.features[0];
 
-        if (lng !== undefined && lat !== undefined) {
-          return [lng, lat];
+        if (feature) {
+          const [lng, lat] = feature.center ?? [];
+          if (lng !== undefined && lat !== undefined) {
+            const zoom = calculateZoomFromFeature(feature);
+            return [lng, lat, zoom];
+          }
         }
       } catch (e) {
         console.error('Failed to get region center:', e);
@@ -252,10 +257,11 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
 
       // If no locations are available but trip has a region, center on region
       if (!mapOptions && trip?.region && allLocations.length === 0) {
-        const regionCenter = await getRegionCenter(trip.region);
-        if (regionCenter) {
-          mapConfig.center = regionCenter;
-          mapConfig.zoom = 6; // Set a reasonable zoom level for country view
+        const regionResult = await getRegionCenter(trip.region);
+        if (regionResult) {
+          const [lng, lat, zoom] = regionResult;
+          mapConfig.center = [lng, lat];
+          mapConfig.zoom = zoom; // Use calculated zoom level from geocoding
         }
       }
 

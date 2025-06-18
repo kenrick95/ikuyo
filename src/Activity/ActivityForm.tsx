@@ -60,6 +60,7 @@ function coordinateStateReducer(
       newState.enabled[action.index] = true;
       newState.lat[action.index] = action.lat;
       newState.lng[action.index] = action.lng;
+      newState.zoom[action.index] = action.zoom;
       return newState;
     }
     case 'setDisabled': {
@@ -191,13 +192,13 @@ export function ActivityForm({
             idLocation,
           ) as HTMLInputElement;
           const location = elLocation.value;
-          const [lng, lat] = await geocodingRequest(location, tripRegion);
+          const [lng, lat, zoom] = await geocodingRequest(location, tripRegion);
           dispatchLocationFieldsState({
             type: 'setEnabled',
             index: 0,
             lat: lat,
             lng: lng,
-            zoom: locationFieldsState.zoom[0],
+            zoom: zoom ?? locationFieldsState.zoom[0],
           });
         }
       } else {
@@ -233,13 +234,13 @@ export function ActivityForm({
             idLocationDestination,
           ) as HTMLInputElement;
           const location = elLocation.value;
-          const [lng, lat] = await geocodingRequest(location, tripRegion);
+          const [lng, lat, zoom] = await geocodingRequest(location, tripRegion);
           dispatchLocationFieldsState({
             type: 'setEnabled',
             index: 1,
             lat: lat,
             lng: lng,
-            zoom: locationFieldsState.zoom[1],
+            zoom: zoom ?? locationFieldsState.zoom[1],
           });
         }
       } else {
