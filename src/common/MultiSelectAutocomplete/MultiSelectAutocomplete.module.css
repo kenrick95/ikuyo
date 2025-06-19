@@ -1,0 +1,192 @@
+.container {
+  position: relative;
+  width: 100%;
+}
+
+.trigger {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-1) var(--space-3);
+  background-color: var(--color-panel-solid);
+  border: 1px solid var(--gray-7);
+  border-radius: var(--radius-2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.trigger:hover {
+  border-color: var(--gray-8);
+}
+
+.trigger:focus {
+  outline: 2px solid var(--accent-9);
+  border-color: var(--accent-7);
+}
+
+.trigger[disabled] {
+  cursor: not-allowed;
+  opacity: 0.6;
+  background-color: var(--gray-2);
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.selectedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  max-width: 100%;
+  margin-top: -1px;
+  margin-bottom: -1px;
+}
+
+.removeBadgeButton {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-1);
+  cursor: pointer;
+  color: var(--gray-10);
+  transition: all 0.15s ease;
+}
+
+.removeBadgeButton:hover {
+  background-color: var(--yellow-3);
+  color: var(--yellow-9);
+}
+
+.removeBadgeButton:focus {
+  outline: 1px solid var(--accent-7);
+  outline-offset: 1px;
+}
+
+.inputContainer {
+  flex: 1;
+  min-width: 120px;
+}
+
+.input {
+  all: unset;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  color: var(--gray-12);
+  background: transparent;
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-2);
+}
+
+.input::placeholder {
+  color: var(--gray-9);
+}
+
+.input:disabled {
+  color: var(--gray-8);
+  cursor: not-allowed;
+}
+
+.chevron {
+  color: var(--gray-9);
+  transition: transform 0.1s ease;
+  flex-shrink: 0;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  margin-top: var(--space-1);
+  background-color: var(--color-panel-solid);
+  border: 1px solid var(--gray-7);
+  border-radius: var(--radius-2);
+  box-shadow: var(--shadow-4);
+  max-height: 300px;
+  overflow: hidden;
+}
+
+.optionsList {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: var(--space-1);
+}
+
+.option {
+  all: unset;
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-1);
+  cursor: pointer;
+  text-align: left;
+}
+
+.option:hover,
+.optionFocused {
+  background-color: var(--accent-9);
+}
+
+.option:active {
+  background-color: var(--accent-10);
+}
+
+.noOptions {
+  padding: var(--space-3);
+  text-align: center;
+}
+
+/* Dark theme adjustments */
+.dark .trigger {
+  background-color: var(--gray-1);
+  border-color: var(--gray-6);
+}
+
+.dark .trigger:hover {
+  border-color: var(--gray-7);
+}
+
+.dark .dropdown {
+  background-color: var(--gray-1);
+  border-color: var(--gray-6);
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .trigger {
+    border-width: 2px;
+  }
+
+  .option:hover,
+  .optionFocused {
+    outline: 2px solid;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .dropdown {
+    max-height: 250px;
+  }
+
+  .optionsList {
+    max-height: 250px;
+  }
+}
