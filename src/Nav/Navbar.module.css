@@ -12,9 +12,11 @@
   white-space: nowrap;
   flex: 0 0 auto;
   cursor: var(--cursor-link);
+  display: flex;
+  align-items: center;
 }
 .logoBox > a:focus-visible {
-  outline: 2px solid var(--accent-9);
+  outline: 2px solid var(--focus-8);
   outline-offset: 2px;
   border-radius: var(--radius-2);
   color: var(--accent-12);
@@ -50,10 +52,20 @@
 .flexContainer {
   height: var(--space-8);
 }
-.boxLeftLast {
+.boxLeft {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+.boxLeft.boxLeftLast {
   flex: 0 1 auto;
   overflow: hidden;
 }
-.boxRightFirst {
+.boxRight {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+.boxRight.boxRightFirst {
   margin-left: auto;
 }

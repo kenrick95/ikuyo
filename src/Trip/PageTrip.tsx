@@ -1,25 +1,14 @@
-import {
-  Container,
-  Heading,
-  Select,
-  Skeleton,
-  Spinner,
-  Text,
-} from '@radix-ui/themes';
-import React, { useCallback, useEffect } from 'react';
+import { Container, Spinner, Text } from '@radix-ui/themes';
+import React, { useEffect } from 'react';
 import {
   Link,
   Redirect,
   Route,
   type RouteComponentProps,
   Switch,
-  useLocation,
 } from 'wouter';
 import { withLoading } from '../Loading/withLoading';
 import { DocTitle } from '../Nav/DocTitle';
-import { Navbar } from '../Nav/Navbar';
-import s from './PageTrip.module.css';
-import { TripMenu } from './TripMenu';
 
 const Timetable = withLoading()(
   React.lazy(() =>
@@ -64,7 +53,6 @@ const TripComment = withLoading()(
   ),
 );
 
-import { DoubleArrowRightIcon } from '@radix-ui/react-icons';
 import { useCurrentUser } from '../Auth/hooks';
 import { useBoundStore } from '../data/store';
 import {
@@ -79,6 +67,7 @@ import {
 import { useTrip } from './store/hooks';
 import type { TripSliceTrip } from './store/types';
 import { TripMenuFloating } from './TripMenuFloating';
+import { TripNavbar } from './TripNavbar/TripNavbar';
 
 export default PageTrip;
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
@@ -110,53 +99,10 @@ function PageTripInner({
 }) {
   const tripDefinitelyNotFound = !trip && !loading && !error;
   const currentUser = useCurrentUser();
-  const [location, setLocation] = useLocation();
-  const handleLocationSelectorChange = useCallback(
-    (value: string) => {
-      setLocation(value);
-    },
-    [setLocation],
-  );
   return (
     <>
       <DocTitle title={trip?.title ?? 'Trip'} />
-      <Navbar
-        leftItems={[
-          <Heading
-            as="h1"
-            size={{ initial: '3', xs: '5' }}
-            className={s.tripTitle}
-            key="title"
-          >
-            {trip?.title ?? <Skeleton>Trip title</Skeleton>}{' '}
-            <DoubleArrowRightIcon />{' '}
-            <Select.Root
-              value={location}
-              onValueChange={handleLocationSelectorChange}
-              size="2"
-            >
-              <Select.Trigger radius="large" variant="ghost" color="gray" />
-              <Select.Content position="popper">
-                <Select.Item value={RouteTripHome.routePath}>Home</Select.Item>
-                <Select.Item value={RouteTripTimetableView.routePath}>
-                  Timetable
-                </Select.Item>
-                <Select.Item value={RouteTripListView.routePath}>
-                  List
-                </Select.Item>
-                <Select.Item value={RouteTripMap.routePath}>Map</Select.Item>
-                <Select.Item value={RouteTripExpenses.routePath}>
-                  Expenses
-                </Select.Item>
-                <Select.Item value={RouteTripComment.routePath}>
-                  Comment
-                </Select.Item>
-              </Select.Content>
-            </Select.Root>
-          </Heading>,
-        ]}
-        rightItems={[<TripMenu key="menu" />]}
-      />
+      <TripNavbar />
       {!trip ? (
         loading ? (
           <Spinner size="2" />

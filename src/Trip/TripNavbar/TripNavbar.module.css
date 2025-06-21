@@ -1,0 +1,36 @@
+.tripTitleHeading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  min-width: 0;
+}
+.tripTitle {
+  text-decoration: none;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 0 1 auto;
+}
+.tripTitle:hover {
+  color: var(--accent-12);
+}
+.tripTitle:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: 2px;
+  border-radius: var(--radius-2);
+  color: var(--accent-12);
+}
+.tripTitleDivider {
+  flex: 0 0 auto;
+}
+.tripTabSelector {
+  flex: 0 0 auto;
+  font-size: inherit;
+  font-weight: inherit;
+  box-sizing: border-box;
+  margin-left: calc(-1 * var(--space-1));
+  margin-right: 0;
+  padding: var(--space-1) var(--space-2);
+}
