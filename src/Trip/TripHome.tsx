@@ -1,5 +1,7 @@
+import { Pencil2Icon, Share1Icon } from '@radix-ui/react-icons';
 import {
   Badge,
+  Button,
   Container,
   DataList,
   Flex,
@@ -7,14 +9,18 @@ import {
   Text,
 } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Link } from 'wouter';
 import { Comment } from '../Comment/Comment';
 import { REGIONS_MAP } from '../data/intl/regions';
+import { useBoundStore } from '../data/store';
+import { TripUserRole } from '../data/TripUserRole';
 import { RouteTripComment } from '../Routes/routes';
 import { TripMap } from '../TripMap/TripMap';
 import { getTripStatus } from './getTripStatus';
 import { useCurrentTrip, useTripAllCommentsWithLimit } from './store/hooks';
+import { TripEditDialog } from './TripEditDialog';
+import { TripSharingDialog } from './TripSharingDialog';
 import { formatTripDateRange } from './time';
 
 const containerPx = { initial: '1', md: '0' };
@@ -39,11 +45,29 @@ export function TripHome() {
     () => getTripStatus(tripStartDateTime, tripEndDateTime),
     [tripStartDateTime, tripEndDateTime],
   );
+  const pushDialog = useBoundStore((state) => state.pushDialog);
+  const userIsOwner = useMemo(() => {
+    return trip?.currentUserRole === TripUserRole.Owner;
+  }, [trip?.currentUserRole]);
+  const openTripEditDialog = useCallback(() => {
+    if (trip) {
+      pushDialog(TripEditDialog, { trip });
+    }
+  }, [trip, pushDialog]);
+  const openTripSharingDialog = useCallback(() => {
+    if (trip && userIsOwner) {
+      pushDialog(TripSharingDialog, { tripId: trip.id });
+    }
+  }, [trip, userIsOwner, pushDialog]);
 
   return (
     <Container mt="2" pb={containerPb} px={containerPx}>
       <Heading as="h2" size="5" mb="2">
         {trip?.title}
+        <Button variant="outline" mx="2" size="1" onClick={openTripEditDialog}>
+          <Pencil2Icon />
+          Edit trip
+        </Button>
       </Heading>
       <Text as="p" size="2" mb="2">
         {trip ? (
@@ -110,7 +134,19 @@ export function TripHome() {
             </DataList.Item>
             <DataList.Item>
               <DataList.Label>Participants</DataList.Label>
-              <DataList.Value>{trip?.tripUserIds?.length}</DataList.Value>
+              <DataList.Value>
+                {trip?.tripUserIds?.length}
+                <Button
+                  variant="outline"
+                  mx="2"
+                  size="1"
+                  onClick={openTripSharingDialog}
+                  disabled={!userIsOwner}
+                >
+                  <Share1Icon />
+                  Share trip
+                </Button>
+              </DataList.Value>
             </DataList.Item>
           </DataList.Root>
         </Flex>
