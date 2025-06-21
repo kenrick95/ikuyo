@@ -15,7 +15,7 @@ export function Navbar({
 }) {
   return (
     <Container className={s.container}>
-      <Flex gap="3" align="center" className={s.flexContainer}>
+      <Flex gap="3" align="stretch" className={s.flexContainer}>
         <Box className={s.logoBox}>
           <Heading asChild as="h1" size="6">
             <Link to={RouteTrips.asRootRoute()}>
@@ -31,6 +31,7 @@ export function Navbar({
             <Box
               key={item.key}
               className={clsx(
+                s.boxLeft,
                 index === leftItems.length - 1 ? s.boxLeftLast : '',
               )}
             >
@@ -42,7 +43,7 @@ export function Navbar({
           return (
             <Box
               key={item.key}
-              className={clsx(index === 0 ? s.boxRightFirst : '')}
+              className={clsx(s.boxRight, index === 0 ? s.boxRightFirst : '')}
             >
               {item}
             </Box>

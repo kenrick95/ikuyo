@@ -1,5 +1,5 @@
 import { HamburgerMenuIcon } from '@radix-ui/react-icons';
-import { Button, DropdownMenu } from '@radix-ui/themes';
+import { Button, DropdownMenu, Flex } from '@radix-ui/themes';
 import { useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
 import { AccommodationNewDialog } from '../Accommodation/AccommodationNewDialog';
@@ -32,9 +32,9 @@ export function TripMenu() {
   }, [trip?.currentUserRole]);
   const pushDialog = useBoundStore((state) => state.pushDialog);
   return (
-    <>
+    <Flex className={s.tripMenu} align="center">
       <DropdownMenu.Root>
-        <DropdownMenu.Trigger>
+        <DropdownMenu.Trigger className={s.hamburgerMenuTrigger}>
           <Button variant="outline">
             <HamburgerMenuIcon />
             <span className={s.actionsTitle}>Actions</span>
@@ -171,6 +171,6 @@ export function TripMenu() {
         {/* On non-small screen, account section is outside hamburger menu  */}
         <UserAvatarMenu user={user} />
       </div>
-    </>
+    </Flex>
   );
 }

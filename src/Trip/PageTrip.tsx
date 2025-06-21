@@ -1,4 +1,4 @@
-import { Container, Heading, Skeleton, Spinner, Text } from '@radix-ui/themes';
+import { Container, Spinner, Text } from '@radix-ui/themes';
 import React, { useEffect } from 'react';
 import {
   Link,
@@ -9,9 +9,6 @@ import {
 } from 'wouter';
 import { withLoading } from '../Loading/withLoading';
 import { DocTitle } from '../Nav/DocTitle';
-import { Navbar } from '../Nav/Navbar';
-import s from './PageTrip.module.css';
-import { TripMenu } from './TripMenu';
 
 const Timetable = withLoading()(
   React.lazy(() =>
@@ -56,7 +53,6 @@ const TripComment = withLoading()(
   ),
 );
 
-import { DoubleArrowRightIcon } from '@radix-ui/react-icons';
 import { useCurrentUser } from '../Auth/hooks';
 import { useBoundStore } from '../data/store';
 import {
@@ -71,6 +67,7 @@ import {
 import { useTrip } from './store/hooks';
 import type { TripSliceTrip } from './store/types';
 import { TripMenuFloating } from './TripMenuFloating';
+import { TripNavbar } from './TripNavbar/TripNavbar';
 
 export default PageTrip;
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
@@ -105,45 +102,7 @@ function PageTripInner({
   return (
     <>
       <DocTitle title={trip?.title ?? 'Trip'} />
-      <Navbar
-        leftItems={[
-          <Heading
-            as="h1"
-            size={{ initial: '3', xs: '5' }}
-            className={s.tripTitle}
-            key="title"
-          >
-            {trip?.title ?? <Skeleton>Trip title</Skeleton>}
-            {
-              <Switch>
-                <Route path={RouteTripTimetableView.routePath}>
-                  {' '}
-                  <DoubleArrowRightIcon /> Timetable
-                </Route>
-                <Route path={RouteTripListView.routePath}>
-                  {' '}
-                  <DoubleArrowRightIcon />
-                  List
-                </Route>
-                <Route path={RouteTripMap.routePath}>
-                  {' '}
-                  <DoubleArrowRightIcon />
-                  Map
-                </Route>
-                <Route path={RouteTripExpenses.routePath}>
-                  {' '}
-                  <DoubleArrowRightIcon /> Expenses
-                </Route>
-                <Route path={RouteTripComment.routePath}>
-                  {' '}
-                  <DoubleArrowRightIcon /> Comments
-                </Route>
-              </Switch>
-            }
-          </Heading>,
-        ]}
-        rightItems={[<TripMenu key="menu" />]}
-      />
+      <TripNavbar />
       {!trip ? (
         loading ? (
           <Spinner size="2" />
