@@ -46,6 +46,12 @@ export function TripHome() {
     [tripStartDateTime, tripEndDateTime],
   );
   const pushDialog = useBoundStore((state) => state.pushDialog);
+  const userCanModifyTrip = useMemo(() => {
+    return (
+      trip?.currentUserRole === TripUserRole.Owner ||
+      trip?.currentUserRole === TripUserRole.Editor
+    );
+  }, [trip?.currentUserRole]);
   const userIsOwner = useMemo(() => {
     return trip?.currentUserRole === TripUserRole.Owner;
   }, [trip?.currentUserRole]);
@@ -64,7 +70,13 @@ export function TripHome() {
     <Container mt="2" pb={containerPb} px={containerPx}>
       <Heading as="h2" size="5" mb="2">
         {trip?.title}
-        <Button variant="outline" mx="2" size="1" onClick={openTripEditDialog}>
+        <Button
+          variant="outline"
+          mx="2"
+          size="1"
+          onClick={openTripEditDialog}
+          disabled={!userCanModifyTrip}
+        >
           <Pencil2Icon />
           Edit trip
         </Button>
