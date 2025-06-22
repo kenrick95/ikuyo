@@ -1,6 +1,5 @@
 .tripLi {
   list-style: none;
-  display: block;
   flex: 0 1 280px;
 }
 .headingSpinner {

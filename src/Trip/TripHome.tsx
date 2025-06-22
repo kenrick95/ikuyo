@@ -1,6 +1,5 @@
 import { Pencil2Icon, Share1Icon } from '@radix-ui/react-icons';
 import {
-  Badge,
   Button,
   Container,
   DataList,
@@ -17,10 +16,10 @@ import { useBoundStore } from '../data/store';
 import { TripUserRole } from '../data/TripUserRole';
 import { RouteTripComment } from '../Routes/routes';
 import { TripMap } from '../TripMap/TripMap';
-import { getTripStatus } from './getTripStatus';
 import { useCurrentTrip, useTripAllCommentsWithLimit } from './store/hooks';
 import { TripEditDialog } from './TripEditDialog';
 import { TripSharingDialog } from './TripSharingDialog';
+import { TripStatusBadge } from './TripStatusBadge';
 import { formatTripDateRange } from './time';
 
 const containerPx = { initial: '1', md: '0' };
@@ -41,10 +40,6 @@ export function TripHome() {
 
   const latestComments = useTripAllCommentsWithLimit(trip?.id, 5);
 
-  const tripStatus = useMemo(
-    () => getTripStatus(tripStartDateTime, tripEndDateTime),
-    [tripStartDateTime, tripEndDateTime],
-  );
   const pushDialog = useBoundStore((state) => state.pushDialog);
   const userCanModifyTrip = useMemo(() => {
     return (
@@ -88,11 +83,12 @@ export function TripHome() {
           </>
         ) : null}
       </Text>
-      {tripStatus && (
-        <Badge color={tripStatus.color} size="2" mb="4">
-          {tripStatus.text}
-        </Badge>
-      )}
+      <Flex gap="2" mb="4" align="start">
+        <TripStatusBadge
+          tripStartDateTime={tripStartDateTime}
+          tripEndDateTime={tripEndDateTime}
+        />
+      </Flex>
 
       <Flex
         gap="1"

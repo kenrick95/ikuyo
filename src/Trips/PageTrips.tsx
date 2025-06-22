@@ -2,29 +2,27 @@ import { PlusIcon } from '@radix-ui/react-icons';
 import {
   Box,
   Button,
-  Card,
   Container,
   Flex,
   Heading,
   Skeleton,
   Spinner,
-  Text,
 } from '@radix-ui/themes';
+import { DateTime } from 'luxon';
 import { useEffect, useState } from 'react';
-import { Link, type RouteComponentProps } from 'wouter';
+import type { RouteComponentProps } from 'wouter';
 import { useCurrentUser } from '../Auth/hooks';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
 import { useBoundStore, useDeepBoundStore } from '../data/store';
 import type { DbUser } from '../data/types';
 import { DocTitle } from '../Nav/DocTitle';
 import { Navbar } from '../Nav/Navbar';
-import { RouteTrip } from '../Routes/routes';
 import { TripGroup, type TripGroupType } from '../Trip/TripGroup';
 import { TripNewDialog } from '../Trip/TripNewDialog';
-import { formatTripDateRange } from '../Trip/time';
 import { useTripsGrouped } from './hooks';
 import s from './PageTrips.module.css';
 import type { TripsSliceTrip } from './store';
+import { TripCard } from './TripCard';
 
 export default PageTrips;
 
@@ -87,6 +85,8 @@ export function PageTrips(_props: RouteComponentProps) {
   );
 }
 
+const now = DateTime.now().toMillis();
+
 function Trips({
   type,
   groupTitle,
@@ -128,16 +128,18 @@ function Trips({
           {trips.length === 0 ? (
             isLoading ? (
               <Skeleton>
-                <li className={s.tripLi}>
-                  <Card>
-                    <Text as="div" weight="bold">
-                      Trip title
-                    </Text>
-                    <Text as="div" size="2" color="gray">
-                      Trip dates and time zone
-                    </Text>
-                  </Card>
-                </li>
+                <TripCard
+                  className={s.tripLi}
+                  trip={{
+                    id: 'skeleton',
+                    title: 'Loading...',
+                    timestampStart: now,
+                    timestampEnd: now,
+                    timeZone: 'UTC',
+                    createdAt: now,
+                    lastUpdatedAt: now,
+                  }}
+                />
               </Skeleton>
             ) : (
               'None'
@@ -145,18 +147,7 @@ function Trips({
           ) : (
             trips.map((trip) => {
               return (
-                <li className={s.tripLi} key={trip.id}>
-                  <Card asChild>
-                    <Link to={RouteTrip.asRouteTarget(trip.id)}>
-                      <Text as="div" weight="bold">
-                        {trip.title}
-                      </Text>
-                      <Text as="div" size="2" color="gray">
-                        {formatTripDateRange(trip)} ({trip.timeZone})
-                      </Text>
-                    </Link>
-                  </Card>
-                </li>
+                <TripCard className={s.tripLi} trip={trip} key={trip.id} />
               );
             })
           )}

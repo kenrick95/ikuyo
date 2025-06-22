@@ -1,0 +1,7 @@
+.tripCardLink {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  align-items: start;
+  justify-content: start;
+}
