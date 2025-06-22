@@ -14,7 +14,6 @@ export const REGION_TO_TIMEZONE_MAP: Record<RegionCode, string> = {
   AI: 'America/Anguilla', // Anguilla
   AL: 'Europe/Tirane', // Albania
   AM: 'Asia/Yerevan', // Armenia
-  AN: 'America/Curacao', // Curaçao
   AO: 'Africa/Luanda', // Angola
   AQ: 'Antarctica/McMurdo', // Antarctica
   AR: 'America/Argentina/Buenos_Aires', // Argentina
@@ -43,7 +42,6 @@ export const REGION_TO_TIMEZONE_MAP: Record<RegionCode, string> = {
   BR: 'America/Sao_Paulo', // Brazil
   BS: 'America/Nassau', // Bahamas
   BT: 'Asia/Thimphu', // Bhutan
-  BU: 'Asia/Yangon', // Myanmar (Burma)
   BV: 'Antarctica/Syowa', // Bouvet Island
   BW: 'Africa/Gaborone', // Botswana
   BY: 'Europe/Minsk', // Belarus
@@ -65,7 +63,6 @@ export const REGION_TO_TIMEZONE_MAP: Record<RegionCode, string> = {
   CP: 'Pacific/Pitcairn', // Clipperton Island
   CQ: 'Europe/London', // Sark
   CR: 'America/Costa_Rica', // Costa Rica
-  CS: 'Europe/Belgrade', // Serbia
   CT: 'Pacific/Tarawa', // Kiribati
   CU: 'America/Havana', // Cuba
   CV: 'Atlantic/Cape_Verde', // Cape Verde
@@ -75,14 +72,12 @@ export const REGION_TO_TIMEZONE_MAP: Record<RegionCode, string> = {
   CZ: 'Europe/Prague', // Czechia
 
   // D
-  DD: 'Europe/Berlin', // Germany
   DE: 'Europe/Berlin', // Germany
   DG: 'Indian/Chagos', // Diego Garcia
   DJ: 'Africa/Djibouti', // Djibouti
   DK: 'Europe/Copenhagen', // Denmark
   DM: 'America/Dominica', // Dominica
   DO: 'America/Santo_Domingo', // Dominican Republic
-  DY: 'Africa/Porto-Novo', // Benin
   DZ: 'Africa/Algiers', // Algeria
 
   // E
@@ -134,7 +129,6 @@ export const REGION_TO_TIMEZONE_MAP: Record<RegionCode, string> = {
   HR: 'Europe/Zagreb', // Croatia
   HT: 'America/Port-au-Prince', // Haiti
   HU: 'Europe/Budapest', // Hungary
-  HV: 'Africa/Ouagadougou', // Burkina Faso
 
   // I
   IC: 'Atlantic/Canary', // Canary Islands
@@ -221,7 +215,6 @@ export const REGION_TO_TIMEZONE_MAP: Record<RegionCode, string> = {
   NP: 'Asia/Kathmandu', // Nepal
   NQ: 'Antarctica/McMurdo', // Antarctica
   NR: 'Pacific/Nauru', // Nauru
-  NT: 'Asia/Riyadh', // Saudi Arabia
   NU: 'Pacific/Niue', // Niue
   NZ: 'Pacific/Auckland', // New Zealand
 
@@ -230,7 +223,6 @@ export const REGION_TO_TIMEZONE_MAP: Record<RegionCode, string> = {
 
   // P
   PA: 'America/Panama', // Panama
-  PC: 'Pacific/Chuuk', // Micronesia
   PE: 'America/Lima', // Peru
   PF: 'Pacific/Tahiti', // French Polynesia
   PG: 'Pacific/Port_Moresby', // Papua New Guinea
@@ -245,14 +237,12 @@ export const REGION_TO_TIMEZONE_MAP: Record<RegionCode, string> = {
   PU: 'Pacific/Wake', // U.S. Outlying Islands
   PW: 'Pacific/Palau', // Palau
   PY: 'America/Asuncion', // Paraguay
-  PZ: 'America/Panama', // Panama
 
   // Q
   QA: 'Asia/Qatar', // Qatar
 
   // R
   RE: 'Indian/Reunion', // Réunion
-  RH: 'Africa/Harare', // Zimbabwe
   RO: 'Europe/Bucharest', // Romania
   RS: 'Europe/Belgrade', // Serbia
   RU: 'Europe/Moscow', // Russia
@@ -276,7 +266,6 @@ export const REGION_TO_TIMEZONE_MAP: Record<RegionCode, string> = {
   SR: 'America/Paramaribo', // Suriname
   SS: 'Africa/Juba', // South Sudan
   ST: 'Africa/Sao_Tome', // São Tomé & Príncipe
-  SU: 'Europe/Moscow', // Russia
   SV: 'America/El_Salvador', // El Salvador
   SX: 'America/Lower_Princes', // Sint Maarten
   SY: 'Asia/Damascus', // Syria
@@ -295,7 +284,6 @@ export const REGION_TO_TIMEZONE_MAP: Record<RegionCode, string> = {
   TM: 'Asia/Ashgabat', // Turkmenistan
   TN: 'Africa/Tunis', // Tunisia
   TO: 'Pacific/Tongatapu', // Tonga
-  TP: 'Asia/Dili', // Timor-Leste
   TR: 'Europe/Istanbul', // Türkiye
   TT: 'America/Port_of_Spain', // Trinidad & Tobago
   TV: 'Pacific/Funafuti', // Tuvalu
@@ -313,7 +301,6 @@ export const REGION_TO_TIMEZONE_MAP: Record<RegionCode, string> = {
   // V
   VA: 'Europe/Vatican', // Vatican City
   VC: 'America/St_Vincent', // St. Vincent & Grenadines
-  VD: 'Asia/Ho_Chi_Minh', // Vietnam
   VE: 'America/Caracas', // Venezuela
   VG: 'America/Tortola', // British Virgin Islands
   VI: 'America/St_Thomas', // U.S. Virgin Islands
@@ -326,22 +313,16 @@ export const REGION_TO_TIMEZONE_MAP: Record<RegionCode, string> = {
   WS: 'Pacific/Apia', // Samoa
 
   // X
-  XA: 'UTC', // Pseudo-Accents
-  XB: 'UTC', // Pseudo-Bidi
   XK: 'Europe/Belgrade', // Kosovo
 
   // Y
-  YD: 'Asia/Aden', // Yemen
   YE: 'Asia/Aden', // Yemen
   YT: 'Indian/Mayotte', // Mayotte
-  YU: 'Europe/Belgrade', // Serbia
 
   // Z
   ZA: 'Africa/Johannesburg', // South Africa
   ZM: 'Africa/Lusaka', // Zambia
-  ZR: 'Africa/Kinshasa', // Congo - Kinshasa
   ZW: 'Africa/Harare', // Zimbabwe
-  //   ZZ: 'UTC', // Unknown Region
 };
 
 /**

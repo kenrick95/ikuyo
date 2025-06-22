@@ -12,7 +12,6 @@ export const REGION_TO_CURRENCY_MAP: Record<RegionCode, string> = {
   AI: 'XCD', // Anguilla
   AL: 'ALL', // Albania
   AM: 'AMD', // Armenia
-  AN: 'ANG', // Curaçao
   AO: 'AOA', // Angola
   AQ: 'USD', // Antarctica
   AR: 'ARS', // Argentina
@@ -255,40 +254,23 @@ export const REGION_TO_CURRENCY_MAP: Record<RegionCode, string> = {
   ZA: 'ZAR', // South Africa
   ZM: 'ZMW', // Zambia
   ZW: 'ZWL', // Zimbabwe
-  BU: 'MMK', // Myanmar (Burma)
   CP: 'EUR', // Clipperton Island
   CQ: 'GBP', // Sark
-  CS: 'RSD', // Serbia
   CT: 'KIR', // Kiribati
-  DD: 'EUR', // Germany
   DG: 'USD', // Diego Garcia
-  DY: 'XOF', // Benin
   EA: 'EUR', // Ceuta & Melilla
   EU: 'EUR', // European Union
   EZ: 'EUR', // Eurozone
   FQ: 'NOK', // Antarctica
-  HV: 'XOF', // Burkina Faso
   IC: 'EUR', // Canary Islands
   JT: 'USD', // U.S. Outlying Islands
   MI: 'USD', // U.S. Outlying Islands
   NH: 'VUV', // Vanuatu
   NQ: 'NOK', // Antarctica
-  NT: 'SAR', // Saudi Arabia
-  PC: 'USD', // Micronesia
   PU: 'USD', // U.S. Outlying Islands
-  PZ: 'USD', // Panama
-  RH: 'ZWL', // Zimbabwe
-  SU: 'RUB', // Russia
   TA: 'SHP', // Tristan da Cunha
-  TP: 'USD', // Timor-Leste
-  VD: 'VND', // Vietnam
   WK: 'USD', // U.S. Outlying Islands
-  XA: 'USD', // Pseudo-Accents
-  XB: 'USD', // Pseudo-Bidi
   XK: 'EUR', // Kosovo
-  YD: 'YER', // Yemen
-  YU: 'RSD', // Serbia
-  ZR: 'CDF', // Congo - Kinshasa
 };
 
 export function getDefaultCurrencyForRegion(
