@@ -370,7 +370,7 @@ export function AccommodationForm({
         <Text as="label" htmlFor={idTimeCheckIn}>
           Check in time{' '}
           <Text weight="light" size="1">
-            (required)
+            (required; in {tripTimeZone} time zone)
           </Text>
         </Text>
         <TextField.Root
@@ -385,7 +385,7 @@ export function AccommodationForm({
         <Text as="label" htmlFor={idTimeCheckOut}>
           Check out time{' '}
           <Text weight="light" size="1">
-            (required)
+            (required; in {tripTimeZone} time zone)
           </Text>
         </Text>
         <TextField.Root

@@ -598,7 +598,10 @@ export function ActivityForm({
         ) : null}
 
         <Text as="label" htmlFor={idTimeStart}>
-          Start time
+          Start time{' '}
+          <Text weight="light" size="1">
+            (in {tripTimeZone} time zone)
+          </Text>
         </Text>
         <TextField.Root
           id={idTimeStart}
@@ -609,7 +612,10 @@ export function ActivityForm({
           defaultValue={activityStartStr}
         />
         <Text as="label" htmlFor={idTimeEnd}>
-          End time
+          End time{' '}
+          <Text weight="light" size="1">
+            (in {tripTimeZone} time zone)
+          </Text>
         </Text>
         <TextField.Root
           id={idTimeEnd}

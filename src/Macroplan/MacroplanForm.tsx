@@ -162,7 +162,7 @@ export function MacroplanForm({
         <Text as="label" htmlFor={idDateStart}>
           Start date{' '}
           <Text weight="light" size="1">
-            (required)
+            (required; in {tripTimeZone} time zone)
           </Text>
         </Text>
         <TextField.Root
@@ -177,7 +177,7 @@ export function MacroplanForm({
         <Text as="label" htmlFor={idDateEnd}>
           End date{' '}
           <Text weight="light" size="1">
-            (required)
+            (required; in {tripTimeZone} time zone)
           </Text>
         </Text>
         <TextField.Root
