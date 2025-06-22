@@ -1,6 +1,7 @@
 import { Button, Flex, Select, Text, TextField } from '@radix-ui/themes';
 import { useCallback, useId, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
+import { getDefaultCurrencyForRegion } from '../data/intl/currencies';
 import { REGIONS_LIST } from '../data/intl/regions';
 import { getDefaultTimezoneForRegion } from '../data/intl/timezones';
 import { useBoundStore } from '../data/store';
@@ -58,6 +59,7 @@ export function TripForm({
   const [isFormLoading, setIsFormLoading] = useState(false);
   const [currentTimeZone, setCurrentTimeZone] = useState(tripTimeZone);
   const [currentRegion, setCurrentRegion] = useState(tripRegion);
+  const [currentCurrency, setCurrentCurrency] = useState(tripCurrency);
 
   const [errorMessage, setErrorMessage] = useState('');
   const timeZones = useMemo(() => Intl.supportedValuesOf('timeZone'), []);
@@ -75,8 +77,22 @@ export function TripForm({
           setCurrentTimeZone(defaultTimezone);
         }
       }
+      if (mode === TripFormMode.New || currentCurrency === tripCurrency) {
+        const defaultCurrency = getDefaultCurrencyForRegion(newRegion);
+        if (defaultCurrency && currencies.includes(defaultCurrency)) {
+          setCurrentCurrency(defaultCurrency);
+        }
+      }
     },
-    [mode, currentTimeZone, tripTimeZone, timeZones],
+    [
+      mode,
+      currentTimeZone,
+      tripTimeZone,
+      timeZones,
+      currentCurrency,
+      tripCurrency,
+      currencies,
+    ],
   );
   const handleForm = useCallback(() => {
     return async (elForm: HTMLFormElement) => {
@@ -91,7 +107,7 @@ export function TripForm({
       const dateEndStr = (formData.get('endDate') as string | null) ?? '';
       const timeZone = currentTimeZone;
       const region = currentRegion;
-      const currency = (formData.get('currency') as string | null) ?? '';
+      const currency = currentCurrency;
       const originCurrency =
         (formData.get('originCurrency') as string | null) ?? '';
 
@@ -207,13 +223,15 @@ export function TripForm({
     tripSharingLevel,
     currentTimeZone,
     currentRegion,
+    currentCurrency,
   ]);
 
   const fieldSelectCurrency = useMemo(() => {
     return (
       <Select.Root
         name="currency"
-        defaultValue={tripCurrency}
+        value={currentCurrency}
+        onValueChange={setCurrentCurrency}
         required
         disabled={isFormLoading}
       >
@@ -229,7 +247,7 @@ export function TripForm({
         </Select.Content>
       </Select.Root>
     );
-  }, [currencies, tripCurrency, idCurrency, isFormLoading]);
+  }, [currencies, idCurrency, isFormLoading, currentCurrency]);
 
   const fieldSelectTimeZone = useMemo(() => {
     return (
