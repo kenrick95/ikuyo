@@ -7,7 +7,7 @@ import {
 mapTilerConfig.session = false;
 
 import { calculateZoomFromFeature } from '../common/geocodingUtils';
-import { REGIONS_MAP } from '../data/intl/regions';
+import { getRegionDisplayName } from '../data/intl/regions';
 
 export async function geocodingRequest(
   currentLocation: string,
@@ -25,7 +25,7 @@ export async function geocodingRequest(
 
   if (!location) {
     // if location is not yet set, set location as the trip region
-    const region = REGIONS_MAP[tripRegion] ?? 'Japan';
+    const region = getRegionDisplayName(tripRegion);
     location = region;
     geocodingOptions.types = ['country'];
   }
@@ -53,7 +53,7 @@ export async function geocodingRequest(
   if (lng === undefined || lat === undefined) {
     try {
       // if location coordinate couldn't be found, set location as the trip region
-      const region = REGIONS_MAP[tripRegion] ?? 'Japan';
+      const region = getRegionDisplayName(tripRegion);
       geocodingOptions.types = ['country'];
       const res = await geocoding.forward(region, geocodingOptions);
       console.log('geocoding: response 2', res);

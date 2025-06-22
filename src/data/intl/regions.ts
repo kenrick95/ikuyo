@@ -3,7 +3,7 @@
  *
  * Then manually remove duplicates and some meta-regions
  */
-export const REGIONS_MAP: Record<string, string> = {
+export const REGIONS_MAP = {
   AC: 'Ascension Island',
   AD: 'Andorra',
   AE: 'United Arab Emirates',
@@ -295,8 +295,18 @@ export const REGIONS_MAP: Record<string, string> = {
   ZR: 'Congo - Kinshasa',
   ZW: 'Zimbabwe',
   //   ZZ: 'Unknown Region',
-};
+} as const;
+
+export type RegionCode = keyof typeof REGIONS_MAP;
+export type RegionDisplayName = (typeof REGIONS_MAP)[RegionCode];
+
 /** [Region code, region display name]. Example: [["ID", "Indonesia"]] */
 export const REGIONS_LIST = Object.entries(REGIONS_MAP).sort((a, b) => {
   return a[1].localeCompare(b[1]);
-});
+}) as [RegionCode, RegionDisplayName][];
+
+export function getRegionDisplayName(
+  regionCode: RegionCode | (string & {}),
+): RegionDisplayName {
+  return REGIONS_MAP[regionCode as RegionCode] ?? 'Japan';
+}

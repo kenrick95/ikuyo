@@ -2,6 +2,7 @@ import { Button, Flex, Select, Text, TextField } from '@radix-ui/themes';
 import { useCallback, useId, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
 import { REGIONS_LIST } from '../data/intl/regions';
+import { getDefaultTimezoneForRegion } from '../data/intl/timezones';
 import { useBoundStore } from '../data/store';
 import { RouteTrip } from '../Routes/routes';
 import { dangerToken } from '../ui';
@@ -55,10 +56,28 @@ export function TripForm({
   const idRegion = useId();
   const publishToast = useBoundStore((state) => state.publishToast);
   const [isFormLoading, setIsFormLoading] = useState(false);
+  const [currentTimeZone, setCurrentTimeZone] = useState(tripTimeZone);
+  const [currentRegion, setCurrentRegion] = useState(tripRegion);
 
   const [errorMessage, setErrorMessage] = useState('');
   const timeZones = useMemo(() => Intl.supportedValuesOf('timeZone'), []);
   const currencies = useMemo(() => Intl.supportedValuesOf('currency'), []);
+
+  // Handler for region change to auto-populate timezone
+  const handleRegionChange = useCallback(
+    (newRegion: string) => {
+      setCurrentRegion(newRegion);
+
+      // Only auto-set timezone if it's not already set (for new trips) or if user hasn't manually changed it
+      if (mode === TripFormMode.New || currentTimeZone === tripTimeZone) {
+        const defaultTimezone = getDefaultTimezoneForRegion(newRegion);
+        if (defaultTimezone && timeZones.includes(defaultTimezone)) {
+          setCurrentTimeZone(defaultTimezone);
+        }
+      }
+    },
+    [mode, currentTimeZone, tripTimeZone, timeZones],
+  );
   const handleForm = useCallback(() => {
     return async (elForm: HTMLFormElement) => {
       setErrorMessage('');
@@ -70,8 +89,8 @@ export function TripForm({
       const title = (formData.get('title') as string | null) ?? '';
       const dateStartStr = (formData.get('startDate') as string | null) ?? '';
       const dateEndStr = (formData.get('endDate') as string | null) ?? '';
-      const timeZone = (formData.get('timeZone') as string | null) ?? '';
-      const region = (formData.get('region') as string | null) ?? 'ZZ';
+      const timeZone = currentTimeZone;
+      const region = currentRegion;
       const currency = (formData.get('currency') as string | null) ?? '';
       const originCurrency =
         (formData.get('originCurrency') as string | null) ?? '';
@@ -186,6 +205,8 @@ export function TripForm({
     activities,
     tripTimeZone,
     tripSharingLevel,
+    currentTimeZone,
+    currentRegion,
   ]);
 
   const fieldSelectCurrency = useMemo(() => {
@@ -214,7 +235,8 @@ export function TripForm({
     return (
       <Select.Root
         name="timeZone"
-        defaultValue={tripTimeZone}
+        value={currentTimeZone}
+        onValueChange={setCurrentTimeZone}
         required
         disabled={isFormLoading}
       >
@@ -230,13 +252,14 @@ export function TripForm({
         </Select.Content>
       </Select.Root>
     );
-  }, [timeZones, tripTimeZone, idTimeZone, isFormLoading]);
+  }, [timeZones, currentTimeZone, idTimeZone, isFormLoading]);
 
   const fieldSelectRegion = useMemo(() => {
     return (
       <Select.Root
         name="region"
-        defaultValue={tripRegion}
+        value={currentRegion}
+        onValueChange={handleRegionChange}
         required
         disabled={isFormLoading}
       >
@@ -252,7 +275,7 @@ export function TripForm({
         </Select.Content>
       </Select.Root>
     );
-  }, [tripRegion, idRegion, isFormLoading]);
+  }, [currentRegion, idRegion, isFormLoading, handleRegionChange]);
 
   return (
     <form
@@ -285,6 +308,21 @@ export function TripForm({
           required
           disabled={isFormLoading}
         />
+
+        <Text as="label" htmlFor={idRegion}>
+          Destination's region{' '}
+          <Text weight="light" size="1">
+            (required)
+          </Text>
+          <br />
+          <Text weight="light" size="1">
+            This will be used as the general location when selecting coordinates
+            in activities. Selecting a region will auto-populate the timezone
+            field.
+          </Text>
+        </Text>
+        {fieldSelectRegion}
+
         <Text as="label" htmlFor={idTimeZone}>
           Destination's time zone{' '}
           <Text weight="light" size="1">
@@ -329,19 +367,6 @@ export function TripForm({
           required
           disabled={isFormLoading}
         />
-
-        <Text as="label" htmlFor={idRegion}>
-          Destination's region{' '}
-          <Text weight="light" size="1">
-            (required)
-          </Text>
-          <br />
-          <Text weight="light" size="1">
-            This will be used as the general location when selecting coordinates
-            in activities.
-          </Text>
-        </Text>
-        {fieldSelectRegion}
 
         <Text as="label" htmlFor={idCurrency}>
           Destination's currency{' '}

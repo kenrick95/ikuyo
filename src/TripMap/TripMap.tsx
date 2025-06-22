@@ -18,7 +18,7 @@ import s from './TripMap.module.css';
 import '@maptiler/sdk/style.css';
 import { Spinner } from '@radix-ui/themes';
 import { createPortal } from 'react-dom';
-import { REGIONS_MAP } from '../data/intl/regions';
+import { getRegionDisplayName } from '../data/intl/regions';
 import {
   useCurrentTrip,
   useTripAccommodations,
@@ -198,7 +198,7 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
   const getRegionCenter = useCallback(
     async (regionCode: string): Promise<[number, number, number] | null> => {
       try {
-        const region = REGIONS_MAP[regionCode] ?? 'Japan';
+        const region = getRegionDisplayName(regionCode);
         const geocodingOptions: GeocodingOptions = {
           language: 'en',
           limit: 1,
