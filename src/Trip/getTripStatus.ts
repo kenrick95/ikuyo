@@ -88,12 +88,18 @@ function formatTimeParts(
   } else if (significantParts.length === 2) {
     formattedText = significantParts.join(', ');
   } else {
-    formattedText = `${significantParts.slice(0, -1).join(', ')} and ${significantParts[significantParts.length - 1]}`;
+    formattedText = `${significantParts.slice(0, -1).join(', ')}, and ${significantParts[significantParts.length - 1]}`;
   }
 
   return isFuture ? formattedText : `${formattedText} ago`;
 }
 
+/**
+ *
+ * @param tripStart DateTime of day of the trip start
+ * @param tripEnd DateTime of day _after_ of trip end. This means the final full day of trip is one day before `timestampEnd`
+ * @returns
+ */
 export function getTripStatus(tripStart?: DateTime, tripEnd?: DateTime) {
   if (!tripStart || !tripEnd) return null;
   const now = DateTime.now();
@@ -137,9 +143,12 @@ export function getTripStatus(tripStart?: DateTime, tripEnd?: DateTime) {
     };
   } else if (now >= tripStart && now < tripEnd) {
     // Trip is currently happening
+    const currentDay =
+      Math.floor(now.diff(tripStart.startOf('day'), 'days').days) + 1;
+    const totalDays = Math.ceil(tripEnd.diff(tripStart, 'days').days);
     return {
       status: 'current',
-      text: 'Trip in progress',
+      text: `Trip in progress: Day ${currentDay} of ${totalDays}`,
       color: 'green' as const,
     };
   } else {
