@@ -27,7 +27,7 @@ export function ActivityMap({
   setMarkerCoordinate,
   setMapZoom,
 }: {
-  mapOptions: { lng: number; lat: number; zoom?: number; region?: string };
+  mapOptions: { lng: number; lat: number; zoom?: number; regions?: string[] };
   marker?: { lng: number; lat: number };
   markerDestination?: { lng: number; lat: number };
   setMarkerCoordinate?: (coordinate: { lng: number; lat: number }) => void;
@@ -206,8 +206,12 @@ export function ActivityMap({
 
     if (setMarkerCoordinate) {
       const gc = new GeocodingControl({
-        limit: 5,
-        country: initialValues.mapOptions?.region?.toLowerCase(),
+        limit: 10,
+        country: initialValues.mapOptions?.regions
+          ? initialValues.mapOptions.regions.map((region) =>
+              region.toLowerCase(),
+            )
+          : undefined,
         proximity: [{ type: 'map-center' }],
         types: ['poi', 'major_landform', 'address'],
         marker: false,

@@ -21,7 +21,7 @@ export function AccommodationMap({
   setMarkerCoordinate,
   setMapZoom,
 }: {
-  mapOptions: { lng: number; lat: number; zoom?: number; region?: string };
+  mapOptions: { lng: number; lat: number; zoom?: number; regions?: string[] };
   marker?: { lng: number; lat: number };
   setMarkerCoordinate?: (coordinate: { lng: number; lat: number }) => void;
   setMapZoom?: (zoom: number) => void;
@@ -82,8 +82,10 @@ export function AccommodationMap({
 
     if (setMarkerCoordinate) {
       const gc = new GeocodingControl({
-        limit: 5,
-        country: mapOptions?.region?.toLowerCase(),
+        limit: 10,
+        country: mapOptions?.regions
+          ? mapOptions.regions.map((region) => region.toLowerCase())
+          : undefined,
         proximity: [{ type: 'map-center' }],
         types: ['poi', 'major_landform', 'address'],
         marker: false,

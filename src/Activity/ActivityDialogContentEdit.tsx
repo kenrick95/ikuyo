@@ -63,7 +63,7 @@ export function ActivityDialogContentEdit({
           tripStartStr={tripStartStr}
           tripEndStr={tripEndStr}
           tripTimeZone={trip.timeZone}
-          tripRegion={trip.region}
+          tripRegions={trip.regions}
           activityTitle={activity.title}
           activityStartStr={activityStartStr}
           activityEndStr={activityEndStr}

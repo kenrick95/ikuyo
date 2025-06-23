@@ -16,6 +16,8 @@ export type BoundStoreType = ToastSlice &
   TripsSlice &
   ThemeSlice;
 
+const latestVersion = 1;
+
 export const useBoundStore = create<BoundStoreType>()(
   persist(
     (...args) => ({
@@ -28,7 +30,7 @@ export const useBoundStore = create<BoundStoreType>()(
     }),
     {
       name: 'ikuyo-storage',
-      version: 0,
+      version: latestVersion,
       partialize: (state) => {
         state;
         return {
@@ -47,6 +49,22 @@ export const useBoundStore = create<BoundStoreType>()(
           tripUser: state.tripUser,
           currentTheme: state.currentTheme,
         };
+      },
+      migrate: (persisted: any, storeVersion) => {
+        if (storeVersion === 0) {
+          // In version 0, trip regions were stored as a string in trip.region
+          for (const tripId in persisted.trip) {
+            const trip = persisted.trip[tripId];
+            trip.regions = trip.region ? trip.region.split(',') : [];
+            persisted.trip[tripId] = trip;
+          }
+        }
+        console.log(
+          `Migrated store from version ${storeVersion} to version ${latestVersion}`,
+          persisted,
+        );
+
+        return persisted;
       },
     },
   ),

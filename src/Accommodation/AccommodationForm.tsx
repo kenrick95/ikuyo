@@ -78,7 +78,7 @@ export function AccommodationForm({
   tripTimeZone,
   tripStartStr,
   tripEndStr,
-  tripRegion,
+  tripRegions,
 
   accommodationName,
   accommodationAddress,
@@ -100,7 +100,7 @@ export function AccommodationForm({
   tripTimeZone: string;
   tripStartStr: string;
   tripEndStr: string;
-  tripRegion: string;
+  tripRegions: string[];
 
   accommodationName: string;
   accommodationAddress: string;
@@ -153,7 +153,7 @@ export function AccommodationForm({
             idAddress,
           ) as HTMLInputElement;
           const address = elAddress.value;
-          const [lng, lat, zoom] = await geocodingRequest(address, tripRegion);
+          const [lng, lat, zoom] = await geocodingRequest(address, tripRegions);
           dispatchCoordinateState({
             type: 'setEnabled',
             lat: lat,
@@ -169,7 +169,7 @@ export function AccommodationForm({
     },
     [
       idAddress,
-      tripRegion,
+      tripRegions,
       coordinateState.lat,
       coordinateState.lng,
       coordinateState.zoom,
@@ -353,7 +353,7 @@ export function AccommodationForm({
               lng: coordinateState.lng ?? 0,
               lat: coordinateState.lat ?? 0,
               zoom: coordinateState.zoom ?? 9,
-              region: tripRegion,
+              regions: tripRegions,
             }}
             marker={
               coordinateState.lng != null && coordinateState.lat != null

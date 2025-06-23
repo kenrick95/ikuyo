@@ -1,6 +1,7 @@
 import { Button, Flex, Select, Text, TextField } from '@radix-ui/themes';
 import { useCallback, useId, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
+import { MultiSelectAutocomplete } from '../common/MultiSelectAutocomplete/MultiSelectAutocomplete';
 import { getDefaultCurrencyForRegion } from '../data/intl/currencies';
 import { REGIONS_LIST } from '../data/intl/regions';
 import { getDefaultTimezoneForRegion } from '../data/intl/timezones';
@@ -23,7 +24,7 @@ export function TripForm({
   tripEndStr,
   tripTitle,
   tripTimeZone,
-  tripRegion,
+  tripRegions,
   tripCurrency,
   tripOriginCurrency,
   tripSharingLevel,
@@ -38,7 +39,7 @@ export function TripForm({
   tripEndStr: string;
   tripTitle: string;
   tripTimeZone: string;
-  tripRegion: string;
+  tripRegions: string[];
   tripCurrency: string;
   tripOriginCurrency: string;
   tripSharingLevel: TripSharingLevelType;
@@ -58,29 +59,39 @@ export function TripForm({
   const publishToast = useBoundStore((state) => state.publishToast);
   const [isFormLoading, setIsFormLoading] = useState(false);
   const [currentTimeZone, setCurrentTimeZone] = useState(tripTimeZone);
-  const [currentRegion, setCurrentRegion] = useState(tripRegion);
+  const [currentRegions, setCurrentRegions] = useState<string[]>(tripRegions);
   const [currentCurrency, setCurrentCurrency] = useState(tripCurrency);
 
   const [errorMessage, setErrorMessage] = useState('');
   const timeZones = useMemo(() => Intl.supportedValuesOf('timeZone'), []);
   const currencies = useMemo(() => Intl.supportedValuesOf('currency'), []);
 
+  const regionsOptions = useMemo(() => {
+    return REGIONS_LIST.map(([regionCode, regionName]) => ({
+      value: regionCode,
+      label: regionName,
+    }));
+  }, []);
+
   // Handler for region change to auto-populate timezone
   const handleRegionChange = useCallback(
-    (newRegion: string) => {
-      setCurrentRegion(newRegion);
+    (newRegions: string[]) => {
+      setCurrentRegions(newRegions);
 
-      // Only auto-set timezone if it's not already set (for new trips) or if user hasn't manually changed it
-      if (mode === TripFormMode.New || currentTimeZone === tripTimeZone) {
-        const defaultTimezone = getDefaultTimezoneForRegion(newRegion);
-        if (defaultTimezone && timeZones.includes(defaultTimezone)) {
-          setCurrentTimeZone(defaultTimezone);
+      if (newRegions[0]) {
+        const firstNewRegion = newRegions[0];
+        // Only auto-set timezone if it's not already set (for new trips) or if user hasn't manually changed it
+        if (mode === TripFormMode.New || currentTimeZone === tripTimeZone) {
+          const defaultTimezone = getDefaultTimezoneForRegion(firstNewRegion);
+          if (defaultTimezone && timeZones.includes(defaultTimezone)) {
+            setCurrentTimeZone(defaultTimezone);
+          }
         }
-      }
-      if (mode === TripFormMode.New || currentCurrency === tripCurrency) {
-        const defaultCurrency = getDefaultCurrencyForRegion(newRegion);
-        if (defaultCurrency && currencies.includes(defaultCurrency)) {
-          setCurrentCurrency(defaultCurrency);
+        if (mode === TripFormMode.New || currentCurrency === tripCurrency) {
+          const defaultCurrency = getDefaultCurrencyForRegion(firstNewRegion);
+          if (defaultCurrency && currencies.includes(defaultCurrency)) {
+            setCurrentCurrency(defaultCurrency);
+          }
         }
       }
     },
@@ -106,7 +117,7 @@ export function TripForm({
       const dateStartStr = (formData.get('startDate') as string | null) ?? '';
       const dateEndStr = (formData.get('endDate') as string | null) ?? '';
       const timeZone = currentTimeZone;
-      const region = currentRegion;
+      const region: string = currentRegions.join(',') || '';
       const currency = currentCurrency;
       const originCurrency =
         (formData.get('originCurrency') as string | null) ?? '';
@@ -222,7 +233,7 @@ export function TripForm({
     tripTimeZone,
     tripSharingLevel,
     currentTimeZone,
-    currentRegion,
+    currentRegions,
     currentCurrency,
   ]);
 
@@ -274,26 +285,14 @@ export function TripForm({
 
   const fieldSelectRegion = useMemo(() => {
     return (
-      <Select.Root
-        name="region"
-        value={currentRegion}
-        onValueChange={handleRegionChange}
-        required
+      <MultiSelectAutocomplete
+        options={regionsOptions}
+        value={currentRegions}
+        onChange={handleRegionChange}
         disabled={isFormLoading}
-      >
-        <Select.Trigger id={idRegion} />
-        <Select.Content>
-          {REGIONS_LIST.map(([regionCode, regionName]) => {
-            return (
-              <Select.Item key={regionCode} value={regionCode}>
-                {regionName}
-              </Select.Item>
-            );
-          })}
-        </Select.Content>
-      </Select.Root>
+      />
     );
-  }, [currentRegion, idRegion, isFormLoading, handleRegionChange]);
+  }, [currentRegions, isFormLoading, handleRegionChange, regionsOptions]);
 
   return (
     <form

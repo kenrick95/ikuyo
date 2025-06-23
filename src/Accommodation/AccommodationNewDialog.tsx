@@ -82,7 +82,7 @@ export function AccommodationNewDialog({
           tripTimeZone={trip.timeZone}
           tripStartStr={tripStartStr}
           tripEndStr={tripEndStr}
-          tripRegion={trip.region}
+          tripRegions={trip.regions}
           accommodationName=""
           accommodationAddress=""
           accommodationCheckInStr={accommodationCheckInStr}

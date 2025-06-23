@@ -1,6 +1,7 @@
 import type { DbAccommodationWithTrip } from '../../Accommodation/db';
 import type { DbActivity } from '../../Activity/db';
 import type { DbCommentGroupObjectType } from '../../Comment/db';
+import type { RegionCode } from '../../data/intl/regions';
 import type { TripUserRole } from '../../data/TripUserRole';
 import type { DbExpense } from '../../Expense/db';
 import type { DbMacroplanWithTrip } from '../../Macroplan/db';
@@ -10,6 +11,9 @@ export type TripSliceTrip = Omit<
   DbTrip,
   'accommodation' | 'activity' | 'macroplan' | 'tripUser' | 'commentGroup'
 > & {
+  /** Trip regions (2-letters, uppercase). Derived from db's trip.region (comma-separated string) */
+  regions: RegionCode[];
+
   accommodationIds: string[];
   activityIds: string[];
   macroplanIds: string[];

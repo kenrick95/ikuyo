@@ -97,7 +97,7 @@ export function ActivityForm({
   tripStartStr,
   tripEndStr,
   tripTimeZone,
-  tripRegion,
+  tripRegions,
   activityTitle,
   activityStartStr,
   activityEndStr,
@@ -122,7 +122,7 @@ export function ActivityForm({
   tripStartStr: string;
   tripEndStr: string;
   tripTimeZone: string;
-  tripRegion: string;
+  tripRegions: string[];
   activityTitle: string;
   activityStartStr: string;
   activityEndStr: string;
@@ -192,7 +192,10 @@ export function ActivityForm({
             idLocation,
           ) as HTMLInputElement;
           const location = elLocation.value;
-          const [lng, lat, zoom] = await geocodingRequest(location, tripRegion);
+          const [lng, lat, zoom] = await geocodingRequest(
+            location,
+            tripRegions,
+          );
           dispatchLocationFieldsState({
             type: 'setEnabled',
             index: 0,
@@ -210,7 +213,7 @@ export function ActivityForm({
     },
     [
       idLocation,
-      tripRegion,
+      tripRegions,
       locationFieldsState.lat,
       locationFieldsState.lng,
       locationFieldsState.zoom,
@@ -234,7 +237,10 @@ export function ActivityForm({
             idLocationDestination,
           ) as HTMLInputElement;
           const location = elLocation.value;
-          const [lng, lat, zoom] = await geocodingRequest(location, tripRegion);
+          const [lng, lat, zoom] = await geocodingRequest(
+            location,
+            tripRegions,
+          );
           dispatchLocationFieldsState({
             type: 'setEnabled',
             index: 1,
@@ -252,7 +258,7 @@ export function ActivityForm({
     },
     [
       idLocationDestination,
-      tripRegion,
+      tripRegions,
       locationFieldsState.lat,
       locationFieldsState.lng,
       locationFieldsState.zoom,
@@ -535,7 +541,7 @@ export function ActivityForm({
               lng: locationFieldsState.lng[0] ?? 0,
               lat: locationFieldsState.lat[0] ?? 0,
               zoom: locationFieldsState.zoom[0] ?? 9,
-              region: tripRegion,
+              regions: tripRegions,
             }}
             marker={
               locationFieldsState.lng[0] != null &&
@@ -579,7 +585,7 @@ export function ActivityForm({
                   lng: locationFieldsState.lng[1] ?? 0,
                   lat: locationFieldsState.lat[1] ?? 0,
                   zoom: locationFieldsState.zoom[1] ?? 9,
-                  region: tripRegion,
+                  regions: tripRegions,
                 }}
                 marker={
                   locationFieldsState.lng[1] != null &&

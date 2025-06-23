@@ -65,7 +65,7 @@ export function AccommodationDialogContentEdit({
           tripTimeZone={trip.timeZone}
           tripStartStr={tripStartStr}
           tripEndStr={tripEndStr}
-          tripRegion={trip.region}
+          tripRegions={trip.regions}
           accommodationName={accommodation.name}
           accommodationAddress={accommodation.address}
           accommodationCheckInStr={accommodationCheckInStr}
