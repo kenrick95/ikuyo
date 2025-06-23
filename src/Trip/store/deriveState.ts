@@ -2,6 +2,7 @@ import {
   COMMENT_GROUP_OBJECT_TYPE,
   type DbCommentGroupObjectType,
 } from '../../Comment/db';
+import type { RegionCode } from '../../data/intl/regions';
 import type { BoundStoreType } from '../../data/store';
 import { TripUserRole } from '../../data/TripUserRole';
 import type { TripSharingLevelType } from '../tripSharingLevel';
@@ -38,6 +39,11 @@ export function deriveNewTripState(
       timestampEnd: trip.timestampEnd,
       currency: trip.currency,
       region: trip.region,
+      regions: trip.region
+        ? trip.region
+            .split(',')
+            .map((region) => region.toUpperCase() as RegionCode)
+        : [],
       originCurrency: trip.originCurrency,
       timeZone: trip.timeZone,
       accommodationIds: trip.accommodation.map((a) => a.id),

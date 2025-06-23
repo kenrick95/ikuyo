@@ -11,7 +11,7 @@ import { DateTime } from 'luxon';
 import { useCallback, useMemo } from 'react';
 import { Link } from 'wouter';
 import { Comment } from '../Comment/Comment';
-import { REGIONS_MAP, type RegionCode } from '../data/intl/regions';
+import { REGIONS_MAP } from '../data/intl/regions';
 import { useBoundStore } from '../data/store';
 import { TripUserRole } from '../data/TripUserRole';
 import { RouteTripComment } from '../Routes/routes';
@@ -108,7 +108,9 @@ export function TripHome() {
             <DataList.Item>
               <DataList.Label>Destination's region</DataList.Label>
               <DataList.Value>
-                {trip?.region ? REGIONS_MAP[trip.region as RegionCode] : null}
+                {trip?.region
+                  ? trip.regions.map((region) => REGIONS_MAP[region]).join(', ')
+                  : null}
               </DataList.Value>
             </DataList.Item>
             <DataList.Item>

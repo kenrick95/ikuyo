@@ -37,7 +37,7 @@ export function TripEditDialog({ trip }: { trip: TripSliceTrip }) {
           tripTimeZone={trip.timeZone}
           tripCurrency={trip.currency}
           tripOriginCurrency={trip.originCurrency}
-          tripRegion={trip.region}
+          tripRegions={trip.regions}
           tripSharingLevel={trip.sharingLevel}
           activities={activities}
           onFormCancel={popDialog}

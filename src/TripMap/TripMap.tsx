@@ -257,7 +257,7 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
 
       // If no locations are available but trip has a region, center on region
       if (!mapOptions && trip?.region && allLocations.length === 0) {
-        const regionResult = await getRegionCenter(trip.region);
+        const regionResult = await getRegionCenter(trip.regions[0]);
         if (regionResult) {
           const [lng, lat, zoom] = regionResult;
           mapConfig.center = [lng, lat];

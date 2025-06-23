@@ -86,7 +86,7 @@ export function ActivityNewDialog({
           tripStartStr={tripStartStr}
           tripEndStr={tripEndStr}
           tripTimeZone={trip.timeZone}
-          tripRegion={trip.region}
+          tripRegions={trip.regions}
           activityTitle={''}
           activityStartStr={activityStartStr}
           activityEndStr={activityEndStr}

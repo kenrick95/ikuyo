@@ -11,21 +11,21 @@ import { getRegionDisplayName } from '../data/intl/regions';
 
 export async function geocodingRequest(
   currentLocation: string,
-  tripRegion: string,
+  tripRegions: string[],
 ): Promise<[number | undefined, number | undefined, number | undefined]> {
   // if coordinates are not set, use geocoding from location to get the coordinates
   let location = currentLocation;
   const geocodingOptions: GeocodingOptions = {
     language: 'en',
     limit: 5,
-    country: [tripRegion.toLowerCase()],
+    country: tripRegions.map((region) => region.toLowerCase()),
     types: ['poi', 'major_landform', 'address'],
     apiKey: process.env.MAPTILER_API_KEY,
   };
 
-  if (!location) {
+  if (!location && tripRegions[0]) {
     // if location is not yet set, set location as the trip region
-    const region = getRegionDisplayName(tripRegion);
+    const region = getRegionDisplayName(tripRegions[0]);
     location = region;
     geocodingOptions.types = ['country'];
   }
@@ -53,7 +53,7 @@ export async function geocodingRequest(
   if (lng === undefined || lat === undefined) {
     try {
       // if location coordinate couldn't be found, set location as the trip region
-      const region = getRegionDisplayName(tripRegion);
+      const region = getRegionDisplayName(tripRegions[0]);
       geocodingOptions.types = ['country'];
       const res = await geocoding.forward(region, geocodingOptions);
       console.log('geocoding: response 2', res);

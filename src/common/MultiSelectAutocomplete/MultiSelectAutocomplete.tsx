@@ -210,7 +210,7 @@ export function MultiSelectAutocomplete({
         onClick={handleTriggerClick}
         onKeyDown={handleTriggerKeyDown}
         tabIndex={disabled ? -1 : 0}
-        // biome-ignore lint/a11y/useSemanticElements: Custom <select> component
+        // biome-ignore lint/a11y/useSemanticElements: Not a <button> here because <button> cannot contain another <button> as it's used in the badge remove button
         role="button"
         aria-expanded={isOpen}
         aria-haspopup="listbox"

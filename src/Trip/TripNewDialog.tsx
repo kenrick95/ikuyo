@@ -26,7 +26,7 @@ export function TripNewDialog({ user }: { user: DbUser }) {
           tripTimeZone={currentTimeZone}
           tripCurrency=""
           tripOriginCurrency=""
-          tripRegion=""
+          tripRegions={[]}
           tripSharingLevel={TripSharingLevel.Private}
           userId={user.id}
           onFormCancel={popDialog}
