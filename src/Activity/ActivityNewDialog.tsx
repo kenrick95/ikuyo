@@ -4,8 +4,8 @@ import { useMemo } from 'react';
 import { CommonLargeDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
 import type { TripSliceTrip } from '../Trip/store/types';
-import { ActivityForm } from './ActivityForm';
-import { ActivityFormMode } from './ActivityFormMode';
+import { ActivityForm } from './ActivityForm/ActivityForm';
+import { ActivityFormMode } from './ActivityForm/ActivityFormMode';
 import { getNewActivityTimestamp } from './activityStorage';
 import { formatToDatetimeLocalInput } from './time';
 

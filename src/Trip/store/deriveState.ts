@@ -3,7 +3,7 @@ import {
   type DbCommentGroupObjectType,
 } from '../../Comment/db';
 import type { BoundStoreType } from '../../data/store';
-import { TripUserRole } from '../../data/TripUserRole';
+import { TripUserRole } from '../../User/TripUserRole';
 import type { TripSharingLevelType } from '../tripSharingLevel';
 import type {
   DbTripQueryReturnType,

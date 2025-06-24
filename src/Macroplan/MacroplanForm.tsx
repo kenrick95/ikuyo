@@ -1,7 +1,7 @@
 import { Button, Flex, Text, TextArea, TextField } from '@radix-ui/themes';
 import { useCallback, useId, useState } from 'react';
+import { dangerToken } from '../common/ui';
 import { useBoundStore } from '../data/store';
-import { dangerToken } from '../ui';
 import { dbAddMacroplan, dbUpdateMacroplan } from './db';
 import {
   MacroplanFormMode,

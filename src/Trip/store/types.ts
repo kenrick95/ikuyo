@@ -1,9 +1,9 @@
 import type { DbAccommodationWithTrip } from '../../Accommodation/db';
 import type { DbActivity } from '../../Activity/db';
 import type { DbCommentGroupObjectType } from '../../Comment/db';
-import type { TripUserRole } from '../../data/TripUserRole';
 import type { DbExpense } from '../../Expense/db';
 import type { DbMacroplanWithTrip } from '../../Macroplan/db';
+import type { TripUserRole } from '../../User/TripUserRole';
 import type { DbTrip } from '../db';
 
 export type TripSliceTrip = Omit<

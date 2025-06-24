@@ -4,8 +4,8 @@ import { useMemo } from 'react';
 import { CommonLargeDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
 import type { TripSliceTrip } from '../Trip/store/types';
-import { AccommodationForm } from './AccommodationForm';
-import { AccommodationFormMode } from './AccommodationFormMode';
+import { AccommodationForm } from './AccommodationForm/AccommodationForm';
+import { AccommodationFormMode } from './AccommodationForm/AccommodationFormMode';
 import { formatToDatetimeLocalInput } from './time';
 
 export function AccommodationNewDialog({

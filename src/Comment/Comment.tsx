@@ -4,6 +4,7 @@ import { memo, useMemo, useState } from 'react';
 import { Link } from 'wouter';
 import { UserAvatar } from '../Auth/UserAvatar';
 import { useParseTextIntoNodes } from '../common/text/parseTextIntoNodes';
+import { dangerToken } from '../common/ui';
 import { useBoundStore, useDeepBoundStore } from '../data/store';
 import {
   RouteTripExpenses,
@@ -14,7 +15,6 @@ import {
 } from '../Routes/routes';
 import { useTripCommentGroup } from '../Trip/store/hooks';
 import type { TripSliceCommentWithUser } from '../Trip/store/types';
-import { dangerToken } from '../ui';
 import s from './Comment.module.css';
 import { CommentForm } from './CommentForm';
 import { CommentMode, type CommentModeType } from './CommentMode';

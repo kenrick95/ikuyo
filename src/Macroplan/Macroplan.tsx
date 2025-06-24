@@ -2,11 +2,11 @@ import { Box, ContextMenu, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'wouter';
+import { dangerToken } from '../common/ui';
 import type { TripSliceMacroplan } from '../Trip/store/types';
 import type { TripViewModeType } from '../Trip/TripViewMode';
-import { dangerToken } from '../ui';
 import s from './Macroplan.module.css';
-import { useMacroplanDialogHooks } from './macroplanDialogHooks';
+import { useMacroplanDialogHooks } from './MacroplanDialog/macroplanDialogHooks';
 
 const responsiveTextSize = { initial: '1' as const };
 

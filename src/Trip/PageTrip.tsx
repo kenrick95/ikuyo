@@ -12,28 +12,28 @@ import { DocTitle } from '../Nav/DocTitle';
 
 const Timetable = withLoading()(
   React.lazy(() =>
-    import('../Timetable/Timetable').then((module) => {
+    import('./TripTimetableView/Timetable').then((module) => {
       return { default: module.Timetable };
     }),
   ),
 );
 const ActivityList = withLoading()(
   React.lazy(() =>
-    import('../ActivityList/ActivityList').then((module) => {
-      return { default: module.ActivityList };
+    import('./TripListView/TripListView').then((module) => {
+      return { default: module.TripListView };
     }),
   ),
 );
 const ExpenseList = withLoading()(
   React.lazy(() =>
-    import('../Expense/ExpenseList').then((module) => {
-      return { default: module.ExpenseList };
+    import('./TripExpenseView').then((module) => {
+      return { default: module.TripExpenseView };
     }),
   ),
 );
 const PageTripMap = withLoading()(
   React.lazy(() =>
-    import('../TripMap/PageTripMap').then((module) => {
+    import('./TripMapView').then((module) => {
       return { default: module.PageTripMap };
     }),
   ),
@@ -47,7 +47,7 @@ const TripHome = withLoading()(
 );
 const TripComment = withLoading()(
   React.lazy(() =>
-    import('./TripComment/TripComment').then((module) => {
+    import('./TripComment').then((module) => {
       return { default: module.TripComment };
     }),
   ),
@@ -66,7 +66,7 @@ import {
 } from '../Routes/routes';
 import { useTrip } from './store/hooks';
 import type { TripSliceTrip } from './store/types';
-import { TripMenuFloating } from './TripMenuFloating';
+import { TripMenuFloating } from './TripMenu/TripMenuFloating';
 import { TripNavbar } from './TripNavbar/TripNavbar';
 
 export default PageTrip;

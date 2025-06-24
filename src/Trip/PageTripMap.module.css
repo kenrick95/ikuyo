@@ -1,0 +1,5 @@
+.pageMapWrapper {
+  /* Reduce for Navbar (height); then TripMenuFloating (height + border) */
+  --map-height: calc(100vh - var(--space-8) - var(--space-7) - 1px);
+  height: var(--map-height);
+}

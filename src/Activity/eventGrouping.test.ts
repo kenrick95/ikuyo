@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'vitest';
 import { AccommodationDisplayTimeMode } from '../Accommodation/AccommodationDisplayTimeMode';
-import { TripUserRole } from '../data/TripUserRole';
 import type {
   TripSliceAccommodation,
   TripSliceActivity,
   TripSliceTrip,
 } from '../Trip/store/types';
 import { TripSharingLevel } from '../Trip/tripSharingLevel';
+import { TripUserRole } from '../User/TripUserRole';
 import { groupActivitiesByDays } from './eventGrouping';
 
 describe('Trip', () => {

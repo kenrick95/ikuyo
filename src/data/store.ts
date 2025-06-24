@@ -1,13 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { createUserSlice, type UserSlice } from '../Auth/store';
+import { useDeepEqual } from '../common/useDeepEqual';
 import { createDialogSlice, type DialogSlice } from '../Dialog/hooks';
 import { createToastSlice, type ToastSlice } from '../Toast/hooks';
 import { createTripSlice } from '../Trip/store/store';
 import type { TripSlice } from '../Trip/store/types';
 import { createTripsSlice, type TripsSlice } from '../Trips/store';
 import { createThemeSlice, type ThemeSlice } from '../theme/store';
-import { useDeepEqual } from './useDeepEqual';
 
 export type BoundStoreType = ToastSlice &
   UserSlice &

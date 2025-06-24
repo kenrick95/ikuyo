@@ -13,12 +13,12 @@ import { Link } from 'wouter';
 import { Comment } from '../Comment/Comment';
 import { REGIONS_MAP, type RegionCode } from '../data/intl/regions';
 import { useBoundStore } from '../data/store';
-import { TripUserRole } from '../data/TripUserRole';
+import { TripMap } from '../Map/TripMap';
 import { RouteTripComment } from '../Routes/routes';
-import { TripMap } from '../TripMap/TripMap';
+import { TripUserRole } from '../User/TripUserRole';
 import { useCurrentTrip, useTripAllCommentsWithLimit } from './store/hooks';
-import { TripEditDialog } from './TripEditDialog';
-import { TripSharingDialog } from './TripSharingDialog';
+import { TripEditDialog } from './TripDialog/TripEditDialog';
+import { TripSharingDialog } from './TripDialog/TripSharingDialog';
 import { TripStatusBadge } from './TripStatusBadge';
 import { formatTripDateRange } from './time';
 

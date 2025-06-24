@@ -8,9 +8,9 @@ import type {
 import type { DbActivity, DbActivityWithTrip } from '../Activity/db';
 import type { DbCommentGroup, DbCommentGroupObjectType } from '../Comment/db';
 import { db } from '../data/db';
-import { TripUserRole } from '../data/TripUserRole';
 import type { DbUser } from '../data/types';
 import type { DbMacroplan, DbMacroplanWithTrip } from '../Macroplan/db';
+import { TripUserRole } from '../User/TripUserRole';
 import type { TripSliceActivity, TripSliceTrip } from './store/types';
 import type { TripSharingLevelType } from './tripSharingLevel';
 

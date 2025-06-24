@@ -9,12 +9,12 @@ import { DateTime } from 'luxon';
 import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { useShouldDisableDragAndDrop } from '../common/deviceUtils';
+import { dangerToken } from '../common/ui';
 import { useTripTimetableDragging } from '../Trip/store/hooks';
 import type { TripSliceActivityWithTime } from '../Trip/store/types';
 import { TripViewMode, type TripViewModeType } from '../Trip/TripViewMode';
-import { dangerToken } from '../ui';
 import style from './Activity.module.css';
-import { useActivityDialogHooks } from './activityDialogHooks';
+import { useActivityDialogHooks } from './ActivityDialog/activityDialogHooks';
 import { formatTime } from './time';
 
 function ActivityInner({

@@ -1,8 +1,8 @@
 import { setUser } from '@sentry/react';
 import type { StateCreator } from 'zustand';
-import { db, dbUpsertUser } from '../data/db';
+import { db } from '../data/db';
 import type { BoundStoreType } from '../data/store';
-import type { DbUser } from '../data/types';
+import { type DbUser, dbUpsertUser } from '../User/db';
 
 export interface UserSlice {
   subscribeUser: () => () => void;
@@ -138,7 +138,9 @@ export const createUserSlice: StateCreator<
       );
 
       return () => {
-        unsubscribeFns.forEach((fn) => fn());
+        unsubscribeFns.forEach((fn) => {
+          fn();
+        });
       };
     },
     setCurrentUser: (user) => {

@@ -9,11 +9,11 @@ import {
 import { useCallback, useId, useState } from 'react';
 import type { RouteComponentProps } from 'wouter';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
-import { dbUpsertUser } from '../data/db';
+import { dangerToken } from '../common/ui';
 import { useBoundStore, useDeepBoundStore } from '../data/store';
 import { DocTitle } from '../Nav/DocTitle';
 import { Navbar } from '../Nav/Navbar';
-import { dangerToken } from '../ui';
+import { dbUpsertUser } from '../User/db';
 
 export default PageAccount;
 export function PageAccount(_props: RouteComponentProps) {

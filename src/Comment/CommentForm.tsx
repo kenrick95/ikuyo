@@ -1,9 +1,9 @@
 import { Box, Button, Flex, Text, TextArea } from '@radix-ui/themes';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { UserAvatar } from '../Auth/UserAvatar';
+import { dangerToken } from '../common/ui';
 import { useBoundStore } from '../data/store';
 import type { DbUser } from '../data/types';
-import { dangerToken } from '../ui';
 import { CommentMode, type CommentModeType } from './CommentMode';
 import {
   type DbCommentGroupObjectType,

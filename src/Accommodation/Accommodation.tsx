@@ -3,12 +3,12 @@ import { Box, ContextMenu, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'wouter';
+import { dangerToken } from '../common/ui';
 import type { TripSliceAccommodation } from '../Trip/store/types';
 import { TripViewMode, type TripViewModeType } from '../Trip/TripViewMode';
-import { dangerToken } from '../ui';
 import s from './Accommodation.module.css';
+import { useAccommodationDialogHooks } from './AccommodationDialog/accommodationDialogHooks';
 import { AccommodationDisplayTimeMode } from './AccommodationDisplayTimeMode';
-import { useAccommodationDialogHooks } from './accommodationDialogHooks';
 import { formatTime } from './time';
 
 function AccommodationInner({

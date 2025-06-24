@@ -12,7 +12,7 @@ import {
   RouteTripTimetableView,
 } from '../../Routes/routes';
 import { useCurrentTrip } from '../store/hooks';
-import { TripMenu } from '../TripMenu';
+import { TripMenu } from '../TripMenu/TripMenu';
 import s from './TripNavbar.module.css';
 
 export function TripNavbar() {

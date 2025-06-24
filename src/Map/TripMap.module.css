@@ -1,0 +1,55 @@
+.mapWrapper {
+  position: relative;
+  /* Reduce for Navbar (height); then TripMenuFloating (height + border) */
+  --map-height: calc(100vh - var(--space-8) - var(--space-7) - 1px);
+  height: 100%;
+  max-height: var(--map-height);
+  width: 100%;
+}
+@media (min-width: 520px) {
+  .mapWrapper {
+    /* Reduce for Navbar (height) */
+    --map-height: calc(100vh - var(--space-8));
+  }
+  .pageMapWrapper {
+    /* Reduce for Navbar (height) */
+    --map-height: calc(100vh - var(--space-8));
+  }
+}
+
+.map {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+.popup:global(.maplibregl-popup-anchor-bottom) :global(.maplibregl-popup-tip),
+.popup:global(.maplibregl-popup-anchor-bottom-right)
+  :global(.maplibregl-popup-tip),
+.popup:global(.maplibregl-popup-anchor-bottom-left)
+  :global(.maplibregl-popup-tip) {
+  border-top-color: var(--color-panel-solid);
+}
+.popup:global(.maplibregl-popup-anchor-top) :global(.maplibregl-popup-tip),
+.popup:global(.maplibregl-popup-anchor-top-right)
+  :global(.maplibregl-popup-tip),
+.popup:global(.maplibregl-popup-anchor-top-left)
+  :global(.maplibregl-popup-tip) {
+  border-bottom-color: var(--color-panel-solid);
+}
+.popup:global(.maplibregl-popup-anchor-right) :global(.maplibregl-popup-tip) {
+  border-left-color: var(--color-panel-solid);
+}
+.popup:global(.maplibregl-popup-anchor-left) :global(.maplibregl-popup-tip) {
+  border-right-color: var(--color-panel-solid);
+}
+.popup > :global(.maplibregl-popup-content) {
+  padding: var(--space-2);
+  border-radius: var(--radius-2);
+  margin: 0;
+  background: var(--color-panel-solid);
+}
+
+.description {
+  word-break: break-all;
+  white-space: pre-wrap;
+}

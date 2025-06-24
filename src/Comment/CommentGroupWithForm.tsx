@@ -1,8 +1,8 @@
 import { Spinner, Text } from '@radix-ui/themes';
 import { useMemo } from 'react';
-import { TripUserRole } from '../data/TripUserRole';
 import type { DbUser } from '../data/types';
 import { useTrip, useTripCommentGroup } from '../Trip/store/hooks';
+import { TripUserRole } from '../User/TripUserRole';
 import { CommentForm } from './CommentForm';
 import { CommentGroup } from './CommentGroup';
 import { CommentMode } from './CommentMode';

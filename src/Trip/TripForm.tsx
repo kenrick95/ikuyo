@@ -1,12 +1,12 @@
 import { Button, Flex, Select, Text, TextField } from '@radix-ui/themes';
 import { useCallback, useId, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
+import { dangerToken } from '../common/ui';
 import { getDefaultCurrencyForRegion } from '../data/intl/currencies';
 import { REGIONS_LIST } from '../data/intl/regions';
 import { getDefaultTimezoneForRegion } from '../data/intl/timezones';
 import { useBoundStore } from '../data/store';
 import { RouteTrip } from '../Routes/routes';
-import { dangerToken } from '../ui';
 import { dbAddTrip, dbUpdateTrip } from './db';
 import type { TripSliceActivity } from './store/types';
 import { TripFormMode } from './TripFormMode';
