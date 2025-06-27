@@ -84,10 +84,10 @@ export function ActivityIdea({
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger>
+        {/** biome-ignore lint/a11y/useSemanticElements: <Box> need to be a <div> */}
         <Box
           p={{ initial: '1' }}
           as="div"
-          // biome-ignore lint/a11y/useSemanticElements: <Box> need to be a <div>
           role="button"
           className={clsx(
             s.activityCard,
