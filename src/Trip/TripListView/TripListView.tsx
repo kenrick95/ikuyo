@@ -1,5 +1,6 @@
 import { ContextMenu, Flex, Heading } from '@radix-ui/themes';
-import { useCallback, useMemo } from 'react';
+import { DateTime } from 'luxon';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Route, Switch } from 'wouter';
 import { Accommodation } from '../../Accommodation/Accommodation';
 import { AccommodationDialog } from '../../Accommodation/AccommodationDialog/AccommodationDialog';
@@ -23,6 +24,7 @@ import {
   RouteTripListViewMacroplan,
 } from '../../Routes/routes';
 import { TripUserRole } from '../../User/TripUserRole';
+import { getTripStatus } from '../getTripStatus';
 import {
   useCurrentTrip,
   useTripAccommodations,
@@ -46,6 +48,14 @@ export function TripListView() {
     );
   }, [trip?.currentUserRole]);
 
+  // Ref for the list container to enable scrolling
+  const listContainerRef = useRef<HTMLDivElement>(null);
+
+  // State to track if we've already scrolled for this trip to prevent repeated scrolling
+  const [hasScrolledForTrip, setHasScrolledForTrip] = useState<string | null>(
+    null,
+  );
+
   const dayGroups = useMemo(() => {
     if (!trip || !activities || !tripAccommodations || !tripMacroplans)
       return {
@@ -59,6 +69,82 @@ export function TripListView() {
       macroplans: tripMacroplans,
     });
   }, [trip, activities, tripAccommodations, tripMacroplans]);
+
+  // Auto-scroll to current day section when trip is in progress
+  useEffect(() => {
+    if (!trip || !listContainerRef.current) return;
+
+    // Check if we've already scrolled for this trip
+    if (hasScrolledForTrip === trip.id) return;
+
+    const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
+      trip.timeZone,
+    );
+    const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd).setZone(
+      trip.timeZone,
+    );
+    const tripStatus = getTripStatus(tripStartDateTime, tripEndDateTime);
+
+    // Only auto-scroll if trip is currently in progress
+    if (tripStatus?.status !== 'current') return;
+
+    const now = DateTime.now().setZone(trip.timeZone);
+    const currentDay =
+      Math.floor(now.diff(tripStartDateTime.startOf('day'), 'days').days) + 1;
+
+    // Ensure the current day is within the valid range
+    const clampedDay = Math.max(
+      1,
+      Math.min(currentDay, dayGroups.inTrip.length),
+    );
+
+    // Delay scroll to ensure elements are rendered
+    const scrollToCurrentDay = () => {
+      if (!listContainerRef.current) return;
+
+      // Find the heading for the current day (dayGroups.inTrip is 0-indexed, but we use 1-based day numbers)
+      const currentDayGroup = dayGroups.inTrip[clampedDay - 1];
+      if (!currentDayGroup) return;
+
+      // Find the heading element using the data-date attribute
+      const formattedDate =
+        currentDayGroup.startDateTime.toFormat('yyyy-MM-dd');
+      const targetElement = listContainerRef.current.querySelector(
+        `div[data-date="${formattedDate}"]`,
+      ) as HTMLElement;
+
+      if (targetElement) {
+        const containerRect = listContainerRef.current.getBoundingClientRect();
+        const targetRect = targetElement.getBoundingClientRect();
+
+        // Calculate the scroll position
+        const scrollTop =
+          listContainerRef.current.scrollTop +
+          (targetRect.top - containerRect.top);
+
+        // Scroll the container to the calculated position
+        listContainerRef.current.scrollTo({
+          top: Math.max(0, scrollTop),
+          behavior: 'smooth',
+        });
+
+        // Mark this trip as having been scrolled
+        setHasScrolledForTrip(trip.id);
+      }
+    };
+
+    // Small delay to ensure all elements are rendered
+    const timeoutId = setTimeout(scrollToCurrentDay, 100);
+    return () => clearTimeout(timeoutId);
+  }, [trip, dayGroups.inTrip, hasScrolledForTrip]);
+
+  // Reset scroll state when trip changes
+  useEffect(() => {
+    if (trip && hasScrolledForTrip && hasScrolledForTrip !== trip.id) {
+      setHasScrolledForTrip(null);
+    }
+  }, [trip, hasScrolledForTrip]);
+
   const pushDialog = useBoundStore((state) => state.pushDialog);
   const openActivityNewDialog = useCallback(() => {
     if (!trip) return;
@@ -88,6 +174,7 @@ export function TripListView() {
         <ContextMenu.Root>
           <ContextMenu.Trigger>
             <Flex
+              ref={listContainerRef}
               className={s.list}
               direction="column"
               gap="2"
@@ -136,16 +223,30 @@ export function TripListView() {
                 </>
               ) : null}
               {dayGroups.inTrip.map((dayGroup) => {
+                const dayActivities = Object.values(dayGroup.activities);
+                const dayMacroplans = Object.values(dayGroup.macroplans);
+                const dayAccommodations = Object.values(
+                  dayGroup.accommodations,
+                );
+                const date = dayGroup.startDateTime.toFormat('yyyy-MM-dd');
+
                 return [
+                  // Dummy element as scroll target
+                  <div
+                    key={`dummy-${date}`}
+                    className={s.listItem}
+                    style={{ height: '0', visibility: 'hidden' }}
+                    data-date={date}
+                  />,
                   <Heading
-                    key={dayGroup.startDateTime.toISO()}
+                    key={date}
                     as="h2"
                     size="4"
                     className={s.listSubheader}
                   >
                     {dayGroup.startDateTime.toFormat('cccc, dd LLLL yyyy')}
                   </Heading>,
-                  ...Object.values(dayGroup.macroplans).map((macroplan, i) => {
+                  ...dayMacroplans.map((macroplan, i) => {
                     return (
                       <Macroplan
                         key={`${macroplan.id}-${String(i)}`}
@@ -156,25 +257,23 @@ export function TripListView() {
                       />
                     );
                   }),
-                  ...Object.values(dayGroup.accommodations).map(
-                    (accommodation, i) => {
-                      const props = dayGroup.accommodationProps.get(
-                        accommodation.id,
-                      );
-                      return (
-                        <Accommodation
-                          key={`${accommodation.id}-${String(i)}`}
-                          accommodation={accommodation}
-                          tripViewMode={TripViewMode.List}
-                          className={s.listItem}
-                          timeZone={trip?.timeZone ?? ''}
-                          userCanEditOrDelete={userCanEditOrDelete}
-                          {...props}
-                        />
-                      );
-                    },
-                  ),
-                  ...Object.values(dayGroup.activities).map((activity) => {
+                  ...dayAccommodations.map((accommodation, i) => {
+                    const props = dayGroup.accommodationProps.get(
+                      accommodation.id,
+                    );
+                    return (
+                      <Accommodation
+                        key={`${accommodation.id}-${String(i)}`}
+                        accommodation={accommodation}
+                        tripViewMode={TripViewMode.List}
+                        className={s.listItem}
+                        timeZone={trip?.timeZone ?? ''}
+                        userCanEditOrDelete={userCanEditOrDelete}
+                        {...props}
+                      />
+                    );
+                  }),
+                  ...dayActivities.map((activity) => {
                     const columnIndex = dayGroup.activityColumnIndexMap.get(
                       activity.id,
                     );
