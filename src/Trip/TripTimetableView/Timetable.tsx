@@ -7,8 +7,9 @@ import {
 } from '@radix-ui/react-icons';
 import { IconButton, Section, Text, Tooltip } from '@radix-ui/themes';
 import clsx from 'clsx';
+import { DateTime } from 'luxon';
 import type * as React from 'react';
-import { memo, useCallback, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Route, Switch } from 'wouter';
 import { Accommodation } from '../../Accommodation/Accommodation';
 import { AccommodationDialog } from '../../Accommodation/AccommodationDialog/AccommodationDialog';
@@ -29,6 +30,7 @@ import {
   RouteTripTimetableViewMacroplan,
 } from '../../Routes/routes';
 import { TripUserRole } from '../../User/TripUserRole';
+import { getTripStatus } from '../getTripStatus';
 import { IdeaSidebar } from '../Ideas/IdeaSidebar';
 import {
   useCurrentTrip,
@@ -122,6 +124,108 @@ export function Timetable() {
   }, [dayGroups]);
   const timetableRef = useRef<HTMLDivElement>(null);
   const publishToast = useBoundStore((state) => state.publishToast);
+
+  const [hasScrolled, setHasScrolled] = useState(false);
+
+  // Auto-scroll to current day and hour when trip is in progress
+  useEffect(() => {
+    if (
+      !trip?.timeZone ||
+      !trip?.timestampStart ||
+      !trip?.timestampEnd ||
+      !timetableRef.current ||
+      hasScrolled // Prevent auto-scroll if already scrolled
+    )
+      return;
+
+    const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
+      trip.timeZone,
+    );
+    const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd).setZone(
+      trip.timeZone,
+    );
+    const tripStatus = getTripStatus(tripStartDateTime, tripEndDateTime);
+
+    // Only auto-scroll if trip is currently in progress
+    if (tripStatus?.status !== 'current') return;
+
+    const now = DateTime.now().setZone(trip.timeZone);
+    const currentHour = now.hour;
+    const currentDay =
+      Math.floor(now.diff(tripStartDateTime.startOf('day'), 'days').days) + 1;
+
+    // Ensure the current day is within the valid range (1 to number of days in trip)
+    const clampedDay = Math.max(
+      1,
+      Math.min(currentDay, dayGroups.inTrip.length),
+    );
+
+    // Delay scroll to ensure elements are rendered
+    const scrollToPosition = () => {
+      if (!timetableRef.current) return;
+
+      let targetElement = null;
+      // Find a grid cell for the current day and hour (look for the first column of the day)
+      const currentDayGridCell = timetableRef.current.querySelector(
+        `[data-grid-column="d${clampedDay}-c1"][data-grid-row="t${currentHour.toString().padStart(2, '0')}00"]`,
+      );
+      if (currentDayGridCell) {
+        targetElement = currentDayGridCell;
+      } else {
+        // Fallback: look for any cell in the current day if the exact hour doesn't exist
+        const fallbackDayCell = timetableRef.current.querySelector(
+          `[data-grid-column="d${clampedDay}-c1"]`,
+        );
+        if (fallbackDayCell) {
+          targetElement = fallbackDayCell;
+        } else {
+          // Fallback: look for any cell at the current hour if the day doesn't exist
+          const fallbackHourCell = timetableRef.current.querySelector(
+            `[data-grid-row="t${currentHour.toString().padStart(2, '0')}00"]`,
+          );
+
+          if (fallbackHourCell) {
+            targetElement = fallbackHourCell;
+          }
+        }
+      }
+
+      if (targetElement) {
+        const targetRect = targetElement.getBoundingClientRect();
+        const containerRect = timetableRef.current.getBoundingClientRect();
+
+        // Calculate scroll positions to center the target element
+        const scrollLeft =
+          timetableRef.current.scrollLeft +
+          targetRect.left -
+          containerRect.left -
+          containerRect.width / 3;
+        const scrollTop =
+          timetableRef.current.scrollTop +
+          targetRect.top -
+          containerRect.top -
+          containerRect.height / 3;
+
+        // Smooth scroll to the current position
+        timetableRef.current.scrollTo({
+          left: Math.max(0, scrollLeft),
+          top: Math.max(0, scrollTop),
+          behavior: 'smooth',
+        });
+        setHasScrolled(true); // Mark that we have scrolled
+      }
+    };
+
+    // Small delay to ensure all elements are rendered
+    const timeoutId = setTimeout(scrollToPosition, 100);
+    return () => clearTimeout(timeoutId);
+  }, [
+    trip?.timeZone,
+    trip?.timestampEnd,
+    trip?.timestampStart,
+    dayGroups.inTrip.length,
+    hasScrolled,
+  ]); // Re-run when trip changes or days change
 
   const userCanModifyTrip = useMemo(() => {
     return (

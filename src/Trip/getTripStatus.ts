@@ -134,7 +134,7 @@ export function getTripStatus(tripStart?: DateTime, tripEnd?: DateTime) {
     const formattedText = formatTimeParts(parts, minutes, true);
 
     return {
-      status: 'upcoming',
+      status: 'upcoming' as const,
       text:
         formattedText === 'Starting soon'
           ? formattedText
@@ -147,7 +147,7 @@ export function getTripStatus(tripStart?: DateTime, tripEnd?: DateTime) {
       Math.floor(now.diff(tripStart.startOf('day'), 'days').days) + 1;
     const totalDays = Math.ceil(tripEnd.diff(tripStart, 'days').days);
     return {
-      status: 'current',
+      status: 'current' as const,
       text: `Trip in progress: Day ${currentDay} of ${totalDays}`,
       color: 'green' as const,
     };
@@ -181,7 +181,7 @@ export function getTripStatus(tripStart?: DateTime, tripEnd?: DateTime) {
     const formattedText = formatTimeParts(parts, minutes, false);
 
     return {
-      status: 'past',
+      status: 'past' as const,
       text: formattedText,
       color: 'gray' as const,
     };
