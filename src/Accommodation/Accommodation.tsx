@@ -104,65 +104,60 @@ function AccommodationInner({
   }, [openAccommodationDeleteDialog]);
 
   return (
-    <>
-      <ContextMenu.Root>
-        {' '}
-        <ContextMenu.Trigger>
-          <Box
-            p={{ initial: '1' }}
-            as="div"
-            // biome-ignore lint/a11y/useSemanticElements: <Box> need to be a <div>
-            role="button"
-            tabIndex={0}
-            ref={accommodationRef}
-            className={clsx(s.accommodation, className)}
-            style={style}
-            onClick={handleClick}
-            onKeyDown={handleKeyDown}
-            onKeyUp={handleKeyUp}
-          >
-            <Text as="div" size={responsiveTextSize} weight="bold">
-              <HomeIcon style={{ verticalAlign: '-3px' }} />{' '}
-              {accommodation.name}
+    <ContextMenu.Root>
+      <ContextMenu.Trigger>
+        {/** biome-ignore lint/a11y/useSemanticElements: <Box> need to be a <div> */}
+        <Box
+          p={{ initial: '1' }}
+          as="div"
+          role="button"
+          tabIndex={0}
+          ref={accommodationRef}
+          className={clsx(s.accommodation, className)}
+          style={style}
+          onClick={handleClick}
+          onKeyDown={handleKeyDown}
+          onKeyUp={handleKeyUp}
+        >
+          <Text as="div" size={responsiveTextSize} weight="bold">
+            <HomeIcon style={{ verticalAlign: '-3px' }} /> {accommodation.name}
+          </Text>
+          {tripViewMode === TripViewMode.List &&
+          (displayTimeMode === AccommodationDisplayTimeMode.CheckIn ||
+            displayTimeMode === AccommodationDisplayTimeMode.CheckOut) ? (
+            <Text as="div" size={responsiveTextSize} color="gray">
+              <ClockIcon style={{ verticalAlign: '-2px' }} /> {displayTimeMode}:{' '}
+              {formatTime(
+                displayTimeMode === AccommodationDisplayTimeMode.CheckIn
+                  ? accommodation.timestampCheckIn
+                  : accommodation.timestampCheckOut,
+                timeZone,
+              )}
             </Text>
-            {tripViewMode === TripViewMode.List &&
-            (displayTimeMode === AccommodationDisplayTimeMode.CheckIn ||
-              displayTimeMode === AccommodationDisplayTimeMode.CheckOut) ? (
-              <Text as="div" size={responsiveTextSize} color="gray">
-                <ClockIcon style={{ verticalAlign: '-2px' }} />{' '}
-                {displayTimeMode}:{' '}
-                {formatTime(
-                  displayTimeMode === AccommodationDisplayTimeMode.CheckIn
-                    ? accommodation.timestampCheckIn
-                    : accommodation.timestampCheckOut,
-                  timeZone,
-                )}
-              </Text>
-            ) : null}
-          </Box>
-        </ContextMenu.Trigger>{' '}
-        <ContextMenu.Content>
-          <ContextMenu.Label>{accommodation.name}</ContextMenu.Label>
-          <ContextMenu.Item onClick={handleContextMenuView}>
-            View
-          </ContextMenu.Item>
-          <ContextMenu.Item
-            onClick={userCanEditOrDelete ? handleContextMenuEdit : undefined}
-            disabled={!userCanEditOrDelete}
-          >
-            Edit
-          </ContextMenu.Item>
-          <ContextMenu.Separator />
-          <ContextMenu.Item
-            color={dangerToken}
-            onClick={userCanEditOrDelete ? handleContextMenuDelete : undefined}
-            disabled={!userCanEditOrDelete}
-          >
-            Delete
-          </ContextMenu.Item>
-        </ContextMenu.Content>
-      </ContextMenu.Root>
-    </>
+          ) : null}
+        </Box>
+      </ContextMenu.Trigger>{' '}
+      <ContextMenu.Content>
+        <ContextMenu.Label>{accommodation.name}</ContextMenu.Label>
+        <ContextMenu.Item onClick={handleContextMenuView}>
+          View
+        </ContextMenu.Item>
+        <ContextMenu.Item
+          onClick={userCanEditOrDelete ? handleContextMenuEdit : undefined}
+          disabled={!userCanEditOrDelete}
+        >
+          Edit
+        </ContextMenu.Item>
+        <ContextMenu.Separator />
+        <ContextMenu.Item
+          color={dangerToken}
+          onClick={userCanEditOrDelete ? handleContextMenuDelete : undefined}
+          disabled={!userCanEditOrDelete}
+        >
+          Delete
+        </ContextMenu.Item>
+      </ContextMenu.Content>
+    </ContextMenu.Root>
   );
 }
 export const Accommodation = memo(

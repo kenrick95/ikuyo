@@ -171,101 +171,99 @@ function ActivityInner({
   }, [openActivityDeleteDialog]);
 
   return (
-    <>
-      <ContextMenu.Root>
-        <ContextMenu.Trigger>
-          <Box
-            p={{ initial: '1' }}
-            as="div"
-            // biome-ignore lint/a11y/useSemanticElements: <Box> need to be a <div>
-            role="button"
-            tabIndex={0}
-            ref={activityRef}
-            className={clsx(
-              style.activity,
-              isActivityOngoing ? style.activityOngoing : '',
-              timetableDragging.dragging &&
-                timetableDragging.source.activityId === activity.id
-                ? style.activityDragging
-                : '',
-              className,
-            )}
-            onClick={handleClick}
-            onKeyDown={handleKeyDown}
-            onKeyUp={handleKeyUp}
-            draggable={
-              tripViewMode === TripViewMode.Timetable &&
-              userCanEditOrDelete &&
-              !isDragAndDropDisabled
-            }
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            style={{
-              gridRowStart: `t${timeStart}`,
-              gridRowEnd: `te${timeEnd}`,
-              gridColumnStart: `d${String(dayStart)}-c${String(columnIndex)}`,
-              gridColumnEnd:
-                columnIndex === columnEndIndex
-                  ? undefined
-                  : `de${String(dayEnd)}`,
-            }}
-          >
-            {tripViewMode === TripViewMode.List ? (
-              <Text as="div" size={responsiveTextSize} color="gray">
-                <ClockIcon style={{ verticalAlign: '-2px' }} /> {timeStart} -{' '}
-                {timeEnd}
-              </Text>
-            ) : null}
-
-            <Text as="div" size={responsiveTextSize} weight="bold">
-              {activity.title}
+    <ContextMenu.Root>
+      <ContextMenu.Trigger>
+        {/** biome-ignore lint/a11y/useSemanticElements: <Box> need to be a <div> */}
+        <Box
+          p={{ initial: '1' }}
+          as="div"
+          role="button"
+          tabIndex={0}
+          ref={activityRef}
+          className={clsx(
+            style.activity,
+            isActivityOngoing ? style.activityOngoing : '',
+            timetableDragging.dragging &&
+              timetableDragging.source.activityId === activity.id
+              ? style.activityDragging
+              : '',
+            className,
+          )}
+          onClick={handleClick}
+          onKeyDown={handleKeyDown}
+          onKeyUp={handleKeyUp}
+          draggable={
+            tripViewMode === TripViewMode.Timetable &&
+            userCanEditOrDelete &&
+            !isDragAndDropDisabled
+          }
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          style={{
+            gridRowStart: `t${timeStart}`,
+            gridRowEnd: `te${timeEnd}`,
+            gridColumnStart: `d${String(dayStart)}-c${String(columnIndex)}`,
+            gridColumnEnd:
+              columnIndex === columnEndIndex
+                ? undefined
+                : `de${String(dayEnd)}`,
+          }}
+        >
+          {tripViewMode === TripViewMode.List ? (
+            <Text as="div" size={responsiveTextSize} color="gray">
+              <ClockIcon style={{ verticalAlign: '-2px' }} /> {timeStart} -{' '}
+              {timeEnd}
             </Text>
+          ) : null}
 
-            {activity.location ? (
-              <Text as="div" size={responsiveTextSize} color="gray">
-                <SewingPinIcon style={{ verticalAlign: '-2px' }} />{' '}
-                {activity.location}
-                {activity.locationDestination
-                  ? ` → ${activity.locationDestination}`
-                  : null}
-              </Text>
-            ) : null}
+          <Text as="div" size={responsiveTextSize} weight="bold">
+            {activity.title}
+          </Text>
 
-            {activity.description ? (
-              <Text
-                as="div"
-                size={responsiveTextSize}
-                color="gray"
-                className={style.activityDescription}
-              >
-                <InfoCircledIcon style={{ verticalAlign: '-2px' }} />{' '}
-                {activity.description}
-              </Text>
-            ) : null}
-          </Box>
-        </ContextMenu.Trigger>
-        <ContextMenu.Content>
-          <ContextMenu.Label>{activity.title}</ContextMenu.Label>
-          <ContextMenu.Item onClick={handleContextMenuView}>
-            View
-          </ContextMenu.Item>
-          <ContextMenu.Item
-            onClick={userCanEditOrDelete ? handleContextMenuEdit : undefined}
-            disabled={!userCanEditOrDelete}
-          >
-            Edit
-          </ContextMenu.Item>
-          <ContextMenu.Separator />
-          <ContextMenu.Item
-            color={dangerToken}
-            onClick={userCanEditOrDelete ? handleContextMenuDelete : undefined}
-            disabled={!userCanEditOrDelete}
-          >
-            Delete
-          </ContextMenu.Item>
-        </ContextMenu.Content>
-      </ContextMenu.Root>
-    </>
+          {activity.location ? (
+            <Text as="div" size={responsiveTextSize} color="gray">
+              <SewingPinIcon style={{ verticalAlign: '-2px' }} />{' '}
+              {activity.location}
+              {activity.locationDestination
+                ? ` → ${activity.locationDestination}`
+                : null}
+            </Text>
+          ) : null}
+
+          {activity.description ? (
+            <Text
+              as="div"
+              size={responsiveTextSize}
+              color="gray"
+              className={style.activityDescription}
+            >
+              <InfoCircledIcon style={{ verticalAlign: '-2px' }} />{' '}
+              {activity.description}
+            </Text>
+          ) : null}
+        </Box>
+      </ContextMenu.Trigger>
+      <ContextMenu.Content>
+        <ContextMenu.Label>{activity.title}</ContextMenu.Label>
+        <ContextMenu.Item onClick={handleContextMenuView}>
+          View
+        </ContextMenu.Item>
+        <ContextMenu.Item
+          onClick={userCanEditOrDelete ? handleContextMenuEdit : undefined}
+          disabled={!userCanEditOrDelete}
+        >
+          Edit
+        </ContextMenu.Item>
+        <ContextMenu.Separator />
+        <ContextMenu.Item
+          color={dangerToken}
+          onClick={userCanEditOrDelete ? handleContextMenuDelete : undefined}
+          disabled={!userCanEditOrDelete}
+        >
+          Delete
+        </ContextMenu.Item>
+      </ContextMenu.Content>
+    </ContextMenu.Root>
   );
 }
 

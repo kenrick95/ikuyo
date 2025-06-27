@@ -98,50 +98,47 @@ function MacroplanInner({
   }, [openMacroplanDeleteDialog]);
 
   return (
-    <>
-      <ContextMenu.Root>
-        {' '}
-        <ContextMenu.Trigger>
-          <Box
-            p={{ initial: '1' }}
-            as="div"
-            // biome-ignore lint/a11y/useSemanticElements: <Box> need to be a <div>
-            role="button"
-            tabIndex={0}
-            ref={macroplanRef}
-            onKeyDown={handleKeyDown}
-            onKeyUp={handleKeyUp}
-            className={clsx(s.macroplan, className)}
-            style={style}
-            onClick={handleClick}
-          >
-            <Text as="div" size={responsiveTextSize} weight="bold">
-              {macroplan.name}
-            </Text>
-          </Box>
-        </ContextMenu.Trigger>{' '}
-        <ContextMenu.Content>
-          <ContextMenu.Label>{macroplan.name}</ContextMenu.Label>
-          <ContextMenu.Item onClick={handleContextMenuView}>
-            View
-          </ContextMenu.Item>
-          <ContextMenu.Item
-            onClick={userCanEditOrDelete ? handleContextMenuEdit : undefined}
-            disabled={!userCanEditOrDelete}
-          >
-            Edit
-          </ContextMenu.Item>
-          <ContextMenu.Separator />
-          <ContextMenu.Item
-            color={dangerToken}
-            onClick={userCanEditOrDelete ? handleContextMenuDelete : undefined}
-            disabled={!userCanEditOrDelete}
-          >
-            Delete
-          </ContextMenu.Item>
-        </ContextMenu.Content>
-      </ContextMenu.Root>
-    </>
+    <ContextMenu.Root>
+      <ContextMenu.Trigger>
+        {/** biome-ignore lint/a11y/useSemanticElements: <Box> need to be a <div> */}
+        <Box
+          p={{ initial: '1' }}
+          as="div"
+          role="button"
+          tabIndex={0}
+          ref={macroplanRef}
+          onKeyDown={handleKeyDown}
+          onKeyUp={handleKeyUp}
+          className={clsx(s.macroplan, className)}
+          style={style}
+          onClick={handleClick}
+        >
+          <Text as="div" size={responsiveTextSize} weight="bold">
+            {macroplan.name}
+          </Text>
+        </Box>
+      </ContextMenu.Trigger>{' '}
+      <ContextMenu.Content>
+        <ContextMenu.Label>{macroplan.name}</ContextMenu.Label>
+        <ContextMenu.Item onClick={handleContextMenuView}>
+          View
+        </ContextMenu.Item>
+        <ContextMenu.Item
+          onClick={userCanEditOrDelete ? handleContextMenuEdit : undefined}
+          disabled={!userCanEditOrDelete}
+        >
+          Edit
+        </ContextMenu.Item>
+        <ContextMenu.Separator />
+        <ContextMenu.Item
+          color={dangerToken}
+          onClick={userCanEditOrDelete ? handleContextMenuDelete : undefined}
+          disabled={!userCanEditOrDelete}
+        >
+          Delete
+        </ContextMenu.Item>
+      </ContextMenu.Content>
+    </ContextMenu.Root>
   );
 }
 export const Macroplan = memo(MacroplanInner, (prevProps, nextProps) => {
