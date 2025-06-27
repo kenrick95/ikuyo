@@ -162,6 +162,11 @@
     z-index: 2;
   }
 
+  .timetableActive {
+    border-color: var(--accent-indicator);
+    background-color: var(--accent-surface-solid);
+  }
+
   .timetableTime {
     --time-bg: var(--color-panel-solid);
 

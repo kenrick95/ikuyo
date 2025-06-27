@@ -25,6 +25,7 @@
 }
 .activityOngoing {
   border-color: var(--accent-indicator);
+  background-color: var(--accent-surface-solid);
 }
 .activityDragging {
   opacity: 0.6;

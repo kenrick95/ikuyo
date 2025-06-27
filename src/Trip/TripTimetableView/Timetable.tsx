@@ -30,7 +30,6 @@ import {
   RouteTripTimetableViewMacroplan,
 } from '../../Routes/routes';
 import { TripUserRole } from '../../User/TripUserRole';
-import { getTripStatus } from '../getTripStatus';
 import { IdeaSidebar } from '../Ideas/IdeaSidebar';
 import {
   useCurrentTrip,
@@ -106,12 +105,6 @@ export function Timetable() {
   const unscheduledActivitiesCount = dayGroups.outTrip.activities.length;
 
   const isUsingClampedTable = dayGroups.inTrip.length < 5;
-  const timetableStyle = useMemo(() => {
-    return {
-      gridTemplateColumns: generateMainGridTemplateColumns(dayGroups),
-      '--day-count': dayGroups.inTrip.length,
-    };
-  }, [dayGroups]);
   const timetableAccommodationStyle = useMemo(() => {
     return {
       gridTemplateColumns: generateAccommodationGridTemplateColumns(dayGroups),
@@ -130,16 +123,11 @@ export function Timetable() {
     null,
   );
 
-  // Auto-scroll to current day and hour when trip is in progress
-  useEffect(() => {
-    if (
-      !trip?.timeZone ||
-      !trip?.timestampStart ||
-      !trip?.timestampEnd ||
-      !timetableRef.current ||
-      hasScrolledForTrip // Prevent auto-scroll if already scrolled
-    )
-      return;
+  /** Current day number (1-based) */
+  const currentDayIndex = useMemo(() => {
+    if (!trip?.timeZone || !trip?.timestampStart || !trip?.timestampEnd) {
+      return null;
+    }
 
     const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
       trip.timeZone,
@@ -147,21 +135,49 @@ export function Timetable() {
     const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd).setZone(
       trip.timeZone,
     );
-    const tripStatus = getTripStatus(tripStartDateTime, tripEndDateTime);
-
-    // Only auto-scroll if trip is currently in progress
-    if (tripStatus?.status !== 'current') return;
-
     const now = DateTime.now().setZone(trip.timeZone);
-    const currentHour = now.hour;
+
+    if (now < tripStartDateTime || now > tripEndDateTime) {
+      return null;
+    }
+
     const currentDay =
       Math.floor(now.diff(tripStartDateTime.startOf('day'), 'days').days) + 1;
 
-    // Ensure the current day is within the valid range (1 to number of days in trip)
+    // Ensure the current day is within the valid range (1-based index)
     const clampedDay = Math.max(
       1,
       Math.min(currentDay, dayGroups.inTrip.length),
     );
+
+    return clampedDay;
+  }, [trip, dayGroups.inTrip.length]);
+
+  const timetableStyle = useMemo(() => {
+    return {
+      gridTemplateColumns: generateMainGridTemplateColumns(dayGroups),
+      '--day-count': dayGroups.inTrip.length,
+      '--current-day': currentDayIndex || 0,
+    };
+  }, [dayGroups, currentDayIndex]);
+
+  // Auto-scroll to current day and hour when trip is in progress
+  useEffect(() => {
+    if (
+      currentDayIndex == null ||
+      trip?.timeZone == null ||
+      trip?.id == null ||
+      !timetableRef.current
+    ) {
+      return;
+    }
+    // Check if we've already scrolled for this trip
+    if (hasScrolledForTrip === trip.id) {
+      return;
+    }
+
+    const now = DateTime.now().setZone(trip.timeZone);
+    const currentHour = now.hour;
 
     // Delay scroll to ensure elements are rendered
     const scrollToPosition = () => {
@@ -170,14 +186,14 @@ export function Timetable() {
       let targetElement = null;
       // Find a grid cell for the current day and hour (look for the first column of the day)
       const currentDayGridCell = timetableRef.current.querySelector(
-        `[data-grid-column="d${clampedDay}-c1"][data-grid-row="t${currentHour.toString().padStart(2, '0')}00"]`,
+        `[data-grid-column="d${currentDayIndex}-c1"][data-grid-row="t${currentHour.toString().padStart(2, '0')}00"]`,
       );
       if (currentDayGridCell) {
         targetElement = currentDayGridCell;
       } else {
         // Fallback: look for any cell in the current day if the exact hour doesn't exist
         const fallbackDayCell = timetableRef.current.querySelector(
-          `[data-grid-column="d${clampedDay}-c1"]`,
+          `[data-grid-column="d${currentDayIndex}-c1"]`,
         );
         if (fallbackDayCell) {
           targetElement = fallbackDayCell;
@@ -222,7 +238,14 @@ export function Timetable() {
     // Small delay to ensure all elements are rendered
     const timeoutId = setTimeout(scrollToPosition, 100);
     return () => clearTimeout(timeoutId);
-  }, [trip, dayGroups.inTrip.length, hasScrolledForTrip]); // Re-run when trip changes or days change
+  }, [trip?.timeZone, trip?.id, currentDayIndex, hasScrolledForTrip]);
+
+  // Reset scroll state when trip changes
+  useEffect(() => {
+    if (trip && hasScrolledForTrip && hasScrolledForTrip !== trip.id) {
+      setHasScrolledForTrip(null);
+    }
+  }, [trip, hasScrolledForTrip]);
 
   const userCanModifyTrip = useMemo(() => {
     return (
@@ -386,12 +409,15 @@ export function Timetable() {
         <TimetableGrid days={dayGroups.inTrip.length} />
         <TimetableTimeHeader />
         {dayGroups.inTrip.map((dayGroup, i) => {
+          const dayNumber = i + 1;
+          const isCurrentDay = currentDayIndex === dayNumber;
           return (
             <TimetableDayHeader
               dateString={dayGroup.startDateTime.toFormat('ccc, dd LLL yyyy')}
               key={dayGroup.startDateTime.toISODate()}
-              gridColumnStart={`d${String(i + 1)}`}
-              gridColumnEnd={`de${String(i + 1)}`}
+              gridColumnStart={`d${String(dayNumber)}`}
+              gridColumnEnd={`de${String(dayNumber)}`}
+              isActive={isCurrentDay}
             />
           );
         })}
@@ -553,10 +579,12 @@ function TimetableDayHeaderInner({
   dateString,
   gridColumnStart,
   gridColumnEnd,
+  isActive,
 }: {
   dateString: string;
   gridColumnStart: string;
   gridColumnEnd: string;
+  isActive?: boolean;
 }) {
   const style = useMemo(() => {
     return {
@@ -568,7 +596,7 @@ function TimetableDayHeaderInner({
     <Text
       as="div"
       size={{ initial: '1', sm: '3' }}
-      className={s.timetableColumn}
+      className={clsx(s.timetableColumn, isActive && s.timetableActive)}
       style={style}
     >
       {dateString}
@@ -581,7 +609,8 @@ const TimetableDayHeader = memo(
     return (
       prevProps.dateString === nextProps.dateString &&
       prevProps.gridColumnStart === nextProps.gridColumnStart &&
-      prevProps.gridColumnEnd === nextProps.gridColumnEnd
+      prevProps.gridColumnEnd === nextProps.gridColumnEnd &&
+      prevProps.isActive === nextProps.isActive
     );
   },
 );

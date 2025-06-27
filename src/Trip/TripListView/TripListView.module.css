@@ -19,6 +19,10 @@
   padding-left: var(--space-2);
   padding-right: var(--space-2);
 }
+.listSubheaderActive {
+  background-color: var(--accent-surface-solid);
+  border-color: var(--accent-indicator);
+}
 .listItem {
   flex: 0 0 auto;
   margin-left: var(--space-2);

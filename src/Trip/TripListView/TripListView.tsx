@@ -1,4 +1,5 @@
 import { ContextMenu, Flex, Heading } from '@radix-ui/themes';
+import clsx from 'clsx';
 import { DateTime } from 'luxon';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Route, Switch } from 'wouter';
@@ -24,7 +25,6 @@ import {
   RouteTripListViewMacroplan,
 } from '../../Routes/routes';
 import { TripUserRole } from '../../User/TripUserRole';
-import { getTripStatus } from '../getTripStatus';
 import {
   useCurrentTrip,
   useTripAccommodations,
@@ -70,12 +70,11 @@ export function TripListView() {
     });
   }, [trip, activities, tripAccommodations, tripMacroplans]);
 
-  // Auto-scroll to current day section when trip is in progress
-  useEffect(() => {
-    if (!trip || !listContainerRef.current) return;
-
-    // Check if we've already scrolled for this trip
-    if (hasScrolledForTrip === trip.id) return;
+  /** Current day number (1-based) */
+  const currentDayIndex = useMemo(() => {
+    if (!trip?.timeZone || !trip?.timestampStart || !trip?.timestampEnd) {
+      return null;
+    }
 
     const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
       trip.timeZone,
@@ -83,27 +82,44 @@ export function TripListView() {
     const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd).setZone(
       trip.timeZone,
     );
-    const tripStatus = getTripStatus(tripStartDateTime, tripEndDateTime);
-
-    // Only auto-scroll if trip is currently in progress
-    if (tripStatus?.status !== 'current') return;
-
     const now = DateTime.now().setZone(trip.timeZone);
+
+    if (now < tripStartDateTime || now > tripEndDateTime) {
+      return null;
+    }
+
     const currentDay =
       Math.floor(now.diff(tripStartDateTime.startOf('day'), 'days').days) + 1;
 
-    // Ensure the current day is within the valid range
+    // Ensure the current day is within the valid range (1-based index)
     const clampedDay = Math.max(
       1,
       Math.min(currentDay, dayGroups.inTrip.length),
     );
 
+    return clampedDay;
+  }, [trip, dayGroups.inTrip.length]);
+
+  // Auto-scroll to current day section when trip is in progress
+  useEffect(() => {
+    if (
+      currentDayIndex == null ||
+      trip?.id == null ||
+      !listContainerRef.current
+    ) {
+      return;
+    }
+    // Check if we've already scrolled for this trip
+    if (hasScrolledForTrip === trip.id) {
+      return;
+    }
+
     // Delay scroll to ensure elements are rendered
     const scrollToCurrentDay = () => {
       if (!listContainerRef.current) return;
 
-      // Find the heading for the current day (dayGroups.inTrip is 0-indexed, but we use 1-based day numbers)
-      const currentDayGroup = dayGroups.inTrip[clampedDay - 1];
+      // Find the heading for the current day
+      const currentDayGroup = dayGroups.inTrip[currentDayIndex - 1];
       if (!currentDayGroup) return;
 
       // Find the heading element using the data-date attribute
@@ -136,7 +152,7 @@ export function TripListView() {
     // Small delay to ensure all elements are rendered
     const timeoutId = setTimeout(scrollToCurrentDay, 100);
     return () => clearTimeout(timeoutId);
-  }, [trip, dayGroups.inTrip, hasScrolledForTrip]);
+  }, [trip, hasScrolledForTrip, currentDayIndex, dayGroups.inTrip]);
 
   // Reset scroll state when trip changes
   useEffect(() => {
@@ -222,13 +238,15 @@ export function TripListView() {
                   })}
                 </>
               ) : null}
-              {dayGroups.inTrip.map((dayGroup) => {
+              {dayGroups.inTrip.map((dayGroup, i) => {
                 const dayActivities = Object.values(dayGroup.activities);
                 const dayMacroplans = Object.values(dayGroup.macroplans);
                 const dayAccommodations = Object.values(
                   dayGroup.accommodations,
                 );
                 const date = dayGroup.startDateTime.toFormat('yyyy-MM-dd');
+                const dayNumber = i + 1;
+                const isCurrentDay = currentDayIndex === dayNumber;
 
                 return [
                   // Dummy element as scroll target
@@ -242,7 +260,10 @@ export function TripListView() {
                     key={date}
                     as="h2"
                     size="4"
-                    className={s.listSubheader}
+                    className={clsx(
+                      s.listSubheader,
+                      isCurrentDay && s.listSubheaderActive,
+                    )}
                   >
                     {dayGroup.startDateTime.toFormat('cccc, dd LLLL yyyy')}
                   </Heading>,

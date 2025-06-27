@@ -31,6 +31,8 @@
   --red-surface: #fff6f5cc;
   --red-indicator: #de200e;
   --red-track: #de200e;
+
+  --accent-surface-solid: #fff6f5;
 }
 
 @supports (color: color(display-p3 1 1 1)) {
@@ -68,6 +70,8 @@
       --red-surface: color(display-p3 0.9961 0.9647 0.9608 / 0.8);
       --red-indicator: oklch(57.6% 0.222 30.16);
       --red-track: oklch(57.6% 0.222 30.16);
+
+      --accent-surface-solid: color(display-p3 0.9961 0.9647 0.9608);
     }
   }
 }
@@ -177,6 +181,8 @@
   --red-surface: #2f171380;
   --red-indicator: #de200e;
   --red-track: #de200e;
+
+  --accent-surface-solid: #2f1713;
 }
 
 @supports (color: color(display-p3 1 1 1)) {
@@ -213,6 +219,8 @@
       --red-surface: color(display-p3 0.1647 0.0863 0.0706 / 0.5);
       --red-indicator: oklch(57.6% 0.222 30.16);
       --red-track: oklch(57.6% 0.222 30.16);
+
+      --accent-surface-solid: color(display-p3 0.1647 0.0863 0.0706);
     }
   }
 }
