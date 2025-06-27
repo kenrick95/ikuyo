@@ -125,7 +125,10 @@ export function Timetable() {
   const timetableRef = useRef<HTMLDivElement>(null);
   const publishToast = useBoundStore((state) => state.publishToast);
 
-  const [hasScrolled, setHasScrolled] = useState(false);
+  // State to track if we've already scrolled for this trip to prevent repeated scrolling
+  const [hasScrolledForTrip, setHasScrolledForTrip] = useState<string | null>(
+    null,
+  );
 
   // Auto-scroll to current day and hour when trip is in progress
   useEffect(() => {
@@ -134,7 +137,7 @@ export function Timetable() {
       !trip?.timestampStart ||
       !trip?.timestampEnd ||
       !timetableRef.current ||
-      hasScrolled // Prevent auto-scroll if already scrolled
+      hasScrolledForTrip // Prevent auto-scroll if already scrolled
     )
       return;
 
@@ -212,20 +215,14 @@ export function Timetable() {
           top: Math.max(0, scrollTop),
           behavior: 'smooth',
         });
-        setHasScrolled(true); // Mark that we have scrolled
+        setHasScrolledForTrip(trip.id); // Mark that we have scrolled
       }
     };
 
     // Small delay to ensure all elements are rendered
     const timeoutId = setTimeout(scrollToPosition, 100);
     return () => clearTimeout(timeoutId);
-  }, [
-    trip?.timeZone,
-    trip?.timestampEnd,
-    trip?.timestampStart,
-    dayGroups.inTrip.length,
-    hasScrolled,
-  ]); // Re-run when trip changes or days change
+  }, [trip, dayGroups.inTrip.length, hasScrolledForTrip]); // Re-run when trip changes or days change
 
   const userCanModifyTrip = useMemo(() => {
     return (
