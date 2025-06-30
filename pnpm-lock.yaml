@@ -101,7 +101,7 @@ importers:
         specifier: ^7.0.3
         version: 7.0.3
       dotenv:
-        specifier: ^16.6.0
+        specifier: 16.6.0
         version: 16.6.0
       instant-cli:
         specifier: ~0.20.4
