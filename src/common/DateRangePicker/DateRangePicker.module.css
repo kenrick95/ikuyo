@@ -1,0 +1,203 @@
+.container {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.selectedDates {
+  background: var(--gray-2);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-2);
+  font-weight: 500;
+  color: var(--gray-12);
+  text-align: center;
+  min-height: 1.5em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  width: 100%;
+  gap: var(--space-2);
+}
+
+.selectedDates:hover:not(.disabled) {
+  background: var(--gray-3);
+  border-color: var(--gray-7);
+}
+
+.selectedDates:focus-visible {
+  outline: 2px solid var(--accent-9);
+  outline-offset: 2px;
+}
+
+.selectedDates.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--gray-11);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.chevronUp {
+  transform: rotate(180deg);
+}
+
+.calendar {
+  --cally-color-accent: var(--accent-9);
+  --cally-color-text: var(--gray-12);
+  --cally-color-text-inverse: var(--gray-1);
+  --cally-color-bg: var(--gray-1);
+  --cally-color-border: var(--gray-6);
+  --cally-font-family: var(--default-font-family);
+  --cally-font-size: var(--font-size-2);
+  --cally-border-radius: var(--radius-3);
+
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-3);
+  background: var(--gray-1);
+  padding: var(--space-3);
+  box-shadow: var(--shadow-3);
+  min-width: 280px;
+}
+
+.calendar.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.navIcon {
+  width: 16px;
+  height: 16px;
+  color: var(--gray-11);
+}
+
+/* Custom styling for cally components using CSS parts */
+.calendar::part(header) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.calendar::part(button) {
+  background: transparent;
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-2);
+  padding: var(--space-1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-11);
+  transition: all 0.1s ease;
+}
+
+.calendar::part(button):hover {
+  background: var(--gray-3);
+  border-color: var(--gray-7);
+}
+
+.calendar::part(button):disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.calendar::part(button):focus-visible {
+  outline: 2px solid var(--accent-9);
+  outline-offset: 2px;
+  z-index: 3;
+}
+
+.calendar::part(heading) {
+  font-weight: 600;
+  font-size: var(--font-size-3);
+  color: var(--gray-12);
+  margin: 0;
+}
+
+/* Style the month grid */
+.calendar calendar-month {
+  display: block;
+  width: 100%;
+}
+
+.calendar calendar-month::part(table) {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-2);
+}
+
+.calendar calendar-month::part(weekday) {
+  padding: var(--space-1);
+  text-align: center;
+  font-weight: 500;
+  color: var(--gray-10);
+  font-size: var(--font-size-1);
+}
+
+.calendar calendar-month::part(day) {
+  position: relative;
+  padding: var(--space-2);
+  text-align: center;
+  cursor: pointer;
+  border-radius: var(--radius-2);
+  transition: all 0.1s ease;
+  color: var(--gray-12);
+}
+
+.calendar calendar-month::part(day):hover {
+  background: var(--gray-3);
+}
+.calendar calendar-month::part(day):focus-visible {
+  outline: 2px solid var(--accent-9);
+  outline-offset: 2px;
+  z-index: 3;
+}
+
+.calendar calendar-month[data-selected]::part(day) {
+  background: var(--accent-9);
+  color: var(--accent-contrast);
+}
+
+.calendar calendar-month[data-range]::part(day) {
+  background: var(--accent-4);
+  color: var(--accent-11);
+}
+
+.calendar calendar-month[data-range-start]::part(day),
+.calendar calendar-month[data-range-end]::part(day) {
+  background: var(--accent-9);
+  color: var(--accent-contrast);
+}
+
+.calendar calendar-month[data-outside]::part(day) {
+  color: var(--gray-8);
+}
+
+.calendar calendar-month[data-disabled]::part(day) {
+  color: var(--gray-6);
+  cursor: not-allowed;
+}
+
+.calendar calendar-month[data-today]::part(day) {
+  font-weight: 600;
+  outline: 2px solid var(--accent-7);
+  outline-offset: -1px;
+}
+
+.calendarContainer {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  margin-top: 2px;
+}
