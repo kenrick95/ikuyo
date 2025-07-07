@@ -25,6 +25,7 @@
     "@radix-ui/react-toast": "~1.2.14",
     "@radix-ui/themes": "~3.2.1",
     "@sentry/react": "^9.35.0",
+    "cally": "^0.8.0",
     "clsx": "~2.1.1",
     "luxon": "~3.6.1",
     "react": "^19.1.0",

@@ -1,6 +1,7 @@
 import { Button, Flex, Select, Text, TextField } from '@radix-ui/themes';
 import { useCallback, useId, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
+import { DateRangePicker } from '../common/DateRangePicker/DateRangePicker';
 import { dangerToken } from '../common/ui';
 import { getDefaultCurrencyForRegion } from '../data/intl/currencies';
 import { REGIONS_LIST } from '../data/intl/regions';
@@ -49,8 +50,6 @@ export function TripForm({
 }) {
   const [, setLocation] = useLocation();
   const idTitle = useId();
-  const idTimeStart = useId();
-  const idTimeEnd = useId();
   const idTimeZone = useId();
   const idCurrency = useId();
   const idOriginCurrency = useId();
@@ -60,10 +59,21 @@ export function TripForm({
   const [currentTimeZone, setCurrentTimeZone] = useState(tripTimeZone);
   const [currentRegion, setCurrentRegion] = useState(tripRegion);
   const [currentCurrency, setCurrentCurrency] = useState(tripCurrency);
+  const [currentStartDate, setCurrentStartDate] = useState(tripStartStr);
+  const [currentEndDate, setCurrentEndDate] = useState(tripEndStr);
 
   const [errorMessage, setErrorMessage] = useState('');
   const timeZones = useMemo(() => Intl.supportedValuesOf('timeZone'), []);
   const currencies = useMemo(() => Intl.supportedValuesOf('currency'), []);
+
+  // Handler for date range changes
+  const handleDateRangeChange = useCallback(
+    (startDate: string, endDate: string) => {
+      setCurrentStartDate(startDate);
+      setCurrentEndDate(endDate);
+    },
+    [],
+  );
 
   // Handler for region change to auto-populate timezone
   const handleRegionChange = useCallback(
@@ -103,8 +113,8 @@ export function TripForm({
       }
       const formData = new FormData(elForm);
       const title = (formData.get('title') as string | null) ?? '';
-      const dateStartStr = (formData.get('startDate') as string | null) ?? '';
-      const dateEndStr = (formData.get('endDate') as string | null) ?? '';
+      const dateStartStr = currentStartDate;
+      const dateEndStr = currentEndDate;
       const timeZone = currentTimeZone;
       const region = currentRegion;
       const currency = currentCurrency;
@@ -224,6 +234,8 @@ export function TripForm({
     currentTimeZone,
     currentRegion,
     currentCurrency,
+    currentStartDate,
+    currentEndDate,
   ]);
 
   const fieldSelectCurrency = useMemo(() => {
@@ -357,32 +369,17 @@ export function TripForm({
           ) : null}
         </Text>
         {fieldSelectTimeZone}
-        <Text as="label" htmlFor={idTimeStart}>
-          Start date{' '}
+
+        <Text as="label">
+          Trip dates{' '}
           <Text weight="light" size="1">
-            (first day of trip, in destination's time zone; required)
+            (in destination's time zone; required)
           </Text>
         </Text>
-        <TextField.Root
-          id={idTimeStart}
-          name="startDate"
-          type="date"
-          defaultValue={tripStartStr}
-          required
-          disabled={isFormLoading}
-        />
-        <Text as="label" htmlFor={idTimeEnd}>
-          End date{' '}
-          <Text weight="light" size="1">
-            (final day of trip, in destination's time zone; required)
-          </Text>
-        </Text>
-        <TextField.Root
-          id={idTimeEnd}
-          name="endDate"
-          type="date"
-          defaultValue={tripEndStr}
-          required
+        <DateRangePicker
+          startDate={currentStartDate}
+          endDate={currentEndDate}
+          onRangeChange={handleDateRangeChange}
           disabled={isFormLoading}
         />
 
