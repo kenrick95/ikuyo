@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import 'cally';
 import styles from './DateRangePicker.module.css';
 
@@ -30,7 +30,7 @@ export function DateRangePicker({
   const rangeValue = startDate && endDate ? `${startDate}/${endDate}` : '';
 
   // Format dates for display using Luxon
-  const formatDateRange = useCallback(() => {
+  const formattedDateRange = useMemo(() => {
     if (!startDate || !endDate) {
       return 'Select date range';
     }
@@ -72,7 +72,7 @@ export function DateRangePicker({
           // Use setTimeout to ensure the calendar is closed before focusing
           setTimeout(() => {
             buttonRef.current?.focus();
-          }, 0);
+          }, 100);
         }
       }
     },
@@ -84,7 +84,7 @@ export function DateRangePicker({
     // Restore focus to the button when calendar closes
     setTimeout(() => {
       buttonRef.current?.focus();
-    }, 0);
+    }, 100);
   }, []);
 
   const handleToggleCalendar = useCallback(() => {
@@ -105,7 +105,7 @@ export function DateRangePicker({
     [handleToggleCalendar, closeCalendar],
   );
 
-  // Close calendar when clicking outside
+  // Close calendar when clicking outside or pressing ESC
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -116,10 +116,18 @@ export function DateRangePicker({
       }
     };
 
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeCalendar();
+      }
+    };
+
     if (isCalendarOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleEscapeKey);
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('keydown', handleEscapeKey);
       };
     }
   }, [isCalendarOpen, closeCalendar]);
@@ -138,9 +146,24 @@ export function DateRangePicker({
     calendarRange.setAttribute('months', '1');
     calendarRange.setAttribute('page-by', 'months');
     calendarRange.setAttribute('format-weekday', 'short');
-    calendarRange.className = `${styles.calendar} ${disabled ? styles.disabled : ''}`;
+    calendarRange.className = `${styles.calendarRange} ${disabled ? styles.disabled : ''}`;
 
-    // ...existing code...
+    // Make the calendar range focusable and handle keyboard navigation
+    calendarRange.setAttribute('tabindex', '0');
+    calendarRange.setAttribute('role', 'dialog');
+    calendarRange.setAttribute('aria-label', 'Date range picker');
+
+    // Handle keyboard navigation within the calendar
+    const handleCalendarKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeCalendar();
+      }
+      // Allow normal tab navigation within the calendar
+      // The cally component handles arrow key navigation internally
+    };
+
+    calendarRange.addEventListener('keydown', handleCalendarKeyDown);
     // Create navigation icons
     const prevIcon = document.createElementNS(
       'http://www.w3.org/2000/svg',
@@ -203,6 +226,8 @@ export function DateRangePicker({
     // Create calendar month
     const calendarMonth = document.createElement('calendar-month');
 
+    calendarMonth.classList.add(styles.calendarMonth);
+
     // Append all elements
     calendarRange.appendChild(prevIcon);
     calendarRange.appendChild(nextIcon);
@@ -214,13 +239,36 @@ export function DateRangePicker({
     // Append to container
     container.appendChild(calendarRange);
 
+    // Focus the first focusable element in the calendar after it's rendered
+    // Use a timeout to ensure the calendar is fully rendered
+    setTimeout(() => {
+      const firstFocusableElement = calendarRange.querySelector(
+        'button, [tabindex]:not([tabindex="-1"])',
+      ) as HTMLElement;
+      if (firstFocusableElement) {
+        firstFocusableElement.focus();
+      } else {
+        // Fallback to focusing the calendar range itself
+        calendarRange.focus();
+      }
+    }, 50);
+
     return () => {
+      calendarRange.removeEventListener('keydown', handleCalendarKeyDown);
       calendarRange.removeEventListener('change', handleChange);
       if (container.contains(calendarRange)) {
         container.removeChild(calendarRange);
       }
     };
-  }, [rangeValue, min, max, disabled, handleChange, isCalendarOpen]);
+  }, [
+    rangeValue,
+    min,
+    max,
+    disabled,
+    handleChange,
+    isCalendarOpen,
+    closeCalendar,
+  ]);
 
   return (
     <div className={`${styles.container} ${className || ''}`}>
@@ -235,7 +283,7 @@ export function DateRangePicker({
         aria-haspopup="dialog"
         aria-label="Select date range"
       >
-        {formatDateRange()}
+        {formattedDateRange}
         <svg
           className={`${styles.chevron} ${isCalendarOpen ? styles.chevronUp : ''}`}
           xmlns="http://www.w3.org/2000/svg"
