@@ -1,0 +1,350 @@
+.container {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.selectedDates {
+  background: var(--color-surface);
+  border: 1px solid var(--gray-7);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-2);
+  font-size: var(--font-size-2);
+  text-align: center;
+  min-height: 1.5em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  width: 100%;
+}
+
+.selectedDates:hover:not(.disabled) {
+  box-shadow: inset 0 0 0 1px var(--gray-a8);
+}
+
+.selectedDates:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: -1px;
+}
+
+.selectedDates.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--gray-11);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.chevronUp {
+  transform: rotate(180deg);
+}
+
+.calendarContainer {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  margin-top: 2px;
+  /* Ensure container doesn't interfere with focus */
+  pointer-events: none;
+}
+
+.calendarWrapper {
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-3);
+  background: var(--gray-1);
+  padding: var(--space-3);
+  box-shadow: var(--shadow-3);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  min-width: 600px;
+  /* Re-enable pointer events for the actual content */
+  pointer-events: auto;
+  /* Ensure modal behavior */
+  position: relative;
+  z-index: 1001;
+}
+
+.calendarWrapper.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.dateTimeSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.sectionHeader {
+  margin: 0;
+  font-size: var(--font-size-4);
+  font-weight: 600;
+  color: var(--gray-12);
+  text-align: center;
+}
+
+.calendarMonth {
+  --color-accent: var(--accent-3);
+  --color-text-on-accent: var(--gray-12);
+  display: block;
+  width: 100%;
+}
+
+.navIcon {
+  width: 16px;
+  height: 16px;
+  color: var(--gray-11);
+}
+
+/* Navigation button styling */
+button[slot="previous"],
+button[slot="next"] {
+  background: transparent !important;
+  border: 1px solid var(--gray-6) !important;
+  border-radius: var(--radius-2) !important;
+  padding: var(--space-1) !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: var(--gray-11) !important;
+  transition: all 0.1s ease !important;
+}
+
+button[slot="previous"]:hover,
+button[slot="next"]:hover {
+  border-color: var(--gray-7) !important;
+  background: var(--gray-2) !important;
+}
+
+button[slot="previous"]:focus-visible,
+button[slot="next"]:focus-visible {
+  outline: 2px solid var(--focus-8) !important;
+  outline-offset: -1px !important;
+  z-index: 3 !important;
+}
+
+button[slot="previous"]:disabled,
+button[slot="next"]:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+.timeInputWrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-2);
+}
+
+.timeInput {
+  background: var(--color-surface);
+  border: 1px solid var(--gray-7);
+  padding: var(--space-2);
+  border-radius: var(--radius-2);
+  font-size: var(--font-size-2);
+  color: var(--gray-12);
+  text-align: center;
+  min-width: 120px;
+}
+
+.timeInput:hover {
+  box-shadow: inset 0 0 0 1px var(--gray-a8);
+}
+
+.timeInput:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: -1px;
+}
+
+.actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--gray-6);
+}
+
+.cancelButton {
+  background: transparent;
+  border: 1px solid var(--gray-7);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-2);
+  font-size: var(--font-size-2);
+  color: var(--gray-11);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.cancelButton:hover {
+  background: var(--gray-3);
+  border-color: var(--gray-8);
+}
+
+.cancelButton:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: -1px;
+}
+
+.applyButton {
+  background: var(--accent-9);
+  border: 1px solid var(--accent-9);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-2);
+  font-size: var(--font-size-2);
+  color: var(--accent-contrast);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.applyButton:hover {
+  background: var(--accent-10);
+  border-color: var(--accent-10);
+}
+
+.applyButton:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: -1px;
+}
+
+.timeZoneInfo {
+  margin-top: var(--space-1);
+  text-align: center;
+}
+
+.timeZoneText {
+  font-size: var(--font-size-1);
+  color: var(--gray-10);
+  font-weight: 300;
+}
+
+/* <calendar-date> is wrapper of <calendar-month> */
+.calendarDate::part(header) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.calendarDate::part(button) {
+  background: transparent;
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-2);
+  padding: var(--space-1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-11);
+  position: relative;
+}
+
+.calendarDate::part(button):hover {
+  border-color: var(--gray-7);
+}
+
+.calendarDate::part(button):disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.calendarDate::part(button):focus-visible {
+  outline: 2px solid var(--focus-8);
+  z-index: 3;
+}
+
+.calendarDate::part(heading) {
+  font-weight: 600;
+  font-size: var(--font-size-3);
+  color: var(--gray-12);
+  margin: 0;
+}
+
+/* <calendar-month> */
+.calendarMonth {
+  --color-accent: var(--accent-3);
+  --color-text-on-accent: var(--gray-12);
+  display: block;
+  width: 100%;
+}
+
+.calendarMonth::part(table) {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-2);
+}
+
+.calendarMonth::part(weekday) {
+  padding: var(--space-1);
+  text-align: center;
+  font-weight: 500;
+  color: var(--gray-10);
+  font-size: var(--font-size-1);
+}
+
+.calendarMonth::part(day) {
+  width: 36px;
+  height: 36px;
+}
+.calendarMonth::part(day button) {
+  text-align: center;
+  cursor: pointer;
+  border-radius: var(--radius-2);
+  color: var(--gray-12);
+}
+.calendarMonth::part(day button):hover {
+  background: var(--accent-3);
+}
+.calendarMonth::part(day button):focus-visible {
+  outline: 2px solid var(--focus-8);
+}
+
+.calendarMonth::part(selected) {
+  background: var(--accent-track);
+  color: var(--accent-contrast);
+}
+
+.calendarMonth::part(selected):focus-visible {
+  outline-color: var(--accent-contrast);
+}
+
+.calendarMonth::part(selected):hover {
+  background: var(--accent-7);
+}
+
+.calendarMonth::part(outside) {
+  color: var(--gray-8);
+}
+
+.calendarMonth::part(disabled) {
+  color: var(--gray-6);
+  cursor: not-allowed;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 640px) {
+  .calendarWrapper {
+    grid-template-columns: 1fr;
+    min-width: 320px;
+    max-width: 90vw;
+  }
+  
+  .calendarContainer {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+}

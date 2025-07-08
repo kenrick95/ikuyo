@@ -6,13 +6,14 @@ import {
   TextArea,
   TextField,
 } from '@radix-ui/themes';
+import { DateTime } from 'luxon';
 import { useCallback, useId, useReducer, useState } from 'react';
+import { DateTimeRangePicker } from '../../common/DateTimeRangePicker/DateTimeRangePicker';
 import { dangerToken } from '../../common/ui';
 import { useBoundStore } from '../../data/store';
 import { ActivityMap } from '../ActivityDialog/ActivityDialogMap';
 import { setNewActivityTimestamp } from '../activityStorage';
 import { dbAddActivity, dbUpdateActivity } from '../db';
-import { getDateTimeFromDatetimeLocalInput } from '../time';
 import { geocodingRequest } from './ActivityFormGeocoding';
 import {
   ActivityFormMode,
@@ -143,8 +144,6 @@ export function ActivityForm({
 }) {
   const idForm = useId();
   const idTitle = useId();
-  const idTimeStart = useId();
-  const idTimeEnd = useId();
   const idLocation = useId();
   const idTwoLocationEnabled = useId();
   const idLocationDestination = useId();
@@ -154,6 +153,25 @@ export function ActivityForm({
   const idCoordinates = useId();
   const publishToast = useBoundStore((state) => state.publishToast);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Convert datetime-local strings to ISO format for DateTimeRangePicker
+  const startDateTime = activityStartStr
+    ? DateTime.fromFormat(activityStartStr, "yyyy-MM-dd'T'HH:mm").toISO()
+    : '';
+  const endDateTime = activityEndStr
+    ? DateTime.fromFormat(activityEndStr, "yyyy-MM-dd'T'HH:mm").toISO()
+    : '';
+  const minDateTime = tripStartStr
+    ? DateTime.fromFormat(tripStartStr, "yyyy-MM-dd'T'HH:mm").toISO()
+    : '';
+  const maxDateTime = tripEndStr
+    ? DateTime.fromFormat(tripEndStr, "yyyy-MM-dd'T'HH:mm").toISO()
+    : '';
+
+  // State for storing the selected date-time range
+  const [selectedStartDateTime, setSelectedStartDateTime] =
+    useState(startDateTime);
+  const [selectedEndDateTime, setSelectedEndDateTime] = useState(endDateTime);
 
   const [locationFieldsState, dispatchLocationFieldsState] = useReducer(
     coordinateStateReducer,
@@ -307,6 +325,15 @@ export function ActivityForm({
       });
     }
   }, []);
+
+  const handleDateTimeRangeChange = useCallback(
+    (startDateTime: string, endDateTime: string) => {
+      setSelectedStartDateTime(startDateTime);
+      setSelectedEndDateTime(endDateTime);
+    },
+    [],
+  );
+
   console.log('locationFieldsState', locationFieldsState);
 
   const handleSubmit = useCallback(() => {
@@ -324,17 +351,14 @@ export function ActivityForm({
       const location = (formData.get('location') as string | null) ?? '';
       const locationDestination =
         (formData.get('locationDestination') as string | null) ?? '';
-      const timeStartString =
-        (formData.get('startTime') as string | null) ?? '';
-      const timeEndString = (formData.get('endTime') as string | null) ?? '';
-      const timeStartDate = getDateTimeFromDatetimeLocalInput(
-        timeStartString,
-        tripTimeZone,
-      );
-      const timeEndDate = getDateTimeFromDatetimeLocalInput(
-        timeEndString,
-        tripTimeZone,
-      );
+
+      // Use the selected date-time values from DateTimeRangePicker
+      const timeStartDate = selectedStartDateTime
+        ? DateTime.fromISO(selectedStartDateTime)
+        : null;
+      const timeEndDate = selectedEndDateTime
+        ? DateTime.fromISO(selectedEndDateTime)
+        : null;
       console.log('ActivityForm', {
         mode,
         activityId,
@@ -344,8 +368,8 @@ export function ActivityForm({
         tripId,
         title,
         tripTimeZone,
-        timeStartString,
-        timeEndString,
+        selectedStartDateTime,
+        selectedEndDateTime,
         startTime: timeStartDate,
         endTime: timeEndDate,
         coordinateState: locationFieldsState,
@@ -467,6 +491,8 @@ export function ActivityForm({
     tripId,
     tripTimeZone,
     locationFieldsState,
+    selectedStartDateTime,
+    selectedEndDateTime,
   ]);
 
   return (
@@ -597,33 +623,21 @@ export function ActivityForm({
           </>
         ) : null}
 
-        <Text as="label" htmlFor={idTimeStart}>
-          Start time{' '}
+        <Text as="label">
+          Activity time{' '}
           <Text weight="light" size="1">
             (in {tripTimeZone} time zone)
           </Text>
         </Text>
-        <TextField.Root
-          id={idTimeStart}
-          name="startTime"
-          type="datetime-local"
-          min={tripStartStr}
-          max={tripEndStr}
-          defaultValue={activityStartStr}
-        />
-        <Text as="label" htmlFor={idTimeEnd}>
-          End time{' '}
-          <Text weight="light" size="1">
-            (in {tripTimeZone} time zone)
-          </Text>
-        </Text>
-        <TextField.Root
-          id={idTimeEnd}
-          name="endTime"
-          type="datetime-local"
-          min={tripStartStr}
-          max={tripEndStr}
-          defaultValue={activityEndStr}
+        <DateTimeRangePicker
+          startDateTime={selectedStartDateTime || undefined}
+          endDateTime={selectedEndDateTime || undefined}
+          min={minDateTime || undefined}
+          max={maxDateTime || undefined}
+          onRangeChange={handleDateTimeRangeChange}
+          timeZone={tripTimeZone}
+          startLabel="Start"
+          endLabel="End"
         />
         <Text as="label" htmlFor={idDescription}>
           Description
