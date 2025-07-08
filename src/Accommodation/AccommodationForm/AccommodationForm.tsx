@@ -6,12 +6,13 @@ import {
   TextArea,
   TextField,
 } from '@radix-ui/themes';
+import { DateTime } from 'luxon';
 import { useCallback, useId, useReducer, useState } from 'react';
+import { DateTimeRangePicker } from '../../common/DateTimeRangePicker/DateTimeRangePicker';
 import { dangerToken } from '../../common/ui';
 import { useBoundStore } from '../../data/store';
 import { AccommodationMap } from '../AccommodationDialog/AccommodationDialogMap';
 import { dbAddAccommodation, dbUpdateAccommodation } from '../db';
-import { getDateTimeFromDatetimeLocalInput } from '../time';
 import { geocodingRequest } from './AccommodationFormGeocoding';
 import {
   AccommodationFormMode,
@@ -116,8 +117,6 @@ export function AccommodationForm({
   onFormCancel: () => void;
 }) {
   const idName = useId();
-  const idTimeCheckIn = useId();
-  const idTimeCheckOut = useId();
   const idAddress = useId();
   const idPhoneNumber = useId();
   const idNotes = useId();
@@ -125,6 +124,29 @@ export function AccommodationForm({
   const publishToast = useBoundStore((state) => state.publishToast);
 
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Convert datetime-local strings to ISO format for DateTimeRangePicker
+  const checkInDateTime = accommodationCheckInStr
+    ? DateTime.fromFormat(accommodationCheckInStr, "yyyy-MM-dd'T'HH:mm").toISO()
+    : '';
+  const checkOutDateTime = accommodationCheckOutStr
+    ? DateTime.fromFormat(
+        accommodationCheckOutStr,
+        "yyyy-MM-dd'T'HH:mm",
+      ).toISO()
+    : '';
+  const minDateTime = tripStartStr
+    ? DateTime.fromFormat(tripStartStr, "yyyy-MM-dd'T'HH:mm").toISO()
+    : '';
+  const maxDateTime = tripEndStr
+    ? DateTime.fromFormat(tripEndStr, "yyyy-MM-dd'T'HH:mm").toISO()
+    : '';
+
+  // State for storing the selected date-time range
+  const [selectedCheckInDateTime, setSelectedCheckInDateTime] =
+    useState(checkInDateTime);
+  const [selectedCheckOutDateTime, setSelectedCheckOutDateTime] =
+    useState(checkOutDateTime);
 
   const [coordinateState, dispatchCoordinateState] = useReducer(
     coordinateStateReducer,
@@ -176,6 +198,14 @@ export function AccommodationForm({
     ],
   );
 
+  const handleDateTimeRangeChange = useCallback(
+    (checkInDateTime: string, checkOutDateTime: string) => {
+      setSelectedCheckInDateTime(checkInDateTime);
+      setSelectedCheckOutDateTime(checkOutDateTime);
+    },
+    [],
+  );
+
   const setMarkerCoordinate = useCallback(
     async (coordinate: { lng: number; lat: number }) => {
       dispatchCoordinateState({
@@ -210,18 +240,14 @@ export function AccommodationForm({
       const address = (formData.get('address') as string | null) ?? '';
       const phoneNumber = (formData.get('phoneNumber') as string | null) ?? '';
       const notes = (formData.get('notes') as string | null) ?? '';
-      const timeCheckInString =
-        (formData.get('timeCheckIn') as string | null) ?? '';
-      const timeCheckOutString =
-        (formData.get('timeCheckOut') as string | null) ?? '';
-      const timeCheckInDate = getDateTimeFromDatetimeLocalInput(
-        timeCheckInString,
-        tripTimeZone,
-      );
-      const timeCheckOutDate = getDateTimeFromDatetimeLocalInput(
-        timeCheckOutString,
-        tripTimeZone,
-      );
+
+      // Use the selected date-time values from DateTimeRangePicker
+      const timeCheckInDate = selectedCheckInDateTime
+        ? DateTime.fromISO(selectedCheckInDateTime)
+        : null;
+      const timeCheckOutDate = selectedCheckOutDateTime
+        ? DateTime.fromISO(selectedCheckOutDateTime)
+        : null;
       console.log('AccommodationForm', {
         mode,
         accommodationId,
@@ -230,16 +256,21 @@ export function AccommodationForm({
         address,
         phoneNumber,
         notes,
-        timeCheckInString,
-        timeCheckOutString,
+        selectedCheckInDateTime,
+        selectedCheckOutDateTime,
         timeCheckInDate,
         timeCheckOutDate,
         coordinateState,
       });
-      if (!name || !timeCheckInString || !timeCheckOutString) {
+      if (!name || !selectedCheckInDateTime || !selectedCheckOutDateTime) {
+        setErrorMessage('Name, check-in time, and check-out time are required');
         return;
       }
-      if (timeCheckOutDate.diff(timeCheckInDate).as('minute') < 0) {
+      if (
+        timeCheckOutDate &&
+        timeCheckInDate &&
+        timeCheckOutDate.diff(timeCheckInDate).as('minute') < 0
+      ) {
         setErrorMessage('Check out time must be after check in time');
         return;
       }
@@ -248,8 +279,8 @@ export function AccommodationForm({
           id: accommodationId,
           name,
           address,
-          timestampCheckIn: timeCheckInDate.toMillis(),
-          timestampCheckOut: timeCheckOutDate.toMillis(),
+          timestampCheckIn: timeCheckInDate ? timeCheckInDate.toMillis() : 0,
+          timestampCheckOut: timeCheckOutDate ? timeCheckOutDate.toMillis() : 0,
           phoneNumber,
           notes,
           locationLat: coordinateState.enabled ? coordinateState.lat : null,
@@ -266,8 +297,10 @@ export function AccommodationForm({
           {
             name,
             address,
-            timestampCheckIn: timeCheckInDate.toMillis(),
-            timestampCheckOut: timeCheckOutDate.toMillis(),
+            timestampCheckIn: timeCheckInDate ? timeCheckInDate.toMillis() : 0,
+            timestampCheckOut: timeCheckOutDate
+              ? timeCheckOutDate.toMillis()
+              : 0,
             phoneNumber,
             notes,
             locationLat: coordinateState.enabled ? coordinateState.lat : null,
@@ -295,8 +328,9 @@ export function AccommodationForm({
     publishToast,
     onFormSuccess,
     tripId,
-    tripTimeZone,
     coordinateState,
+    selectedCheckInDateTime,
+    selectedCheckOutDateTime,
   ]);
 
   return (
@@ -367,35 +401,21 @@ export function AccommodationForm({
             setMapZoom={setMapZoom}
           />
         ) : null}
-        <Text as="label" htmlFor={idTimeCheckIn}>
-          Check in time{' '}
+        <Text as="label">
+          Check-in and check-out times{' '}
           <Text weight="light" size="1">
             (required; in {tripTimeZone} time zone)
           </Text>
         </Text>
-        <TextField.Root
-          id={idTimeCheckIn}
-          name="timeCheckIn"
-          type="datetime-local"
-          min={tripStartStr}
-          max={tripEndStr}
-          defaultValue={accommodationCheckInStr}
-          required
-        />
-        <Text as="label" htmlFor={idTimeCheckOut}>
-          Check out time{' '}
-          <Text weight="light" size="1">
-            (required; in {tripTimeZone} time zone)
-          </Text>
-        </Text>
-        <TextField.Root
-          id={idTimeCheckOut}
-          name="timeCheckOut"
-          type="datetime-local"
-          min={tripStartStr}
-          max={tripEndStr}
-          defaultValue={accommodationCheckOutStr}
-          required
+        <DateTimeRangePicker
+          startDateTime={selectedCheckInDateTime || undefined}
+          endDateTime={selectedCheckOutDateTime || undefined}
+          min={minDateTime || undefined}
+          max={maxDateTime || undefined}
+          onRangeChange={handleDateTimeRangeChange}
+          timeZone={tripTimeZone}
+          startLabel="Check-in"
+          endLabel="Check-out"
         />
         <Text as="label" htmlFor={idPhoneNumber}>
           Phone number
