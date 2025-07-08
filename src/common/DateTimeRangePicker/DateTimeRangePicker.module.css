@@ -108,40 +108,6 @@
   color: var(--gray-11);
 }
 
-/* Navigation button styling */
-button[slot="previous"],
-button[slot="next"] {
-  background: transparent !important;
-  border: 1px solid var(--gray-6) !important;
-  border-radius: var(--radius-2) !important;
-  padding: var(--space-1) !important;
-  cursor: pointer !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  color: var(--gray-11) !important;
-  transition: all 0.1s ease !important;
-}
-
-button[slot="previous"]:hover,
-button[slot="next"]:hover {
-  border-color: var(--gray-7) !important;
-  background: var(--gray-2) !important;
-}
-
-button[slot="previous"]:focus-visible,
-button[slot="next"]:focus-visible {
-  outline: 2px solid var(--focus-8) !important;
-  outline-offset: -1px !important;
-  z-index: 3 !important;
-}
-
-button[slot="previous"]:disabled,
-button[slot="next"]:disabled {
-  opacity: 0.5 !important;
-  cursor: not-allowed !important;
-}
-
 .timeInputWrapper {
   display: flex;
   justify-content: center;
