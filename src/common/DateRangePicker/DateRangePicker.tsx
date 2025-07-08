@@ -42,8 +42,12 @@ export function DateRangePicker({
       return 'Invalid date range';
     }
 
+    // If start and end are the same, show "15 July 2024"
+    if (start.equals(end)) {
+      return start.toFormat('d LLLL yyyy');
+    }
     // If same month and year, show "15 – 20 July 2024"
-    if (start.year === end.year && start.month === end.month) {
+    else if (start.year === end.year && start.month === end.month) {
       return `${start.toFormat('d')}–${end.toFormat('d LLLL yyyy')}`;
     }
     // If same year, show "15 July – 20 August 2024"

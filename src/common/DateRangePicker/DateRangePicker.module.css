@@ -173,7 +173,7 @@
   background: var(--accent-7);
 }
 
-.calendarMonth::part(outisde) {
+.calendarMonth::part(outside) {
   color: var(--gray-8);
 }
 
