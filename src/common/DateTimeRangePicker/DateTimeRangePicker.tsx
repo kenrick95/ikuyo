@@ -362,6 +362,8 @@ export function DateTimeRangePicker({
 
     container.appendChild(calendarWrapper);
 
+    // TODO: the focus management here ... seems really hacky, maybe remove all them to let the cally components handle focus?
+
     // Focus the first interactive element after it's rendered
     setTimeout(() => {
       // Try to focus elements in this priority order:
@@ -374,7 +376,7 @@ export function DateTimeRangePicker({
 
       // Try the first navigation button first
       firstFocusableElement = startCalendar.querySelector(
-        'button[slot="previous"], button[slot="next"]',
+        '[slot="previous"], [slot="next"]',
       ) as HTMLElement;
 
       // Fallback to the calendar component itself
