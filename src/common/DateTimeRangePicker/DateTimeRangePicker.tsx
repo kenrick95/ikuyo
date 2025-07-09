@@ -1,8 +1,86 @@
 import { DateTime } from 'luxon';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import 'cally';
 import { getNavIcons } from '../navIcons';
 import styles from './DateTimeRangePicker.module.css';
+
+interface DateTimeRangeState {
+  isCalendarOpen: boolean;
+  tempStartDate: string;
+  tempEndDate: string;
+  tempStartTime: string;
+  tempEndTime: string;
+  validationError: string;
+}
+
+type DateTimeRangeAction =
+  | { type: 'TOGGLE_CALENDAR' }
+  | { type: 'OPEN_CALENDAR' }
+  | { type: 'CLOSE_CALENDAR' }
+  | { type: 'SET_TEMP_START_DATE'; payload: string }
+  | { type: 'SET_TEMP_END_DATE'; payload: string }
+  | { type: 'SET_TEMP_START_TIME'; payload: string }
+  | { type: 'SET_TEMP_END_TIME'; payload: string }
+  | { type: 'SET_VALIDATION_ERROR'; payload: string }
+  | { type: 'CLEAR_START' }
+  | { type: 'CLEAR_END' }
+  | {
+      type: 'INITIALIZE_TEMP_VALUES';
+      payload: {
+        startDate: string;
+        endDate: string;
+        startTime: string;
+        endTime: string;
+      };
+    };
+
+const initialState: DateTimeRangeState = {
+  isCalendarOpen: false,
+  tempStartDate: '',
+  tempEndDate: '',
+  tempStartTime: '',
+  tempEndTime: '',
+  validationError: '',
+};
+
+function dateTimeRangeReducer(
+  state: DateTimeRangeState,
+  action: DateTimeRangeAction,
+): DateTimeRangeState {
+  switch (action.type) {
+    case 'TOGGLE_CALENDAR':
+      return { ...state, isCalendarOpen: !state.isCalendarOpen };
+    case 'OPEN_CALENDAR':
+      return { ...state, isCalendarOpen: true };
+    case 'CLOSE_CALENDAR':
+      return { ...state, isCalendarOpen: false };
+    case 'SET_TEMP_START_DATE':
+      return { ...state, tempStartDate: action.payload };
+    case 'SET_TEMP_END_DATE':
+      return { ...state, tempEndDate: action.payload };
+    case 'SET_TEMP_START_TIME':
+      return { ...state, tempStartTime: action.payload };
+    case 'SET_TEMP_END_TIME':
+      return { ...state, tempEndTime: action.payload };
+    case 'SET_VALIDATION_ERROR':
+      return { ...state, validationError: action.payload };
+    case 'CLEAR_START':
+      return { ...state, tempStartDate: '', tempStartTime: '09:00' };
+    case 'CLEAR_END':
+      return { ...state, tempEndDate: '', tempEndTime: '17:00' };
+    case 'INITIALIZE_TEMP_VALUES':
+      return {
+        ...state,
+        tempStartDate: action.payload.startDate,
+        tempEndDate: action.payload.endDate,
+        tempStartTime: action.payload.startTime || '09:00',
+        tempEndTime: action.payload.endTime || '17:00',
+        validationError: '',
+      };
+    default:
+      return state;
+  }
+}
 
 export interface DateTimeRangePickerProps {
   startDateTime?: string;
@@ -30,11 +108,16 @@ export function DateTimeRangePicker({
 }: DateTimeRangePickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [tempStartDate, setTempStartDate] = useState<string>('');
-  const [tempEndDate, setTempEndDate] = useState<string>('');
-  const [tempStartTime, setTempStartTime] = useState<string>('');
-  const [tempEndTime, setTempEndTime] = useState<string>('');
+  const [state, dispatch] = useReducer(dateTimeRangeReducer, initialState);
+
+  const {
+    isCalendarOpen,
+    tempStartDate,
+    tempEndDate,
+    tempStartTime,
+    tempEndTime,
+    validationError,
+  } = state;
 
   // Parse existing datetime values
   const { startDate, startTime, endDate, endTime } = useMemo(() => {
@@ -52,12 +135,51 @@ export function DateTimeRangePicker({
   // Initialize temp values when calendar opens
   useEffect(() => {
     if (isCalendarOpen) {
-      setTempStartDate(startDate);
-      setTempEndDate(endDate);
-      setTempStartTime(startTime || '09:00');
-      setTempEndTime(endTime || '17:00');
+      dispatch({
+        type: 'INITIALIZE_TEMP_VALUES',
+        payload: { startDate, endDate, startTime, endTime },
+      });
     }
   }, [isCalendarOpen, startDate, endDate, startTime, endTime]);
+
+  // Validate the current temp values
+  const validateRange = useCallback(() => {
+    if (!tempStartDate && !tempEndDate) {
+      dispatch({ type: 'SET_VALIDATION_ERROR', payload: '' });
+      return true;
+    }
+
+    if ((tempStartDate && !tempEndDate) || (!tempStartDate && tempEndDate)) {
+      dispatch({
+        type: 'SET_VALIDATION_ERROR',
+        payload: 'Both start and end dates are required for a valid range',
+      });
+      return false;
+    }
+
+    if (tempStartDate && tempEndDate && tempStartTime && tempEndTime) {
+      const startDT = DateTime.fromISO(`${tempStartDate}T${tempStartTime}`);
+      const endDT = DateTime.fromISO(`${tempEndDate}T${tempEndTime}`);
+
+      if (startDT.isValid && endDT.isValid && endDT <= startDT) {
+        dispatch({
+          type: 'SET_VALIDATION_ERROR',
+          payload: 'End date and time must be after start date and time',
+        });
+        return false;
+      }
+    }
+
+    dispatch({ type: 'SET_VALIDATION_ERROR', payload: '' });
+    return true;
+  }, [tempStartDate, tempEndDate, tempStartTime, tempEndTime]);
+
+  // Validate whenever temp values change
+  useEffect(() => {
+    if (isCalendarOpen) {
+      validateRange();
+    }
+  }, [isCalendarOpen, validateRange]);
 
   // Format date range for display
   const formattedDateRange = useMemo(() => {
@@ -83,37 +205,65 @@ export function DateTimeRangePicker({
   const handleTimeChange = useCallback(
     (type: 'start' | 'end', time: string) => {
       if (type === 'start') {
-        setTempStartTime(time);
+        dispatch({ type: 'SET_TEMP_START_TIME', payload: time });
       } else {
-        setTempEndTime(time);
+        dispatch({ type: 'SET_TEMP_END_TIME', payload: time });
       }
     },
     [],
   );
 
+  const clearRange = useCallback(() => {
+    if (!onRangeChange || disabled) return;
+
+    onRangeChange('', '');
+    dispatch({ type: 'CLOSE_CALENDAR' });
+    setTimeout(() => {
+      buttonRef.current?.focus();
+    }, 100);
+  }, [onRangeChange, disabled]);
+
+  const clearStart = useCallback(() => {
+    dispatch({ type: 'CLEAR_START' });
+  }, []);
+
+  const clearEnd = useCallback(() => {
+    dispatch({ type: 'CLEAR_END' });
+  }, []);
+
   const applyChanges = useCallback(() => {
-    if (
-      !onRangeChange ||
-      disabled ||
-      !tempStartDate ||
-      !tempEndDate ||
-      !tempStartTime ||
-      !tempEndTime
-    ) {
+    if (!onRangeChange || disabled) {
       return;
     }
 
-    // Combine date and time to create ISO datetime strings
-    const startDT = DateTime.fromISO(`${tempStartDate}T${tempStartTime}`);
-    const endDT = DateTime.fromISO(`${tempEndDate}T${tempEndTime}`);
-
-    if (startDT.isValid && endDT.isValid) {
-      onRangeChange(startDT.toISO(), endDT.toISO());
-      setIsCalendarOpen(false);
-      // Restore focus to the button when calendar closes
+    // Handle clearing values
+    if (!tempStartDate && !tempEndDate) {
+      onRangeChange('', '');
+      dispatch({ type: 'CLOSE_CALENDAR' });
       setTimeout(() => {
         buttonRef.current?.focus();
       }, 100);
+      return;
+    }
+
+    // Validate before applying
+    if (!validateRange()) {
+      return;
+    }
+
+    if (tempStartDate && tempEndDate && tempStartTime && tempEndTime) {
+      // Combine date and time to create ISO datetime strings
+      const startDT = DateTime.fromISO(`${tempStartDate}T${tempStartTime}`);
+      const endDT = DateTime.fromISO(`${tempEndDate}T${tempEndTime}`);
+
+      if (startDT.isValid && endDT.isValid) {
+        onRangeChange(startDT.toISO(), endDT.toISO());
+        dispatch({ type: 'CLOSE_CALENDAR' });
+        // Restore focus to the button when calendar closes
+        setTimeout(() => {
+          buttonRef.current?.focus();
+        }, 100);
+      }
     }
   }, [
     onRangeChange,
@@ -122,10 +272,11 @@ export function DateTimeRangePicker({
     tempEndDate,
     tempStartTime,
     tempEndTime,
+    validateRange,
   ]);
 
   const closeCalendar = useCallback(() => {
-    setIsCalendarOpen(false);
+    dispatch({ type: 'CLOSE_CALENDAR' });
     // Restore focus to the button when calendar closes
     setTimeout(() => {
       buttonRef.current?.focus();
@@ -134,9 +285,9 @@ export function DateTimeRangePicker({
 
   const handleToggleCalendar = useCallback(() => {
     if (!disabled) {
-      setIsCalendarOpen(!isCalendarOpen);
+      dispatch({ type: 'TOGGLE_CALENDAR' });
     }
-  }, [disabled, isCalendarOpen]);
+  }, [disabled]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
@@ -266,14 +417,14 @@ export function DateTimeRangePicker({
     const handleStartDateChange = (event: Event) => {
       const target = event.target as HTMLElement & { value: string };
       if (target.value) {
-        setTempStartDate(target.value);
+        dispatch({ type: 'SET_TEMP_START_DATE', payload: target.value });
       }
     };
 
     const handleEndDateChange = (event: Event) => {
       const target = event.target as HTMLElement & { value: string };
       if (target.value) {
-        setTempEndDate(target.value);
+        dispatch({ type: 'SET_TEMP_END_DATE', payload: target.value });
       }
     };
 
@@ -284,9 +435,27 @@ export function DateTimeRangePicker({
     const startSection = document.createElement('div');
     startSection.className = styles.dateTimeSection;
 
-    const startHeader = document.createElement('h4');
-    startHeader.className = styles.sectionHeader;
-    startHeader.textContent = startLabel;
+    const startHeader = document.createElement('div');
+    startHeader.className = styles.sectionHeaderWrapper;
+
+    const startTitle = document.createElement('h4');
+    startTitle.className = styles.sectionHeader;
+    startTitle.textContent = startLabel;
+
+    const startClearButton = document.createElement('button');
+    startClearButton.type = 'button';
+    startClearButton.className = styles.clearSectionButton;
+    startClearButton.textContent = 'Clear';
+    startClearButton.setAttribute(
+      'aria-label',
+      `Clear ${startLabel.toLowerCase()} date and time`,
+    );
+    startClearButton.addEventListener('click', clearStart);
+
+    startHeader.appendChild(startTitle);
+    if (tempStartDate) {
+      startHeader.appendChild(startClearButton);
+    }
 
     const startTimeWrapper = document.createElement('div');
     startTimeWrapper.className = styles.timeInputWrapper;
@@ -310,9 +479,27 @@ export function DateTimeRangePicker({
     const endSection = document.createElement('div');
     endSection.className = styles.dateTimeSection;
 
-    const endHeader = document.createElement('h4');
-    endHeader.className = styles.sectionHeader;
-    endHeader.textContent = endLabel;
+    const endHeader = document.createElement('div');
+    endHeader.className = styles.sectionHeaderWrapper;
+
+    const endTitle = document.createElement('h4');
+    endTitle.className = styles.sectionHeader;
+    endTitle.textContent = endLabel;
+
+    const endClearButton = document.createElement('button');
+    endClearButton.type = 'button';
+    endClearButton.className = styles.clearSectionButton;
+    endClearButton.textContent = 'Clear';
+    endClearButton.setAttribute(
+      'aria-label',
+      `Clear ${endLabel.toLowerCase()} date and time`,
+    );
+    endClearButton.addEventListener('click', clearEnd);
+
+    endHeader.appendChild(endTitle);
+    if (tempEndDate) {
+      endHeader.appendChild(endClearButton);
+    }
 
     const endTimeWrapper = document.createElement('div');
     endTimeWrapper.className = styles.timeInputWrapper;
@@ -336,6 +523,18 @@ export function DateTimeRangePicker({
     const actionsWrapper = document.createElement('div');
     actionsWrapper.className = styles.actions;
 
+    // Add validation error display
+    if (validationError) {
+      const errorDiv = document.createElement('div');
+      errorDiv.className = styles.validationError;
+      errorDiv.textContent = validationError;
+      errorDiv.setAttribute('role', 'alert');
+      actionsWrapper.appendChild(errorDiv);
+    }
+
+    const buttonGroup = document.createElement('div');
+    buttonGroup.className = styles.buttonGroup;
+
     const cancelButton = document.createElement('button');
     cancelButton.type = 'button';
     cancelButton.className = styles.cancelButton;
@@ -345,13 +544,15 @@ export function DateTimeRangePicker({
 
     const applyButton = document.createElement('button');
     applyButton.type = 'button';
-    applyButton.className = styles.applyButton;
+    applyButton.className = `${styles.applyButton} ${validationError ? styles.disabled : ''}`;
     applyButton.textContent = 'Apply';
     applyButton.setAttribute('aria-label', 'Apply selected date and time');
+    applyButton.disabled = !!validationError;
     applyButton.addEventListener('click', applyChanges);
 
-    actionsWrapper.appendChild(cancelButton);
-    actionsWrapper.appendChild(applyButton);
+    buttonGroup.appendChild(cancelButton);
+    buttonGroup.appendChild(applyButton);
+    actionsWrapper.appendChild(buttonGroup);
 
     // Assemble the calendar
     calendarWrapper.appendChild(startSection);
@@ -380,36 +581,64 @@ export function DateTimeRangePicker({
     handleTimeChange,
     applyChanges,
     closeCalendar,
+    clearStart,
+    clearEnd,
+    validationError,
   ]);
 
   return (
     <div className={`${styles.container} ${className || ''}`}>
-      <button
-        ref={buttonRef}
-        type="button"
-        className={`${styles.selectedDates} ${disabled ? styles.disabled : ''}`}
-        onClick={handleToggleCalendar}
-        onKeyDown={handleKeyDown}
-        disabled={disabled}
-        aria-expanded={isCalendarOpen}
-        aria-haspopup="dialog"
-        aria-label="Select date and time range"
-      >
-        {formattedDateRange}
-        <svg
-          className={`${styles.chevron} ${isCalendarOpen ? styles.chevronUp : ''}`}
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+      <div className={styles.inputGroup}>
+        <button
+          ref={buttonRef}
+          type="button"
+          className={`${styles.selectedDates} ${disabled ? styles.disabled : ''}`}
+          onClick={handleToggleCalendar}
+          onKeyDown={handleKeyDown}
+          disabled={disabled}
+          aria-expanded={isCalendarOpen}
+          aria-haspopup="dialog"
+          aria-label="Select date and time range"
         >
-          <title>{isCalendarOpen ? 'Close calendar' : 'Open calendar'}</title>
-          <path d="m6 9 6 6 6-6" />
-        </svg>
-      </button>
+          {formattedDateRange}
+          <svg
+            className={`${styles.chevron} ${isCalendarOpen ? styles.chevronUp : ''}`}
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <title>{isCalendarOpen ? 'Close calendar' : 'Open calendar'}</title>
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
+        {(startDateTime || endDateTime) && !disabled && (
+          <button
+            type="button"
+            className={styles.clearButton}
+            onClick={clearRange}
+            aria-label="Clear date and time range"
+            title="Clear range"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <title>Clear range</title>
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        )}
+      </div>
       {isCalendarOpen && (
         <div className={styles.calendarContainer}>
           <div ref={containerRef} />

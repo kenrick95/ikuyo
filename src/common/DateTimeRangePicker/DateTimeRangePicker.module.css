@@ -95,6 +95,14 @@
   text-align: center;
 }
 
+.sectionHeaderWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: var(--space-2);
+}
+
 .calendarMonth {
   --color-accent: var(--accent-3);
   --color-text-on-accent: var(--gray-12);
@@ -137,7 +145,7 @@
 .actions {
   grid-column: 1 / -1;
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
   gap: var(--space-2);
   margin-top: var(--space-2);
   padding-top: var(--space-3);
@@ -184,6 +192,19 @@
 .applyButton:focus-visible {
   outline: 2px solid var(--focus-8);
   outline-offset: -1px;
+}
+
+.applyButton.disabled {
+  background: var(--gray-5);
+  border-color: var(--gray-5);
+  color: var(--gray-9);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.applyButton.disabled:hover {
+  background: var(--gray-5);
+  border-color: var(--gray-5);
 }
 
 .timeZoneInfo {
@@ -298,6 +319,83 @@
 .calendarMonth::part(disabled) {
   color: var(--gray-6);
   cursor: not-allowed;
+}
+
+.inputGroup {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.clearButton {
+  background: transparent;
+  border: 1px solid var(--gray-7);
+  padding: var(--space-1);
+  border-radius: var(--radius-2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-11);
+  transition: all 0.1s ease;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.clearButton:hover {
+  background: var(--gray-3);
+  border-color: var(--gray-8);
+  color: var(--gray-12);
+}
+
+.clearButton:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: -1px;
+}
+
+.clearButton svg {
+  width: 14px;
+  height: 14px;
+}
+
+.clearSectionButton {
+  background: transparent;
+  border: 1px solid var(--gray-7);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-2);
+  font-size: var(--font-size-1);
+  color: var(--gray-11);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.clearSectionButton:hover {
+  background: var(--gray-3);
+  border-color: var(--gray-8);
+  color: var(--gray-12);
+}
+
+.clearSectionButton:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: -1px;
+}
+
+.validationError {
+  background: var(--red-2);
+  color: var(--red-11);
+  padding: var(--space-2);
+  border-radius: var(--radius-2);
+  font-size: var(--font-size-2);
+  text-align: center;
+  border: 1px solid var(--red-6);
+}
+
+.buttonGroup {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
 }
 
 /* Mobile responsive adjustments */
