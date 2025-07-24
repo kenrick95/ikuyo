@@ -1934,8 +1934,8 @@ packages:
   atomico@1.79.2:
     resolution: {integrity: sha512-mshhLRMeIltNYbnQnqgnrvJ/uDa8XDfTQcjw3ymOygQqwHIQ4Sp0LcNYMCbACkV3DtV+eDXb9szwU4qMUuGwYQ==}
 
-  axios@1.10.0:
-    resolution: {integrity: sha512-/1xYAC4MP/HEG+3duIhFr4ZQXR4sQXOIe+o6sdqzeykGLx6Upp/1p8MHqhINOvGeP7xyNHe7tsiJByc4SSVUxw==}
+  axios@1.11.0:
+    resolution: {integrity: sha512-1Lx3WLFQWm3ooKDYZD1eXmoGO9fxYQjrycfHFC8P0sCfQVXyROp0p9PFWBehewBOdCwHc+f/b8I0fMto5eSfwA==}
 
   base64id@2.0.0:
     resolution: {integrity: sha512-lGe34o6EHj9y3Kts9R4ZYs/Gr+6N7MCaMlIFA3F1R2O5/m7K06AxfSeO5530PEERE6/WyEg3lsuyw4GHlPZHog==}
@@ -4911,7 +4911,7 @@ snapshots:
       '@rsdoctor/sdk': 1.1.8(@rspack/core@1.4.8(@swc/helpers@0.5.17))(webpack@5.99.6(esbuild@0.25.5))
       '@rsdoctor/types': 1.1.8(@rspack/core@1.4.8(@swc/helpers@0.5.17))(webpack@5.99.6(esbuild@0.25.5))
       '@rsdoctor/utils': 1.1.8(@rspack/core@1.4.8(@swc/helpers@0.5.17))(webpack@5.99.6(esbuild@0.25.5))
-      axios: 1.10.0
+      axios: 1.11.0
       browserslist-load-config: 1.0.0
       enhanced-resolve: 5.12.0
       filesize: 10.1.6
@@ -5467,7 +5467,7 @@ snapshots:
 
   atomico@1.79.2: {}
 
-  axios@1.10.0:
+  axios@1.11.0:
     dependencies:
       follow-redirects: 1.15.9
       form-data: 4.0.4
