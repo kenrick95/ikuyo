@@ -1,13 +1,7 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.0.0-beta.2/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.1.4/schema.json",
   "files": {
-    "includes": [
-      "**",
-      "!**/node_modules/**",
-      "!**/dist/**",
-      "!**/build/**",
-      "!src/common/DateRangePicker/DateRangePicker.module.css"
-    ],
+    "includes": ["**", "!**/node_modules/**", "!**/dist/**", "!**/build/**"],
     "ignoreUnknown": true
   },
   "assist": {
