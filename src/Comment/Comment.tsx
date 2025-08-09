@@ -1,4 +1,4 @@
-import { Button, Card, Flex, Popover, Text } from '@radix-ui/themes';
+import { Box, Button, Card, Flex, Popover, Text } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { memo, useMemo, useState } from 'react';
 import { Link } from 'wouter';
@@ -89,7 +89,7 @@ function CommentInner({
     <Flex gap="3" align="start">
       <UserAvatar user={user} />
       <Flex direction="column" gap="1" flexGrow="1">
-        <Flex gap="1" align="baseline">
+        <Box className={s.commentHeader}>
           <Text size="2" weight="bold">
             {user?.handle}
           </Text>
@@ -97,6 +97,7 @@ function CommentInner({
           objectTargetName &&
           objectTargetLinkRoutePath ? (
             <Text size="1">
+              {' '}
               on <Link to={objectTargetLinkRoutePath}>{objectTargetName}</Link>
             </Text>
           ) : null}
@@ -108,12 +109,13 @@ function CommentInner({
                 : ''
             }`}
           >
+            {' '}
             {formattedDateTimeStringCreated}
             {formattedDateTimeStringCreated !== formattedDateTimeStringUpdated
               ? ' (edited)'
               : ''}
           </Text>
-        </Flex>
+        </Box>
 
         {commentMode === CommentMode.Edit && commentGroup ? (
           <CommentForm
