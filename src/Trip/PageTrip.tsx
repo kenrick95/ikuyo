@@ -66,7 +66,6 @@ import {
 } from '../Routes/routes';
 import { useTrip } from './store/hooks';
 import type { TripSliceTrip } from './store/types';
-import { TripMenuFloating } from './TripMenu/TripMenuFloating';
 import { TripNavbar } from './TripNavbar/TripNavbar';
 
 export default PageTrip;
@@ -141,7 +140,6 @@ function PageTripInner({
           <Redirect replace to={RouteTripHome.routePath} />
         </Switch>
       ) : null}
-      {!tripDefinitelyNotFound ? <TripMenuFloating /> : null}
     </>
   );
 }

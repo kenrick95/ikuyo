@@ -24,6 +24,7 @@ import { formatTripDateRange } from './time';
 
 const containerPx = { initial: '1', md: '0' };
 const containerPb = { initial: '9', sm: '5' };
+
 export function TripHome() {
   const { trip } = useCurrentTrip();
 
@@ -62,7 +63,7 @@ export function TripHome() {
   }, [trip, userIsOwner, pushDialog]);
 
   return (
-    <Container mt="2" pb={containerPb} px={containerPx}>
+    <Container pt="2" pb={containerPb} px={containerPx}>
       <Heading as="h2" size="5" mb="2">
         {trip?.title}
         <Button
