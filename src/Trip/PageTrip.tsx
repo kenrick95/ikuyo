@@ -122,6 +122,7 @@ function PageTripInner({
           </Container>
         )
       ) : null}
+      {!tripDefinitelyNotFound ? <TripMenuFloating /> : null}
       {!tripDefinitelyNotFound ? (
         <Switch>
           <Route
@@ -141,7 +142,6 @@ function PageTripInner({
           <Redirect replace to={RouteTripHome.routePath} />
         </Switch>
       ) : null}
-      {!tripDefinitelyNotFound ? <TripMenuFloating /> : null}
     </>
   );
 }

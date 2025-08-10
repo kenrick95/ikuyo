@@ -38,6 +38,9 @@
   width: 100%;
   background-color: transparent;
 }
+.controlText {
+  display: none;
+}
 /* For large screen */
 @media (min-width: 520px) {
   .nav {
@@ -52,5 +55,12 @@
   }
   .control {
     width: max-content;
+  }
+  .controlText {
+    display: inline-block;
+    margin-left: var(--space-1);
+    color: var(--color-text-secondary);
+    /* Make it visually vertically aligned with the icon */
+    vertical-align: 1px;
   }
 }
