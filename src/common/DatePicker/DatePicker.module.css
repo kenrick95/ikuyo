@@ -1,0 +1,149 @@
+/* DatePicker Component Styles */
+
+.container {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.selectedDates {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background-color: white;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #374151;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease-in-out,
+    box-shadow 0.15s ease-in-out;
+}
+
+.selectedDates:hover {
+  border-color: #9ca3af;
+}
+
+.selectedDates:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.selectedDates.disabled {
+  background-color: #f9fafb;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.selectedDates.disabled:hover {
+  border-color: #d1d5db;
+}
+
+.chevron {
+  width: 1rem;
+  height: 1rem;
+  margin-left: 0.5rem;
+  transition: transform 0.15s ease-in-out;
+  flex-shrink: 0;
+}
+
+.chevronUp {
+  transform: rotate(180deg);
+}
+
+.calendarContainer {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  margin-top: 0.25rem;
+  background-color: white;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.calendarWrapper {
+  padding: 1rem;
+}
+
+.calendarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.navButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 0.375rem;
+  background-color: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease-in-out,
+    color 0.15s ease-in-out;
+}
+
+.navButton:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.navButton:focus {
+  outline: none;
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+.navButton:disabled {
+  color: #d1d5db;
+  cursor: not-allowed;
+}
+
+.navIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.headerText {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  min-width: 8rem;
+  text-align: center;
+}
+
+.monthsContainer {
+  display: flex;
+  gap: 1rem;
+}
+
+/* Calendar Range specific styles for compatibility */
+.calendarRange {
+  display: block;
+  color: inherit;
+}
+
+.calendarRange.disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.calendarMonth {
+  display: block;
+}
