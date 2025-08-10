@@ -1,0 +1,27 @@
+.calendarGrid {
+  max-width: 300px;
+}
+.monthLabel {
+  text-align: center;
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-4);
+}
+.dayOfWeekLabel {
+  text-align: center;
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-2);
+}
+.dayButton:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: 2px;
+  z-index: 3;
+}
+.dayButton:hover {
+  background: var(--accent-7);
+}
+.prevMonthButton {
+  justify-self: start;
+}
+.nextMonthButton {
+  justify-self: end;
+}

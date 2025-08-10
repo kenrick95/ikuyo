@@ -35,6 +35,7 @@ const PageTrip = withLoading()(React.lazy(() => import('./Trip/PageTrip')));
 const PageAccount = withLoading()(
   React.lazy(() => import('./Account/PageAccount')),
 );
+const PageDemo = withLoading()(React.lazy(() => import('./PageDemo')));
 
 function App() {
   useSubscribeTheme();
@@ -46,6 +47,9 @@ function App() {
     <>
       <Theme appearance={theme} accentColor="red">
         <Switch>
+          {import.meta.env.DEV ? (
+            <Route path={'/demo'} component={PageDemo} />
+          ) : null}
           <Route path={RouteLogin.routePath} component={PageLogin} />
           <Route path={RouteTrips.routePath} component={PageTrips} />
           <Route path={RouteTrip.routePath} component={PageTrip} nest />
