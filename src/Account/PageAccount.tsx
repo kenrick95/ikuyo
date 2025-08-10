@@ -87,7 +87,7 @@ export function PageAccount(_props: RouteComponentProps) {
           <UserAvatarMenu key="UserAvatarMenu" user={currentUser} />,
         ]}
       />
-      <Container p="2" my="2">
+      <Container p="2">
         <Heading as="h2">Edit Account Details</Heading>
         <form
           onInput={() => {

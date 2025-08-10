@@ -59,8 +59,8 @@
   .timetable {
     --row-minute-height: 2px;
     --row-minute-narrow-height: 0.8px;
-    /* Reduce for Navbar (height); then TripMenuFloating (height + border) */
-    --timetable-height: calc(100vh - var(--space-8) - var(--space-7) - 1px);
+    /* Reduce for Navbar (height) */
+    --timetable-height: calc(100vh - var(--space-8));
     --day-count: 5;
 
     display: grid;

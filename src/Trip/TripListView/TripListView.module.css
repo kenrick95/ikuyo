@@ -4,8 +4,8 @@
   overflow: auto;
   justify-items: stretch;
   align-items: stretch;
-  /* Reduce for Navbar (height); then TripMenuFloating (height + border) */
-  height: calc(100vh - var(--space-8) - var(--space-7) - 1px);
+  /* Reduce for Navbar (height) */
+  height: calc(100vh - var(--space-8));
   overscroll-behavior-y: contain;
 }
 .listSubheader {
