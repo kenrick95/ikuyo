@@ -1,4 +1,4 @@
-import { Box, Grid } from '@radix-ui/themes';
+import { Box, Button, Grid } from '@radix-ui/themes';
 import type { DateTime } from 'luxon';
 import { useMemo } from 'react';
 
@@ -46,6 +46,7 @@ export function CalendarMonth({ yearMonth }: CalendarMonthProps) {
       <Box gridColumnStart="1" gridColumnEnd="8">
         {startOfMonth.toFormat('MMMM yyyy')}
       </Box>
+      {/* TODO: implement nav for prev/next month */}
       {daysInWeekArray.map((_, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: no need for unique keys here
         <Box key={i}>
@@ -56,9 +57,14 @@ export function CalendarMonth({ yearMonth }: CalendarMonthProps) {
         // biome-ignore lint/suspicious/noArrayIndexKey: no need for unique keys here
         <Box key={i} />
       ))}
+      {/* TODO: Make it focusable, but not using button logic, we don't want each to be tab-able, but when one of them is focused, we can navigate using arrows, even to prev/next month... see handleKeyDown? */}
       {daysInMonthArray.map((_, i) => {
         const date = startOfMonth.set({ day: i + 1 });
-        return <Box key={date.toISODate()}>{date.toFormat('d')}</Box>;
+        return (
+          <Button variant="surface" color="gray" key={date.toISODate()}>
+            {date.toFormat('d')}
+          </Button>
+        );
       })}
     </Grid>
   );
