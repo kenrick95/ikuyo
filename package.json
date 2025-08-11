@@ -16,8 +16,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@instantdb/admin": "~0.20.21",
-    "@instantdb/core": "~0.20.21",
+    "@instantdb/admin": "~0.20.22",
+    "@instantdb/core": "~0.20.22",
     "@maptiler/geocoding-control": "^2.1.7",
     "@maptiler/sdk": "~3.7.0",
     "@radix-ui/colors": "~3.0.0",
@@ -47,7 +47,7 @@
     "@types/url-regex-safe": "^1.0.2",
     "cross-env": "^10.0.0",
     "dotenv": "16.6.0",
-    "instant-cli": "~0.20.21",
+    "instant-cli": "~0.20.22",
     "lefthook": "^1.12.2",
     "typescript": "^5.9.2",
     "vitest": "3.2.4"
