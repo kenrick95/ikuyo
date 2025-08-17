@@ -100,6 +100,23 @@ const _schema = i.schema({
       createdAt: i.number(),
       lastUpdatedAt: i.number(),
     }),
+    task: i.entity({
+      index: i.number(),
+      title: i.string(),
+      description: i.string(),
+      status: i.number(),
+      createdAt: i.number(),
+      lastUpdatedAt: i.number(),
+      dueAt: i.number().optional(),
+      completedAt: i.number().optional(),
+    }),
+    taskList: i.entity({
+      title: i.string(),
+      createdAt: i.number(),
+      lastUpdatedAt: i.number(),
+      index: i.number(),
+      status: i.number(),
+    })
   },
   links: {
     /** trip 1:N activity */
@@ -309,6 +326,45 @@ const _schema = i.schema({
         on: 'expense',
         has: 'many',
         label: 'commentGroupObject',
+      },
+    },
+    /** commentGroupObject N:N task */
+    commentGroupObject$task: {
+      forward: {
+        on: 'commentGroupObject',
+        has: 'many',
+        label: 'task',
+      },
+      reverse: {
+        on: 'task',
+        has: 'many',
+        label: 'commentGroupObject',
+      },
+    },
+    /** taskList 1:N task */
+    taskList$task: {
+      forward: {
+        on: 'taskList',
+        has: 'many',
+        label: 'task',
+      },
+      reverse: {
+        on: 'task',
+        has: 'one',
+        label: 'taskList',
+      },
+    },
+    /** trip 1:N taskList */
+    trip$taskList: {
+      forward: {
+        on: 'trip',
+        has: 'many',
+        label: 'taskList',
+      },
+      reverse: {
+        on: 'taskList',
+        has: 'one',
+        label: 'trip',
       },
     },
   },

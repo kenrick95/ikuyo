@@ -10,6 +10,7 @@ import {
   deriveNewExpenseState,
   deriveNewMacroplanState,
   deriveNewTripState,
+  deriveNewTripTaskListAndTaskState,
   deriveNewTripUserState,
 } from './deriveState';
 import type {
@@ -21,6 +22,8 @@ import type {
   TripSliceCommentWithUser,
   TripSliceExpense,
   TripSliceMacroplan,
+  TripSliceTask,
+  TripSliceTaskList,
   TripSliceTrip,
   TripSliceTripMeta,
   TripSliceTripUser,
@@ -44,6 +47,8 @@ export const createTripSlice: StateCreator<
     commentUser: {},
     tripUser: {},
     expense: {},
+    task: {},
+    taskList: {},
     timetableDragging: {
       dragging: false,
       source: {
@@ -94,6 +99,9 @@ export const createTripSlice: StateCreator<
             accommodation: {},
             macroplan: {},
             expense: {},
+            taskList: {
+              task: {},
+            },
             tripUser: {
               user: {
                 $: { fields: ['id', 'handle', 'activated', 'email'] },
@@ -111,6 +119,7 @@ export const createTripSlice: StateCreator<
                 expense: { $: { fields: ['id', 'title'] } },
                 trip: { $: { fields: ['id', 'title'] } },
                 macroplan: { $: { fields: ['id', 'name'] } },
+                task: { $: { fields: ['id', 'title'] } },
                 $: {
                   fields: ['type', 'createdAt', 'lastUpdatedAt', 'id'],
                 },
@@ -151,6 +160,8 @@ export const createTripSlice: StateCreator<
             const newExpenseState = deriveNewExpenseState(state, trip);
             const { newCommentState, newCommentUserState } =
               deriveNewCommentAndCommentUserState(state, trip);
+            const { taskListState, taskState } =
+              deriveNewTripTaskListAndTaskState(state, trip);
             const newTripState = deriveNewTripState(state, trip);
 
             return {
@@ -163,6 +174,8 @@ export const createTripSlice: StateCreator<
               tripUser: newTripUserState,
               comment: newCommentState,
               commentUser: newCommentUserState,
+              task: taskState,
+              taskList: taskListState,
               tripMeta: {
                 ...state.tripMeta,
                 [tripId]: {
@@ -394,6 +407,44 @@ export const createTripSlice: StateCreator<
           return macroplan !== undefined;
         });
       return macroplans;
+    },
+    getTask: (id: string): TripSliceTask | undefined => {
+      if (!id) {
+        return undefined;
+      }
+      const task = get().task[id];
+      if (!task) {
+        return undefined;
+      }
+      return task;
+    },
+    getTasks: (ids: string[]): TripSliceTask[] => {
+      const state = get();
+      const tasks = ids
+        .map((id) => state.task[id])
+        .filter((task): task is TripSliceTask => {
+          return task !== undefined;
+        });
+      return tasks;
+    },
+    getTaskList: (id: string): TripSliceTaskList | undefined => {
+      if (!id) {
+        return undefined;
+      }
+      const taskList = get().taskList[id];
+      if (!taskList) {
+        return undefined;
+      }
+      return taskList;
+    },
+    getAllTaskLists: (): TripSliceTaskList[] => {
+      const state = get();
+      const taskLists = Object.values(state.taskList).filter(
+        (taskList): taskList is TripSliceTaskList => {
+          return taskList !== undefined;
+        },
+      );
+      return taskLists;
     },
   };
 };

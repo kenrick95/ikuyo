@@ -206,6 +206,7 @@ export async function dbDeleteTrip(trip: TripSliceTrip) {
       macroplan: { $: { fields: ['id'] } },
       expense: { $: { fields: ['id'] } },
       tripUser: { $: { fields: ['id'] } },
+      taskList: { $: { fields: ['id'] }, task: { $: { fields: ['id'] } } },
       commentGroup: {
         $: { fields: ['id'] },
         comment: { $: { fields: ['id'] } },
@@ -237,6 +238,12 @@ export async function dbDeleteTrip(trip: TripSliceTrip) {
     ),
     ...tripData.data.trip[0].expense.map((expense) =>
       db.tx.expense[expense.id].delete(),
+    ),
+    ...tripData.data.trip[0].taskList.flatMap((taskList) =>
+      taskList.task.map((task) => db.tx.task[task.id].delete()),
+    ),
+    ...tripData.data.trip[0].taskList.map((taskList) =>
+      db.tx.taskList[taskList.id].delete(),
     ),
     ...tripData.data.trip[0].macroplan.map((macroplan) =>
       db.tx.macroplan[macroplan.id].delete(),

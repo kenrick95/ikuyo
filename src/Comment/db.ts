@@ -6,6 +6,7 @@ import type { DbUser } from '../data/types';
 import type { DbExpense } from '../Expense/db';
 import type { DbMacroplan } from '../Macroplan/db';
 import type { DbTrip } from '../Trip/db';
+import type { DbTask } from '../Task/db';
 
 export const COMMENT_GROUP_STATUS = {
   UNRESOLVED: 0,
@@ -22,6 +23,7 @@ export const COMMENT_GROUP_OBJECT_TYPE = {
   ACTIVITY: 'activity',
   ACCOMMODATION: 'accommodation',
   EXPENSE: 'expense',
+  TASK: 'task',
 } as const;
 /**
  * Comment group is a group of comments that belong to a trip
@@ -66,6 +68,7 @@ export type DbCommentGroupObject<ObjectType extends DbCommentGroupObjectType> =
       ObjectType extends 'accommodation' ? DbAccommodation : undefined
     >;
     expense: Array<ObjectType extends 'expense' ? DbExpense : undefined>;
+    task: Array<ObjectType extends 'task' ? DbTask : undefined>;
   };
 
 export async function dbAddComment<ObjectType extends DbCommentGroupObjectType>(

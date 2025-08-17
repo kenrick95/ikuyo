@@ -34,6 +34,11 @@ export const RouteTripComment = createRouteParam(
   identity,
   RouteTrip,
 );
+export const RouteTripTaskList = createRouteParam(
+  '/tasks',
+  identity,
+  RouteTrip,
+);
 // #endregion Trip
 // #region Trip Timetable
 export const RouteTripTimetableViewActivity = createRouteParam(
@@ -69,3 +74,11 @@ export const RouteTripListViewMacroplan = createRouteParam(
   RouteTripListView,
 );
 // #endregion Trip List
+
+// #region Trip Task
+export const RouteTripTaskListTask = createRouteParam(
+  '/task/:id',
+  replaceId,
+  RouteTripTaskList,
+);
+// #endregion Trip Timetable

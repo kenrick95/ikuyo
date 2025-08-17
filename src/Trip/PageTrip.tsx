@@ -52,6 +52,13 @@ const TripComment = withLoading()(
     }),
   ),
 );
+const TripTaskList = withLoading()(
+  React.lazy(() =>
+    import('./TripTask/TripTaskList').then((module) => {
+      return { default: module.TripTaskList };
+    }),
+  ),
+);
 
 import { useCurrentUser } from '../Auth/hooks';
 import { useBoundStore } from '../data/store';
@@ -62,6 +69,7 @@ import {
   RouteTripHome,
   RouteTripListView,
   RouteTripMap,
+  RouteTripTaskList,
   RouteTripTimetableView,
 } from '../Routes/routes';
 import { useTrip } from './store/hooks';
@@ -138,6 +146,7 @@ function PageTripInner({
           <Route path={RouteTripMap.routePath} component={PageTripMap} />
           <Route path={RouteTripExpenses.routePath} component={ExpenseList} />
           <Route path={RouteTripComment.routePath} component={TripComment} />
+          <Route path={RouteTripTaskList.routePath} component={TripTaskList} nest />
           <Route path={RouteTripHome.routePath} component={TripHome} />
           <Redirect replace to={RouteTripHome.routePath} />
         </Switch>
