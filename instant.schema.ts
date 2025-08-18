@@ -116,7 +116,7 @@ const _schema = i.schema({
       lastUpdatedAt: i.number(),
       index: i.number(),
       status: i.number(),
-    })
+    }),
   },
   links: {
     /** trip 1:N activity */

@@ -5,8 +5,8 @@ import { db } from '../data/db';
 import type { DbUser } from '../data/types';
 import type { DbExpense } from '../Expense/db';
 import type { DbMacroplan } from '../Macroplan/db';
-import type { DbTrip } from '../Trip/db';
 import type { DbTask } from '../Task/db';
+import type { DbTrip } from '../Trip/db';
 
 export const COMMENT_GROUP_STATUS = {
   UNRESOLVED: 0,

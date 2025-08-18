@@ -146,7 +146,11 @@ function PageTripInner({
           <Route path={RouteTripMap.routePath} component={PageTripMap} />
           <Route path={RouteTripExpenses.routePath} component={ExpenseList} />
           <Route path={RouteTripComment.routePath} component={TripComment} />
-          <Route path={RouteTripTaskList.routePath} component={TripTaskList} nest />
+          <Route
+            path={RouteTripTaskList.routePath}
+            component={TripTaskList}
+            nest
+          />
           <Route path={RouteTripHome.routePath} component={TripHome} />
           <Redirect replace to={RouteTripHome.routePath} />
         </Switch>

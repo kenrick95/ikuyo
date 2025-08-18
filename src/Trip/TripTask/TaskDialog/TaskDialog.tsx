@@ -1,5 +1,5 @@
-import { useDeepBoundStore } from '../../../data/store';
 import { createDialogRoute } from '../../../Dialog/DialogRoute';
+import { useDeepBoundStore } from '../../../data/store';
 import type { TripSliceTask } from '../../store/types';
 import { TaskDialogContentDelete } from './TaskDialogContentDelete';
 import { TaskDialogContentEdit } from './TaskDialogContentEdit';
