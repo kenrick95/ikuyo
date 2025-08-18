@@ -1,8 +1,7 @@
 import { useCallback } from 'react';
 import { useLocation } from 'wouter';
-
-import { RouteTripTaskListTask } from '../../../Routes/routes';
 import { DialogMode, type DialogModeType } from '../../../Dialog/DialogRoute';
+import { RouteTripTaskListTask } from '../../../Routes/routes';
 
 export function useTaskDialogHooks(taskId: string) {
   const [, setLocation] = useLocation();

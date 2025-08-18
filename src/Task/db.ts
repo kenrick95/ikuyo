@@ -21,17 +21,22 @@ export type DbTaskList = {
   task: DbTask[] | undefined;
 };
 export async function dbAddTaskList(
-  newTaskList: Omit<DbTaskList, 'id' | 'createdAt' | 'lastUpdatedAt'>,
+  newTaskList: Omit<DbTaskList, 'id' | 'createdAt' | 'lastUpdatedAt' | 'task'>,
+  { tripId }: { tripId: string },
 ) {
   const newId = id();
   return {
     id: newId,
     result: await db.transact([
-      db.tx.taskList[newId].update({
-        ...newTaskList,
-        createdAt: Date.now(),
-        lastUpdatedAt: Date.now(),
-      }),
+      db.tx.taskList[newId]
+        .update({
+          ...newTaskList,
+          createdAt: Date.now(),
+          lastUpdatedAt: Date.now(),
+        })
+        .link({
+          trip: tripId,
+        }),
     ]),
   };
 }

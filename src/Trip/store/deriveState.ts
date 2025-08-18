@@ -14,10 +14,10 @@ import type {
   TripSliceCommentUser,
   TripSliceExpense,
   TripSliceMacroplan,
-  TripSliceTrip,
-  TripSliceTripUser,
   TripSliceTask,
   TripSliceTaskList,
+  TripSliceTrip,
+  TripSliceTripUser,
 } from './types';
 
 export function deriveNewTripState(
