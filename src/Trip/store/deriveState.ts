@@ -48,6 +48,7 @@ export function deriveNewTripState(
       tripUserIds: trip.tripUser.map((a) => a.id),
       commentGroupIds: trip.commentGroup.map((a) => a.id),
       expenseIds: trip.expense.map((a) => a.id),
+      taskListIds: trip.taskList.map((a) => a.id),
       sharingLevel: trip.sharingLevel as TripSharingLevelType,
       currentUserRole:
         (currentUserTripUser?.role as TripUserRole | undefined) ??

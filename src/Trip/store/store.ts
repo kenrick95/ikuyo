@@ -437,13 +437,20 @@ export const createTripSlice: StateCreator<
       }
       return taskList;
     },
-    getAllTaskLists: (): TripSliceTaskList[] => {
+    getAllTaskLists: (tripId: string | undefined): TripSliceTaskList[] => {
+      if (!tripId) {
+        return [];
+      }
       const state = get();
-      const taskLists = Object.values(state.taskList).filter(
-        (taskList): taskList is TripSliceTaskList => {
+      const trip = state.trip[tripId];
+      if (!trip) {
+        return [];
+      }
+      const taskLists = trip.taskListIds
+        .map((id) => state.taskList[id])
+        .filter((taskList): taskList is TripSliceTaskList => {
           return taskList !== undefined;
-        },
-      );
+        });
       return taskLists;
     },
   };

@@ -62,6 +62,27 @@ export function useTripExpenses(expenseIds: string[]) {
   return tripUsers;
 }
 
+export function useTripTask(taskId: string ) {
+  const task = useDeepBoundStore((state) => state.getTask(taskId)); 
+  return task;
+}
+export function useTripTasks(taskIds: string[] ) {
+  const tasks = useDeepBoundStore((state) => state.getTasks(taskIds)); 
+  return tasks;
+}
+export function useTripTaskList(taskListId: string) {
+  const taskList = useDeepBoundStore((state) =>
+    state.getTaskList(taskListId),
+  );
+  return taskList;
+}
+export function useTripAllTaskLists(tripId: string | undefined) {
+  const taskLists = useDeepBoundStore((state) =>
+    state.getAllTaskLists(tripId),
+  );
+  return taskLists;
+}
+
 export function useTripComments(ids: string[]) {
   const comments = useDeepBoundStore((state) => state.getComments(ids));
   return comments;

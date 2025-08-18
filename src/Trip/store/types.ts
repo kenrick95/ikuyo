@@ -17,6 +17,7 @@ export type TripSliceTrip = Omit<
   tripUserIds: string[];
   commentGroupIds: string[];
   expenseIds: string[];
+  taskListIds: string[];
 
   currentUserRole: TripUserRole;
 };
@@ -360,7 +361,7 @@ export interface TripSlice {
   getAccommodations: (ids: string[]) => TripSliceAccommodation[];
   getMacroplans: (ids: string[]) => TripSliceMacroplan[];
   getTask: (id: string) => TripSliceTask | undefined;
-  getTasks: (ids: string[]) => TripSliceTask[] | undefined;
+  getTasks: (ids: string[]) => TripSliceTask[];
   getTaskList: (id: string) => TripSliceTaskList | undefined;
-  getAllTaskLists: () => TripSliceTaskList[] | undefined;
+  getAllTaskLists: (tripId: string | undefined) => TripSliceTaskList[];
 }
