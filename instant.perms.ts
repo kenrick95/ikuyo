@@ -115,6 +115,42 @@ export default {
       update: 'isTripEditor || isTripOwner',
     },
   },
+  taskList: {
+    bind: [
+      'isTripPublic',
+      "2 in data.ref('trip.sharingLevel')",
+      'isTripEditor',
+      "'editor' in data.ref('trip.tripUser.role') && auth.email in data.ref('trip.tripUser.user.email')",
+      'isTripOwner',
+      "'owner' in data.ref('trip.tripUser.role') && auth.email in data.ref('trip.tripUser.user.email')",
+      'isTripViewer',
+      "'viewer' in data.ref('trip.tripUser.role') && auth.email in data.ref('trip.tripUser.user.email')",
+    ],
+    allow: {
+      view: 'isTripPublic || isTripViewer || isTripEditor || isTripOwner',
+      create: 'isTripEditor || isTripOwner',
+      delete: 'isTripEditor || isTripOwner',
+      update: 'isTripEditor || isTripOwner',
+    },
+  },
+  task: {
+    bind: [
+      'isTripPublic',
+      "2 in data.ref('taskList.trip.sharingLevel')",
+      'isTripEditor',
+      "'editor' in data.ref('taskList.trip.tripUser.role') && auth.email in data.ref('taskList.trip.tripUser.user.email')",
+      'isTripOwner',
+      "'owner' in data.ref('taskList.trip.tripUser.role') && auth.email in data.ref('taskList.trip.tripUser.user.email')",
+      'isTripViewer',
+      "'viewer' in data.ref('taskList.trip.tripUser.role') && auth.email in data.ref('taskList.trip.tripUser.user.email')",
+    ],
+    allow: {
+      view: 'isTripPublic || isTripViewer || isTripEditor || isTripOwner',
+      create: 'isTripEditor || isTripOwner',
+      delete: 'isTripEditor || isTripOwner',
+      update: 'isTripEditor || isTripOwner',
+    },
+  },
   commentGroup: {
     bind: [
       'isTripPublic',

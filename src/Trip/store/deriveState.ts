@@ -14,6 +14,8 @@ import type {
   TripSliceCommentUser,
   TripSliceExpense,
   TripSliceMacroplan,
+  TripSliceTask,
+  TripSliceTaskList,
   TripSliceTrip,
   TripSliceTripUser,
 } from './types';
@@ -46,6 +48,7 @@ export function deriveNewTripState(
       tripUserIds: trip.tripUser.map((a) => a.id),
       commentGroupIds: trip.commentGroup.map((a) => a.id),
       expenseIds: trip.expense.map((a) => a.id),
+      taskListIds: trip.taskList.map((a) => a.id),
       sharingLevel: trip.sharingLevel as TripSharingLevelType,
       currentUserRole:
         (currentUserTripUser?.role as TripUserRole | undefined) ??
@@ -163,6 +166,9 @@ export function deriveNewCommentGroupState(
     } else if (objectType === COMMENT_GROUP_OBJECT_TYPE.TRIP) {
       objectId = commentGroup.object?.trip?.[0]?.id;
       objectName = commentGroup.object?.trip?.[0]?.title ?? '';
+    } else if (objectType === COMMENT_GROUP_OBJECT_TYPE.TASK) {
+      objectId = commentGroup.object?.task?.[0]?.id;
+      objectName = commentGroup.object?.task?.[0]?.title ?? '';
     }
     if (!objectId) {
       continue;
@@ -245,4 +251,29 @@ export function deriveNewCommentAndCommentUserState(
     }
   }
   return { newCommentState, newCommentUserState };
+}
+
+export function deriveNewTripTaskListAndTaskState(
+  state: BoundStoreType,
+  trip: DbTripQueryReturnType,
+): {
+  taskListState: { [id: string]: TripSliceTaskList };
+  taskState: { [id: string]: TripSliceTask };
+} {
+  const taskListState = { ...state.taskList };
+  const taskState = { ...state.task };
+  for (const taskList of trip.taskList ?? []) {
+    taskListState[taskList.id] = {
+      ...taskList,
+      tripId: trip.id,
+      taskIds: taskList.task.map((t) => t.id),
+    } satisfies TripSliceTaskList;
+    for (const task of taskList.task) {
+      taskState[task.id] = {
+        ...task,
+        taskListId: taskList.id,
+      } satisfies TripSliceTask;
+    }
+  }
+  return { taskListState, taskState };
 }

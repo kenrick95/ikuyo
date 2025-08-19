@@ -25,6 +25,7 @@ describe('Trip', () => {
     commentGroupIds: [],
     tripUserIds: [],
     expenseIds: [],
+    taskListIds: [],
     currentUserRole: TripUserRole.Owner,
     sharingLevel: TripSharingLevel.Private,
   } satisfies TripSliceTrip;

@@ -17,6 +17,7 @@ export type TripSliceTrip = Omit<
   tripUserIds: string[];
   commentGroupIds: string[];
   expenseIds: string[];
+  taskListIds: string[];
 
   currentUserRole: TripUserRole;
 };
@@ -93,6 +94,35 @@ export type TripSliceTripUser = {
   email: string;
 };
 
+export type TripSliceTask = {
+  id: string;
+  index: number;
+  title: string;
+  description: string;
+  status: number;
+  /** ms */
+  createdAt: number;
+  /** ms */
+  lastUpdatedAt: number;
+  /** ms */
+  dueAt?: number | null | undefined;
+  /** ms */
+  completedAt?: number | null | undefined;
+  taskListId: string;
+};
+export type TripSliceTaskList = {
+  id: string;
+  title: string;
+  /** ms */
+  createdAt: number;
+  /** ms */
+  lastUpdatedAt: number;
+  index: number;
+  status: number;
+  tripId: string;
+  taskIds: string[];
+};
+
 export type DbTripQueryReturnType = {
   id: string;
   title: string;
@@ -154,6 +184,25 @@ export type DbTripQueryReturnType = {
     amount: number;
     currencyConversionFactor: number;
     amountInOriginCurrency: number;
+  }[];
+  taskList: {
+    id: string;
+    title: string;
+    createdAt: number;
+    lastUpdatedAt: number;
+    index: number;
+    status: number;
+    task: {
+      id: string;
+      index: number;
+      title: string;
+      description: string;
+      status: number;
+      createdAt: number;
+      lastUpdatedAt: number;
+      dueAt?: number | null | undefined;
+      completedAt?: number | null | undefined;
+    }[];
   }[];
   tripUser: {
     id: string;
@@ -221,6 +270,12 @@ export type DbTripQueryReturnType = {
                 name: string;
               }[]
             | undefined;
+          task:
+            | {
+                id: string;
+                title: string;
+              }[]
+            | undefined;
         }
       | undefined;
   }[];
@@ -256,6 +311,12 @@ export interface TripSlice {
   };
   commentUser: {
     [userId: string]: TripSliceCommentUser;
+  };
+  task: {
+    [taskId: string]: TripSliceTask;
+  };
+  taskList: {
+    [taskListId: string]: TripSliceTaskList;
   };
   currentTripId: string | undefined;
   timetableDragging: {
@@ -299,4 +360,8 @@ export interface TripSlice {
   getTripUsers: (ids: string[]) => TripSliceTripUser[];
   getAccommodations: (ids: string[]) => TripSliceAccommodation[];
   getMacroplans: (ids: string[]) => TripSliceMacroplan[];
+  getTask: (id: string) => TripSliceTask | undefined;
+  getTasks: (ids: string[]) => TripSliceTask[];
+  getTaskList: (id: string) => TripSliceTaskList | undefined;
+  getAllTaskLists: (tripId: string | undefined) => TripSliceTaskList[];
 }
