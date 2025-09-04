@@ -4,18 +4,34 @@
   padding: var(--space-3);
   min-height: 200px;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .taskListHeader {
   border-bottom: 1px solid var(--gray-6);
   padding-bottom: var(--space-2);
-  margin-bottom: var(--space-3);
 }
 
 .taskListContent {
+  min-height: 100px;
+  flex: 1;
+  border-radius: var(--radius-2);
+  transition: background-color 0.2s ease;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+
+.dropZoneActive {
+  background-color: var(--accent-3);
+  border: 2px dashed var(--accent-8);
+}
+
+.taskListContent[data-droppable="true"] {
+  background-color: var(--gray-2);
+  border: 2px dashed var(--gray-6);
 }
 
 .emptyState {

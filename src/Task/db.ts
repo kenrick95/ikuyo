@@ -115,3 +115,29 @@ export async function dbUpdateTaskIndexes(
   );
   return db.transact(transactions);
 }
+
+export async function dbMoveTaskToTaskList(
+  taskId: string,
+  currentTaskListId: string,
+  newTaskListId: string,
+  newIndex: number,
+) {
+  console.log('dbMoveTaskToTaskList', {
+    taskId,
+    currentTaskListId,
+    newTaskListId,
+    newIndex,
+  });
+
+  return db.transact([
+    db.tx.taskList[currentTaskListId].unlink({ task: taskId }),
+    db.tx.task[taskId]
+      .merge({
+        index: newIndex,
+        lastUpdatedAt: Date.now(),
+      })
+      .link({
+        taskList: newTaskListId,
+      }),
+  ]);
+}

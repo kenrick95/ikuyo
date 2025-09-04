@@ -1,10 +1,31 @@
+import type {
+  DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
+} from '@dnd-kit/core';
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  rectIntersection,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
 import { PlusIcon } from '@radix-ui/react-icons';
 import { Button, Container, Flex, Heading, Text } from '@radix-ui/themes';
 import { useCallback, useMemo, useState } from 'react';
 import { Route, Switch } from 'wouter';
 import { RouteTripTaskListTask } from '../../Routes/routes';
+import { dbMoveTaskToTaskList, dbUpdateTaskIndexes } from '../../Task/db';
 import { TripUserRole } from '../../User/TripUserRole';
-import { useCurrentTrip } from '../store/hooks';
+import {
+  useCurrentTrip,
+  useTripAllTaskLists,
+  useTripTasks,
+} from '../store/hooks';
+import type { TripSliceTask } from '../store/types';
+import { TaskCard } from './TaskCard';
 import { TaskDialog } from './TaskDialog/TaskDialog';
 import { TaskList } from './TaskList';
 import { TaskListInlineForm } from './TaskListInlineForm/TaskListInlineForm';
@@ -16,6 +37,26 @@ const containerPb = { initial: '9', sm: '5' };
 export function TripTaskList() {
   const { trip } = useCurrentTrip();
   const [showInlineForm, setShowInlineForm] = useState(false);
+  const [activeTask, setActiveTask] = useState<TripSliceTask | null>(null);
+
+  // Get all task lists for the current trip
+  const allTaskLists = useTripAllTaskLists(trip?.id);
+
+  // Get all task IDs from all task lists
+  const allTaskIds = useMemo(() => {
+    if (!allTaskLists) return [];
+    return allTaskLists.flatMap((taskList) => taskList.taskIds ?? []);
+  }, [allTaskLists]);
+
+  const allTasks = useTripTasks(allTaskIds);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5, // 5px threshold to distinguish from clicks
+      },
+    }),
+  );
 
   const userCanCreate = useMemo(() => {
     return (
@@ -35,6 +76,165 @@ export function TripTaskList() {
   const handleFormCancel = useCallback(() => {
     setShowInlineForm(false);
   }, []);
+
+  const handleDragStart = useCallback(
+    (event: DragStartEvent) => {
+      const { active } = event;
+      // Find the active task from all tasks
+      const task = allTasks.find((t: TripSliceTask) => t.id === active.id);
+      if (task) {
+        setActiveTask(task);
+      }
+    },
+    [allTasks],
+  );
+
+  const handleDragOver = useCallback(
+    (event: DragOverEvent) => {
+      const { active, over } = event;
+      if (!over) return;
+
+      const activeId = active.id as string;
+      const overId = over.id as string;
+
+      // If dragging over the same item, do nothing
+      if (activeId === overId) return;
+
+      console.log('Drag over:', {
+        activeId,
+        overId,
+        overData: over.data.current,
+        activeData: active.data.current,
+      });
+
+      // Find the active task
+      const activeTask = allTasks.find((t: TripSliceTask) => t.id === activeId);
+      if (!activeTask) return;
+
+      // Check what we're dragging over
+      if (overId.startsWith('tasklist-')) {
+        // Dragging over an empty task list
+        console.log('Dragging over empty task list', { overId });
+      } else {
+        // Dragging over another task
+        const overTask = allTasks.find((t: TripSliceTask) => t.id === overId);
+        if (overTask && activeTask.taskListId !== overTask.taskListId) {
+          console.log('Dragging over task in different list', { overTask });
+        }
+      }
+    },
+    [allTasks],
+  );
+
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const { active, over } = event;
+      setActiveTask(null);
+
+      if (!over || !trip) return;
+
+      const activeId = active.id as string;
+      const overId = over.id as string;
+
+      if (activeId === overId) return;
+
+      try {
+        const activeTask = allTasks.find(
+          (t: TripSliceTask) => t.id === activeId,
+        );
+        if (!activeTask) return;
+
+        // Check if we're dropping over a task list container (empty list)
+        if (overId.startsWith('tasklist-')) {
+          const targetTaskListId = overId.replace('tasklist-', '');
+
+          // Don't move if it's the same task list
+          if (activeTask.taskListId === targetTaskListId) return;
+
+          console.log('Moving task to different empty list:', {
+            activeId,
+            targetTaskListId,
+          });
+
+          // Move task to the new list at the end (high index)
+          await dbMoveTaskToTaskList(
+            activeId,
+            activeTask.taskListId,
+            targetTaskListId,
+            Date.now(),
+          );
+        } else {
+          // Dropping over another task
+          const overTask = allTasks.find((t: TripSliceTask) => t.id === overId);
+          if (!overTask) return;
+
+          if (activeTask.taskListId === overTask.taskListId) {
+            // Same list - reorder within the list
+            console.log('Reordering within same list');
+
+            // Get all tasks in this list and sort them
+            const tasksInList = allTasks
+              .filter((t) => t.taskListId === activeTask.taskListId)
+              .sort((a, b) => a.index - b.index);
+
+            const activeIndex = tasksInList.findIndex((t) => t.id === activeId);
+            const overIndex = tasksInList.findIndex((t) => t.id === overId);
+
+            if (activeIndex !== -1 && overIndex !== -1) {
+              const reorderedTasks = arrayMove(
+                tasksInList,
+                activeIndex,
+                overIndex,
+              );
+
+              // Update indexes for all tasks in the list
+              const taskUpdates = reorderedTasks.map((task, index) => ({
+                id: task.id,
+                index,
+              }));
+
+              await dbUpdateTaskIndexes(taskUpdates);
+            }
+          } else {
+            // Different lists - move to the position of the over task
+            console.log('Moving to different list at specific position', {
+              activeId,
+              overTask,
+            });
+            await dbMoveTaskToTaskList(
+              activeId,
+              activeTask.taskListId,
+              overTask.taskListId,
+              overTask.index,
+            );
+
+            // Reorder tasks in the target list to make space
+            const tasksInTargetList = allTasks
+              .filter(
+                (t) =>
+                  t.taskListId === overTask.taskListId && t.id !== activeId,
+              )
+              .sort((a, b) => a.index - b.index);
+
+            // Update indexes for tasks that come after the insertion point
+            const updatesNeeded = tasksInTargetList
+              .filter((t) => t.index >= overTask.index)
+              .map((task, i) => ({
+                id: task.id,
+                index: overTask.index + i + 1,
+              }));
+
+            if (updatesNeeded.length > 0) {
+              await dbUpdateTaskIndexes(updatesNeeded);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to move task:', error);
+      }
+    },
+    [trip, allTasks],
+  );
 
   return (
     <Container mt="2" pb={containerPb} px={containerPx}>
@@ -80,11 +280,24 @@ export function TripTaskList() {
           )}
         </div>
       ) : (
-        <div className={style.taskBoard}>
-          {trip.taskListIds.map((taskListId) => (
-            <TaskList key={taskListId} id={taskListId} />
-          ))}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={rectIntersection}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          <div className={style.taskBoard}>
+            {trip.taskListIds.map((taskListId) => (
+              <TaskList key={taskListId} id={taskListId} />
+            ))}
+          </div>
+          <DragOverlay dropAnimation={{ duration: 200 }}>
+            {activeTask ? (
+              <TaskCard task={activeTask} userCanEditOrDelete={userCanCreate} />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       )}
 
       <Switch>

@@ -27,6 +27,11 @@ export function TaskCard({
   } = useSortable({
     id: task.id,
     disabled: !userCanEditOrDelete,
+    data: {
+      type: 'task',
+      taskListId: task.taskListId,
+      task: task,
+    },
   });
 
   const style_transform = {
