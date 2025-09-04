@@ -31,6 +31,7 @@ export function TaskNewDialog({
           taskDescription=""
           taskStatus={TaskStatus.Todo}
           taskDueAt={null}
+          taskIndex={undefined}
           onFormCancel={popDialog}
           onFormSuccess={popDialog}
         />

@@ -38,7 +38,7 @@ export function TaskListInlineForm({
       try {
         const newTaskListData = {
           title: trimmedTitle,
-          index: Date.now(), // Simple ordering
+          index: -Date.now(), // First
           status: TaskListStatus.Todo,
         };
 

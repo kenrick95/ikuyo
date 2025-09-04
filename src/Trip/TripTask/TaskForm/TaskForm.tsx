@@ -37,6 +37,7 @@ export function TaskForm({
   taskDescription,
   taskStatus,
   taskDueAt,
+  taskIndex,
   onFormSuccess,
   onFormCancel,
 }: {
@@ -48,6 +49,7 @@ export function TaskForm({
   taskDescription: string;
   taskStatus: number;
   taskDueAt?: number | null | undefined;
+  taskIndex?: number;
   onFormSuccess: () => void;
   onFormCancel: () => void;
 }) {
@@ -98,7 +100,7 @@ export function TaskForm({
             title,
             description,
             status,
-            index: Date.now(), // Simple ordering, could be improved
+            index: -Date.now(), // Simple ordering, show at the top
             dueAt,
           };
 
@@ -114,7 +116,7 @@ export function TaskForm({
             title,
             description,
             status,
-            index: Date.now(), // Keep existing index in real implementation
+            index: taskIndex ?? -Date.now(),
             dueAt,
             completedAt: status === TaskStatus.Done ? Date.now() : null,
           };
@@ -142,7 +144,15 @@ export function TaskForm({
         setIsSubmitting(false);
       }
     },
-    [mode, taskId, taskListId, tripTimeZone, publishToast, onFormSuccess],
+    [
+      mode,
+      taskId,
+      taskListId,
+      tripTimeZone,
+      taskIndex,
+      publishToast,
+      onFormSuccess,
+    ],
   );
 
   return (

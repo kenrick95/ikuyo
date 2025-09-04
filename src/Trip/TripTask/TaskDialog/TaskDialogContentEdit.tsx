@@ -39,6 +39,7 @@ export function TaskDialogContentEdit({
           taskDescription={task.description}
           taskStatus={task.status}
           taskDueAt={task.dueAt}
+          taskIndex={task.index}
           onFormCancel={backToViewMode}
           onFormSuccess={backToViewMode}
         />

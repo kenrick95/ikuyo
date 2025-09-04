@@ -71,7 +71,7 @@ export function TaskInlineForm({
           title: title.trim(),
           description: description.trim(),
           status: Number(status),
-          index: Date.now(), // Simple ordering
+          index: -Date.now(), // Show at the top
           dueAt: dueAtTimestamp,
         };
 
