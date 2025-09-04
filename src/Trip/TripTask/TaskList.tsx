@@ -1,8 +1,10 @@
 import { useDroppable } from '@dnd-kit/core';
 import {
   SortableContext,
+  useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { PlusIcon } from '@radix-ui/react-icons';
 import { Button, Flex, Heading, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
@@ -11,7 +13,7 @@ import { TripUserRole } from '../../User/TripUserRole';
 import { useCurrentTrip, useTripTaskList, useTripTasks } from '../store/hooks';
 import { TaskCard } from './TaskCard';
 import { TaskInlineForm } from './TaskInlineForm/TaskInlineForm';
-import style from './TaskList.module.css';
+import taskListStyles from './TaskList.module.css';
 
 export function TaskList({
   id,
@@ -25,19 +27,41 @@ export function TaskList({
   const tasks = useTripTasks(taskList?.taskIds ?? []);
   const [showInlineForm, setShowInlineForm] = useState(false);
 
-  // Sort tasks by index for proper display order
-  const sortedTasks = useMemo(() => {
-    return [...tasks].sort((a, b) => a.index - b.index);
-  }, [tasks]);
+  // Make the task list sortable for reordering
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setSortableRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: id,
+    data: {
+      type: 'taskList',
+      taskListId: id,
+    },
+  });
 
-  // Set up droppable area for this task list
-  const { setNodeRef, isOver } = useDroppable({
+  // Set up droppable area for this task list (for cross-list task drops)
+  const { setNodeRef: setDroppableRef } = useDroppable({
     id: `tasklist-${id}`,
     data: {
       type: 'taskList',
       taskListId: id,
     },
   });
+
+  const dragStyle = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  // Sort tasks by index for proper display order
+  const sortedTasks = useMemo(() => {
+    return [...tasks].sort((a, b) => a.index - b.index);
+  }, [tasks]);
 
   const userCanEditOrDelete = useMemo(() => {
     return (
@@ -63,8 +87,17 @@ export function TaskList({
   }
 
   return (
-    <div className={style.taskList}>
-      <div className={style.taskListHeader}>
+    <div
+      className={taskListStyles.taskList}
+      style={dragStyle}
+      ref={setSortableRef}
+      {...attributes}
+    >
+      <div
+        className={taskListStyles.taskListHeader}
+        {...listeners}
+        style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+      >
         <Flex justify="between" align="center">
           <Heading as="h3" size="4">
             {taskList.title}
@@ -77,10 +110,10 @@ export function TaskList({
         </Flex>
       </div>
       <div
-        className={clsx(style.taskListContent, {
-          [style.dropZoneActive]: isActiveDropZone || isOver,
+        className={clsx(taskListStyles.taskListContent, {
+          [taskListStyles.dropZoneActive]: isActiveDropZone,
         })}
-        ref={setNodeRef}
+        ref={setDroppableRef}
       >
         {showInlineForm && trip && (
           <TaskInlineForm
@@ -91,7 +124,7 @@ export function TaskList({
           />
         )}
         {sortedTasks.length === 0 && !showInlineForm ? (
-          <div className={style.emptyState}>
+          <div className={taskListStyles.emptyState}>
             <Text>No tasks yet</Text>
             {userCanEditOrDelete && !showInlineForm && (
               <Button

@@ -11,13 +11,21 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { arrayMove } from '@dnd-kit/sortable';
+import {
+  arrayMove,
+  horizontalListSortingStrategy,
+  SortableContext,
+} from '@dnd-kit/sortable';
 import { PlusIcon } from '@radix-ui/react-icons';
 import { Button, Container, Flex, Heading, Text } from '@radix-ui/themes';
 import { useCallback, useMemo, useState } from 'react';
 import { Route, Switch } from 'wouter';
 import { RouteTripTaskListTask } from '../../Routes/routes';
-import { dbMoveTaskToTaskList, dbUpdateTaskIndexes } from '../../Task/db';
+import {
+  dbMoveTaskToTaskList,
+  dbUpdateTaskIndexes,
+  dbUpdateTaskListIndexes,
+} from '../../Task/db';
 import { TripUserRole } from '../../User/TripUserRole';
 import {
   useCurrentTrip,
@@ -38,6 +46,7 @@ export function TripTaskList() {
   const { trip } = useCurrentTrip();
   const [showInlineForm, setShowInlineForm] = useState(false);
   const [activeTask, setActiveTask] = useState<TripSliceTask | null>(null);
+  const [activeTaskList, setActiveTaskList] = useState<string | null>(null);
   const [activeDropZone, setActiveDropZone] = useState<string | null>(null);
 
   // Get all task lists for the current trip
@@ -81,14 +90,25 @@ export function TripTaskList() {
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
       const { active } = event;
-      // Find the active task from all tasks
+
+      // Check if we're dragging a task
       const task = allTasks.find((t: TripSliceTask) => t.id === active.id);
       if (task) {
         setActiveTask(task);
+        setActiveTaskList(null);
+        setActiveDropZone(null);
+        return;
+      }
+
+      // Check if we're dragging a task list
+      const taskListId = active.id as string;
+      if (trip?.taskListIds.includes(taskListId)) {
+        setActiveTaskList(taskListId);
+        setActiveTask(null);
         setActiveDropZone(null);
       }
     },
-    [allTasks],
+    [allTasks, trip?.taskListIds],
   );
 
   const handleDragOver = useCallback(
@@ -142,6 +162,7 @@ export function TripTaskList() {
     async (event: DragEndEvent) => {
       const { active, over } = event;
       setActiveTask(null);
+      setActiveTaskList(null);
       setActiveDropZone(null);
 
       if (!over || !trip) return;
@@ -152,6 +173,35 @@ export function TripTaskList() {
       if (activeId === overId) return;
 
       try {
+        // Check if we're dragging a task list
+        if (trip.taskListIds.includes(activeId)) {
+          // Task list reordering
+          if (trip.taskListIds.includes(overId)) {
+            console.log('Reordering task lists');
+
+            const activeIndex = trip.taskListIds.indexOf(activeId);
+            const overIndex = trip.taskListIds.indexOf(overId);
+
+            if (activeIndex !== -1 && overIndex !== -1) {
+              const reorderedTaskListIds = arrayMove(
+                trip.taskListIds,
+                activeIndex,
+                overIndex,
+              );
+
+              // Update indexes in database
+              const taskListUpdates = reorderedTaskListIds.map((id, index) => ({
+                id,
+                index,
+              }));
+
+              await dbUpdateTaskListIndexes(taskListUpdates);
+            }
+          }
+          return;
+        }
+
+        // Handle task dragging (existing logic)
         const activeTask = allTasks.find(
           (t: TripSliceTask) => t.id === activeId,
         );
@@ -243,7 +293,7 @@ export function TripTaskList() {
           }
         }
       } catch (error) {
-        console.error('Failed to move task:', error);
+        console.error('Failed to move task or task list:', error);
       }
     },
     [trip, allTasks],
@@ -300,18 +350,25 @@ export function TripTaskList() {
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
-          <div className={style.taskBoard}>
-            {trip.taskListIds.map((taskListId) => (
-              <TaskList
-                key={taskListId}
-                id={taskListId}
-                isActiveDropZone={activeDropZone === taskListId}
-              />
-            ))}
-          </div>
+          <SortableContext
+            items={trip.taskListIds}
+            strategy={horizontalListSortingStrategy}
+          >
+            <div className={style.taskBoard}>
+              {trip.taskListIds.map((taskListId) => (
+                <TaskList
+                  key={taskListId}
+                  id={taskListId}
+                  isActiveDropZone={activeDropZone === taskListId}
+                />
+              ))}
+            </div>
+          </SortableContext>
           <DragOverlay dropAnimation={{ duration: 200 }}>
             {activeTask ? (
               <TaskCard task={activeTask} userCanEditOrDelete={userCanCreate} />
+            ) : activeTaskList ? (
+              <TaskList id={activeTaskList} />
             ) : null}
           </DragOverlay>
         </DndContext>

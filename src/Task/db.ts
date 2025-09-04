@@ -141,3 +141,15 @@ export async function dbMoveTaskToTaskList(
       }),
   ]);
 }
+
+export async function dbUpdateTaskListIndexes(
+  taskLists: Array<{ id: string; index: number }>,
+) {
+  const transactions = taskLists.map((taskList) =>
+    db.tx.taskList[taskList.id].merge({
+      index: taskList.index,
+      lastUpdatedAt: Date.now(),
+    }),
+  );
+  return db.transact(transactions);
+}
