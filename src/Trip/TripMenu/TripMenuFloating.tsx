@@ -1,6 +1,7 @@
 import {
   CalendarIcon,
   ChatBubbleIcon,
+  CheckboxIcon,
   HamburgerMenuIcon,
   HomeIcon,
   ListBulletIcon,
@@ -21,6 +22,7 @@ import {
   RouteTripHome,
   RouteTripListView,
   RouteTripMap,
+  RouteTripTaskList,
   RouteTripTimetableView,
 } from '../../Routes/routes';
 import s from './TripMenuFloating.module.css';
@@ -143,6 +145,12 @@ function TripMenuFloatingInner() {
                 onClick={handleRouteClick}
               >
                 <SewingPinIcon /> Map
+              </DropdownMenu.Item>
+              <DropdownMenu.Item
+                data-target={RouteTripTaskList.routePath}
+                onClick={handleRouteClick}
+              >
+                <CheckboxIcon /> Tasks
               </DropdownMenu.Item>
               <DropdownMenu.Item
                 data-target={RouteTripComment.routePath}
