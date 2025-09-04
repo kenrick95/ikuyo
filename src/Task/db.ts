@@ -58,7 +58,9 @@ export async function dbDeleteTaskList(taskListId: string) {
     },
   });
   const transactions = [
-    ...tasks.data.task.map((task) => db.tx.task[task.id].delete()),
+    ...tasks.data.task.map((task: { id: string }) =>
+      db.tx.task[task.id].delete(),
+    ),
     db.tx.taskList[taskListId].delete(),
   ];
   return db.transact(transactions);
@@ -100,4 +102,16 @@ export async function dbDeleteTask(taskId: string, taskListId: string) {
     }),
     db.tx.task[taskId].delete(),
   ]);
+}
+
+export async function dbUpdateTaskIndexes(
+  tasks: Array<{ id: string; index: number }>,
+) {
+  const transactions = tasks.map((task) =>
+    db.tx.task[task.id].merge({
+      index: task.index,
+      lastUpdatedAt: Date.now(),
+    }),
+  );
+  return db.transact(transactions);
 }

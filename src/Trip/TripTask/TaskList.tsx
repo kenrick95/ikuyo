@@ -1,6 +1,20 @@
+import type { DragEndEvent } from '@dnd-kit/core';
+import {
+  closestCenter,
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { PlusIcon } from '@radix-ui/react-icons';
 import { Button, Flex, Heading, Text } from '@radix-ui/themes';
 import { useCallback, useMemo, useState } from 'react';
+import { dbUpdateTaskIndexes } from '../../Task/db';
 import { TripUserRole } from '../../User/TripUserRole';
 import { useCurrentTrip, useTripTaskList, useTripTasks } from '../store/hooks';
 import { TaskCard } from './TaskCard';
@@ -12,6 +26,19 @@ export function TaskList({ id }: { id: string }) {
   const taskList = useTripTaskList(id);
   const tasks = useTripTasks(taskList?.taskIds ?? []);
   const [showInlineForm, setShowInlineForm] = useState(false);
+
+  // Sort tasks by index for proper display order
+  const sortedTasks = useMemo(() => {
+    return [...tasks].sort((a, b) => a.index - b.index);
+  }, [tasks]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5, // 5px threshold to distinguish from clicks
+      },
+    }),
+  );
 
   const userCanEditOrDelete = useMemo(() => {
     return (
@@ -31,6 +58,47 @@ export function TaskList({ id }: { id: string }) {
   const handleFormCancel = useCallback(() => {
     setShowInlineForm(false);
   }, []);
+
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const { active, over } = event;
+
+      if (!over || active.id === over.id) {
+        return;
+      }
+
+      const activeIndex = sortedTasks.findIndex(
+        (task) => task.id === active.id,
+      );
+      const overIndex = sortedTasks.findIndex((task) => task.id === over.id);
+
+      if (activeIndex === -1 || overIndex === -1) {
+        return;
+      }
+
+      // Reorder the tasks array
+      const reorderedTasks = arrayMove(sortedTasks, activeIndex, overIndex);
+
+      // Update the indexes in the database
+      const taskUpdates = reorderedTasks.map((task, index) => ({
+        id: task.id,
+        index,
+      }));
+
+      console.log('Updating task order:', {
+        activeIndex,
+        overIndex,
+        taskUpdates,
+      });
+
+      try {
+        await dbUpdateTaskIndexes(taskUpdates);
+      } catch (error) {
+        console.error('Failed to update task order:', error);
+      }
+    },
+    [sortedTasks],
+  );
 
   if (!taskList) {
     return null;
@@ -59,7 +127,7 @@ export function TaskList({ id }: { id: string }) {
             onFormCancel={handleFormCancel}
           />
         )}
-        {tasks.length === 0 && !showInlineForm ? (
+        {sortedTasks.length === 0 && !showInlineForm ? (
           <div className={style.emptyState}>
             <Text>No tasks yet</Text>
             {userCanEditOrDelete && !showInlineForm && (
@@ -74,13 +142,24 @@ export function TaskList({ id }: { id: string }) {
             )}
           </div>
         ) : (
-          tasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              userCanEditOrDelete={userCanEditOrDelete}
-            />
-          ))
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={sortedTasks.map((task) => task.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {sortedTasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  userCanEditOrDelete={userCanEditOrDelete}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
         )}
       </div>
     </div>

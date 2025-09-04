@@ -1,3 +1,5 @@
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { Badge, Card, ContextMenu, Flex, Text } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { useCallback, useEffect, useRef } from 'react';
@@ -15,6 +17,23 @@ export function TaskCard({
   task: TripSliceTask;
   userCanEditOrDelete: boolean;
 }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: task.id,
+    disabled: !userCanEditOrDelete,
+  });
+
+  const style_transform = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
   const { openTaskViewDialog, openTaskDeleteDialog, openTaskEditDialog } =
     useTaskDialogHooks(task.id);
 
@@ -89,12 +108,19 @@ export function TaskCard({
     <ContextMenu.Root>
       <ContextMenu.Trigger>
         <Card
-          className={style.taskCard}
-          ref={taskCardRef}
+          className={`${style.taskCard} ${isDragging ? style.dragging : ''} ${
+            !userCanEditOrDelete ? style.readonly : ''
+          }`}
+          ref={(element) => {
+            taskCardRef.current = element;
+            setNodeRef(element);
+          }}
           onClick={handleClick}
-          tabIndex={0}
           onKeyDown={handleKeyDown}
           onKeyUp={handleKeyUp}
+          style={style_transform}
+          {...attributes}
+          {...(userCanEditOrDelete ? listeners : {})}
         >
           <Flex direction="column" gap="2" className={style.taskContent}>
             <Text className={style.taskTitle}>{task.title}</Text>

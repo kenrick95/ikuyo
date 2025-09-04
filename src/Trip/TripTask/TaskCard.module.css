@@ -1,11 +1,29 @@
 .taskCard {
   min-width: 250px;
-  cursor: pointer;
+  cursor: grab;
   transition: transform 0.1s ease;
 }
 
 .taskCard:hover {
   transform: translateY(-2px);
+}
+
+.taskCard:active {
+  cursor: grabbing;
+}
+
+.taskCard.readonly {
+  cursor: pointer;
+}
+
+.taskCard.dragging {
+  opacity: 0.5;
+  transform: rotate(5deg);
+  cursor: grabbing;
+}
+
+.taskCard.dragging:hover {
+  transform: rotate(5deg);
 }
 
 .taskContent {
