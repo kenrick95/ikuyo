@@ -58,7 +58,6 @@ export function TripTaskList() {
 
       {trip?.taskListIds.length === 0 || !trip?.taskListIds ? (
         <div className={style.emptyTaskBoard}>
-          <div className={style.emptyTaskBoardIcon}>�</div>
           <Heading as="h3" size="4" color="gray">
             No task lists yet
           </Heading>

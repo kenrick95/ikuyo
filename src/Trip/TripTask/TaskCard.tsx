@@ -40,7 +40,7 @@ export function TaskCard({
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger>
-        <Card className={style.taskCard} onClick={handleClick}>
+        <Card className={style.taskCard} onClick={handleClick} tabIndex={0}>
           <Flex direction="column" gap="2" className={style.taskContent}>
             <Text className={style.taskTitle}>{task.title}</Text>
             {task.description && (
