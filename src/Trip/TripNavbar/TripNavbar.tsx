@@ -9,6 +9,7 @@ import {
   RouteTripHome,
   RouteTripListView,
   RouteTripMap,
+  RouteTripTaskList,
   RouteTripTimetableView,
 } from '../../Routes/routes';
 import { useCurrentTrip } from '../store/hooks';
@@ -47,6 +48,7 @@ export function TripNavbar() {
           <Select.Item value={RouteTripExpenses.routePath}>
             Expenses
           </Select.Item>
+          <Select.Item value={RouteTripTaskList.routePath}>Tasks</Select.Item>
           <Select.Item value={RouteTripComment.routePath}>Comment</Select.Item>
         </Select.Content>
       </Select.Root>
