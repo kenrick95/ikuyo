@@ -1,6 +1,7 @@
 import { Badge, Card, ContextMenu, Flex, Text } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import { useLocation } from 'wouter';
 import { dangerToken } from '../../common/ui';
 import type { TripSliceTask } from '../store/types';
 import style from './TaskCard.module.css';
@@ -16,19 +17,38 @@ export function TaskCard({
   const { openTaskViewDialog, openTaskDeleteDialog, openTaskEditDialog } =
     useTaskDialogHooks(task.id);
 
+  const taskCardRef = useRef<HTMLDivElement>(null);
+  const [location] = useLocation();
+
+  // Track if we should restore focus after dialog closes
+  const shouldRestoreFocus = useRef(false);
+
+  // Detect when dialog closes and restore focus
+  useEffect(() => {
+    // If we were in a dialog state and now we're not, restore focus
+    if (shouldRestoreFocus.current && location === '/') {
+      taskCardRef.current?.focus();
+      shouldRestoreFocus.current = false;
+    }
+  }, [location]);
+
   const handleClick = useCallback(() => {
+    shouldRestoreFocus.current = true;
     openTaskViewDialog();
   }, [openTaskViewDialog]);
 
   const handleContextMenuView = useCallback(() => {
+    shouldRestoreFocus.current = true;
     openTaskViewDialog();
   }, [openTaskViewDialog]);
 
   const handleContextMenuEdit = useCallback(() => {
+    shouldRestoreFocus.current = true;
     openTaskEditDialog();
   }, [openTaskEditDialog]);
 
   const handleContextMenuDelete = useCallback(() => {
+    shouldRestoreFocus.current = true;
     openTaskDeleteDialog();
   }, [openTaskDeleteDialog]);
 
@@ -37,10 +57,44 @@ export function TaskCard({
     return DateTime.fromMillis(timestamp).toFormat('MMM d');
   }, []);
 
+  // Handle keyboard navigation for accessibility
+  // Use onKeyDown for Enter to open the dialog
+  // Use onKeyUp for Space to open the dialog
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        // To avoid scrolling for both keys
+        e.preventDefault();
+        if (e.key === 'Enter') {
+          shouldRestoreFocus.current = true;
+          openTaskViewDialog();
+        }
+      }
+    },
+    [openTaskViewDialog],
+  );
+  const handleKeyUp = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === ' ') {
+        e.preventDefault();
+        shouldRestoreFocus.current = true;
+        openTaskViewDialog();
+      }
+    },
+    [openTaskViewDialog],
+  );
+
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger>
-        <Card className={style.taskCard} onClick={handleClick} tabIndex={0}>
+        <Card
+          className={style.taskCard}
+          ref={taskCardRef}
+          onClick={handleClick}
+          tabIndex={0}
+          onKeyDown={handleKeyDown}
+          onKeyUp={handleKeyUp}
+        >
           <Flex direction="column" gap="2" className={style.taskContent}>
             <Text className={style.taskTitle}>{task.title}</Text>
             {task.description && (
