@@ -38,6 +38,7 @@ export function TripTaskList() {
   const { trip } = useCurrentTrip();
   const [showInlineForm, setShowInlineForm] = useState(false);
   const [activeTask, setActiveTask] = useState<TripSliceTask | null>(null);
+  const [activeDropZone, setActiveDropZone] = useState<string | null>(null);
 
   // Get all task lists for the current trip
   const allTaskLists = useTripAllTaskLists(trip?.id);
@@ -84,6 +85,7 @@ export function TripTaskList() {
       const task = allTasks.find((t: TripSliceTask) => t.id === active.id);
       if (task) {
         setActiveTask(task);
+        setActiveDropZone(null);
       }
     },
     [allTasks],
@@ -92,34 +94,44 @@ export function TripTaskList() {
   const handleDragOver = useCallback(
     (event: DragOverEvent) => {
       const { active, over } = event;
-      if (!over) return;
+      if (!over) {
+        setActiveDropZone(null);
+        return;
+      }
 
       const activeId = active.id as string;
       const overId = over.id as string;
 
       // If dragging over the same item, do nothing
-      if (activeId === overId) return;
-
-      console.log('Drag over:', {
-        activeId,
-        overId,
-        overData: over.data.current,
-        activeData: active.data.current,
-      });
+      if (activeId === overId) {
+        setActiveDropZone(null);
+        return;
+      }
 
       // Find the active task
       const activeTask = allTasks.find((t: TripSliceTask) => t.id === activeId);
-      if (!activeTask) return;
+      if (!activeTask) {
+        setActiveDropZone(null);
+        return;
+      }
 
       // Check what we're dragging over
       if (overId.startsWith('tasklist-')) {
         // Dragging over an empty task list
-        console.log('Dragging over empty task list', { overId });
+        const targetTaskListId = overId.replace('tasklist-', '');
+        if (activeTask.taskListId !== targetTaskListId) {
+          setActiveDropZone(targetTaskListId);
+        } else {
+          setActiveDropZone(null);
+        }
       } else {
         // Dragging over another task
         const overTask = allTasks.find((t: TripSliceTask) => t.id === overId);
         if (overTask && activeTask.taskListId !== overTask.taskListId) {
-          console.log('Dragging over task in different list', { overTask });
+          // Show drop zone for the task list containing the over task
+          setActiveDropZone(overTask.taskListId);
+        } else {
+          setActiveDropZone(null);
         }
       }
     },
@@ -130,6 +142,7 @@ export function TripTaskList() {
     async (event: DragEndEvent) => {
       const { active, over } = event;
       setActiveTask(null);
+      setActiveDropZone(null);
 
       if (!over || !trip) return;
 
@@ -289,7 +302,11 @@ export function TripTaskList() {
         >
           <div className={style.taskBoard}>
             {trip.taskListIds.map((taskListId) => (
-              <TaskList key={taskListId} id={taskListId} />
+              <TaskList
+                key={taskListId}
+                id={taskListId}
+                isActiveDropZone={activeDropZone === taskListId}
+              />
             ))}
           </div>
           <DragOverlay dropAnimation={{ duration: 200 }}>

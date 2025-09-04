@@ -13,7 +13,13 @@ import { TaskCard } from './TaskCard';
 import { TaskInlineForm } from './TaskInlineForm/TaskInlineForm';
 import style from './TaskList.module.css';
 
-export function TaskList({ id }: { id: string }) {
+export function TaskList({
+  id,
+  isActiveDropZone = false,
+}: {
+  id: string;
+  isActiveDropZone?: boolean;
+}) {
   const { trip } = useCurrentTrip();
   const taskList = useTripTaskList(id);
   const tasks = useTripTasks(taskList?.taskIds ?? []);
@@ -72,7 +78,7 @@ export function TaskList({ id }: { id: string }) {
       </div>
       <div
         className={clsx(style.taskListContent, {
-          [style.dropZoneActive]: isOver,
+          [style.dropZoneActive]: isActiveDropZone || isOver,
         })}
         ref={setNodeRef}
       >
