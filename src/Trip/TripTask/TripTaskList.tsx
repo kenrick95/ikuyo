@@ -1,3 +1,4 @@
+import { PlusIcon } from '@radix-ui/react-icons';
 import { Button, Container, Flex, Heading, Text } from '@radix-ui/themes';
 import { useCallback, useMemo, useState } from 'react';
 import { Route, Switch } from 'wouter';
@@ -43,7 +44,9 @@ export function TripTaskList() {
             Task Board
           </Heading>
           {userCanCreate && !showInlineForm && (
-            <Button onClick={handleCreateTaskList}>+ New Task List</Button>
+            <Button onClick={handleCreateTaskList} variant="outline">
+              <PlusIcon /> New Task List
+            </Button>
           )}
         </Flex>
       </div>

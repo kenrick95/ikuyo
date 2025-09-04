@@ -1,3 +1,4 @@
+import { PlusIcon } from '@radix-ui/react-icons';
 import { Button, Flex, Heading, Text } from '@radix-ui/themes';
 import { useCallback, useMemo, useState } from 'react';
 import { TripUserRole } from '../../User/TripUserRole';
@@ -43,8 +44,8 @@ export function TaskList({ id }: { id: string }) {
             {taskList.title}
           </Heading>
           {userCanEditOrDelete && !showInlineForm && (
-            <Button size="1" variant="soft" onClick={handleAddTask}>
-              + Add Task
+            <Button size="1" variant="outline" onClick={handleAddTask}>
+              <PlusIcon /> Add Task
             </Button>
           )}
         </Flex>
@@ -58,17 +59,17 @@ export function TaskList({ id }: { id: string }) {
             onFormCancel={handleFormCancel}
           />
         )}
-        {tasks.length === 0 ? (
+        {tasks.length === 0 && !showInlineForm ? (
           <div className={style.emptyState}>
             <Text>No tasks yet</Text>
             {userCanEditOrDelete && !showInlineForm && (
               <Button
                 size="2"
-                variant="soft"
+                variant="outline"
                 style={{ marginTop: '12px' }}
                 onClick={handleAddTask}
               >
-                Add Your First Task
+                <PlusIcon /> Add Task
               </Button>
             )}
           </div>

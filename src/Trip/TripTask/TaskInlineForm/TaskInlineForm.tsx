@@ -167,7 +167,7 @@ export function TaskInlineForm({
 
           <Flex direction="column" flexGrow="1">
             <Text size="1" weight="medium" mb="1">
-              Due Date
+              Due Date (optional)
             </Text>
             <TextField.Root
               id={idDueAt}
