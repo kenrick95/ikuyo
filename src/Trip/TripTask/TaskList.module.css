@@ -25,7 +25,7 @@
 }
 
 .dropZoneActive {
-  background-color: var(--accent-3);
+  background-color: var(--accent-2);
   border: 2px dashed var(--accent-8);
 }
 
