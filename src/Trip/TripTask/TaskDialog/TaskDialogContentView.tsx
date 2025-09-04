@@ -11,43 +11,11 @@ import { DateTime } from 'luxon';
 import { useCallback, useMemo } from 'react';
 import { useParseTextIntoNodes } from '../../../common/text/parseTextIntoNodes';
 import type { DialogContentProps } from '../../../Dialog/DialogRoute';
-import { TaskStatus } from '../../../Task/TaskStatus';
+import { getStatusColor, getStatusLabel } from '../../../Task/TaskStatus';
 import { TripUserRole } from '../../../User/TripUserRole';
 import { useTrip, useTripTaskList } from '../../store/hooks';
 import type { TripSliceTask } from '../../store/types';
 import { TaskDialogMode } from './TaskDialogMode';
-
-const getStatusColor = (status: number) => {
-  switch (status) {
-    case TaskStatus.Done:
-      return 'green';
-    case TaskStatus.InProgress:
-      return 'blue';
-    case TaskStatus.Cancelled:
-      return 'red';
-    case TaskStatus.Archived:
-      return 'gray';
-    default:
-      return 'orange';
-  }
-};
-
-const getStatusLabel = (status: number) => {
-  switch (status) {
-    case TaskStatus.Done:
-      return 'Done';
-    case TaskStatus.InProgress:
-      return 'In Progress';
-    case TaskStatus.Cancelled:
-      return 'Cancelled';
-    case TaskStatus.Archived:
-      return 'Archived';
-    case TaskStatus.Deleted:
-      return 'Deleted';
-    default:
-      return 'To Do';
-  }
-};
 
 export function TaskDialogContentView({
   data: task,

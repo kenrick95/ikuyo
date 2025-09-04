@@ -178,6 +178,7 @@ export function TaskForm({
           <Text as="label" htmlFor={idStatus} size="2" weight="bold">
             Status
           </Text>
+          <br />
           <Select.Root name="status" defaultValue={taskStatus.toString()}>
             <Select.Trigger id={idStatus} />
             <Select.Content>

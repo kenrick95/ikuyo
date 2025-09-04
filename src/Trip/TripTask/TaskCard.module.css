@@ -29,11 +29,3 @@
   font-size: 12px;
   color: var(--gray-9);
 }
-
-.dueDate {
-  color: var(--amber-9);
-}
-
-.completedDate {
-  color: var(--green-9);
-}

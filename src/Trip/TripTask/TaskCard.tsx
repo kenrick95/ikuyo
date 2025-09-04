@@ -3,6 +3,7 @@ import { DateTime } from 'luxon';
 import { useCallback, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { dangerToken } from '../../common/ui';
+import { getStatusColor, getStatusLabel } from '../../Task/TaskStatus';
 import type { TripSliceTask } from '../store/types';
 import style from './TaskCard.module.css';
 import { useTaskDialogHooks } from './TaskDialog/taskDialogHooks';
@@ -54,7 +55,7 @@ export function TaskCard({
 
   const formatDate = useCallback((timestamp?: number | null) => {
     if (!timestamp) return null;
-    return DateTime.fromMillis(timestamp).toFormat('MMM d');
+    return DateTime.fromMillis(timestamp).toFormat('d LLLL yyyy HH:mm');
   }, []);
 
   // Handle keyboard navigation for accessibility
@@ -101,25 +102,17 @@ export function TaskCard({
               <Text className={style.taskDescription}>{task.description}</Text>
             )}
             <Flex gap="2" className={style.taskMeta}>
+              <Badge color={getStatusColor(task.status)}>
+                {getStatusLabel(task.status)}
+              </Badge>
               {task.dueAt && (
-                <Badge color="amber" className={style.dueDate}>
-                  Due: {formatDate(task.dueAt)}
-                </Badge>
+                <Badge color="amber">Due: {formatDate(task.dueAt)}</Badge>
               )}
               {task.completedAt && (
-                <Badge color="green" className={style.completedDate}>
+                <Badge color="green">
                   Completed: {formatDate(task.completedAt)}
                 </Badge>
               )}
-              {task.status === 0 && !task.completedAt && (
-                <Badge color="gray">To Do</Badge>
-              )}
-              {task.status === 1 && !task.completedAt && (
-                <Badge color="blue">In Progress</Badge>
-              )}
-              {task.status === 2 || task.completedAt ? (
-                <Badge color="green">Done</Badge>
-              ) : null}
             </Flex>
           </Flex>
         </Card>
