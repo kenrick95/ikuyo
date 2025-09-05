@@ -19,6 +19,11 @@ import s from './TripNavbar.module.css';
 export function TripNavbar() {
   const { trip } = useCurrentTrip();
   const [location, setLocation] = useLocation();
+  const selection = useMemo(() => {
+    const parts = location.split('/');
+    if (parts[1]) return `/${parts[1]}`;
+    return RouteTripHome.routePath;
+  }, [location]);
   const handleLocationSelectorChange = useCallback(
     (value: string) => {
       setLocation(value);
@@ -28,7 +33,7 @@ export function TripNavbar() {
   const selector = useMemo(() => {
     return (
       <Select.Root
-        value={location}
+        value={selection}
         onValueChange={handleLocationSelectorChange}
         size="3"
       >
@@ -53,7 +58,7 @@ export function TripNavbar() {
         </Select.Content>
       </Select.Root>
     );
-  }, [location, handleLocationSelectorChange]);
+  }, [selection, handleLocationSelectorChange]);
   return (
     <Navbar
       leftItems={[
