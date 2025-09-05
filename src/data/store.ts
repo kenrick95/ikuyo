@@ -5,7 +5,7 @@ import { useDeepEqual } from '../common/useDeepEqual';
 import { createDialogSlice, type DialogSlice } from '../Dialog/hooks';
 import { createToastSlice, type ToastSlice } from '../Toast/hooks';
 import { createTripSlice } from '../Trip/store/store';
-import type { TripSlice } from '../Trip/store/types';
+import type { TripSlice, TripSliceTrip } from '../Trip/store/types';
 import { createTripsSlice, type TripsSlice } from '../Trips/store';
 import { createThemeSlice, type ThemeSlice } from '../theme/store';
 
@@ -28,7 +28,7 @@ export const useBoundStore = create<BoundStoreType>()(
     }),
     {
       name: 'ikuyo-storage',
-      version: 1,
+      version: 2,
       partialize: (state) => {
         return {
           // Stale-while-revalidate: Don't persist the 'loading' or 'error' fields
@@ -51,10 +51,20 @@ export const useBoundStore = create<BoundStoreType>()(
       },
       // biome-ignore lint/suspicious/noExplicitAny: schema migration code
       migrate: (persistedState: any, version) => {
-        // Migration from version 0 to 1: Add task and taskList to persisted state
-        if (version === 0) {
+        // Migration from version 0 or 1 to 2: Add task and taskList to persisted state
+        if (version === 0 || version === 1) {
+          const newTrip: TripSlice['trip'] = {};
+          for (const [tripId, trip] of Object.entries<Partial<TripSliceTrip>>(
+            persistedState.trip ?? {},
+          )) {
+            newTrip[tripId] = {
+              ...trip,
+              taskListIds: trip.taskListIds ?? [],
+            } as TripSliceTrip;
+          }
           return {
             ...persistedState,
+            trip: newTrip,
             task: {},
             taskList: {},
           };
