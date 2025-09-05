@@ -1,7 +1,26 @@
 .taskCard {
+  border: 1px solid var(--gray-7);
+  background-color: var(--color-panel-solid);
+  border-radius: var(--radius-2);
+  overflow: hidden;
+  display: block;
+  text-align: start;
+  padding: var(--space-1);
   min-width: 250px;
-  cursor: pointer;
+  cursor: var(--cursor-link);
   transition: transform 0.1s ease;
+  &:hover {
+    border-color: var(--accent-7);
+    background-color: var(--accent-2);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 3;
+  }
+}
+.taskCard:focus-visible {
+  outline: 2px solid var(--accent-9);
+  outline-offset: 2px;
+  z-index: 3;
 }
 .taskCard.draggable {
   cursor: grab;

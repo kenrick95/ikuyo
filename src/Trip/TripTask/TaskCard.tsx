@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Badge, Card, ContextMenu, Flex, Text } from '@radix-ui/themes';
+import { Badge, Box, ContextMenu, Flex, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { DateTime } from 'luxon';
 import { useCallback, useEffect, useRef } from 'react';
@@ -134,7 +134,9 @@ export function TaskCard({
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger>
-        <Card
+        <Box
+          p={{ initial: '1' }}
+          as="div"
           className={clsx(style.taskCard, {
             [style.taskCardDragging]: isDragging,
             [style.draggable]:
@@ -170,7 +172,7 @@ export function TaskCard({
               )}
             </Flex>
           </Flex>
-        </Card>
+        </Box>
       </ContextMenu.Trigger>
       <ContextMenu.Content>
         <ContextMenu.Label>{task.title}</ContextMenu.Label>

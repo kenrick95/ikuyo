@@ -1,5 +1,5 @@
 .activity {
-  border: 1px solid var(--gray-9);
+  border: 1px solid var(--gray-7);
   background-color: var(--color-panel-solid);
   border-radius: var(--radius-2);
   overflow: hidden;
