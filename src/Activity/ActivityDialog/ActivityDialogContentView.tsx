@@ -124,17 +124,18 @@ export function ActivityDialogContentView({
                 // Both are set
                 <>
                   {activityStartStr}
-                  &ndash;{activityEndStr}
+                  &ndash;{activityEndStr} ({trip?.timeZone})
                 </>
               ) : activityStartStr ? (
                 // Only start is set
                 <>
-                  {activityStartStr}
-                  &ndash;No end time
+                  {activityStartStr} ({trip?.timeZone}) &ndash;No end time
                 </>
               ) : activityEndStr ? (
                 // Only end is set
-                <>No start time&ndash;{activityEndStr}</>
+                <>
+                  No start time&ndash;{activityEndStr} ({trip?.timeZone})
+                </>
               ) : (
                 // Both are not set
                 'No time set'

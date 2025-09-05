@@ -31,15 +31,15 @@ export function AccommodationDialogContentView({
   const { trip } = useTrip(accommodation?.tripId);
   const accommodationCheckInStr =
     accommodation && trip
-      ? DateTime.fromMillis(accommodation.timestampCheckIn)
+      ? `${DateTime.fromMillis(accommodation.timestampCheckIn)
           .setZone(trip.timeZone)
-          .toFormat('d LLLL yyyy HH:mm')
+          .toFormat('d LLLL yyyy HH:mm')} (${trip.timeZone})`
       : undefined;
   const accommodationCheckOutStr =
     accommodation && trip
-      ? DateTime.fromMillis(accommodation.timestampCheckOut)
+      ? `${DateTime.fromMillis(accommodation.timestampCheckOut)
           .setZone(trip.timeZone)
-          .toFormat('d LLLL yyyy HH:mm')
+          .toFormat('d LLLL yyyy HH:mm')} (${trip.timeZone})`
       : undefined;
   const notes = useParseTextIntoNodes(accommodation?.notes);
   const currentUser = useDeepBoundStore((state) => state.currentUser);

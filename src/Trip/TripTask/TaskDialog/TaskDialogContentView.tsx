@@ -39,9 +39,10 @@ export function TaskDialogContentView({
       ? DateTime.fromMillis(task.dueAt).setZone(trip.timeZone)
       : undefined;
 
-  const taskDueDateStr = taskDueDateTime
-    ? taskDueDateTime.toFormat('dd MMMM yyyy HH:mm')
-    : undefined;
+  const taskDueDateStr =
+    taskDueDateTime && trip
+      ? `${taskDueDateTime.toFormat('dd MMMM yyyy HH:mm')} (${trip.timeZone})`
+      : undefined;
 
   const goToEditMode = useCallback(() => {
     setMode(TaskDialogMode.Edit);
