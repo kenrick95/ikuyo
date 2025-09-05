@@ -14,8 +14,8 @@ export function gridRowToTimeOffset(gridRow: string): number {
     gridRow = gridRow.substring(2);
   }
 
-  const hours = parseInt(gridRow.substring(0, 2));
-  const minutes = parseInt(gridRow.substring(2));
+  const hours = parseInt(gridRow.substring(0, 2), 10);
+  const minutes = parseInt(gridRow.substring(2), 10);
   return (hours * 60 + minutes) * 60 * 1000;
 }
 
@@ -26,7 +26,7 @@ export function gridColumnToDay(gridColumn: string): number {
   if (gridColumn.startsWith('d')) {
     // Format: d1-c0
     const dayPart = gridColumn.split('-')[0];
-    return parseInt(dayPart.substring(1));
+    return parseInt(dayPart.substring(1), 10);
   }
   return 1; // Default to first day if parsing fails
 }

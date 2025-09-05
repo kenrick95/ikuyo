@@ -1,6 +1,7 @@
 .notificationArea {
   margin: 0;
   padding: 0;
+  /* biome-ignore lint/complexity/noImportantStyles: Need to reset */
   min-height: 0 !important;
   z-index: 1;
 }
