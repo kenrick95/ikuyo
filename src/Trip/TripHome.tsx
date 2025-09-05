@@ -263,7 +263,9 @@ export function TripHome() {
               />
             ))}
             <Text size="1" mt="2">
-              <Link to={RouteTripTaskList.asRouteTarget()}>See all tasks</Link>
+              <Link to={RouteTripTaskList.asRouteTarget()}>
+                {displayTasks.length > 0 ? 'See all tasks' : 'Go to task board'}
+              </Link>
             </Text>
           </Flex>
         </Flex>
@@ -284,11 +286,13 @@ export function TripHome() {
                 showControls={false}
               />
             ))}
-            <Text size="1" ml="7" mt="2">
-              <Link to={RouteTripComment.asRouteTarget()}>
-                See all comments
-              </Link>
-            </Text>
+            {latestComments.length > 0 ? (
+              <Text size="1" ml="7" mt="2">
+                <Link to={RouteTripComment.asRouteTarget()}>
+                  See all comments
+                </Link>
+              </Text>
+            ) : null}
           </Flex>
         </Flex>
       </Flex>
