@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useLocation } from 'wouter';
 import {
+  RouteTripListView,
   RouteTripListViewActivity,
   RouteTripTimetableViewActivity,
 } from '../../Routes/routes';
@@ -25,6 +26,13 @@ export function useActivityDialogHooks(
         setLocation(RouteTripTimetableViewActivity.asRouteTarget(activityId), {
           state: { mode: mode ?? ActivityDialogMode.View },
         });
+      } else if (tripViewMode === TripViewMode.Home) {
+        setLocation(
+          `${RouteTripListView.asRouteTarget()}${RouteTripListViewActivity.asRouteTarget(activityId)}`,
+          {
+            state: { mode: mode ?? ActivityDialogMode.View },
+          },
+        );
       }
     },
     [activityId, setLocation, tripViewMode],

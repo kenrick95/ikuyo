@@ -10,23 +10,35 @@ import {
 import { DateTime } from 'luxon';
 import { useCallback, useMemo } from 'react';
 import { Link } from 'wouter';
+import { Activity } from '../Activity/Activity';
 import { Comment } from '../Comment/Comment';
 import { REGIONS_MAP, type RegionCode } from '../data/intl/regions';
 import { useBoundStore } from '../data/store';
 import { TripMap } from '../Map/TripMap';
-import { RouteTripComment, RouteTripTaskList } from '../Routes/routes';
+import {
+  RouteTripComment,
+  RouteTripExpenses,
+  RouteTripListView,
+  RouteTripListViewActivity,
+  RouteTripTaskList,
+} from '../Routes/routes';
 import { TaskStatus } from '../Task/TaskStatus';
 import { TripUserRole } from '../User/TripUserRole';
+import { getTripStatus } from './getTripStatus';
 import {
   useCurrentTrip,
+  useTripActivities,
   useTripAllCommentsWithLimit,
   useTripAllTaskLists,
+  useTripExpenses,
   useTripTasks,
 } from './store/hooks';
+import type { TripSliceActivityWithTime } from './store/types';
 import { TripEditDialog } from './TripDialog/TripEditDialog';
 import { TripSharingDialog } from './TripDialog/TripSharingDialog';
 import { TripStatusBadge } from './TripStatusBadge';
 import { TaskCard, TaskCardUseCase } from './TripTask/TaskCard';
+import { TripViewMode } from './TripViewMode';
 import { formatTripDateRange } from './time';
 
 const containerPx = { initial: '1', md: '0' };
@@ -54,6 +66,66 @@ export function TripHome() {
     return allTaskLists.flatMap((taskList) => taskList.taskIds ?? []);
   }, [allTaskLists]);
   const allTasks = useTripTasks(allTaskIds);
+
+  // Get activities and expenses for new features
+  const activities = useTripActivities(trip?.activityIds ?? []);
+  const expenses = useTripExpenses(trip?.expenseIds ?? []);
+
+  // Calculate trip status and progress
+  const tripStatus = useMemo(() => {
+    if (!tripStartDateTime || !tripEndDateTime) return null;
+    return getTripStatus(tripStartDateTime, tripEndDateTime);
+  }, [tripStartDateTime, tripEndDateTime]);
+
+  // Calculate expense summary
+  const expenseSummary = useMemo(() => {
+    if (!expenses || expenses.length === 0)
+      return { total: 0, currency: trip?.originCurrency || 'USD' };
+
+    const total = expenses.reduce((sum, expense) => {
+      return sum + (expense.amountInOriginCurrency || expense.amount);
+    }, 0);
+
+    return { total, currency: trip?.originCurrency || 'USD' };
+  }, [expenses, trip?.originCurrency]);
+
+  // Today's activities (for ongoing trips)
+  const todayActivities = useMemo(() => {
+    if (!activities || !trip || tripStatus?.status !== 'current') return [];
+
+    const now = DateTime.now().setZone(trip.timeZone);
+    const todayStart = now.startOf('day');
+    const todayEnd = now.endOf('day');
+
+    return activities
+      .filter((activity) => {
+        if (!activity.timestampStart || !activity.timestampEnd) return false;
+        const activityStart = DateTime.fromMillis(
+          activity.timestampStart,
+        ).setZone(trip.timeZone);
+        return activityStart >= todayStart && activityStart <= todayEnd;
+      })
+      .sort((a, b) => (a.timestampStart || 0) - (b.timestampStart || 0));
+  }, [activities, trip, tripStatus]);
+
+  // Upcoming activities (next 48 hours)
+  const upcomingActivities = useMemo(() => {
+    if (!activities || !trip) return [];
+
+    const now = DateTime.now().setZone(trip.timeZone);
+    const next48Hours = now.plus({ hours: 48 });
+
+    return activities
+      .filter((activity) => {
+        if (!activity.timestampStart || !activity.timestampEnd) return false;
+        const activityStart = DateTime.fromMillis(
+          activity.timestampStart,
+        ).setZone(trip.timeZone);
+        return activityStart >= now && activityStart <= next48Hours;
+      })
+      .sort((a, b) => (a.timestampStart || 0) - (b.timestampStart || 0))
+      .slice(0, 5) as TripSliceActivityWithTime[];
+  }, [activities, trip]);
 
   // Filter tasks for display on home page
   const priorityTasks = useMemo(() => {
@@ -124,11 +196,14 @@ export function TripHome() {
   const userIsOwner = useMemo(() => {
     return trip?.currentUserRole === TripUserRole.Owner;
   }, [trip?.currentUserRole]);
+
+  // Dialog handlers
   const openTripEditDialog = useCallback(() => {
     if (trip) {
       pushDialog(TripEditDialog, { trip });
     }
   }, [trip, pushDialog]);
+
   const openTripSharingDialog = useCallback(() => {
     if (trip && userIsOwner) {
       pushDialog(TripSharingDialog, { tripId: trip.id });
@@ -164,6 +239,34 @@ export function TripHome() {
         />
       </Flex>
 
+      {/* Today's Schedule for ongoing trips */}
+      {tripStatus?.status === 'current' && todayActivities.length > 0 && (
+        <>
+          <Heading as="h3" size="4" mb="2" mt="6">
+            Today's Schedule
+          </Heading>
+          <Flex gap="2" direction="column" mb="4">
+            {todayActivities.map((activity) => (
+              <Text key={activity.id} size="2">
+                {activity.timestampStart &&
+                  DateTime.fromMillis(activity.timestampStart)
+                    .setZone(trip?.timeZone || 'UTC')
+                    .toFormat('HH:mm')}{' '}
+                -{' '}
+                <Link
+                  to={
+                    RouteTripListView.asRouteTarget() +
+                    RouteTripListViewActivity.asRouteTarget(activity.id)
+                  }
+                >
+                  {activity.title}
+                </Link>
+              </Text>
+            ))}
+          </Flex>
+        </>
+      )}
+
       <Flex
         gap="1"
         justify="between"
@@ -192,6 +295,18 @@ export function TripHome() {
             <DataList.Item>
               <DataList.Label>Origin's currency</DataList.Label>
               <DataList.Value>{trip?.originCurrency}</DataList.Value>
+            </DataList.Item>
+            {/* Expense Summary */}
+            <DataList.Item>
+              <DataList.Label>Total Expenses</DataList.Label>
+              <DataList.Value>
+                {expenseSummary.total.toFixed(2)} {expenseSummary.currency}
+                <Link to={RouteTripExpenses.asRouteTarget()}>
+                  <Button variant="ghost" size="1" ml="2">
+                    View all
+                  </Button>
+                </Link>
+              </DataList.Value>
             </DataList.Item>
           </DataList.Root>
           <Heading as="h3" size="3" mb="2">
@@ -247,7 +362,7 @@ export function TripHome() {
         justify="between"
         direction={{ initial: 'column', md: 'row' }}
       >
-        <Flex gap="2" direction="column" flexGrow="1" flexBasis="50%">
+        <Flex gap="2" direction="column" flexGrow="1" flexBasis="33%">
           <Heading as="h3" size="4" mb="2" mt="6">
             Priority Tasks
           </Heading>
@@ -269,7 +384,32 @@ export function TripHome() {
             </Text>
           </Flex>
         </Flex>
-        <Flex gap="2" direction="column" flexGrow="1" flexBasis="50%">
+        <Flex gap="2" direction="column" flexGrow="1" flexBasis="33%">
+          <Heading as="h3" size="4" mb="2" mt="6">
+            Upcoming Activities
+          </Heading>
+          <Flex gap="2" direction="column">
+            {upcomingActivities.length === 0 && (
+              <Text size="2">No upcoming activities</Text>
+            )}
+            {upcomingActivities.map((activity) => {
+              return (
+                <Activity
+                  key={activity.id}
+                  activity={activity}
+                  columnIndex={0}
+                  columnEndIndex={0}
+                  tripViewMode={TripViewMode.Home}
+                  tripTimeZone={trip?.timeZone ?? 'UTC'}
+                  tripTimestampStart={0}
+                  userCanEditOrDelete={userCanModifyTrip}
+                />
+              );
+            })}
+          </Flex>
+        </Flex>
+
+        <Flex gap="2" direction="column" flexGrow="1" flexBasis="33%">
           <Heading as="h3" size="4" mb="2" mt="6">
             Latest Comments
           </Heading>

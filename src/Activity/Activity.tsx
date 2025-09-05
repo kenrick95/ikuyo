@@ -37,6 +37,25 @@ function ActivityInner({
   tripTimestampStart: number;
   userCanEditOrDelete: boolean;
 }) {
+  const activityStartDateTime =
+    activity && activity.timestampStart != null
+      ? DateTime.fromMillis(activity.timestampStart).setZone(tripTimeZone)
+      : undefined;
+  const activityEndDateTime =
+    activity && activity.timestampEnd != null
+      ? DateTime.fromMillis(activity.timestampEnd).setZone(tripTimeZone)
+      : undefined;
+
+  const activityStartStr = activityStartDateTime
+    ? activityStartDateTime.toFormat('dd MMMM yyyy HH:mm')
+    : undefined;
+  const activityEndStr = activityEndDateTime
+    ? activityStartDateTime?.hasSame(activityEndDateTime, 'day')
+      ? // If same day, only show time
+        activityEndDateTime.toFormat('HH:mm')
+      : activityEndDateTime.toFormat('dd MMMM yyyy HH:mm')
+    : undefined;
+
   const timeStart = formatTime(activity.timestampStart, tripTimeZone);
   const timeEnd = formatTime(activity.timestampEnd, tripTimeZone);
   const [dayStart, dayEnd] = getDayStartEnd(
@@ -213,6 +232,27 @@ function ActivityInner({
             <Text as="div" size={responsiveTextSize} color="gray">
               <ClockIcon style={{ verticalAlign: '-2px' }} /> {timeStart} -{' '}
               {timeEnd}
+            </Text>
+          ) : null}
+          {tripViewMode === TripViewMode.Home ? (
+            <Text as="div" size={responsiveTextSize} color="gray">
+              <ClockIcon style={{ verticalAlign: '-2px' }} />{' '}
+              {activityStartStr && activityEndStr ? (
+                // Both are set
+                <>
+                  {activityStartStr}
+                  &ndash;{activityEndStr}
+                </>
+              ) : activityStartStr ? (
+                // Only start is set
+                <>{activityStartStr} &ndash;No end time</>
+              ) : activityEndStr ? (
+                // Only end is set
+                <>No start time&ndash;{activityEndStr}</>
+              ) : (
+                // Both are not set
+                'No time set'
+              )}
             </Text>
           ) : null}
 
