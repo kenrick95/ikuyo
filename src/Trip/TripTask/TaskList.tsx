@@ -5,16 +5,33 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { PlusIcon } from '@radix-ui/react-icons';
-import { Button, Flex, Heading, Text } from '@radix-ui/themes';
+import {
+  DotsVerticalIcon,
+  Pencil1Icon,
+  PlusIcon,
+  TrashIcon,
+} from '@radix-ui/react-icons';
+import {
+  Button,
+  DropdownMenu,
+  Flex,
+  Heading,
+  IconButton,
+  Text,
+  TextField,
+} from '@radix-ui/themes';
 import clsx from 'clsx';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useShouldDisableDragAndDrop } from '../../common/deviceUtils';
+import { dangerToken } from '../../common/ui';
+import { useBoundStore } from '../../data/store';
+import { dbUpdateTaskList } from '../../Task/db';
 import { TripUserRole } from '../../User/TripUserRole';
 import { useCurrentTrip, useTripTaskList, useTripTasks } from '../store/hooks';
 import { TaskCard, TaskCardUseCase } from './TaskCard';
 import { TaskInlineForm } from './TaskInlineForm/TaskInlineForm';
 import taskListStyles from './TaskList.module.css';
+import { TaskListDeleteDialog } from './TaskListDeleteDialog';
 
 export function TaskList({
   id,
@@ -27,7 +44,13 @@ export function TaskList({
   const taskList = useTripTaskList(id);
   const tasks = useTripTasks(taskList?.taskIds ?? []);
   const [showInlineForm, setShowInlineForm] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editingTitle, setEditingTitle] = useState('');
+  const titleInputRef = useRef<HTMLInputElement>(null);
   const isDragAndDropDisabled = useShouldDisableDragAndDrop();
+
+  const publishToast = useBoundStore((state) => state.publishToast);
+  const pushDialog = useBoundStore((state) => state.pushDialog);
 
   const userCanEditOrDelete = useMemo(() => {
     return (
@@ -35,6 +58,14 @@ export function TaskList({
       trip?.currentUserRole === TripUserRole.Editor
     );
   }, [trip?.currentUserRole]);
+
+  // Focus the input when editing starts
+  useEffect(() => {
+    if (isEditingTitle && titleInputRef.current) {
+      titleInputRef.current.focus();
+      titleInputRef.current.select();
+    }
+  }, [isEditingTitle]);
 
   // Make the task list sortable for reordering
   const {
@@ -86,6 +117,78 @@ export function TaskList({
     setShowInlineForm(false);
   }, []);
 
+  const handleEditTitle = useCallback(() => {
+    if (!taskList) return;
+    setEditingTitle(taskList.title);
+    setIsEditingTitle(true);
+  }, [taskList]);
+
+  const handleSaveTitle = useCallback(async () => {
+    if (!taskList) return;
+
+    const trimmedTitle = editingTitle.trim();
+    if (!trimmedTitle) {
+      publishToast({
+        root: {},
+        title: { children: 'Title cannot be empty' },
+        close: {},
+      });
+      return;
+    }
+
+    if (trimmedTitle === taskList.title) {
+      setIsEditingTitle(false);
+      return;
+    }
+
+    try {
+      await dbUpdateTaskList({
+        id: taskList.id,
+        title: trimmedTitle,
+        index: taskList.index,
+        status: taskList.status,
+        task: undefined,
+      });
+
+      publishToast({
+        root: {},
+        title: { children: `Task list title updated` },
+        close: {},
+      });
+
+      setIsEditingTitle(false);
+    } catch (error) {
+      console.error('Error updating task list title:', error);
+      publishToast({
+        root: {},
+        title: { children: 'Error updating task list title' },
+        close: {},
+      });
+    }
+  }, [taskList, editingTitle, publishToast]);
+
+  const handleCancelEdit = useCallback(() => {
+    setIsEditingTitle(false);
+    setEditingTitle('');
+  }, []);
+
+  const handleTitleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        void handleSaveTitle();
+      } else if (e.key === 'Escape') {
+        handleCancelEdit();
+      }
+    },
+    [handleSaveTitle, handleCancelEdit],
+  );
+
+  const handleDeleteTaskList = useCallback(() => {
+    if (!taskList) return;
+    pushDialog(TaskListDeleteDialog, { taskList });
+  }, [taskList, pushDialog]);
+
   if (!taskList) {
     return null;
   }
@@ -103,14 +206,51 @@ export function TaskList({
         style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
       >
         <Flex justify="between" align="center">
-          <Heading as="h3" size="4">
-            {taskList.title}
-          </Heading>
-          {userCanEditOrDelete && !showInlineForm && (
-            <Button size="1" variant="outline" onClick={handleAddTask}>
-              <PlusIcon /> Add Task
-            </Button>
+          {isEditingTitle ? (
+            <TextField.Root
+              ref={titleInputRef}
+              value={editingTitle}
+              onChange={(e) => setEditingTitle(e.target.value)}
+              onKeyDown={handleTitleKeyDown}
+              onBlur={handleSaveTitle}
+              style={{ flex: 1, marginRight: '8px' }}
+              size="2"
+            />
+          ) : (
+            <Heading as="h3" size="4" style={{ flex: 1 }}>
+              {taskList.title}
+            </Heading>
           )}
+
+          <Flex align="center" gap="2">
+            {userCanEditOrDelete && !showInlineForm && !isEditingTitle && (
+              <Button size="1" variant="outline" onClick={handleAddTask}>
+                <PlusIcon /> Add Task
+              </Button>
+            )}
+
+            {userCanEditOrDelete && !isEditingTitle && (
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger>
+                  <IconButton size="1" variant="outline">
+                    <DotsVerticalIcon />
+                  </IconButton>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Content>
+                  <DropdownMenu.Item onClick={handleEditTitle}>
+                    <Pencil1Icon /> Edit title
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Separator />
+                  <DropdownMenu.Item
+                    color={dangerToken}
+                    onClick={handleDeleteTaskList}
+                  >
+                    <TrashIcon /> Delete task list
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Root>
+            )}
+          </Flex>
         </Flex>
       </div>
       <div
@@ -140,8 +280,6 @@ export function TaskList({
                 <PlusIcon /> Add Task
               </Button>
             )}
-            {/* TODO: implement edit task list name */}
-            {/* TODO: implement delete task list  */}
           </div>
         ) : (
           <SortableContext
