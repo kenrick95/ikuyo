@@ -28,9 +28,8 @@ export const useBoundStore = create<BoundStoreType>()(
     }),
     {
       name: 'ikuyo-storage',
-      version: 0,
+      version: 1,
       partialize: (state) => {
-        state;
         return {
           // Stale-while-revalidate: Don't persist the 'loading' or 'error' fields
           currentUser: state.currentUser,
@@ -45,8 +44,22 @@ export const useBoundStore = create<BoundStoreType>()(
           activity: state.activity,
           trips: state.trips,
           tripUser: state.tripUser,
+          task: state.task,
+          taskList: state.taskList,
           currentTheme: state.currentTheme,
         };
+      },
+      // biome-ignore lint/suspicious/noExplicitAny: schema migration code
+      migrate: (persistedState: any, version) => {
+        // Migration from version 0 to 1: Add task and taskList to persisted state
+        if (version === 0) {
+          return {
+            ...persistedState,
+            task: {},
+            taskList: {},
+          };
+        }
+        return persistedState;
       },
     },
   ),
