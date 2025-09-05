@@ -122,13 +122,6 @@ export async function dbMoveTaskToTaskList(
   newTaskListId: string,
   newIndex: number,
 ) {
-  console.log('dbMoveTaskToTaskList', {
-    taskId,
-    currentTaskListId,
-    newTaskListId,
-    newIndex,
-  });
-
   return db.transact([
     db.tx.taskList[currentTaskListId].unlink({ task: taskId }),
     db.tx.task[taskId]

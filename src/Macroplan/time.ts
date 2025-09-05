@@ -44,10 +44,10 @@ export function formatMacroplanDateRange({
       return `${dtStart.toFormat('d LLLL')}–${dtEnd.toFormat('d LLLL yyyy')} (${timeZone})`;
     }
     // e.g. "1 December 2025-15 February 2026"
-    return `${dtStart.toFormat('d LLLL yyyy')}–${dtStart.toFormat('d LLLL yyyy')} (${timeZone})`;
+    return `${dtStart.toFormat('d LLLL yyyy')}–${dtEnd.toFormat('d LLLL yyyy')} (${timeZone})`;
   } else if (dtStart) {
     // e.g. "1 January 2025-End date not set"
-    return `${dtStart.toFormat('d LLLL yyyy')} (${timeZone}) –End date not set`;
+    return `${dtStart.toFormat('d LLLL yyyy')}–End date not set (${timeZone})`;
   } else if (dtEnd) {
     // e.g. "Start date not set-1 January 2025"
     return `Start date not set–${dtEnd.toFormat('d LLLL yyyy')} (${timeZone})`;

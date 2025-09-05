@@ -177,7 +177,7 @@ export function TripTaskList() {
         if (trip.taskListIds.includes(activeId)) {
           // Task list reordering
           if (trip.taskListIds.includes(overId)) {
-            console.log('Reordering task lists');
+            // console.log('Reordering task lists');
 
             const activeIndex = trip.taskListIds.indexOf(activeId);
             const overIndex = trip.taskListIds.indexOf(overId);
@@ -214,10 +214,10 @@ export function TripTaskList() {
           // Don't move if it's the same task list
           if (activeTask.taskListId === targetTaskListId) return;
 
-          console.log('Moving task to different empty list:', {
-            activeId,
-            targetTaskListId,
-          });
+          // console.log('Moving task to different empty list:', {
+          //   activeId,
+          //   targetTaskListId,
+          // });
 
           // Move task to the new list at the end (high index)
           await dbMoveTaskToTaskList(
@@ -233,7 +233,7 @@ export function TripTaskList() {
 
           if (activeTask.taskListId === overTask.taskListId) {
             // Same list - reorder within the list
-            console.log('Reordering within same list');
+            // console.log('Reordering within same list');
 
             // Get all tasks in this list and sort them
             const tasksInList = allTasks
@@ -260,10 +260,10 @@ export function TripTaskList() {
             }
           } else {
             // Different lists - move to the position of the over task
-            console.log('Moving to different list at specific position', {
-              activeId,
-              overTask,
-            });
+            // console.log('Moving to different list at specific position', {
+            //   activeId,
+            //   overTask,
+            // });
             await dbMoveTaskToTaskList(
               activeId,
               activeTask.taskListId,

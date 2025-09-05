@@ -20,8 +20,6 @@ export function TaskDialogContentEdit({
     setMode(TaskDialogMode.View);
   }, [setMode]);
 
-  console.debug('TaskDialogContentEdit', { task, trip });
-
   return (
     <Dialog.Content {...dialogContentProps}>
       <DialogTitleSection title="Edit Task" />
