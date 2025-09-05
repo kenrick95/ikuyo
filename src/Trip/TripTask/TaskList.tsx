@@ -148,6 +148,7 @@ export function TaskList({
                 task={task}
                 userCanEditOrDelete={userCanEditOrDelete}
                 useCase={TaskCardUseCase.TripTaskList}
+                tripTimeZone={trip?.timeZone}
               />
             ))}
           </SortableContext>

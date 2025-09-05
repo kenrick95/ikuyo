@@ -259,6 +259,7 @@ export function TripHome() {
                 task={task}
                 userCanEditOrDelete={userCanModifyTrip}
                 useCase={TaskCardUseCase.TripHome}
+                tripTimeZone={trip?.timeZone}
               />
             ))}
             <Text size="1" mt="2">

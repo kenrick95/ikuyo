@@ -370,6 +370,7 @@ export function TripTaskList() {
                 task={activeTask}
                 userCanEditOrDelete={userCanCreate}
                 useCase={TaskCardUseCase.TripTaskList}
+                tripTimeZone={trip?.timeZone}
               />
             ) : activeTaskList ? (
               <TaskList id={activeTaskList} />

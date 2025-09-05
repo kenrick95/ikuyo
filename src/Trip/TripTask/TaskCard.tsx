@@ -21,9 +21,11 @@ export function TaskCard({
   task,
   userCanEditOrDelete,
   useCase,
+  tripTimeZone,
 }: {
   task: TripSliceTask;
   userCanEditOrDelete: boolean;
+  tripTimeZone: string | undefined;
   useCase: (typeof TaskCardUseCase)[keyof typeof TaskCardUseCase];
 }) {
   const {
@@ -92,10 +94,15 @@ export function TaskCard({
     openTaskDeleteDialog();
   }, [openTaskDeleteDialog]);
 
-  const formatDate = useCallback((timestamp?: number | null) => {
-    if (!timestamp) return null;
-    return DateTime.fromMillis(timestamp).toFormat('d LLLL yyyy HH:mm');
-  }, []);
+  const formatDate = useCallback(
+    (timestamp?: number | null) => {
+      if (!timestamp) return null;
+      return DateTime.fromMillis(timestamp, { zone: tripTimeZone }).toFormat(
+        'd LLLL yyyy HH:mm',
+      );
+    },
+    [tripTimeZone],
+  );
 
   // Handle keyboard navigation for accessibility
   // Use onKeyDown for Enter to open the dialog
