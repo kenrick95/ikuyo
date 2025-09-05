@@ -5,6 +5,7 @@ import clsx from 'clsx';
 import { DateTime } from 'luxon';
 import { useCallback, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
+import { useShouldDisableDragAndDrop } from '../../common/deviceUtils';
 import { dangerToken } from '../../common/ui';
 import { RouteTripTaskList } from '../../Routes/routes';
 import { getStatusColor, getStatusLabel } from '../../Task/TaskStatus';
@@ -28,6 +29,7 @@ export function TaskCard({
   tripTimeZone: string | undefined;
   useCase: (typeof TaskCardUseCase)[keyof typeof TaskCardUseCase];
 }) {
+  const isDragAndDropDisabled = useShouldDisableDragAndDrop();
   const {
     attributes,
     listeners,
@@ -37,7 +39,7 @@ export function TaskCard({
     isDragging,
   } = useSortable({
     id: task.id,
-    disabled: !userCanEditOrDelete,
+    disabled: !userCanEditOrDelete || isDragAndDropDisabled,
     data: {
       type: 'task',
       taskListId: task.taskListId,

@@ -9,6 +9,7 @@ import { PlusIcon } from '@radix-ui/react-icons';
 import { Button, Flex, Heading, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { useCallback, useMemo, useState } from 'react';
+import { useShouldDisableDragAndDrop } from '../../common/deviceUtils';
 import { TripUserRole } from '../../User/TripUserRole';
 import { useCurrentTrip, useTripTaskList, useTripTasks } from '../store/hooks';
 import { TaskCard, TaskCardUseCase } from './TaskCard';
@@ -26,6 +27,14 @@ export function TaskList({
   const taskList = useTripTaskList(id);
   const tasks = useTripTasks(taskList?.taskIds ?? []);
   const [showInlineForm, setShowInlineForm] = useState(false);
+  const isDragAndDropDisabled = useShouldDisableDragAndDrop();
+
+  const userCanEditOrDelete = useMemo(() => {
+    return (
+      trip?.currentUserRole === TripUserRole.Owner ||
+      trip?.currentUserRole === TripUserRole.Editor
+    );
+  }, [trip?.currentUserRole]);
 
   // Make the task list sortable for reordering
   const {
@@ -36,6 +45,7 @@ export function TaskList({
     transition,
     isDragging,
   } = useSortable({
+    disabled: !userCanEditOrDelete || isDragAndDropDisabled,
     id: id,
     data: {
       type: 'taskList',
@@ -46,6 +56,7 @@ export function TaskList({
   // Set up droppable area for this task list (for cross-list task drops)
   const { setNodeRef: setDroppableRef } = useDroppable({
     id: `tasklist-${id}`,
+    disabled: !userCanEditOrDelete || isDragAndDropDisabled,
     data: {
       type: 'taskList',
       taskListId: id,
@@ -62,13 +73,6 @@ export function TaskList({
   const sortedTasks = useMemo(() => {
     return [...tasks].sort((a, b) => a.index - b.index);
   }, [tasks]);
-
-  const userCanEditOrDelete = useMemo(() => {
-    return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
-    );
-  }, [trip?.currentUserRole]);
 
   const handleAddTask = useCallback(() => {
     setShowInlineForm(true);
