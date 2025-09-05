@@ -8,6 +8,7 @@ import {
 } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { useCallback, useId, useState } from 'react';
+import { dangerToken } from '../../../common/ui';
 import { useBoundStore } from '../../../data/store';
 import { dbAddTask, dbUpdateTask } from '../../../Task/db';
 import { TaskStatus } from '../../../Task/TaskStatus';
@@ -157,74 +158,58 @@ export function TaskForm({
 
   return (
     <form id={idForm} onSubmit={handleSubmit}>
-      <Flex direction="column" gap="4">
-        <div>
-          <Text as="label" htmlFor={idTitle} size="2" weight="bold">
-            Title
-          </Text>
-          <TextField.Root
-            id={idTitle}
-            name="title"
-            placeholder="Enter task title..."
-            defaultValue={taskTitle}
-            required
-          />
-        </div>
+      <Flex direction="column" gap="2">
+        <Text color={dangerToken} size="2">
+          {errorMessage}&nbsp;
+        </Text>
+        <Text as="label" htmlFor={idTitle} size="2">
+          Title
+        </Text>
+        <TextField.Root
+          id={idTitle}
+          name="title"
+          placeholder="Enter task title..."
+          defaultValue={taskTitle}
+          required
+        />
+        <Text as="label" htmlFor={idDescription} size="2">
+          Description
+        </Text>
+        <TextArea
+          id={idDescription}
+          name="description"
+          placeholder="Enter task description..."
+          defaultValue={taskDescription}
+          rows={4}
+        />
+        <Text as="label" htmlFor={idStatus} size="2">
+          Status
+        </Text>
+        <Select.Root name="status" defaultValue={taskStatus.toString()}>
+          <Select.Trigger id={idStatus} />
+          <Select.Content>
+            <Select.Item value={TaskStatus.Todo.toString()}>To Do</Select.Item>
+            <Select.Item value={TaskStatus.InProgress.toString()}>
+              In Progress
+            </Select.Item>
+            <Select.Item value={TaskStatus.Done.toString()}>Done</Select.Item>
+            <Select.Item value={TaskStatus.Cancelled.toString()}>
+              Cancelled
+            </Select.Item>
+          </Select.Content>
+        </Select.Root>
+        <Text as="label" htmlFor={idDueAt} size="2">
+          Due Date <Text size="1">(optional, in {tripTimeZone} time zone)</Text>
+        </Text>
 
-        <div>
-          <Text as="label" htmlFor={idDescription} size="2" weight="bold">
-            Description
-          </Text>
-          <TextArea
-            id={idDescription}
-            name="description"
-            placeholder="Enter task description..."
-            defaultValue={taskDescription}
-            rows={4}
-          />
-        </div>
+        <TextField.Root
+          id={idDueAt}
+          name="dueAt"
+          type="datetime-local"
+          defaultValue={taskDueDateStr}
+        />
 
-        <div>
-          <Text as="label" htmlFor={idStatus} size="2" weight="bold">
-            Status
-          </Text>
-          <br />
-          <Select.Root name="status" defaultValue={taskStatus.toString()}>
-            <Select.Trigger id={idStatus} />
-            <Select.Content>
-              <Select.Item value={TaskStatus.Todo.toString()}>
-                To Do
-              </Select.Item>
-              <Select.Item value={TaskStatus.InProgress.toString()}>
-                In Progress
-              </Select.Item>
-              <Select.Item value={TaskStatus.Done.toString()}>Done</Select.Item>
-              <Select.Item value={TaskStatus.Cancelled.toString()}>
-                Cancelled
-              </Select.Item>
-            </Select.Content>
-          </Select.Root>
-        </div>
-
-        <div>
-          <Text as="label" htmlFor={idDueAt} size="2" weight="bold">
-            Due Date (optional)
-          </Text>
-          <TextField.Root
-            id={idDueAt}
-            name="dueAt"
-            type="datetime-local"
-            defaultValue={taskDueDateStr}
-          />
-        </div>
-
-        {errorMessage && (
-          <Text color="red" size="2">
-            {errorMessage}
-          </Text>
-        )}
-
-        <Flex gap="3" justify="end">
+        <Flex gap="3" mt="5" justify="end">
           <Button
             type="button"
             variant="soft"

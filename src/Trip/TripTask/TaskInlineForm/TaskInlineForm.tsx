@@ -166,9 +166,10 @@ export function TaskInlineForm({
           </Flex>
 
           <Flex direction="column" flexGrow="1">
-            <Text size="1" weight="medium" mb="1">
-              Due Date (optional)
+            <Text size="1" weight="medium">
+              Due Date
             </Text>
+            <Text size="1">(optional, in {tripTimeZone} time zone)</Text>
             <TextField.Root
               id={idDueAt}
               type="datetime-local"
