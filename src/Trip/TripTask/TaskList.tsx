@@ -136,6 +136,8 @@ export function TaskList({
                 <PlusIcon /> Add Task
               </Button>
             )}
+            {/* TODO: implement edit task list name */}
+            {/* TODO: implement delete task list  */}
           </div>
         ) : (
           <SortableContext
