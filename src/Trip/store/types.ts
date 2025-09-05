@@ -109,6 +109,8 @@ export type TripSliceTask = {
   /** ms */
   completedAt?: number | null | undefined;
   taskListId: string;
+  tripId: string;
+  commentGroupId: string | undefined;
 };
 export type TripSliceTaskList = {
   id: string;

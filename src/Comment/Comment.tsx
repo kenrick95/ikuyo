@@ -8,6 +8,8 @@ import { dangerToken } from '../common/ui';
 import { useBoundStore, useDeepBoundStore } from '../data/store';
 import {
   RouteTripExpenses,
+  RouteTripTaskList,
+  RouteTripTaskListTask,
   RouteTripTimetableView,
   RouteTripTimetableViewAccommodation,
   RouteTripTimetableViewActivity,
@@ -77,6 +79,12 @@ function CommentInner({
         objectName,
         RouteTripTimetableView.asRouteTarget() +
           RouteTripTimetableViewAccommodation.asRouteTarget(objectId),
+      ];
+    } else if (objectType === 'task') {
+      return [
+        objectName,
+        RouteTripTaskList.asRouteTarget() +
+          RouteTripTaskListTask.asRouteTarget(objectId),
       ];
     } else if (objectType === 'expense') {
       return [objectName, RouteTripExpenses.asRouteTarget()];

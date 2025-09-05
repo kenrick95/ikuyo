@@ -9,8 +9,11 @@ import {
 } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { useCallback, useMemo } from 'react';
+import { CommentGroupWithForm } from '../../../Comment/CommentGroupWithForm';
+import { COMMENT_GROUP_OBJECT_TYPE } from '../../../Comment/db';
 import { useParseTextIntoNodes } from '../../../common/text/parseTextIntoNodes';
 import type { DialogContentProps } from '../../../Dialog/DialogRoute';
+import { useDeepBoundStore } from '../../../data/store';
 import { getStatusColor, getStatusLabel } from '../../../Task/TaskStatus';
 import { TripUserRole } from '../../../User/TripUserRole';
 import { useTrip, useTripTaskList } from '../../store/hooks';
@@ -21,7 +24,9 @@ export function TaskDialogContentView({
   data: task,
   setMode,
   dialogContentProps,
+  setDialogClosable,
   DialogTitleSection,
+  loading,
 }: DialogContentProps<TripSliceTask>) {
   const taskList = useTripTaskList(task?.taskListId ?? '');
   const { trip } = useTrip(taskList?.tripId);
@@ -33,6 +38,7 @@ export function TaskDialogContentView({
   }, [trip?.currentUserRole]);
 
   const descriptions = useParseTextIntoNodes(task?.description);
+  const currentUser = useDeepBoundStore((state) => state.currentUser);
 
   const taskDueDateTime =
     task && trip && task.dueAt != null
@@ -51,6 +57,9 @@ export function TaskDialogContentView({
   const goToDeleteMode = useCallback(() => {
     setMode(TaskDialogMode.Delete);
   }, [setMode]);
+  const setDialogUnclosable = useCallback(() => {
+    setDialogClosable(false);
+  }, [setDialogClosable]);
 
   return (
     <Dialog.Content {...dialogContentProps}>
@@ -139,14 +148,16 @@ export function TaskDialogContentView({
           <Heading as="h2" size="4">
             Comments
           </Heading>
-          {/* Note: Tasks might not have comment groups implemented yet.
-              This section may need to be commented out or adjusted based on 
-              whether tasks support comments in your implementation. */}
-          {task && (
-            <Text color="gray" size="2">
-              Comments for tasks are not yet implemented.
-            </Text>
-          )}
+
+          <CommentGroupWithForm
+            tripId={task?.tripId}
+            objectId={task?.id}
+            objectType={COMMENT_GROUP_OBJECT_TYPE.TASK}
+            user={currentUser}
+            onFormFocus={setDialogUnclosable}
+            commentGroupId={task?.commentGroupId}
+            isLoading={loading}
+          />
         </Flex>
       </Flex>
     </Dialog.Content>

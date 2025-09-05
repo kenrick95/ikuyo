@@ -264,6 +264,16 @@ export function deriveNewTripTaskListAndTaskState(
 } {
   const taskListState = { ...state.taskList };
   const taskState = { ...state.task };
+  /** task id -> comment group (only "id" field) */
+  const commentGroupByTaskId = new Map<string, { id: string }>();
+  for (const commentGroup of trip.commentGroup ?? []) {
+    if (commentGroup.object?.type === COMMENT_GROUP_OBJECT_TYPE.TASK) {
+      const taskId = commentGroup.object?.task?.[0]?.id;
+      if (taskId) {
+        commentGroupByTaskId.set(taskId, commentGroup);
+      }
+    }
+  }
   for (const taskList of trip.taskList ?? []) {
     taskListState[taskList.id] = {
       ...taskList,
@@ -271,9 +281,12 @@ export function deriveNewTripTaskListAndTaskState(
       taskIds: taskList.task.map((t) => t.id),
     } satisfies TripSliceTaskList;
     for (const task of taskList.task) {
+      const commentGroup = commentGroupByTaskId.get(task.id);
       taskState[task.id] = {
         ...task,
         taskListId: taskList.id,
+        tripId: trip.id,
+        commentGroupId: commentGroup?.id ?? undefined,
       } satisfies TripSliceTask;
     }
   }
