@@ -14,12 +14,19 @@ import { Comment } from '../Comment/Comment';
 import { REGIONS_MAP, type RegionCode } from '../data/intl/regions';
 import { useBoundStore } from '../data/store';
 import { TripMap } from '../Map/TripMap';
-import { RouteTripComment } from '../Routes/routes';
+import { RouteTripComment, RouteTripTaskList } from '../Routes/routes';
+import { TaskStatus } from '../Task/TaskStatus';
 import { TripUserRole } from '../User/TripUserRole';
-import { useCurrentTrip, useTripAllCommentsWithLimit } from './store/hooks';
+import {
+  useCurrentTrip,
+  useTripAllCommentsWithLimit,
+  useTripAllTaskLists,
+  useTripTasks,
+} from './store/hooks';
 import { TripEditDialog } from './TripDialog/TripEditDialog';
 import { TripSharingDialog } from './TripDialog/TripSharingDialog';
 import { TripStatusBadge } from './TripStatusBadge';
+import { TaskCard, TaskCardUseCase } from './TripTask/TaskCard';
 import { formatTripDateRange } from './time';
 
 const containerPx = { initial: '1', md: '0' };
@@ -39,6 +46,73 @@ export function TripHome() {
       : undefined;
 
   const latestComments = useTripAllCommentsWithLimit(trip?.id, 5);
+
+  // Get all task lists and tasks
+  const allTaskLists = useTripAllTaskLists(trip?.id);
+  const allTaskIds = useMemo(() => {
+    if (!allTaskLists) return [];
+    return allTaskLists.flatMap((taskList) => taskList.taskIds ?? []);
+  }, [allTaskLists]);
+  const allTasks = useTripTasks(allTaskIds);
+
+  // Filter tasks for display on home page
+  const priorityTasks = useMemo(() => {
+    if (!allTasks.length || !trip) return [];
+
+    const now = DateTime.now().setZone(trip.timeZone);
+    const todayStart = now.startOf('day');
+    const todayEnd = now.endOf('day');
+    const tomorrowEnd = todayEnd.plus({ days: 1 });
+
+    // First, get priority tasks (in progress, overdue, due today/tomorrow)
+    const priorityFiltered = allTasks.filter((task) => {
+      // Show in progress tasks
+      if (task.status === TaskStatus.InProgress) return true;
+
+      // Show tasks with due dates
+      if (task.dueAt) {
+        const dueDate = DateTime.fromMillis(task.dueAt).setZone(trip.timeZone);
+
+        // Show past due tasks
+        if (dueDate < todayStart) return true;
+
+        // Show tasks due today or tomorrow
+        if (dueDate <= tomorrowEnd) return true;
+      }
+
+      return false;
+    });
+
+    // If we have fewer than 5 priority tasks, fill with other todo tasks
+    let result = [...priorityFiltered];
+    if (result.length < 5) {
+      const otherTasks = allTasks.filter((task) => {
+        // Exclude tasks already in priority list
+        if (priorityFiltered.some((p) => p.id === task.id)) return false;
+
+        // Only show todo tasks (not completed, cancelled, etc.)
+        return task.status === TaskStatus.Todo;
+      });
+
+      // Add other tasks to reach 5 total
+      const needed = 5 - result.length;
+      result = [...result, ...otherTasks.slice(0, needed)];
+    }
+
+    // Sort all tasks appropriately
+    return result.sort((a, b) => {
+      // Sort by due date, then by creation date
+      if (a.dueAt && b.dueAt) {
+        return a.dueAt - b.dueAt;
+      }
+      if (a.dueAt && !b.dueAt) return -1;
+      if (!a.dueAt && b.dueAt) return 1;
+      return b.createdAt - a.createdAt;
+    });
+  }, [allTasks, trip]);
+
+  // Show only first 5 tasks
+  const displayTasks = priorityTasks.slice(0, 5);
 
   const pushDialog = useBoundStore((state) => state.pushDialog);
   const userCanModifyTrip = useMemo(() => {
@@ -168,12 +242,38 @@ export function TripHome() {
           <TripMap useCase="home" />
         </Flex>
       </Flex>
-      {latestComments.length > 0 ? (
-        <>
+      <Flex
+        gap="4"
+        justify="between"
+        direction={{ initial: 'column', md: 'row' }}
+      >
+        <Flex gap="2" direction="column" flexGrow="1" flexBasis="50%">
+          <Heading as="h3" size="4" mb="2" mt="6">
+            Priority Tasks
+          </Heading>
+          <Flex gap="2" direction="column">
+            {displayTasks.length === 0 && <Text size="2">No tasks yet</Text>}
+            {displayTasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                userCanEditOrDelete={userCanModifyTrip}
+                useCase={TaskCardUseCase.TripHome}
+              />
+            ))}
+            <Text size="1" mt="2">
+              <Link to={RouteTripTaskList.asRouteTarget()}>See all tasks</Link>
+            </Text>
+          </Flex>
+        </Flex>
+        <Flex gap="2" direction="column" flexGrow="1" flexBasis="50%">
           <Heading as="h3" size="4" mb="2" mt="6">
             Latest Comments
           </Heading>
           <Flex gap="2" direction="column">
+            {latestComments.length === 0 && (
+              <Text size="2">No comments yet</Text>
+            )}
             {latestComments.map((comment) => (
               <Comment
                 key={comment.id}
@@ -189,8 +289,8 @@ export function TripHome() {
               </Link>
             </Text>
           </Flex>
-        </>
-      ) : null}
+        </Flex>
+      </Flex>
     </Container>
   );
 }

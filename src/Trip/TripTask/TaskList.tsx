@@ -11,7 +11,7 @@ import clsx from 'clsx';
 import { useCallback, useMemo, useState } from 'react';
 import { TripUserRole } from '../../User/TripUserRole';
 import { useCurrentTrip, useTripTaskList, useTripTasks } from '../store/hooks';
-import { TaskCard } from './TaskCard';
+import { TaskCard, TaskCardUseCase } from './TaskCard';
 import { TaskInlineForm } from './TaskInlineForm/TaskInlineForm';
 import taskListStyles from './TaskList.module.css';
 
@@ -147,6 +147,7 @@ export function TaskList({
                 key={task.id}
                 task={task}
                 userCanEditOrDelete={userCanEditOrDelete}
+                useCase={TaskCardUseCase.TripTaskList}
               />
             ))}
           </SortableContext>

@@ -33,7 +33,7 @@ import {
   useTripTasks,
 } from '../store/hooks';
 import type { TripSliceTask } from '../store/types';
-import { TaskCard } from './TaskCard';
+import { TaskCard, TaskCardUseCase } from './TaskCard';
 import { TaskDialog } from './TaskDialog/TaskDialog';
 import { TaskList } from './TaskList';
 import { TaskListInlineForm } from './TaskListInlineForm/TaskListInlineForm';
@@ -366,7 +366,11 @@ export function TripTaskList() {
           </SortableContext>
           <DragOverlay dropAnimation={{ duration: 200 }}>
             {activeTask ? (
-              <TaskCard task={activeTask} userCanEditOrDelete={userCanCreate} />
+              <TaskCard
+                task={activeTask}
+                userCanEditOrDelete={userCanCreate}
+                useCase={TaskCardUseCase.TripTaskList}
+              />
             ) : activeTaskList ? (
               <TaskList id={activeTaskList} />
             ) : null}

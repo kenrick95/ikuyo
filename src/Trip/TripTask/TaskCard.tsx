@@ -1,21 +1,30 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Badge, Card, ContextMenu, Flex, Text } from '@radix-ui/themes';
+import clsx from 'clsx';
 import { DateTime } from 'luxon';
 import { useCallback, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { dangerToken } from '../../common/ui';
+import { RouteTripTaskList } from '../../Routes/routes';
 import { getStatusColor, getStatusLabel } from '../../Task/TaskStatus';
 import type { TripSliceTask } from '../store/types';
 import style from './TaskCard.module.css';
 import { useTaskDialogHooks } from './TaskDialog/taskDialogHooks';
 
+export const TaskCardUseCase = {
+  TripHome: 'home',
+  TripTaskList: 'list',
+} as const;
+
 export function TaskCard({
   task,
   userCanEditOrDelete,
+  useCase,
 }: {
   task: TripSliceTask;
   userCanEditOrDelete: boolean;
+  useCase: (typeof TaskCardUseCase)[keyof typeof TaskCardUseCase];
 }) {
   const {
     attributes,
@@ -40,7 +49,13 @@ export function TaskCard({
   };
 
   const { openTaskViewDialog, openTaskDeleteDialog, openTaskEditDialog } =
-    useTaskDialogHooks(task.id);
+    useTaskDialogHooks(
+      task.id,
+      // If used on home, need to append '/tasks' in the route
+      useCase === TaskCardUseCase.TripHome
+        ? RouteTripTaskList.asRouteTarget()
+        : '',
+    );
 
   const taskCardRef = useRef<HTMLDivElement>(null);
   const [location] = useLocation();
@@ -113,9 +128,11 @@ export function TaskCard({
     <ContextMenu.Root>
       <ContextMenu.Trigger>
         <Card
-          className={`${style.taskCard} ${isDragging ? style.dragging : ''} ${
-            !userCanEditOrDelete ? style.readonly : ''
-          }`}
+          className={clsx(style.taskCard, {
+            [style.taskCardDragging]: isDragging,
+            [style.draggable]:
+              userCanEditOrDelete && TaskCardUseCase.TripTaskList === useCase,
+          })}
           ref={(element) => {
             taskCardRef.current = element;
             setNodeRef(element);

@@ -3,15 +3,16 @@ import { useLocation } from 'wouter';
 import { DialogMode, type DialogModeType } from '../../../Dialog/DialogRoute';
 import { RouteTripTaskListTask } from '../../../Routes/routes';
 
-export function useTaskDialogHooks(taskId: string) {
+export function useTaskDialogHooks(taskId: string, basePath = '') {
   const [, setLocation] = useLocation();
   const openTaskDialog = useCallback(
     (mode: DialogModeType) => {
-      setLocation(RouteTripTaskListTask.asRouteTarget(taskId), {
+      const fullPath = `${basePath}${RouteTripTaskListTask.asRouteTarget(taskId)}`;
+      setLocation(fullPath, {
         state: { mode: mode ?? DialogMode.View },
       });
     },
-    [taskId, setLocation],
+    [taskId, setLocation, basePath],
   );
   const openTaskViewDialog = useCallback(() => {
     openTaskDialog(DialogMode.View);

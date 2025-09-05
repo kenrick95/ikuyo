@@ -1,19 +1,18 @@
 .taskCard {
   min-width: 250px;
-  cursor: grab;
+  cursor: pointer;
   transition: transform 0.1s ease;
 }
+.taskCard.draggable {
+  cursor: grab;
+}
 
-.taskCard:hover {
+.taskCard.draggable:hover {
   transform: translateY(-2px);
 }
 
-.taskCard:active {
+.taskCard.draggable:active {
   cursor: grabbing;
-}
-
-.taskCard.readonly {
-  cursor: pointer;
 }
 
 .taskCard.dragging {
