@@ -57,7 +57,35 @@ export async function dbDeleteTaskList(taskListId: string) {
       taskList: { $eq: taskListId },
     },
   });
+  // Delete all the comments associated with the tasks
+  const commentGroups = await db.queryOnce({
+    commentGroup: {
+      comment: { $: { fields: ['id'] } },
+      $: {
+        where: {
+          'object.type': 'task',
+          'object.task.id': { $in: tasks.data.task.map((task) => task.id) },
+        },
+        fields: ['id'],
+      },
+    },
+  });
+  const commentGroupIds = commentGroups.data.commentGroup.map(
+    (commentGroup) => commentGroup.id,
+  );
+  const commentIds = commentGroups.data.commentGroup.flatMap((commentGroup) =>
+    commentGroup.comment.map((comment) => comment.id),
+  );
+
   const transactions = [
+    ...commentGroupIds.map((commentGroupId) =>
+      db.tx.commentGroup[commentGroupId].delete(),
+    ),
+    ...commentGroupIds.map((commentGroupId) =>
+      // CommentGroupObject has same id as commentGroup
+      db.tx.commentGroupObject[commentGroupId].delete(),
+    ),
+    ...commentIds.map((commentId) => db.tx.comment[commentId].delete()),
     ...tasks.data.task.map((task: { id: string }) =>
       db.tx.task[task.id].delete(),
     ),
@@ -96,7 +124,33 @@ export async function dbUpdateTask(
   );
 }
 export async function dbDeleteTask(taskId: string, taskListId: string) {
+  const commentGroups = await db.queryOnce({
+    commentGroup: {
+      comment: { $: { fields: ['id'] } },
+      $: {
+        where: {
+          'object.type': 'task',
+          'object.task.id': taskId,
+        },
+        fields: ['id'],
+      },
+    },
+  });
+  const commentGroupIds = commentGroups.data.commentGroup.map(
+    (commentGroup) => commentGroup.id,
+  );
+  const commentIds = commentGroups.data.commentGroup.flatMap((commentGroup) =>
+    commentGroup.comment.map((comment) => comment.id),
+  );
   return db.transact([
+    ...commentGroupIds.map((commentGroupId) =>
+      db.tx.commentGroup[commentGroupId].delete(),
+    ),
+    ...commentGroupIds.map((commentGroupId) =>
+      // CommentGroupObject has same id as commentGroup
+      db.tx.commentGroupObject[commentGroupId].delete(),
+    ),
+    ...commentIds.map((commentId) => db.tx.comment[commentId].delete()),
     db.tx.taskList[taskListId].unlink({
       task: [taskId],
     }),
