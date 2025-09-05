@@ -53,8 +53,12 @@ export async function dbUpdateTaskList(
 export async function dbDeleteTaskList(taskListId: string) {
   const tasks = await db.queryOnce({
     task: {
-      $: { fields: ['id'] },
-      taskList: { $eq: taskListId },
+      $: {
+        fields: ['id'],
+        where: {
+          'taskList.id': taskListId,
+        },
+      },
     },
   });
   // Delete all the comments associated with the tasks
