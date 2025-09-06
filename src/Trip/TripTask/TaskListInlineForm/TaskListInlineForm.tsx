@@ -79,6 +79,8 @@ export function TaskListInlineForm({
         borderRadius: '8px',
         backgroundColor: 'var(--gray-1)',
         marginBottom: '16px',
+        width: '100%',
+        maxWidth: '320px',
       }}
     >
       <Flex direction="column" gap="3">

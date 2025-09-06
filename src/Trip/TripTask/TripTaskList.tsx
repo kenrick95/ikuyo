@@ -39,7 +39,7 @@ import { TaskList } from './TaskList';
 import { TaskListInlineForm } from './TaskListInlineForm/TaskListInlineForm';
 import style from './TripTaskList.module.css';
 
-const containerPx = { initial: '1', md: '0' };
+const containerPx = { initial: '1', md: '1' };
 const containerPb = { initial: '9', sm: '5' };
 
 export function TripTaskList() {
@@ -302,7 +302,7 @@ export function TripTaskList() {
   return (
     <Box mt="2" pb={containerPb} px={containerPx}>
       <div className={style.taskBoardHeader}>
-        <Flex justify="between" align="center">
+        <Flex justify="start" align="center" gap="2">
           <Heading as="h2" size="6">
             Task Board
           </Heading>

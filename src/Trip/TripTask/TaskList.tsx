@@ -217,7 +217,12 @@ export function TaskList({
               size="2"
             />
           ) : (
-            <Heading as="h3" size="4" style={{ flex: 1 }}>
+            <Heading
+              as="h3"
+              size="4"
+              className={taskListStyles.taskListTitle}
+              title={taskList.title}
+            >
               {taskList.title}
             </Heading>
           )}
