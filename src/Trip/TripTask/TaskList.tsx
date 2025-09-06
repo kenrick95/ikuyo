@@ -247,6 +247,8 @@ export function TaskList({
                   >
                     <TrashIcon /> Delete task list
                   </DropdownMenu.Item>
+
+                  {/* TODO: action to move index up and down */}
                 </DropdownMenu.Content>
               </DropdownMenu.Root>
             )}

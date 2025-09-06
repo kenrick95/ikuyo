@@ -1,5 +1,6 @@
 .taskBoard {
   display: grid;
+  /* TODO: make this a flex, and scrollable horizontally */
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: var(--space-4);
   margin-top: var(--space-4);

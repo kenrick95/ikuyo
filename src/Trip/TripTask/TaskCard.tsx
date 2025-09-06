@@ -195,6 +195,8 @@ export function TaskCard({
         >
           Delete
         </ContextMenu.Item>
+
+        {/* TODO: button to move index up and down */}
       </ContextMenu.Content>
     </ContextMenu.Root>
   );
