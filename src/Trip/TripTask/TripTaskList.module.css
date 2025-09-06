@@ -15,6 +15,9 @@
     var(--space-4) -
     60px
   );
+  scroll-behavior: smooth;
+  user-select: none;
+  align-items: start;
 }
 
 .taskBoardHeader {

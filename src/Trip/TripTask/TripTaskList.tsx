@@ -18,7 +18,7 @@ import {
 } from '@dnd-kit/sortable';
 import { PlusIcon } from '@radix-ui/react-icons';
 import { Box, Button, Flex, Heading, Text } from '@radix-ui/themes';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Route, Switch } from 'wouter';
 import { RouteTripTaskListTask } from '../../Routes/routes';
 import {
@@ -48,6 +48,14 @@ export function TripTaskList() {
   const [activeTask, setActiveTask] = useState<TripSliceTask | null>(null);
   const [activeTaskList, setActiveTaskList] = useState<string | null>(null);
   const [activeDropZone, setActiveDropZone] = useState<string | null>(null);
+
+  // Drag scrolling state
+  const taskBoardRef = useRef<HTMLDivElement>(null);
+  const [isDragScrolling, setIsDragScrolling] = useState(false);
+  const [dragScrollStart, setDragScrollStart] = useState({
+    x: 0,
+    scrollLeft: 0,
+  });
 
   // Get all task lists for the current trip
   const allTaskLists = useTripAllTaskLists(trip?.id);
@@ -299,6 +307,60 @@ export function TripTaskList() {
     [trip, allTasks],
   );
 
+  // Drag scrolling handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    // Only handle left mouse button and ignore if clicking on interactive elements
+    if (e.button !== 0) return;
+
+    const target = e.target as HTMLElement;
+    // Don't start drag scrolling on interactive elements
+    if (
+      target.closest('button') ||
+      target.closest('[data-radix-collection-item]') ||
+      target.closest('[role="button"]') ||
+      target.closest('input') ||
+      target.closest('textarea') ||
+      target.closest('[draggable="true"]')
+    ) {
+      return;
+    }
+
+    const taskBoard = taskBoardRef.current;
+    if (!taskBoard) return;
+
+    setIsDragScrolling(true);
+    setDragScrollStart({
+      x: e.pageX - taskBoard.offsetLeft,
+      scrollLeft: taskBoard.scrollLeft,
+    });
+
+    // Prevent text selection
+    e.preventDefault();
+  }, []);
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!isDragScrolling) return;
+
+      const taskBoard = taskBoardRef.current;
+      if (!taskBoard) return;
+
+      e.preventDefault();
+      const x = e.pageX - taskBoard.offsetLeft;
+      const walk = (x - dragScrollStart.x) * 2; // Multiply by 2 for faster scrolling
+      taskBoard.scrollLeft = dragScrollStart.scrollLeft - walk;
+    },
+    [isDragScrolling, dragScrollStart],
+  );
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragScrolling(false);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsDragScrolling(false);
+  }, []);
+
   return (
     <Box mt="2" pb={containerPb} px={containerPx}>
       <div className={style.taskBoardHeader}>
@@ -354,7 +416,16 @@ export function TripTaskList() {
             items={trip.taskListIds}
             strategy={horizontalListSortingStrategy}
           >
-            <div className={style.taskBoard}>
+            {/** biome-ignore lint/a11y/noStaticElementInteractions: to support scroll by dragging horizontally */}
+            <div
+              className={style.taskBoard}
+              ref={taskBoardRef}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseLeave}
+              style={{ cursor: isDragScrolling ? 'grabbing' : 'grab' }}
+            >
               {trip.taskListIds.map((taskListId) => (
                 <TaskList
                   key={taskListId}
