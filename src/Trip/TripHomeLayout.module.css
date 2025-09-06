@@ -1,0 +1,22 @@
+.tripLayoutDuringTrip {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+.tripLayoutDefault {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+/* Responsive breakpoints */
+@media (min-width: 768px) {
+  .tripLayoutDuringTrip {
+    grid-template-columns: 2fr 1fr;
+  }
+
+  .tripLayoutDefault {
+    grid-template-columns: 1fr 1fr;
+  }
+}
