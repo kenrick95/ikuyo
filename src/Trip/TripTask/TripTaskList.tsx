@@ -17,7 +17,7 @@ import {
   SortableContext,
 } from '@dnd-kit/sortable';
 import { PlusIcon } from '@radix-ui/react-icons';
-import { Button, Container, Flex, Heading, Text } from '@radix-ui/themes';
+import { Box, Button, Flex, Heading, Text } from '@radix-ui/themes';
 import { useCallback, useMemo, useState } from 'react';
 import { Route, Switch } from 'wouter';
 import { RouteTripTaskListTask } from '../../Routes/routes';
@@ -300,7 +300,7 @@ export function TripTaskList() {
   );
 
   return (
-    <Container mt="2" pb={containerPb} px={containerPx}>
+    <Box mt="2" pb={containerPb} px={containerPx}>
       <div className={style.taskBoardHeader}>
         <Flex justify="between" align="center">
           <Heading as="h2" size="6">
@@ -382,6 +382,6 @@ export function TripTaskList() {
       <Switch>
         <Route path={RouteTripTaskListTask.routePath} component={TaskDialog} />
       </Switch>
-    </Container>
+    </Box>
   );
 }

@@ -2,6 +2,7 @@
   border: 1px solid var(--gray-7);
   background-color: var(--color-panel-solid);
   border-radius: var(--radius-2);
+  flex-shrink: 0;
   overflow: hidden;
   display: block;
   text-align: start;
@@ -47,7 +48,7 @@
 .taskContent {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 .taskTitle {
@@ -61,7 +62,7 @@
 
 .taskMeta {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--space-1);
   font-size: 12px;
   color: var(--gray-9);
 }

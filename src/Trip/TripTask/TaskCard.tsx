@@ -155,12 +155,12 @@ export function TaskCard({
           {...attributes}
           {...(userCanEditOrDelete ? listeners : {})}
         >
-          <Flex direction="column" gap="2" className={style.taskContent}>
+          <Flex direction="column" gap="1" className={style.taskContent}>
             <Text className={style.taskTitle}>{task.title}</Text>
             {task.description && (
               <Text className={style.taskDescription}>{task.description}</Text>
             )}
-            <Flex gap="2" className={style.taskMeta}>
+            <Flex gap="1" className={style.taskMeta}>
               <Badge color={getStatusColor(task.status)}>
                 {getStatusLabel(task.status)}
               </Badge>

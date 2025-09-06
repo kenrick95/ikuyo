@@ -1,9 +1,20 @@
 .taskBoard {
-  display: grid;
-  /* TODO: make this a flex, and scrollable horizontally */
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  display: flex;
   gap: var(--space-4);
   margin-top: var(--space-4);
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: var(--space-2);
+  /* Calculate height to fill viewport minus navbar, trip menu, header, and margins */
+  height: calc(
+    100vh -
+    var(--space-8) -
+    var(--space-7) -
+    1px -
+    var(--space-2) -
+    var(--space-4) -
+    60px
+  );
 }
 
 .taskBoardHeader {
@@ -26,11 +37,36 @@
 
 @media (max-width: 768px) {
   .taskBoard {
-    grid-template-columns: 1fr;
     gap: var(--space-4);
+    padding-bottom: var(--space-2);
+    /* Mobile-specific height calculation */
+    height: calc(
+      100vh -
+      var(--space-8) -
+      var(--space-7) -
+      1px -
+      var(--space-2) -
+      var(--space-4) -
+      80px
+    );
   }
 
   .emptyTaskBoard {
     padding: var(--space-6) var(--space-4);
+  }
+}
+
+@media (min-width: 769px) {
+  .taskBoard {
+    /* Desktop-specific height calculation */
+    height: calc(
+      100vh -
+      var(--space-8) -
+      var(--space-7) -
+      1px -
+      var(--space-2) -
+      var(--space-4) -
+      60px
+    );
   }
 }
