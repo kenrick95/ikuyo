@@ -9,6 +9,7 @@ import { useShouldDisableDragAndDrop } from '../../common/deviceUtils';
 import { dangerToken } from '../../common/ui';
 import { RouteTripTaskList } from '../../Routes/routes';
 import { getStatusColor, getStatusLabel } from '../../Task/TaskStatus';
+import { useTripTaskList } from '../store/hooks';
 import type { TripSliceTask } from '../store/types';
 import style from './TaskCard.module.css';
 import { useTaskDialogHooks } from './TaskDialog/taskDialogHooks';
@@ -46,6 +47,7 @@ export function TaskCard({
       task: task,
     },
   });
+  const taskList = useTripTaskList(task.taskListId);
 
   const style_transform = {
     transform: CSS.Transform.toString(transform),
@@ -156,11 +158,20 @@ export function TaskCard({
           {...(userCanEditOrDelete ? listeners : {})}
         >
           <Flex direction="column" gap="1" className={style.taskContent}>
-            <Text className={style.taskTitle}>{task.title}</Text>
+            <Text className={style.taskTitle} size="1" weight="medium">
+              {task.title}
+            </Text>
             {task.description && (
-              <Text className={style.taskDescription}>{task.description}</Text>
+              <Text className={style.taskDescription} size="1" weight="light">
+                {task.description}
+              </Text>
             )}
             <Flex gap="1" className={style.taskMeta}>
+              {useCase === 'home' && taskList && (
+                <Badge color="gray" className={style.badgeTaskList}>
+                  {taskList.title}
+                </Badge>
+              )}
               <Badge color={getStatusColor(task.status)}>
                 {getStatusLabel(task.status)}
               </Badge>

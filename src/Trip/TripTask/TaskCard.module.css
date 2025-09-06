@@ -52,12 +52,14 @@
 }
 
 .taskTitle {
-  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .taskDescription {
-  color: var(--gray-11);
-  font-size: 14px;
+  overflow: hidden;
+  white-space: pre-wrap;
 }
 
 .taskMeta {
@@ -65,4 +67,12 @@
   gap: var(--space-1);
   font-size: 12px;
   color: var(--gray-9);
+}
+
+.badgeTaskList {
+  max-width: 120px;
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
