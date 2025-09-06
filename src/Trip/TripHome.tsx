@@ -212,61 +212,6 @@ export function TripHome() {
 
   return (
     <Container mt="2" pb={containerPb} px={containerPx}>
-      <Heading as="h2" size="5" mb="2">
-        {trip?.title}
-        <Button
-          variant="outline"
-          mx="2"
-          size="1"
-          onClick={openTripEditDialog}
-          disabled={!userCanModifyTrip}
-        >
-          <Pencil2Icon />
-          Edit trip
-        </Button>
-      </Heading>
-      <Text as="p" size="2" mb="2">
-        {trip ? (
-          <>
-            {formatTripDateRange(trip)} ({trip.timeZone})
-          </>
-        ) : null}
-      </Text>
-      <Flex gap="2" mb="4" align="start">
-        <TripStatusBadge
-          tripStartDateTime={tripStartDateTime}
-          tripEndDateTime={tripEndDateTime}
-        />
-      </Flex>
-
-      {/* Today's Schedule for ongoing trips */}
-      {tripStatus?.status === 'current' && todayActivities.length > 0 && (
-        <>
-          <Heading as="h3" size="4" mb="2" mt="6">
-            Today's Schedule
-          </Heading>
-          <Flex gap="2" direction="column" mb="4">
-            {todayActivities.map((activity) => (
-              <Text key={activity.id} size="2">
-                {activity.timestampStart &&
-                  DateTime.fromMillis(activity.timestampStart)
-                    .setZone(trip?.timeZone || 'UTC')
-                    .toFormat('HH:mm')}{' '}
-                -{' '}
-                <Link
-                  to={
-                    RouteTripListView.asRouteTarget() +
-                    RouteTripListViewActivity.asRouteTarget(activity.id)
-                  }
-                >
-                  {activity.title}
-                </Link>
-              </Text>
-            ))}
-          </Flex>
-        </>
-      )}
-
       <Flex
         gap="1"
         justify="between"
@@ -278,10 +223,113 @@ export function TripHome() {
           flexGrow="1"
           maxWidth={{ initial: '100%', sm: '50%' }}
         >
-          <Heading as="h3" size="3" mb="2">
+          <Heading as="h2" size="5">
+            {trip?.title}
+            <Button
+              variant="outline"
+              mx="2"
+              size="1"
+              onClick={openTripEditDialog}
+              disabled={!userCanModifyTrip}
+            >
+              <Pencil2Icon />
+              Edit trip
+            </Button>
+          </Heading>
+          <Text as="p" size="2">
+            {trip ? (
+              <>
+                {formatTripDateRange(trip)} ({trip.timeZone})
+              </>
+            ) : null}
+          </Text>
+          <Flex gap="2" mb="2" align="start">
+            <TripStatusBadge
+              tripStartDateTime={tripStartDateTime}
+              tripEndDateTime={tripEndDateTime}
+            />
+          </Flex>
+
+          {/* Today's Schedule for ongoing trips */}
+          {tripStatus?.status === 'current' && todayActivities.length > 0 && (
+            <>
+              <Heading as="h3" size="4">
+                Today's Schedule
+              </Heading>
+              <Flex gap="2" mb="2" direction="column">
+                {todayActivities.map((activity) => {
+                  const activityStartDateTime =
+                    activity && activity.timestampStart != null
+                      ? DateTime.fromMillis(activity.timestampStart).setZone(
+                          trip?.timeZone || 'UTC',
+                        )
+                      : undefined;
+                  const activityEndDateTime =
+                    activity && activity.timestampEnd != null
+                      ? DateTime.fromMillis(activity.timestampEnd).setZone(
+                          trip?.timeZone || 'UTC',
+                        )
+                      : undefined;
+                  const activityStartStr = activityStartDateTime
+                    ? activityStartDateTime.toFormat('HH:mm')
+                    : undefined;
+                  const activityEndStr = activityEndDateTime
+                    ? activityEndDateTime.toFormat('HH:mm')
+                    : undefined;
+
+                  return (
+                    <Text key={activity.id} size="2">
+                      {activityStartStr && activityEndStr ? (
+                        // Both are set
+                        <>
+                          {activityStartStr}
+                          &ndash;{activityEndStr}
+                        </>
+                      ) : activityStartStr ? (
+                        // Only start is set
+                        <>{activityStartStr} &ndash;No end time</>
+                      ) : activityEndStr ? (
+                        // Only end is set
+                        <>No start time&ndash;{activityEndStr}</>
+                      ) : (
+                        // Both are not set
+                        'No time set'
+                      )}{' '}
+                      &mdash;{' '}
+                      <Link
+                        to={
+                          RouteTripListView.asRouteTarget() +
+                          RouteTripListViewActivity.asRouteTarget(activity.id)
+                        }
+                      >
+                        {activity.title}
+                      </Link>
+                      {activity.locationDestination}
+                      {activity.location ? (
+                        <>
+                          {' '}
+                          (
+                          {
+                            <Text color="gray">
+                              {activity.location}
+                              {activity.locationDestination
+                                ? ` → ${activity.locationDestination}`
+                                : null}
+                            </Text>
+                          }
+                          )
+                        </>
+                      ) : null}
+                    </Text>
+                  );
+                })}
+              </Flex>
+            </>
+          )}
+          <Heading as="h3" size="3">
             Details
           </Heading>
-          <DataList.Root size="2" mb="4">
+          <DataList.Root size="2" mb="2">
             <DataList.Item>
               <DataList.Label>Destination's region</DataList.Label>
               <DataList.Value>
@@ -300,19 +348,17 @@ export function TripHome() {
             <DataList.Item>
               <DataList.Label>Total Expenses</DataList.Label>
               <DataList.Value>
-                {expenseSummary.total.toFixed(2)} {expenseSummary.currency}
-                <Link to={RouteTripExpenses.asRouteTarget()}>
-                  <Button variant="ghost" size="1" ml="2">
-                    View all
-                  </Button>
-                </Link>
+                {expenseSummary.currency} {expenseSummary.total.toFixed(2)}
+                <Button asChild variant="ghost" size="1" ml="2">
+                  <Link to={RouteTripExpenses.asRouteTarget()}>View all</Link>
+                </Button>
               </DataList.Value>
             </DataList.Item>
           </DataList.Root>
-          <Heading as="h3" size="3" mb="2">
+          <Heading as="h3" size="3">
             Statistics
           </Heading>
-          <DataList.Root size="2" mb="4">
+          <DataList.Root size="2" mb="2">
             <DataList.Item>
               <DataList.Label>Days</DataList.Label>
               <DataList.Value>{tripDuration?.days}</DataList.Value>
@@ -364,7 +410,16 @@ export function TripHome() {
       >
         <Flex gap="2" direction="column" flexGrow="1" flexBasis="33%">
           <Heading as="h3" size="4" mb="2" mt="6">
-            Priority Tasks
+            Priority Tasks{' '}
+            <Button
+              variant="ghost"
+              asChild
+              size="1"
+              ml="2"
+              style={{ verticalAlign: 'baseline' }}
+            >
+              <Link to={RouteTripTaskList.asRouteTarget()}>View all</Link>
+            </Button>
           </Heading>
           <Flex gap="2" direction="column">
             {displayTasks.length === 0 && <Text size="2">No tasks yet</Text>}
@@ -377,11 +432,6 @@ export function TripHome() {
                 tripTimeZone={trip?.timeZone}
               />
             ))}
-            <Text size="1" mt="2">
-              <Link to={RouteTripTaskList.asRouteTarget()}>
-                {displayTasks.length > 0 ? 'See all tasks' : 'Go to task board'}
-              </Link>
-            </Text>
           </Flex>
         </Flex>
         <Flex gap="2" direction="column" flexGrow="1" flexBasis="33%">
