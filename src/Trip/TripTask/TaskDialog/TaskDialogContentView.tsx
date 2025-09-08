@@ -18,6 +18,7 @@ import { getStatusColor, getStatusLabel } from '../../../Task/TaskStatus';
 import { TripUserRole } from '../../../User/TripUserRole';
 import { useTrip, useTripTaskList } from '../../store/hooks';
 import type { TripSliceTask } from '../../store/types';
+import s from './TaskDialog.module.css';
 import { TaskDialogMode } from './TaskDialogMode';
 
 export function TaskDialogContentView({
@@ -134,7 +135,7 @@ export function TaskDialogContentView({
               <Heading as="h2" size="4">
                 Description
               </Heading>
-              <Text>{descriptions}</Text>
+              <Text className={s.description}>{descriptions}</Text>
             </>
           ) : null}
         </Flex>

@@ -12,6 +12,7 @@ import {
   TrashIcon,
 } from '@radix-ui/react-icons';
 import {
+  Box,
   Button,
   DropdownMenu,
   Flex,
@@ -237,7 +238,7 @@ export function TaskList({
             {userCanEditOrDelete && !isEditingTitle && (
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger>
-                  <IconButton size="1" variant="outline">
+                  <IconButton size="1" variant="outline" color="gray">
                     <DotsVerticalIcon />
                   </IconButton>
                 </DropdownMenu.Trigger>
@@ -269,25 +270,19 @@ export function TaskList({
         {showInlineForm && trip && (
           <TaskInlineForm
             taskListId={id}
-            tripTimeZone={trip.timeZone}
             onFormSuccess={handleFormSuccess}
             onFormCancel={handleFormCancel}
           />
         )}
         {sortedTasks.length === 0 && !showInlineForm ? (
-          <div className={taskListStyles.emptyState}>
+          <Box className={taskListStyles.emptyState}>
             <Text>No tasks yet</Text>
             {userCanEditOrDelete && !showInlineForm && (
-              <Button
-                size="2"
-                variant="outline"
-                style={{ marginTop: '12px' }}
-                onClick={handleAddTask}
-              >
+              <Button size="2" variant="outline" onClick={handleAddTask}>
                 <PlusIcon /> Add Task
               </Button>
             )}
-          </div>
+          </Box>
         ) : (
           <SortableContext
             items={sortedTasks.map((task) => task.id)}

@@ -102,7 +102,7 @@ export function TaskCard({
     (timestamp?: number | null) => {
       if (!timestamp) return null;
       return DateTime.fromMillis(timestamp, { zone: tripTimeZone }).toFormat(
-        'd LLLL yyyy HH:mm',
+        'd LLL yyyy HH:mm',
       );
     },
     [tripTimeZone],
@@ -174,14 +174,10 @@ export function TaskCard({
               )}
               <Badge color={getStatusColor(task.status)}>
                 {getStatusLabel(task.status)}
+                {task.completedAt ? ` at ${formatDate(task.completedAt)}` : ''}
               </Badge>
               {task.dueAt && (
-                <Badge color="amber">Due: {formatDate(task.dueAt)}</Badge>
-              )}
-              {task.completedAt && (
-                <Badge color="green">
-                  Completed: {formatDate(task.completedAt)}
-                </Badge>
+                <Badge color="amber">Due {formatDate(task.dueAt)}</Badge>
               )}
             </Flex>
           </Flex>

@@ -1,32 +1,21 @@
-import {
-  Button,
-  Flex,
-  Select,
-  Text,
-  TextArea,
-  TextField,
-} from '@radix-ui/themes';
-import { DateTime } from 'luxon';
+import { Button, Flex, Text, TextArea, TextField } from '@radix-ui/themes';
 import { useCallback, useId, useState } from 'react';
 import { useBoundStore } from '../../../data/store';
 import { dbAddTask } from '../../../Task/db';
 import { TaskStatus } from '../../../Task/TaskStatus';
-
+import styles from './TaskInlineForm.module.css';
 export function TaskInlineForm({
   taskListId,
-  tripTimeZone,
   onFormSuccess,
   onFormCancel,
 }: {
   taskListId: string;
-  tripTimeZone: string;
   onFormSuccess: () => void;
   onFormCancel: () => void;
 }) {
   const idForm = useId();
   const idTitle = useId();
   const idDescription = useId();
-  const idDueAt = useId();
 
   const publishToast = useBoundStore((state) => state.publishToast);
   const [errorMessage, setErrorMessage] = useState('');
@@ -34,8 +23,6 @@ export function TaskInlineForm({
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    status: TaskStatus.Todo,
-    dueAt: '',
   });
 
   const handleInputChange = useCallback(
@@ -48,13 +35,26 @@ export function TaskInlineForm({
     [errorMessage],
   );
 
+  const handleTitleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      handleInputChange('title', e.target.value);
+    },
+    [handleInputChange],
+  );
+  const handleDescriptionChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      handleInputChange('description', e.target.value);
+    },
+    [handleInputChange],
+  );
+
   const handleSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       setIsSubmitting(true);
       setErrorMessage('');
 
-      const { title, description, status, dueAt } = formData;
+      const { title, description } = formData;
 
       if (!title.trim()) {
         setErrorMessage('Title is required');
@@ -62,17 +62,13 @@ export function TaskInlineForm({
         return;
       }
 
-      const dueAtTimestamp = dueAt
-        ? DateTime.fromISO(dueAt, { zone: tripTimeZone }).toMillis()
-        : null;
-
       try {
         const newTaskData = {
           title: title.trim(),
           description: description.trim(),
-          status: Number(status),
+          status: TaskStatus.Todo,
           index: -Date.now(), // Show at the top
-          dueAt: dueAtTimestamp,
+          dueAt: undefined,
         };
 
         await dbAddTask(newTaskData, { taskListId });
@@ -87,8 +83,6 @@ export function TaskInlineForm({
         setFormData({
           title: '',
           description: '',
-          status: TaskStatus.Todo,
-          dueAt: '',
         });
 
         onFormSuccess();
@@ -104,27 +98,17 @@ export function TaskInlineForm({
         setIsSubmitting(false);
       }
     },
-    [formData, taskListId, tripTimeZone, publishToast, onFormSuccess],
+    [formData, taskListId, publishToast, onFormSuccess],
   );
 
   return (
-    <form
-      id={idForm}
-      onSubmit={handleSubmit}
-      style={{
-        padding: '12px',
-        border: '1px solid var(--gray-6)',
-        borderRadius: '6px',
-        backgroundColor: 'var(--gray-1)',
-        marginBottom: '12px',
-      }}
-    >
+    <form id={idForm} onSubmit={handleSubmit} className={styles.form}>
       <Flex direction="column" gap="3">
         <TextField.Root
           id={idTitle}
           placeholder="Task title..."
           value={formData.title}
-          onChange={(e) => handleInputChange('title', e.target.value)}
+          onChange={handleTitleChange}
           required
           disabled={isSubmitting}
         />
@@ -133,52 +117,10 @@ export function TaskInlineForm({
           id={idDescription}
           placeholder="Description (optional)..."
           value={formData.description}
-          onChange={(e) => handleInputChange('description', e.target.value)}
+          onChange={handleDescriptionChange}
           rows={2}
           disabled={isSubmitting}
         />
-
-        <Flex gap="3" align="end">
-          <Flex direction="column" flexGrow="1">
-            <Text size="1" weight="medium" mb="1">
-              Status
-            </Text>
-            <Select.Root
-              value={formData.status.toString()}
-              onValueChange={(value) =>
-                handleInputChange('status', Number(value))
-              }
-              disabled={isSubmitting}
-            >
-              <Select.Trigger />
-              <Select.Content>
-                <Select.Item value={TaskStatus.Todo.toString()}>
-                  To Do
-                </Select.Item>
-                <Select.Item value={TaskStatus.InProgress.toString()}>
-                  In Progress
-                </Select.Item>
-                <Select.Item value={TaskStatus.Done.toString()}>
-                  Done
-                </Select.Item>
-              </Select.Content>
-            </Select.Root>
-          </Flex>
-
-          <Flex direction="column" flexGrow="1">
-            <Text size="1" weight="medium">
-              Due Date
-            </Text>
-            <Text size="1">(optional, in {tripTimeZone} time zone)</Text>
-            <TextField.Root
-              id={idDueAt}
-              type="datetime-local"
-              value={formData.dueAt}
-              onChange={(e) => handleInputChange('dueAt', e.target.value)}
-              disabled={isSubmitting}
-            />
-          </Flex>
-        </Flex>
 
         {errorMessage && (
           <Text color="red" size="2">

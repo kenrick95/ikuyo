@@ -3,6 +3,7 @@ import { useCallback, useId, useState } from 'react';
 import { useBoundStore } from '../../../data/store';
 import { dbAddTaskList } from '../../../Task/db';
 import { TaskListStatus } from '../../../Task/TaskListStatus';
+import styles from './TaskInlineForm.module.css';
 
 export function TaskListInlineForm({
   tripId,
@@ -70,19 +71,7 @@ export function TaskListInlineForm({
   );
 
   return (
-    <form
-      id={idForm}
-      onSubmit={handleSubmit}
-      style={{
-        padding: '16px',
-        border: '1px solid var(--gray-6)',
-        borderRadius: '8px',
-        backgroundColor: 'var(--gray-1)',
-        marginBottom: '16px',
-        width: '100%',
-        maxWidth: '320px',
-      }}
-    >
+    <form id={idForm} onSubmit={handleSubmit} className={styles.form}>
       <Flex direction="column" gap="3">
         <Text size="3" weight="medium">
           Create New Task List
