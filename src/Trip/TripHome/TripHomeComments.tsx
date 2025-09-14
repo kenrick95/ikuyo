@@ -1,4 +1,4 @@
-import { Flex, Heading, Text } from '@radix-ui/themes';
+import { Button, Flex, Heading, Text } from '@radix-ui/themes';
 import { Link } from 'wouter';
 import { Comment } from '../../Comment/Comment';
 import { RouteTripComment } from '../../Routes/routes';
@@ -9,8 +9,17 @@ export function TripHomeComments() {
   const latestComments = useTripAllCommentsWithLimit(trip?.id, 5);
   return (
     <>
-      <Heading as="h3" size="4">
-        Latest Comments
+      <Heading as="h3" size="4" mt="4">
+        Latest Comments{' '}
+        <Button
+          variant="ghost"
+          asChild
+          size="1"
+          ml="2"
+          style={{ verticalAlign: 'baseline' }}
+        >
+          <Link to={RouteTripComment.asRouteTarget()}>View all</Link>
+        </Button>
       </Heading>
       <Flex gap="2" direction="column">
         {latestComments.length === 0 && <Text size="2">No comments yet</Text>}
@@ -23,11 +32,6 @@ export function TripHomeComments() {
             showControls={false}
           />
         ))}
-        {latestComments.length > 0 ? (
-          <Text size="1" ml="7" mt="2">
-            <Link to={RouteTripComment.asRouteTarget()}>See all comments</Link>
-          </Text>
-        ) : null}
       </Flex>
     </>
   );

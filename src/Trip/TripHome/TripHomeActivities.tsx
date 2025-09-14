@@ -18,6 +18,16 @@ export function TripHomeActivities() {
     );
   }, [trip?.currentUserRole]);
 
+  // Determine if trip is {stating soon, or current, or past}
+  const isTripStartingOrCurrentOrPast = useMemo(() => {
+    if (!trip) return false;
+    const now = DateTime.now().setZone(trip.timeZone);
+    const tripStartMinus48h = DateTime.fromMillis(trip.timestampStart)
+      .setZone(trip.timeZone)
+      .minus({ hours: 48 });
+    return now >= tripStartMinus48h;
+  }, [trip]);
+
   // Upcoming activities (next 48 hours)
   const upcomingActivities = useMemo(() => {
     if (!activities || !trip) return [];
@@ -37,6 +47,11 @@ export function TripHomeActivities() {
       .slice(0, 5) as TripSliceActivityWithTime[];
   }, [activities, trip]);
 
+  // Only show section if trip is starting soon, current, or past
+  if (!isTripStartingOrCurrentOrPast) {
+    return null;
+  }
+
   return (
     <>
       <Heading as="h3" size="4">
@@ -44,7 +59,7 @@ export function TripHomeActivities() {
       </Heading>
       <Flex gap="2" direction="column">
         {upcomingActivities.length === 0 && (
-          <Text size="2">No upcoming activities</Text>
+          <Text size="2">No upcoming activities in the next 48 hours</Text>
         )}
         {upcomingActivities.map((activity) => {
           return (

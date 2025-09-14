@@ -6,13 +6,21 @@ import {
   RouteTripListView,
   RouteTripListViewActivity,
 } from '../../Routes/routes';
+import { getTripStatus } from '../getTripStatus';
 import { useCurrentTrip, useTripActivities } from '../store/hooks';
 
 export function TripToday() {
   const { trip } = useCurrentTrip();
   const activities = useTripActivities(trip?.activityIds ?? []);
+  const tripStartDateTime = trip
+    ? DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone)
+    : undefined;
+  const tripEndDateTime = trip
+    ? DateTime.fromMillis(trip.timestampEnd).setZone(trip.timeZone)
+    : undefined;
+  const tripStatus = getTripStatus(tripStartDateTime, tripEndDateTime);
   const todayActivities = useMemo(() => {
-    if (!activities || !trip) return [];
+    if (!activities || !trip || tripStatus?.status !== 'current') return [];
 
     const now = DateTime.now().setZone(trip.timeZone);
     const todayStart = now.startOf('day');
@@ -27,7 +35,11 @@ export function TripToday() {
         return activityStart >= todayStart && activityStart <= todayEnd;
       })
       .sort((a, b) => (a.timestampStart || 0) - (b.timestampStart || 0));
-  }, [activities, trip]);
+  }, [activities, trip, tripStatus]);
+
+  if (tripStatus?.status !== 'current') {
+    return null;
+  }
 
   return (
     <>
