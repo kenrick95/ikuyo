@@ -307,7 +307,6 @@ export function ActivityForm({
       });
     }
   }, []);
-  console.log('locationFieldsState', locationFieldsState);
 
   const handleSubmit = useCallback(() => {
     return async (elForm: HTMLFormElement) => {

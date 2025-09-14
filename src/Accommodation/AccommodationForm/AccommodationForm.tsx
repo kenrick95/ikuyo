@@ -194,8 +194,6 @@ export function AccommodationForm({
     });
   }, []);
 
-  console.log('coordinateState', coordinateState);
-
   const handleSubmit = useCallback(() => {
     return async (elForm: HTMLFormElement) => {
       setErrorMessage('');

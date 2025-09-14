@@ -90,14 +90,6 @@ export async function dbAddComment<ObjectType extends DbCommentGroupObjectType>(
     groupId?: string;
   },
 ) {
-  console.log('dbAddComment', {
-    newComment,
-    userId,
-    tripId,
-    objectId,
-    objectType,
-    commentGroupId,
-  });
   const transactions = [];
   const now = Date.now();
   if (!commentGroupId) {
