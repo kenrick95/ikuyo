@@ -91,7 +91,7 @@ export function TripHomeTasks() {
   return (
     <>
       <Heading as="h3" size="4">
-        Priority Tasks{' '}
+        Highlight Tasks{' '}
         <Button
           variant="ghost"
           asChild

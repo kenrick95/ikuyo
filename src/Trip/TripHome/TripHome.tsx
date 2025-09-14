@@ -4,6 +4,7 @@ import { TripHeading } from './TripHeading';
 import s from './TripHome.module.css';
 import { TripHomeActivities } from './TripHomeActivities';
 import { TripHomeComments } from './TripHomeComments';
+import { TripHomeOnboarding } from './TripHomeOnboarding';
 import { TripHomeTasks } from './TripHomeTasks';
 import { TripStatistics } from './TripStatistics';
 import { TripToday } from './TripToday';
@@ -34,6 +35,7 @@ export function TripHome() {
         className={s.mainColumn}
       >
         <TripHeading />
+        <TripHomeOnboarding />
         <TripToday />
         <TripHomeActivities />
         <Box display={{ initial: 'none', sm: 'block' }} mt="2" height="100%">
