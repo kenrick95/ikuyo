@@ -90,7 +90,7 @@ export function TripHomeTasks() {
 
   return (
     <>
-      <Heading as="h3" size="4">
+      <Heading as="h3" size="4" mt="1">
         Highlight Tasks{' '}
         {displayTasks.length > 0 ? (
           <Button

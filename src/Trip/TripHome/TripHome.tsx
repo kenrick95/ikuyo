@@ -12,7 +12,7 @@ const containerPx = { initial: '1', md: '2' };
 const containerPb = { initial: '9', sm: '5' };
 const containerDirection = { initial: 'column' as const, sm: 'row' as const };
 const containerWrap = { initial: 'wrap' as const, md: 'nowrap' as const };
-const sideColumnMarginTop = { initial: '0', sm: '5' };
+const sideColumnMarginTop = { initial: '0', sm: '6' };
 export function TripHome() {
   // For ongoing trips, prioritize activities and comments
   return (
@@ -30,7 +30,7 @@ export function TripHome() {
         gap="2"
         direction="column"
         flexGrow="1"
-        flexBasis="65%"
+        flexBasis="60%"
         className={s.mainColumn}
       >
         <TripHeading />
@@ -55,7 +55,7 @@ export function TripHome() {
         gap="2"
         direction="column"
         flexGrow="1"
-        flexBasis="15%"
+        flexBasis="20%"
         mt={sideColumnMarginTop}
         className={s.sideColumnSecond}
       >

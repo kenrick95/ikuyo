@@ -52,7 +52,7 @@ export function TripStatistics() {
 
   return (
     <>
-      <Heading as="h3" size="3">
+      <Heading as="h3" size="4" mt="1">
         Details
       </Heading>
       <DataList.Root size="2" mb="2" orientation={statisticsOrientation}>
@@ -72,15 +72,18 @@ export function TripStatistics() {
         </DataList.Item>
         {/* Expense Summary */}
         <DataList.Item>
-          <DataList.Label>
-            Total Expenses{' '}
-            <Button asChild variant="ghost" size="1" ml="2">
+          <DataList.Label>Total Expenses</DataList.Label>
+          <DataList.Value>
+            {expenseSummary.currency} {expenseSummary.total.toFixed(2)}{' '}
+            <Button
+              asChild
+              variant="ghost"
+              size="1"
+              ml="2"
+              style={{ alignSelf: 'center' }}
+            >
               <Link to={RouteTripExpenses.asRouteTarget()}>View all</Link>
             </Button>
-          </DataList.Label>
-
-          <DataList.Value>
-            {expenseSummary.currency} {expenseSummary.total.toFixed(2)}
           </DataList.Value>
         </DataList.Item>
       </DataList.Root>
