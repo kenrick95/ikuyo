@@ -1,4 +1,4 @@
-import { Flex } from '@radix-ui/themes';
+import { Box, Flex } from '@radix-ui/themes';
 import { TripMap } from '../../Map/TripMap';
 import { TripHeading } from './TripHeading';
 import s from './TripHome.module.css';
@@ -36,7 +36,9 @@ export function TripHome() {
         <TripHeading />
         <TripToday />
         <TripHomeActivities />
-        <TripMap useCase="home" />
+        <Box display={{ initial: 'none', sm: 'block' }} mt="2" height="100%">
+          <TripMap useCase="home" />
+        </Box>
       </Flex>
       <Flex
         gap="2"
