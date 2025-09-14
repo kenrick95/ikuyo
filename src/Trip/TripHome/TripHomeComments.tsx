@@ -11,18 +11,22 @@ export function TripHomeComments() {
     <>
       <Heading as="h3" size="4" mt="4">
         Latest Comments{' '}
-        <Button
-          variant="ghost"
-          asChild
-          size="1"
-          ml="2"
-          style={{ verticalAlign: 'baseline' }}
-        >
-          <Link to={RouteTripComment.asRouteTarget()}>View all</Link>
-        </Button>
+        {latestComments.length > 0 ? (
+          <Button
+            variant="ghost"
+            asChild
+            size="1"
+            ml="2"
+            style={{ verticalAlign: 'baseline' }}
+          >
+            <Link to={RouteTripComment.asRouteTarget()}>View all</Link>
+          </Button>
+        ) : null}
       </Heading>
       <Flex gap="2" direction="column">
-        {latestComments.length === 0 && <Text size="2">No comments yet</Text>}
+        {latestComments.length === 0 ? (
+          <Text size="2">No comments yet</Text>
+        ) : null}
         {latestComments.map((comment) => (
           <Comment
             key={comment.id}

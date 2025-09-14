@@ -1,4 +1,4 @@
-import { Button, Flex, Heading, Text } from '@radix-ui/themes';
+import { Button, Flex, Heading } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { useMemo } from 'react';
 import { Link } from 'wouter';
@@ -92,18 +92,24 @@ export function TripHomeTasks() {
     <>
       <Heading as="h3" size="4">
         Highlight Tasks{' '}
-        <Button
-          variant="ghost"
-          asChild
-          size="1"
-          ml="2"
-          style={{ verticalAlign: 'baseline' }}
-        >
-          <Link to={RouteTripTaskList.asRouteTarget()}>View all</Link>
-        </Button>
+        {displayTasks.length > 0 ? (
+          <Button
+            variant="ghost"
+            asChild
+            size="1"
+            ml="2"
+            style={{ verticalAlign: 'baseline' }}
+          >
+            <Link to={RouteTripTaskList.asRouteTarget()}>View all</Link>
+          </Button>
+        ) : null}
       </Heading>
       <Flex gap="2" direction="column">
-        {displayTasks.length === 0 && <Text size="2">No tasks yet</Text>}
+        {displayTasks.length === 0 ? (
+          <Button variant="outline" asChild style={{ alignSelf: 'start' }}>
+            <Link to={RouteTripTaskList.asRouteTarget()}>Add first task</Link>
+          </Button>
+        ) : null}
         {displayTasks.map((task) => (
           <TaskCard
             key={task.id}
