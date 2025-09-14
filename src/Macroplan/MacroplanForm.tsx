@@ -112,7 +112,7 @@ export function MacroplanForm({
         });
         publishToast({
           root: {},
-          title: { children: `Macroplan ${name} updated` },
+          title: { children: `Day plan ${name} updated` },
           close: {},
         });
       } else if (mode === MacroplanFormMode.New && tripId) {
@@ -130,7 +130,7 @@ export function MacroplanForm({
         console.log('MacroplanForm: dbAddMacroplan', { id, result });
         publishToast({
           root: {},
-          title: { children: `Macroplan ${name} added` },
+          title: { children: `Day plan ${name} added` },
           close: {},
         });
       }
