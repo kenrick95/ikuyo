@@ -19,18 +19,21 @@ export type MarkerLocation =
       id: string;
       lat: number;
       lng: number;
+      isToday: boolean;
     }
   | {
       type: typeof LocationType.ActivityDestination;
       id: string;
       lat: number;
       lng: number;
+      isToday: boolean;
     }
   | {
       type: typeof LocationType.Accommodation;
       id: string;
       lat: number;
       lng: number;
+      isToday: boolean;
     };
 
 export type PopupPortal =
