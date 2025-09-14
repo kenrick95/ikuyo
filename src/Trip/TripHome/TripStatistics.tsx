@@ -12,7 +12,7 @@ import { TripSharingDialog } from '../TripDialog/TripSharingDialog';
 
 const statisticsOrientation = {
   initial: 'horizontal' as const,
-  sm: 'vertical' as const,
+  md: 'vertical' as const,
 };
 export function TripStatistics() {
   const { trip } = useCurrentTrip();

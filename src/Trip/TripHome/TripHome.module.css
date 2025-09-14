@@ -1,0 +1,24 @@
+.sideColumnFirst {
+  order: 2;
+}
+.mainColumn {
+  order: 1;
+}
+.sideColumnSecond {
+  order: 3;
+}
+.container {
+  min-height: calc(100vh - var(--space-8));
+}
+
+@media (min-width: 1024px) {
+  .sideColumnFirst {
+    order: 1;
+  }
+  .mainColumn {
+    order: 2;
+  }
+  .sideColumnSecond {
+    order: 3;
+  }
+}

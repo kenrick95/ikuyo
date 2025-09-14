@@ -1,5 +1,7 @@
 import { Flex } from '@radix-ui/themes';
+import { TripMap } from '../../Map/TripMap';
 import { TripHeading } from './TripHeading';
+import s from './TripHome.module.css';
 import { TripHomeActivities } from './TripHomeActivities';
 import { TripHomeComments } from './TripHomeComments';
 import { TripHomeTasks } from './TripHomeTasks';
@@ -11,7 +13,6 @@ const containerPb = { initial: '9', sm: '5' };
 const containerDirection = { initial: 'column' as const, sm: 'row' as const };
 const containerWrap = { initial: 'wrap' as const, md: 'nowrap' as const };
 const sideColumnMarginTop = { initial: '0', sm: '5' };
-
 export function TripHome() {
   // For ongoing trips, prioritize activities and comments
   return (
@@ -23,21 +24,30 @@ export function TripHome() {
       justify="between"
       direction={containerDirection}
       wrap={containerWrap}
+      className={s.container}
     >
+      <Flex
+        gap="2"
+        direction="column"
+        flexGrow="1"
+        flexBasis="65%"
+        className={s.mainColumn}
+      >
+        <TripHeading />
+        <TripToday />
+        <TripHomeActivities />
+        <TripMap useCase="home" />
+      </Flex>
       <Flex
         gap="2"
         direction="column"
         flexGrow="1"
         flexBasis="20%"
         mt={sideColumnMarginTop}
+        className={s.sideColumnFirst}
       >
         <TripHomeTasks />
         <TripHomeComments />
-      </Flex>
-      <Flex gap="2" direction="column" flexGrow="1" flexBasis="65%">
-        <TripHeading />
-        <TripToday />
-        <TripHomeActivities />
       </Flex>
       <Flex
         gap="2"
@@ -45,6 +55,7 @@ export function TripHome() {
         flexGrow="1"
         flexBasis="15%"
         mt={sideColumnMarginTop}
+        className={s.sideColumnSecond}
       >
         <TripStatistics />
       </Flex>
