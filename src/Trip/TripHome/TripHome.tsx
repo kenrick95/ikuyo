@@ -7,7 +7,6 @@ import { TripHomeComments } from './TripHomeComments';
 import { TripHomeOnboarding } from './TripHomeOnboarding';
 import { TripHomeTasks } from './TripHomeTasks';
 import { TripStatistics } from './TripStatistics';
-import { TripToday } from './TripToday';
 
 const containerPx = { initial: '1', md: '2' };
 const containerPb = { initial: '9', sm: '5' };
@@ -36,7 +35,6 @@ export function TripHome() {
       >
         <TripHeading />
         <TripHomeOnboarding />
-        <TripToday />
         <TripHomeActivities />
         <Box display={{ initial: 'none', sm: 'block' }} mt="2" height="100%">
           <TripMap useCase="home" />

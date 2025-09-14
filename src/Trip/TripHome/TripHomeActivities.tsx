@@ -1,7 +1,9 @@
-import { Flex, Heading, Text } from '@radix-ui/themes';
+import { Button, Flex, Heading, Text } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { useMemo } from 'react';
+import { Link } from 'wouter';
 import { Activity } from '../../Activity/Activity';
+import { RouteTripListView } from '../../Routes/routes';
 import { TripUserRole } from '../../User/TripUserRole';
 import { useCurrentTrip, useTripActivities } from '../store/hooks';
 import type { TripSliceActivityWithTime } from '../store/types';
@@ -22,29 +24,30 @@ export function TripHomeActivities() {
   const isTripStartingOrCurrentOrPast = useMemo(() => {
     if (!trip) return false;
     const now = DateTime.now().setZone(trip.timeZone);
-    const tripStartMinus48h = DateTime.fromMillis(trip.timestampStart)
+    const tripStartTwoDaysBefore = DateTime.fromMillis(trip.timestampStart)
       .setZone(trip.timeZone)
-      .minus({ hours: 48 });
-    return now >= tripStartMinus48h;
+      .minus({ days: 2 })
+      .startOf('day');
+    return now >= tripStartTwoDaysBefore;
   }, [trip]);
 
-  // Upcoming activities (next 48 hours)
+  // Today and tomorrow activities
   const upcomingActivities = useMemo(() => {
     if (!activities || !trip) return [];
 
     const now = DateTime.now().setZone(trip.timeZone);
-    const next48Hours = now.plus({ hours: 48 });
+    const todayStart = now.startOf('day');
+    const tomorrowEnd = todayStart.plus({ days: 2 }).endOf('day');
 
     return activities
-      .filter((activity) => {
+      .filter((activity): activity is TripSliceActivityWithTime => {
         if (!activity.timestampStart || !activity.timestampEnd) return false;
         const activityStart = DateTime.fromMillis(
           activity.timestampStart,
         ).setZone(trip.timeZone);
-        return activityStart >= now && activityStart <= next48Hours;
+        return activityStart >= todayStart && activityStart <= tomorrowEnd;
       })
-      .sort((a, b) => (a.timestampStart || 0) - (b.timestampStart || 0))
-      .slice(0, 5) as TripSliceActivityWithTime[];
+      .sort((a, b) => (a.timestampStart || 0) - (b.timestampStart || 0));
   }, [activities, trip]);
 
   // Only show section if trip is starting soon, current, or past
@@ -55,7 +58,16 @@ export function TripHomeActivities() {
   return (
     <>
       <Heading as="h3" size="4">
-        Upcoming Activities
+        Today & Upcoming Activities{' '}
+        <Button
+          variant="ghost"
+          asChild
+          size="1"
+          ml="2"
+          style={{ verticalAlign: 'baseline' }}
+        >
+          <Link to={RouteTripListView.asRouteTarget()}>View all</Link>
+        </Button>
       </Heading>
       <Flex gap="2" direction="column">
         {upcomingActivities.length === 0 && (
