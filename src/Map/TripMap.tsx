@@ -10,6 +10,7 @@ import {
 
 mapTilerConfig.session = false;
 
+import { DateTime } from 'luxon';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { calculateZoomFromFeature } from '../common/geocodingUtils';
 import { MapStyle } from '../theme/maptiler';
@@ -19,48 +20,29 @@ import '@maptiler/sdk/style.css';
 import { Spinner } from '@radix-ui/themes';
 import { createPortal } from 'react-dom';
 import { getRegionDisplayName } from '../data/intl/regions';
+import { getTripStatus } from '../Trip/getTripStatus';
 import {
   useCurrentTrip,
   useTripAccommodations,
   useTripActivities,
 } from '../Trip/store/hooks';
+import type {
+  TripSliceAccommodation,
+  TripSliceActivity,
+  TripSliceTrip,
+} from '../Trip/store/types';
 import { ThemeAppearance } from '../theme/constants';
 import { useTheme } from '../theme/hooks';
+import { LocationType, type MarkerLocation } from './constants';
 import { createGeoJsonData } from './geometry';
 import { createMarkerElement } from './marker';
 import { AccommodationPopup } from './popups/AccommodationPopup';
 import { ActivityPopup } from './popups/ActivityPopup';
 import { createPopup } from './popups/createPopup';
 
-const LocationType = {
-  Activity: 'activity',
-  ActivityDestination: 'activityDestination',
-  Accommodation: 'accommodation',
-} as const;
-
 const routeLineLayerId = 'Route Line' as const;
 const routeArrowLayerId = 'Route Line Arrow' as const;
 const routeSourceId = 'route' as const;
-
-type MarkerLocation =
-  | {
-      type: typeof LocationType.Activity;
-      id: string;
-      lat: number;
-      lng: number;
-    }
-  | {
-      type: typeof LocationType.ActivityDestination;
-      id: string;
-      lat: number;
-      lng: number;
-    }
-  | {
-      type: typeof LocationType.Accommodation;
-      id: string;
-      lat: number;
-      lng: number;
-    };
 
 type PopupPortal =
   | {
@@ -75,6 +57,70 @@ type PopupPortal =
       accommodationId: string;
       popup: HTMLDivElement;
     };
+
+function isActivityToday(
+  activity: TripSliceActivity,
+  trip: TripSliceTrip | null | undefined,
+): boolean {
+  if (!trip || !activity.timestampStart || !activity.timestampEnd) return false;
+
+  const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
+    trip.timeZone,
+  );
+  const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd).setZone(
+    trip.timeZone,
+  );
+  const tripStatus = getTripStatus(tripStartDateTime, tripEndDateTime);
+
+  // Only highlight for ongoing trips
+  if (tripStatus?.status !== 'current') return false;
+
+  const now = DateTime.now().setZone(trip.timeZone);
+  const todayStart = now.startOf('day');
+  const todayEnd = now.endOf('day');
+
+  const activityStart = DateTime.fromMillis(activity.timestampStart).setZone(
+    trip.timeZone,
+  );
+  return activityStart >= todayStart && activityStart <= todayEnd;
+}
+
+function isAccommodationToday(
+  accommodation: TripSliceAccommodation,
+  trip: TripSliceTrip | null | undefined,
+): boolean {
+  if (!trip) return false;
+
+  const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
+    trip.timeZone,
+  );
+  const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd).setZone(
+    trip.timeZone,
+  );
+  const tripStatus = getTripStatus(tripStartDateTime, tripEndDateTime);
+
+  // Only highlight for ongoing trips
+  if (tripStatus?.status !== 'current') return false;
+
+  const now = DateTime.now().setZone(trip.timeZone);
+  const todayStart = now.startOf('day');
+  const todayEnd = now.endOf('day');
+
+  const checkInDateTime = DateTime.fromMillis(
+    accommodation.timestampCheckIn,
+  ).setZone(trip.timeZone);
+  const checkOutDateTime = DateTime.fromMillis(
+    accommodation.timestampCheckOut,
+  ).setZone(trip.timeZone);
+
+  // Check if today is during the stay (check-in is today or before, check-out is after today)
+  // or if check-in/check-out happens today
+  return (
+    (checkInDateTime >= todayStart && checkInDateTime <= todayEnd) || // Checking in today
+    (checkOutDateTime >= todayStart && checkOutDateTime <= todayEnd) || // Checking out today
+    (checkInDateTime <= todayStart && checkOutDateTime >= todayEnd) // Staying through today
+  );
+}
 
 export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -107,6 +153,7 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
           id: activity.id,
           lat: activity.locationLat,
           lng: activity.locationLng,
+          isToday: isActivityToday(activity, trip),
         });
       }
       if (
@@ -118,6 +165,7 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
           id: activity.id,
           lat: activity.locationDestinationLat,
           lng: activity.locationDestinationLng,
+          isToday: isActivityToday(activity, trip),
         });
       }
     }
@@ -131,11 +179,12 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
           id: accommodation.id,
           lat: accommodation.locationLat,
           lng: accommodation.locationLng,
+          isToday: isAccommodationToday(accommodation, trip),
         });
       }
     }
     return locations;
-  }, [activities, accommodationsWithLocation]);
+  }, [activities, accommodationsWithLocation, trip]);
   const allLines = useMemo(() => {
     const lines: {
       from: { lat: number; lng: number };

@@ -40,7 +40,7 @@ const PageTripMap = withLoading()(
 );
 const TripHome = withLoading()(
   React.lazy(() =>
-    import('./TripHome').then((module) => {
+    import('./TripHome/TripHome').then((module) => {
       return { default: module.TripHome };
     }),
   ),
