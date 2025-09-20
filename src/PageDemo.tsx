@@ -1,15 +1,16 @@
 import { DateTime } from 'luxon';
-import { useState } from 'react';
-import { CalendarMonth, DatePickerMode } from './common/DatePicker2/DatePicker';
+import { DatePicker, DatePickerMode } from './common/DatePicker2/DatePicker';
 
 export default function PageDemo() {
-  const [selectedDate, setSelectedDate] = useState<DateTime>(DateTime.now());
+  const today = DateTime.now();
   return (
     <div>
-      <CalendarMonth
-        yearMonth={selectedDate}
+      <DatePicker
         mode={DatePickerMode.Single}
-        onSelectDay={setSelectedDate}
+        value={today}
+        onChange={(val) => console.log(val)}
+        min={today.minus({ years: 1 })}
+        max={today.plus({ years: 1 })}
       />
     </div>
   );
