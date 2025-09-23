@@ -3,12 +3,13 @@ import {
   ChevronUpIcon,
   Cross1Icon,
 } from '@radix-ui/react-icons';
-import { Button } from '@radix-ui/themes';
+import { Button, Popover } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
-import { useCallback, useReducer } from 'react';
+import { useCallback, useReducer, useState } from 'react';
 import { CalendarMonth } from './CalendarMonth';
 import s from './DatePicker.module.css';
 import { DateTimePickerMode } from './DateTimePickerMode';
+import { LiveRegion } from './LiveRegion';
 import { TimeSelector } from './TimeSelector';
 import type {
   DatePickerAction,
@@ -116,18 +117,26 @@ export function DateTimePicker(props: DatePickerProps) {
     min: props.min?.startOf('day') ?? undefined,
     max: props.max?.startOf('day') ?? undefined,
   });
+
+  const [liveMessage, setLiveMessage] = useState('');
   const handleFocusDay = useCallback((date: DateTime) => {
     dispatch({ type: 'setFocusedDate', date });
+    setLiveMessage(`${date.toFormat('cccc, MMMM d, yyyy')}`);
   }, []);
+
   const handleSelectDay = useCallback((date: DateTime) => {
     dispatch({ type: 'setSelectedDate', date });
+    setLiveMessage(`Selected ${date.toFormat('cccc, MMMM d, yyyy')}`);
   }, []);
 
   const handleSelectHour = useCallback((hour: number) => {
     dispatch({ type: 'setSelectedHour', hour });
+    setLiveMessage(`Hour ${hour}`);
   }, []);
+
   const handleSelectMinute = useCallback((minute: number) => {
     dispatch({ type: 'setSelectedMinute', minute });
+    setLiveMessage(`Minute ${minute}`);
   }, []);
   const handleFocusHour = useCallback((hour: number) => {
     dispatch({ type: 'setFocusedHour', hour });
@@ -138,10 +147,6 @@ export function DateTimePicker(props: DatePickerProps) {
 
   const handleHoverDay = useCallback((date: DateTime) => {
     dispatch({ type: 'setHoveredDate', date });
-  }, []);
-  const handleTriggerButtonClicked = useCallback(() => {
-    dispatch({ type: 'toggle' });
-    // Focus moving to selected date is handled in CalendarMonth
   }, []);
   const handleClearButtonClicked = useCallback(() => {
     if (!props.clearable) return;
@@ -177,101 +182,134 @@ export function DateTimePicker(props: DatePickerProps) {
     state.selectedMinute,
   ]);
 
-  const handleDialogKeyDown = useCallback(
-    (event: React.KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        dispatch({ type: 'close' });
-      } else if (event.key === 'Enter') {
-        handleSubmit();
-      }
-    },
-    [handleSubmit],
-  );
   const handleOkButtonClicked = useCallback(() => {
     handleSubmit();
   }, [handleSubmit]);
+
   const handleCancelButtonClicked = useCallback(() => {
     dispatch({ type: 'close' });
   }, []);
 
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (open) {
+      dispatch({ type: 'open' });
+    } else {
+      dispatch({ type: 'close' });
+    }
+  }, []);
+
+  const formattedValue = props.value?.toISO() || '';
+
   return (
-    <div className={s.datePicker}>
-      <Button
-        variant="outline"
-        color="gray"
-        className={s.triggerButton}
-        onClick={handleTriggerButtonClicked}
-        aria-expanded={state.isOpen}
-        aria-haspopup="dialog"
-        aria-label="Select date"
-      >
-        {props.value?.toFormat(
-          props.mode === DateTimePickerMode.DateTime
-            ? 'd LLLL yyyy HH:mm'
-            : 'd LLLL yyyy',
-        ) ?? 'Select date'}
-        {state.isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
-      </Button>
-      {props.clearable ? (
-        <Button
-          variant="outline"
-          color="gray"
-          className={s.triggerButton}
-          onClick={handleClearButtonClicked}
-          aria-label="Clear date"
-        >
-          <Cross1Icon />
-        </Button>
-      ) : null}
-      {state.isOpen ? (
-        // biome-ignore lint/a11y/noStaticElementInteractions: Need to close dialog on ESC key
-        <div className={s.pickerDialog} onKeyDown={handleDialogKeyDown}>
-          <div className={s.calendarAndTime}>
-            <CalendarMonth
-              yearMonth={state.focusedDate}
-              focusedDate={state.focusedDate}
-              selectedDate={state.selectedDate}
-              onFocusDay={handleFocusDay}
-              onSelectDay={handleSelectDay}
-              onHoverDay={handleHoverDay}
-              max={state.max}
-              min={state.min}
-              disabled={props.disabled}
-            />
-            {props.mode === DateTimePickerMode.DateTime ? (
-              <TimeSelector
-                disabled={props.disabled}
-                focusedHour={state.focusedHour}
-                focusedMinute={state.focusedMinute}
-                selectedHour={state.selectedHour}
-                selectedMinute={state.selectedMinute}
-                onSelectHour={handleSelectHour}
-                onSelectMinute={handleSelectMinute}
-                onFocusHour={handleFocusHour}
-                onFocusMinute={handleFocusMinute}
-              />
-            ) : null}
-          </div>
-          <div className={s.dialogButtons}>
+    <>
+      {/* A11Y: Live region for screen reader announcements */}
+      <LiveRegion message={liveMessage} />
+
+      {/* A11Y: Hidden input for form integration */}
+      {props.name && (
+        <input
+          type="hidden"
+          name={props.name}
+          value={formattedValue}
+          required={props.required}
+          aria-hidden="true"
+        />
+      )}
+
+      <div className={s.datePicker}>
+        <Popover.Root open={state.isOpen} onOpenChange={handleOpenChange}>
+          <Popover.Trigger>
             <Button
-              type="button"
-              disabled={props.disabled}
-              variant="solid"
-              onClick={handleOkButtonClicked}
-            >
-              OK
-            </Button>
-            <Button
-              type="reset"
               variant="outline"
+              color="gray"
+              className={s.triggerButton}
+              aria-label={props['aria-label'] || 'Select date'}
+              aria-describedby={props['aria-describedby']}
+              aria-invalid={props['aria-invalid']}
               disabled={props.disabled}
-              onClick={handleCancelButtonClicked}
             >
-              Cancel
+              {props.value?.toFormat(
+                props.mode === DateTimePickerMode.DateTime
+                  ? 'd LLLL yyyy HH:mm'
+                  : 'd LLLL yyyy',
+              ) ??
+                (props.placeholder || 'Select date')}
+              {state.isOpen ? (
+                <ChevronUpIcon aria-hidden="true" />
+              ) : (
+                <ChevronDownIcon aria-hidden="true" />
+              )}
             </Button>
-          </div>
-        </div>
-      ) : null}
-    </div>
+          </Popover.Trigger>
+
+          {props.clearable && (
+            <Button
+              variant="outline"
+              color="gray"
+              className={s.triggerButton}
+              onClick={handleClearButtonClicked}
+              aria-label="Clear date"
+              disabled={props.disabled || !props.value}
+            >
+              <Cross1Icon aria-hidden="true" />
+            </Button>
+          )}
+
+          <Popover.Content
+            className={s.pickerDialog}
+            sideOffset={4}
+            align="start"
+            onEscapeKeyDown={() => dispatch({ type: 'close' })}
+          >
+            <div className={s.calendarAndTime}>
+              <CalendarMonth
+                yearMonth={state.focusedDate}
+                focusedDate={state.focusedDate}
+                selectedDate={state.selectedDate}
+                onFocusDay={handleFocusDay}
+                onSelectDay={handleSelectDay}
+                onHoverDay={handleHoverDay}
+                max={state.max}
+                min={state.min}
+                disabled={props.disabled}
+                onLiveAnnouncement={setLiveMessage}
+              />
+              {props.mode === DateTimePickerMode.DateTime && (
+                <TimeSelector
+                  disabled={props.disabled}
+                  focusedHour={state.focusedHour}
+                  focusedMinute={state.focusedMinute}
+                  selectedHour={state.selectedHour}
+                  selectedMinute={state.selectedMinute}
+                  onSelectHour={handleSelectHour}
+                  onSelectMinute={handleSelectMinute}
+                  onFocusHour={handleFocusHour}
+                  onFocusMinute={handleFocusMinute}
+                />
+              )}
+            </div>
+
+            <div className={s.dialogButtons}>
+              <Button
+                type="button"
+                disabled={props.disabled}
+                variant="solid"
+                onClick={handleOkButtonClicked}
+              >
+                OK
+              </Button>
+              <Button
+                type="reset"
+                variant="outline"
+                disabled={props.disabled}
+                onClick={handleCancelButtonClicked}
+              >
+                Cancel
+              </Button>
+            </div>
+          </Popover.Content>
+        </Popover.Root>
+      </div>
+    </>
   );
 }
