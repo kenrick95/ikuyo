@@ -20,8 +20,8 @@ export function TripNewDialog({ user }: { user: DbUser }) {
         <Box height="16px" />
         <TripForm
           mode={TripFormMode.New}
-          tripStartStr={''}
-          tripEndStr={''}
+          tripStartDateTime={undefined}
+          tripEndDateTime={undefined}
           tripTitle={''}
           tripTimeZone={currentTimeZone}
           tripCurrency=""

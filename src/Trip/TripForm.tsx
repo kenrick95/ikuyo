@@ -1,7 +1,9 @@
 import { Button, Flex, Select, Text, TextField } from '@radix-ui/themes';
+import type { DateTime } from 'luxon';
 import { useCallback, useId, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
-import { DateRangePicker } from '../common/DateRangePicker/DateRangePicker';
+import { DateTimePicker } from '../common/DatePicker2/DateTimePicker';
+import { DateTimePickerMode } from '../common/DatePicker2/DateTimePickerMode';
 import { dangerToken } from '../common/ui';
 import { getDefaultCurrencyForRegion } from '../data/intl/currencies';
 import { REGIONS_LIST } from '../data/intl/regions';
@@ -11,7 +13,6 @@ import { RouteTrip } from '../Routes/routes';
 import { dbAddTrip, dbUpdateTrip } from './db';
 import type { TripSliceActivity } from './store/types';
 import { TripFormMode } from './TripFormMode';
-import { getDateTimeFromDateInput } from './time';
 import {
   TripSharingLevel,
   type TripSharingLevelType,
@@ -20,8 +21,8 @@ import {
 export function TripForm({
   mode,
   tripId,
-  tripStartStr,
-  tripEndStr,
+  tripStartDateTime,
+  tripEndDateTime,
   tripTitle,
   tripTimeZone,
   tripRegion,
@@ -35,8 +36,8 @@ export function TripForm({
 }: {
   mode: TripFormMode;
   tripId?: string;
-  tripStartStr: string;
-  tripEndStr: string;
+  tripStartDateTime: DateTime | undefined;
+  tripEndDateTime: DateTime | undefined;
   tripTitle: string;
   tripTimeZone: string;
   tripRegion: string;
@@ -59,20 +60,51 @@ export function TripForm({
   const [currentTimeZone, setCurrentTimeZone] = useState(tripTimeZone);
   const [currentRegion, setCurrentRegion] = useState(tripRegion);
   const [currentCurrency, setCurrentCurrency] = useState(tripCurrency);
-  const [currentStartDate, setCurrentStartDate] = useState(tripStartStr);
-  const [currentEndDate, setCurrentEndDate] = useState(tripEndStr);
+  const [currentStartDate, setCurrentStartDate] = useState<
+    DateTime | undefined
+  >(tripStartDateTime);
+  const [currentEndDate, setCurrentEndDate] = useState<DateTime | undefined>(
+    tripEndDateTime,
+  );
 
   const [errorMessage, setErrorMessage] = useState('');
   const timeZones = useMemo(() => Intl.supportedValuesOf('timeZone'), []);
   const currencies = useMemo(() => Intl.supportedValuesOf('currency'), []);
 
-  // Handler for date range changes
-  const handleDateRangeChange = useCallback(
-    (startDate: string, endDate: string) => {
-      setCurrentStartDate(startDate);
-      setCurrentEndDate(endDate);
+  // Handler for start date changes
+  const handleStartDateChange = useCallback(
+    (dateTime: DateTime | undefined) => {
+      setCurrentStartDate(dateTime);
     },
     [],
+  );
+
+  // Handler for end date changes
+  const handleEndDateChange = useCallback((dateTime: DateTime | undefined) => {
+    setCurrentEndDate(dateTime);
+  }, []);
+
+  // Helper to update timezone on DateTime objects
+  const updateDateTimeZone = useCallback(
+    (dateTime: DateTime | undefined, newTimeZone: string) => {
+      if (!dateTime) return undefined;
+      return dateTime.setZone(newTimeZone, {
+        // "preserve" time relative to the date
+        keepLocalTime: true,
+      });
+    },
+    [],
+  );
+
+  // Handler for timezone change
+  const handleTimeZoneChange = useCallback(
+    (newTimeZone: string) => {
+      setCurrentTimeZone(newTimeZone);
+      // Update existing dates to new timezone
+      setCurrentStartDate((prev) => updateDateTimeZone(prev, newTimeZone));
+      setCurrentEndDate((prev) => updateDateTimeZone(prev, newTimeZone));
+    },
+    [updateDateTimeZone],
   );
 
   // Handler for region change to auto-populate timezone
@@ -84,7 +116,7 @@ export function TripForm({
       if (mode === TripFormMode.New || currentTimeZone === tripTimeZone) {
         const defaultTimezone = getDefaultTimezoneForRegion(newRegion);
         if (defaultTimezone && timeZones.includes(defaultTimezone)) {
-          setCurrentTimeZone(defaultTimezone);
+          handleTimeZoneChange(defaultTimezone);
         }
       }
       if (mode === TripFormMode.New || currentCurrency === tripCurrency) {
@@ -102,6 +134,7 @@ export function TripForm({
       currentCurrency,
       tripCurrency,
       currencies,
+      handleTimeZoneChange,
     ],
   );
   const handleForm = useCallback(() => {
@@ -113,22 +146,13 @@ export function TripForm({
       }
       const formData = new FormData(elForm);
       const title = (formData.get('title') as string | null) ?? '';
-      const dateStartStr = currentStartDate;
-      const dateEndStr = currentEndDate;
+      const dateStartDateTime = currentStartDate;
+      const dateEndDateTime = currentEndDate?.plus({ day: 1 });
       const timeZone = currentTimeZone;
       const region = currentRegion;
       const currency = currentCurrency;
       const originCurrency =
         (formData.get('originCurrency') as string | null) ?? '';
-
-      const dateStartDateTime = getDateTimeFromDateInput(
-        dateStartStr,
-        timeZone,
-      );
-      const dateEndDateTime = getDateTimeFromDateInput(
-        dateEndStr,
-        timeZone,
-      ).plus({ day: 1 });
       console.log('TripForm', {
         mode,
         location,
@@ -138,15 +162,13 @@ export function TripForm({
         region,
         currency,
         originCurrency,
-        dateStartStr,
-        dateEndStr,
         dateStartDateTime,
         dateEndDateTime,
       });
       if (
         !title ||
-        !dateStartStr ||
-        !dateEndStr ||
+        !dateStartDateTime ||
+        !dateEndDateTime ||
         !timeZone ||
         !currency ||
         !originCurrency ||
@@ -266,7 +288,7 @@ export function TripForm({
       <Select.Root
         name="timeZone"
         value={currentTimeZone}
-        onValueChange={setCurrentTimeZone}
+        onValueChange={handleTimeZoneChange}
         required
         disabled={isFormLoading}
       >
@@ -282,7 +304,13 @@ export function TripForm({
         </Select.Content>
       </Select.Root>
     );
-  }, [timeZones, currentTimeZone, idTimeZone, isFormLoading]);
+  }, [
+    timeZones,
+    currentTimeZone,
+    idTimeZone,
+    isFormLoading,
+    handleTimeZoneChange,
+  ]);
 
   const fieldSelectRegion = useMemo(() => {
     return (
@@ -371,16 +399,38 @@ export function TripForm({
         {fieldSelectTimeZone}
 
         <Text as="label">
-          Trip dates{' '}
+          Start date{' '}
           <Text weight="light" size="1">
             (in destination's time zone; required)
           </Text>
         </Text>
-        <DateRangePicker
-          startDate={currentStartDate}
-          endDate={currentEndDate}
-          onRangeChange={handleDateRangeChange}
+        <DateTimePicker
+          value={currentStartDate}
+          onChange={handleStartDateChange}
+          mode={DateTimePickerMode.Date}
           disabled={isFormLoading}
+          name="startDate"
+          required
+          aria-label="Trip start date"
+          placeholder="Select start date"
+        />
+
+        <Text as="label">
+          End date{' '}
+          <Text weight="light" size="1">
+            (in destination's time zone; required)
+          </Text>
+        </Text>
+        <DateTimePicker
+          value={currentEndDate}
+          onChange={handleEndDateChange}
+          mode={DateTimePickerMode.Date}
+          disabled={isFormLoading}
+          name="endDate"
+          required
+          aria-label="Trip end date"
+          placeholder="Select end date"
+          min={currentStartDate}
         />
 
         <Text as="label" htmlFor={idCurrency}>
