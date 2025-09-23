@@ -21,11 +21,11 @@ function datePickerReducer(
   state: DatePickerState,
   action: DatePickerAction,
 ): DatePickerState {
-  console.log(
-    '!! datePickerReducer',
-    action,
-    'date' in action ? action.date?.toISO() : null,
-  );
+  // console.log(
+  //   '!! datePickerReducer',
+  //   action,
+  //   'date' in action ? action.date?.toISO() : null,
+  // );
   switch (action.type) {
     case 'setFocusedDate': {
       return { ...state, focusedDate: action.date };
@@ -186,7 +186,7 @@ export function DateTimePicker(props: DatePickerProps) {
     handleSubmit();
   }, [handleSubmit]);
 
-  const handleCancelButtonClicked = useCallback(() => {
+  const closePopoverContent = useCallback(() => {
     dispatch({ type: 'close' });
   }, []);
 
@@ -246,7 +246,7 @@ export function DateTimePicker(props: DatePickerProps) {
             <Button
               variant="outline"
               color="gray"
-              className={s.triggerButton}
+              className={s.clearButton}
               onClick={handleClearButtonClicked}
               aria-label="Clear date"
               disabled={props.disabled || !props.value}
@@ -259,7 +259,8 @@ export function DateTimePicker(props: DatePickerProps) {
             className={s.pickerDialog}
             sideOffset={4}
             align="start"
-            onEscapeKeyDown={() => dispatch({ type: 'close' })}
+            onEscapeKeyDown={closePopoverContent}
+            minWidth="330px"
           >
             <div className={s.calendarAndTime}>
               <CalendarMonth
@@ -302,7 +303,7 @@ export function DateTimePicker(props: DatePickerProps) {
                 type="reset"
                 variant="outline"
                 disabled={props.disabled}
-                onClick={handleCancelButtonClicked}
+                onClick={closePopoverContent}
               >
                 Cancel
               </Button>

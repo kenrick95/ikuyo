@@ -3,6 +3,18 @@
   display: flex;
   gap: var(--space-1);
 }
+.triggerButton,
+.clearButton {
+  color: var(--gray-12);
+  background-color: var(--color-surface);
+}
+.triggerButton {
+  flex: 1 0 auto;
+  justify-content: space-between;
+}
+.clearButton {
+  flex: 0 0 auto;
+}
 .pickerDialog {
   position: absolute;
   z-index: 1000;
