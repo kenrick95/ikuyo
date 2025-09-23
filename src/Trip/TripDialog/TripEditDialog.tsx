@@ -6,17 +6,14 @@ import { useTripActivities } from '../store/hooks';
 import type { TripSliceTrip } from '../store/types';
 import { TripForm } from '../TripForm';
 import { TripFormMode } from '../TripFormMode';
-import { formatToDateInput } from '../time';
 
 export function TripEditDialog({ trip }: { trip: TripSliceTrip }) {
-  const tripStartStr = formatToDateInput(
-    DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone),
+  const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
+    trip.timeZone,
   );
-  const tripEndStr = formatToDateInput(
-    DateTime.fromMillis(trip.timestampEnd)
-      .setZone(trip.timeZone)
-      .minus({ days: 1 }),
-  );
+  const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd)
+    .setZone(trip.timeZone)
+    .minus({ days: 1 });
   const popDialog = useBoundStore((state) => state.popDialog);
   const activities = useTripActivities(trip.activityIds);
 
@@ -31,8 +28,8 @@ export function TripEditDialog({ trip }: { trip: TripSliceTrip }) {
         <TripForm
           tripId={trip.id}
           mode={TripFormMode.Edit}
-          tripStartStr={tripStartStr}
-          tripEndStr={tripEndStr}
+          tripStartDateTime={tripStartDateTime}
+          tripEndDateTime={tripEndDateTime}
           tripTitle={trip.title}
           tripTimeZone={trip.timeZone}
           tripCurrency={trip.currency}
