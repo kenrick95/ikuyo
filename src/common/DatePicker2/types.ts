@@ -9,6 +9,13 @@ export interface DatePickerProps {
   clearable?: boolean;
   onChange: (value: DateTime | undefined) => void;
   disabled?: boolean;
+
+  name?: string; // For form submission
+  required?: boolean; // For form validation
+  'aria-describedby'?: string; // For linking to help text or error messages
+  'aria-invalid'?: boolean; // For validation state
+  'aria-label'?: string; // Custom label for trigger button
+  placeholder?: string; // Custom placeholder text
 }
 
 export interface DatePickerState {

@@ -346,7 +346,16 @@ export function TimeSelector({
 
   return (
     <Flex className={clsx(s.container, className)} gap="2" align="start">
-      <div className={s.hourList} tabIndex={-1} ref={hourListRef}>
+      <div
+        className={s.hourList}
+        tabIndex={-1}
+        ref={hourListRef}
+        role="listbox"
+        aria-label="Select hour"
+        aria-activedescendant={
+          focusedHour !== undefined ? `hour-${focusedHour}` : undefined
+        }
+      >
         {hours.map((hour) => {
           const isFocused = focusedHour === hour;
           const isSelected = selectedHour === hour;
@@ -364,13 +373,26 @@ export function TimeSelector({
               onFocus={handleFocusHour}
               onKeyDown={handleKeyDownHour}
               onBlur={handleBlurHour}
+              role="option"
+              aria-selected={isSelected}
+              aria-label={`${hour} o'clock`}
+              id={`hour-${hour}`}
             >
               {hour.toString().padStart(2, '0')}
             </button>
           );
         })}
       </div>
-      <div className={s.minuteList} tabIndex={-1} ref={minuteListRef}>
+      <div
+        className={s.minuteList}
+        tabIndex={-1}
+        ref={minuteListRef}
+        role="listbox"
+        aria-label="Select minute"
+        aria-activedescendant={
+          focusedMinute !== undefined ? `minute-${focusedMinute}` : undefined
+        }
+      >
         {minutes.map((minute) => {
           const isFocused = focusedMinute === minute;
           const isSelected = selectedMinute === minute;
@@ -388,6 +410,10 @@ export function TimeSelector({
               onKeyDown={handleKeyDownMinute}
               onBlur={handleBlurMinute}
               tabIndex={isFocused ? 0 : -1}
+              role="option"
+              aria-selected={isSelected}
+              aria-label={`${minute} minutes`}
+              id={`minute-${minute}`}
             >
               {minute.toString().padStart(2, '0')}
             </button>

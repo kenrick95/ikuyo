@@ -16,6 +16,8 @@ export interface CalendarMonthProps {
   max?: DateTime;
   disabled?: boolean;
   className?: string;
+  // A11Y: Phase 2 - Live announcements for month navigation
+  onLiveAnnouncement?: (message: string) => void;
 }
 /**
  * UI only for showing one month calendar, with buttons to navigate prev/next month.
@@ -31,11 +33,20 @@ export function CalendarMonth({
   max,
   disabled,
   className,
+  onLiveAnnouncement,
 }: CalendarMonthProps) {
   const startOfMonth = yearMonth.startOf('month');
   const dayOfWeekArray = useMemo(() => {
-    return Array.from({ length: 7 });
-  }, []);
+    return Array.from({ length: 7 })
+      .fill(0)
+      .map((_, i) => {
+        const dateTime = startOfMonth.startOf('week').plus({ days: i });
+        return {
+          abbr: dateTime.toFormat('ccc'),
+          full: dateTime.toFormat('cccc'),
+        };
+      });
+  }, [startOfMonth]);
   const daysBeforeStartOfMonthArray = useMemo(() => {
     return Array.from({ length: startOfMonth.weekday - 1 });
   }, [startOfMonth.weekday]);
@@ -103,6 +114,15 @@ export function CalendarMonth({
         case 'End':
           date = focusedDate.endOf('week');
           break;
+        case 'Enter':
+        case ' ':
+          // Space and Enter should select the focused date
+          if (!isDateInRange(focusedDate, min, max)) {
+            return;
+          }
+          onSelectDay(focusedDate);
+          e.preventDefault();
+          return;
         default:
           return;
       }
@@ -110,7 +130,7 @@ export function CalendarMonth({
       focusDayButton(getDateInRange(date, min, max));
       e.preventDefault();
     },
-    [focusedDate, focusDayButton, min, max],
+    [focusedDate, focusDayButton, min, max, onSelectDay],
   );
 
   const handleClick = useCallback(
@@ -151,7 +171,8 @@ export function CalendarMonth({
       max,
     );
     onFocusDay(prevMonth);
-  }, [startOfMonth, onFocusDay, min, max]);
+    onLiveAnnouncement?.(prevMonth.toFormat('MMMM yyyy'));
+  }, [startOfMonth, onFocusDay, min, max, onLiveAnnouncement]);
 
   const handleNextMonth = useCallback(() => {
     const nextMonth = getDateInRange(
@@ -160,7 +181,11 @@ export function CalendarMonth({
       max,
     );
     onFocusDay(nextMonth);
-  }, [startOfMonth, onFocusDay, min, max]);
+    onLiveAnnouncement?.(nextMonth.toFormat('MMMM yyyy'));
+  }, [startOfMonth, onFocusDay, min, max, onLiveAnnouncement]);
+
+  const isPrevMonthDisabled = min && startOfMonth <= min.startOf('month');
+  const isNextMonthDisabled = max && startOfMonth >= max.startOf('month');
 
   return (
     <Grid
@@ -169,32 +194,38 @@ export function CalendarMonth({
       gap="2"
       ref={gridRef}
       className={clsx(s.calendarMonth, className)}
+      role="grid"
+      aria-label={`Calendar for ${startOfMonth.toFormat('MMMM yyyy')}`}
     >
       <Button
         variant="surface"
         color="gray"
-        aria-description="Previous month"
+        aria-label="Previous month"
         onClick={handlePreviousMonth}
         className={s.prevMonthButton}
+        disabled={disabled || isPrevMonthDisabled}
       >
-        <ArrowLeftIcon />
+        <ArrowLeftIcon aria-hidden="true" />
       </Button>
       <Box gridColumnStart="2" gridColumnEnd="7" className={s.monthLabel}>
+        {/* A11Y: Phase 1 - Month/year should be announced to screen readers as a heading */}
         {startOfMonth.toFormat('MMMM yyyy')}
       </Box>
       <Button
         variant="surface"
         color="gray"
-        aria-description="Next month"
+        aria-label="Next month"
         onClick={handleNextMonth}
         className={s.nextMonthButton}
+        disabled={disabled || isNextMonthDisabled}
       >
-        <ArrowRightIcon />
+        <ArrowRightIcon aria-hidden="true" />
       </Button>
-      {dayOfWeekArray.map((_, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: no need for unique keys here
-        <Box key={i} className={s.dayOfWeekLabel}>
-          {startOfMonth.startOf('week').plus({ days: i }).toFormat('ccc')}
+      {dayOfWeekArray.map(({ abbr, full }) => (
+        <Box key={abbr} className={s.dayOfWeekLabel}>
+          <abbr title={full} aria-label={full}>
+            {abbr}
+          </abbr>
         </Box>
       ))}
       {daysBeforeStartOfMonthArray.map((_, i) => (
@@ -208,6 +239,8 @@ export function CalendarMonth({
           ? date.hasSame(selectedDate, 'day')
           : false;
         const isDisabled = disabled || !isDateInRange(date, min, max);
+        // A11Y: Mark today's date for screen readers
+        const isToday = date.hasSame(DateTime.now(), 'day');
 
         return (
           <Button
@@ -223,6 +256,10 @@ export function CalendarMonth({
             tabIndex={isFocused ? 0 : -1}
             data-date={date.toISODate()}
             className={s.dayButton}
+            role="gridcell"
+            aria-label={date.toFormat('cccc, MMMM d, yyyy')}
+            aria-selected={isSelected}
+            aria-current={isToday ? 'date' : undefined}
           >
             {date.toFormat('d')}
           </Button>
