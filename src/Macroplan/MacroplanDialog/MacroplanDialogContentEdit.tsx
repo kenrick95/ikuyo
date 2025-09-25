@@ -6,7 +6,6 @@ import { useTrip } from '../../Trip/store/hooks';
 import type { TripSliceMacroplan } from '../../Trip/store/types';
 import { MacroplanForm } from '../MacroplanForm';
 import { MacroplanFormMode } from '../MacroplanFormMode';
-import { formatToDateInput } from '../time';
 import { MacroplanDialogMode } from './MacroplanDialogMode';
 
 export function MacroplanDialogContentEdit({
@@ -17,35 +16,27 @@ export function MacroplanDialogContentEdit({
 }: DialogContentProps<TripSliceMacroplan>) {
   const { trip } = useTrip(macroplan?.tripId);
 
-  const tripStartStr =
+  const tripStartDateTime =
     macroplan && trip
-      ? formatToDateInput(
-          DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone),
-        )
-      : '';
-  const tripEndStr =
+      ? DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone)
+      : undefined;
+  const tripEndDateTime =
     macroplan && trip
-      ? formatToDateInput(
-          DateTime.fromMillis(trip.timestampEnd)
-            .setZone(trip.timeZone)
-            .minus({ minute: 1 }),
-        )
-      : '';
+      ? DateTime.fromMillis(trip.timestampEnd)
+          .setZone(trip.timeZone)
+          .minus({ minute: 1 })
+      : undefined;
 
-  const macroplanDateStartStr =
+  const macroplanDateStartDateTime =
     macroplan && trip
-      ? formatToDateInput(
-          DateTime.fromMillis(macroplan.timestampStart).setZone(trip.timeZone),
-        )
-      : '';
-  const macroplanDateEndStr =
+      ? DateTime.fromMillis(macroplan.timestampStart).setZone(trip.timeZone)
+      : undefined;
+  const macroplanDateEndDateTime =
     macroplan && trip
-      ? formatToDateInput(
-          DateTime.fromMillis(macroplan.timestampEnd)
-            .setZone(trip.timeZone)
-            .minus({ minute: 1 }),
-        )
-      : '';
+      ? DateTime.fromMillis(macroplan.timestampEnd)
+          .setZone(trip.timeZone)
+          .minus({ minute: 1 })
+      : undefined;
   const backToViewMode = useCallback(() => {
     setMode(MacroplanDialogMode.View);
   }, [setMode]);
@@ -63,11 +54,11 @@ export function MacroplanDialogContentEdit({
           tripId={macroplan.tripId}
           macroplanId={macroplan.id}
           tripTimeZone={trip.timeZone}
-          tripStartStr={tripStartStr}
-          tripEndStr={tripEndStr}
+          tripStartDateTime={tripStartDateTime}
+          tripEndDateTime={tripEndDateTime}
           macroplanName={macroplan.name}
-          macroplanDateStartStr={macroplanDateStartStr}
-          macroplanDateEndStr={macroplanDateEndStr}
+          macroplanDateStartDateTime={macroplanDateStartDateTime}
+          macroplanDateEndDateTime={macroplanDateEndDateTime}
           macroplanNotes={macroplan.notes}
           onFormCancel={backToViewMode}
           onFormSuccess={backToViewMode}
