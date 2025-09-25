@@ -6,28 +6,15 @@ import {
   TextArea,
   TextField,
 } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
+import type { DateTime } from 'luxon';
 import { useCallback, useId, useState } from 'react';
+import { DateTimePicker } from '../../../common/DatePicker2/DateTimePicker';
+import { DateTimePickerMode } from '../../../common/DatePicker2/DateTimePickerMode';
 import { dangerToken } from '../../../common/ui';
 import { useBoundStore } from '../../../data/store';
 import { dbAddTask, dbUpdateTask } from '../../../Task/db';
 import { TaskStatus } from '../../../Task/TaskStatus';
 import { TaskFormMode, type TaskFormModeType } from './TaskFormMode';
-
-// Helper functions
-const formatToDatetimeLocalInput = (dateTime: DateTime): string => {
-  return dateTime.toFormat("yyyy-MM-dd'T'HH:mm");
-};
-
-const getTimestampFromDatetimeLocalInput = (
-  datetimeLocalStr: string,
-  timeZone: string,
-): number => {
-  if (!datetimeLocalStr) {
-    return 0;
-  }
-  return DateTime.fromISO(datetimeLocalStr, { zone: timeZone }).toMillis();
-};
 
 export function TaskForm({
   mode,
@@ -37,7 +24,7 @@ export function TaskForm({
   taskTitle,
   taskDescription,
   taskStatus,
-  taskDueAt,
+  taskDueAtDateTime,
   taskIndex,
   onFormSuccess,
   onFormCancel,
@@ -49,7 +36,7 @@ export function TaskForm({
   taskTitle: string;
   taskDescription: string;
   taskStatus: number;
-  taskDueAt?: number | null | undefined;
+  taskDueAtDateTime?: DateTime | null | undefined;
   taskIndex?: number;
   onFormSuccess: () => void;
   onFormCancel: () => void;
@@ -58,17 +45,15 @@ export function TaskForm({
   const idTitle = useId();
   const idDescription = useId();
   const idStatus = useId();
-  const idDueAt = useId();
 
   const publishToast = useBoundStore((state) => state.publishToast);
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const taskDueDateStr = taskDueAt
-    ? formatToDatetimeLocalInput(
-        DateTime.fromMillis(taskDueAt).setZone(tripTimeZone),
-      )
-    : '';
+  // State for DateTime picker
+  const [dueAtDateTime, setDueAtDateTime] = useState<DateTime | undefined>(
+    taskDueAtDateTime || undefined,
+  );
 
   const handleSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
@@ -80,7 +65,6 @@ export function TaskForm({
       const title = (formData.get('title') as string).trim();
       const description = (formData.get('description') as string).trim();
       const status = Number(formData.get('status') as string);
-      const dueAtStr = formData.get('dueAt') as string;
 
       if (!title) {
         setErrorMessage('Title is required');
@@ -88,9 +72,7 @@ export function TaskForm({
         return;
       }
 
-      const dueAt = dueAtStr
-        ? getTimestampFromDatetimeLocalInput(dueAtStr, tripTimeZone)
-        : null;
+      const dueAt = dueAtDateTime ? dueAtDateTime.toMillis() : null;
 
       try {
         if (mode === TaskFormMode.New) {
@@ -149,10 +131,10 @@ export function TaskForm({
       mode,
       taskId,
       taskListId,
-      tripTimeZone,
       taskIndex,
       publishToast,
       onFormSuccess,
+      dueAtDateTime,
     ],
   );
 
@@ -198,15 +180,16 @@ export function TaskForm({
             </Select.Item>
           </Select.Content>
         </Select.Root>
-        <Text as="label" htmlFor={idDueAt} size="2">
+        <Text as="label" size="2">
           Due Date <Text size="1">(optional, in {tripTimeZone} time zone)</Text>
         </Text>
 
-        <TextField.Root
-          id={idDueAt}
+        <DateTimePicker
           name="dueAt"
-          type="datetime-local"
-          defaultValue={taskDueDateStr}
+          mode={DateTimePickerMode.DateTime}
+          value={dueAtDateTime}
+          onChange={setDueAtDateTime}
+          clearable
         />
 
         <Flex gap="3" mt="5" justify="end">
