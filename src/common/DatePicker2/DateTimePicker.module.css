@@ -16,14 +16,11 @@
   flex: 0 0 auto;
 }
 .pickerDialog {
-  position: absolute;
-  z-index: 1000;
   margin-top: var(--space-1);
   padding: var(--space-2);
   border-radius: var(--radius-2);
   border: 1px solid var(--gray-6);
   background-color: var(--color-panel-solid);
-  top: 100%;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -32,6 +29,7 @@
 .calendarAndTime {
   display: flex;
   gap: var(--space-2);
+  overflow-x: scroll;
 }
 .dialogButtons {
   display: flex;
