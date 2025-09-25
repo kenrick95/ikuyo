@@ -1,4 +1,5 @@
 import { Box, Dialog, Spinner } from '@radix-ui/themes';
+import { DateTime } from 'luxon';
 import { useCallback } from 'react';
 import type { DialogContentProps } from '../../../Dialog/DialogRoute';
 import { useTrip, useTripTaskList } from '../../store/hooks';
@@ -36,7 +37,11 @@ export function TaskDialogContentEdit({
           taskTitle={task.title}
           taskDescription={task.description}
           taskStatus={task.status}
-          taskDueAt={task.dueAt}
+          taskDueAtDateTime={
+            task.dueAt
+              ? DateTime.fromMillis(task.dueAt).setZone(trip.timeZone)
+              : undefined
+          }
           taskIndex={task.index}
           onFormCancel={backToViewMode}
           onFormSuccess={backToViewMode}
