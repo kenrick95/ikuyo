@@ -156,6 +156,22 @@ export const DateTimePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
       dispatch({ type: 'close' });
       props.onChange(undefined);
     }, [props.onChange, props.clearable]);
+    const handleCancelButtonClicked = useCallback(() => {
+      // Change selected to previous value (original value in props)
+      const originalDate = props.value;
+      if (originalDate) {
+        dispatch({
+          type: 'setSelectedDate',
+          date: originalDate.startOf('day'),
+        });
+        if (props.mode === DateTimePickerMode.DateTime) {
+          dispatch({ type: 'setSelectedHour', hour: originalDate.hour });
+          dispatch({ type: 'setSelectedMinute', minute: originalDate.minute });
+        }
+      }
+
+      dispatch({ type: 'close' });
+    }, [props.value, props.mode]);
 
     const handleSubmit = useCallback(() => {
       if (props.mode === DateTimePickerMode.Date) {
@@ -295,20 +311,20 @@ export const DateTimePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
 
               <div className={s.dialogButtons}>
                 <Button
+                  type="reset"
+                  variant="outline"
+                  disabled={props.disabled}
+                  onClick={handleCancelButtonClicked}
+                >
+                  Cancel
+                </Button>
+                <Button
                   type="button"
                   disabled={props.disabled}
                   variant="solid"
                   onClick={handleOkButtonClicked}
                 >
                   OK
-                </Button>
-                <Button
-                  type="reset"
-                  variant="outline"
-                  disabled={props.disabled}
-                  onClick={closePopoverContent}
-                >
-                  Cancel
                 </Button>
               </div>
             </Popover.Content>
