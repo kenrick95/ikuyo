@@ -276,12 +276,10 @@ export const DateTimePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
 
             <Popover.Content
               className={s.pickerDialog}
-              sideOffset={4}
               align="start"
               onEscapeKeyDown={closePopoverContent}
-              // TODO: on mobile, the dialog is too wide
               minWidth="330px"
-              // TODO: seem to be colliding with screen boundary
+              maxWidth="min(480px, 95vw)"
               avoidCollisions={true}
             >
               <div className={s.calendarAndTime}>
