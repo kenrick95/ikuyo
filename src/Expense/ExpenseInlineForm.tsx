@@ -2,6 +2,8 @@ import { Button, Select, Table, Text, TextField } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import type * as React from 'react';
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
+import { DateTimePicker } from '../common/DatePicker2/DateTimePicker';
+import { DateTimePickerMode } from '../common/DatePicker2/DateTimePickerMode';
 import { dangerToken } from '../common/ui';
 import { useBoundStore } from '../data/store';
 import type { TripSliceExpense, TripSliceTrip } from '../Trip/store/types';
@@ -217,22 +219,41 @@ export function ExpenseInlineForm({
   const handleCurrencyChange = useCallback((value: string) => {
     setFormState((prev) => ({ ...prev, currency: value }));
   }, []);
-  const refTimestampIncurred = useRef<HTMLInputElement>(null);
+  const refTimestampIncurred = useRef<HTMLButtonElement>(null);
 
-  const fieldTimestampIncurred = useMemo(
-    () => (
-      <TextField.Root
-        name="timestampIncurred"
-        type="date"
-        value={formState.timestampIncurred}
-        onChange={handleInputChange}
-        required
-        form={idForm}
-        ref={refTimestampIncurred}
-      />
-    ),
-    [formState.timestampIncurred, handleInputChange, idForm],
+  const handleTimestampIncurredChange = useCallback(
+    (value: DateTime | undefined) => {
+      if (value) {
+        setFormState((prev) => ({
+          ...prev,
+          timestampIncurred: formatToDateInput(value),
+        }));
+      }
+    },
+    [],
   );
+
+  const fieldTimestampIncurred = useMemo(() => {
+    const currentValue = formState.timestampIncurred
+      ? getDateTimeFromDateInput(formState.timestampIncurred, trip.timeZone)
+      : undefined;
+
+    return (
+      <DateTimePicker
+        name="timestampIncurred"
+        mode={DateTimePickerMode.Date}
+        value={currentValue}
+        onChange={handleTimestampIncurredChange}
+        required
+        ref={refTimestampIncurred}
+        placeholder="Select date"
+      />
+    );
+  }, [
+    formState.timestampIncurred,
+    trip.timeZone,
+    handleTimestampIncurredChange,
+  ]);
   const fieldSelectCurrency = useMemo(() => {
     return (
       <Select.Root
