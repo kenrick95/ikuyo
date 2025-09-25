@@ -1,6 +1,8 @@
 import { Button, Flex, Text, TextArea, TextField } from '@radix-ui/themes';
+import type { DateTime } from 'luxon';
 import { useCallback, useId, useState } from 'react';
-import { DateRangePicker } from '../common/DateRangePicker/DateRangePicker';
+import { DateTimePicker } from '../common/DatePicker2/DateTimePicker';
+import { DateTimePickerMode } from '../common/DatePicker2/DateTimePickerMode';
 import { dangerToken } from '../common/ui';
 import { useBoundStore } from '../data/store';
 import { dbAddMacroplan, dbUpdateMacroplan } from './db';
@@ -8,7 +10,6 @@ import {
   MacroplanFormMode,
   type MacroplanFormModeType,
 } from './MacroplanFormMode';
-import { getDateTimeFromDateInput } from './time';
 
 export function MacroplanForm({
   mode,
@@ -16,12 +17,12 @@ export function MacroplanForm({
   tripId,
 
   tripTimeZone,
-  tripStartStr,
-  tripEndStr,
+  tripStartDateTime,
+  tripEndDateTime,
 
   macroplanName,
-  macroplanDateStartStr,
-  macroplanDateEndStr,
+  macroplanDateStartDateTime,
+  macroplanDateEndDateTime,
   macroplanNotes,
 
   onFormSuccess,
@@ -33,12 +34,12 @@ export function MacroplanForm({
   macroplanId?: string;
 
   tripTimeZone: string;
-  tripStartStr: string;
-  tripEndStr: string;
+  tripStartDateTime: DateTime | undefined;
+  tripEndDateTime: DateTime | undefined;
 
   macroplanName: string;
-  macroplanDateStartStr: string;
-  macroplanDateEndStr: string;
+  macroplanDateStartDateTime: DateTime | undefined;
+  macroplanDateEndDateTime: DateTime | undefined;
   macroplanNotes: string;
 
   onFormSuccess: () => void;
@@ -50,17 +51,25 @@ export function MacroplanForm({
   const publishToast = useBoundStore((state) => state.publishToast);
 
   const [errorMessage, setErrorMessage] = useState('');
-  const [dateStart, setDateStart] = useState(macroplanDateStartStr);
-  const [dateEnd, setDateEnd] = useState(macroplanDateEndStr);
+  const [dateStart, setDateStart] = useState<DateTime | undefined>(
+    macroplanDateStartDateTime,
+  );
+  const [dateEnd, setDateEnd] = useState<DateTime | undefined>(
+    macroplanDateEndDateTime,
+  );
 
-  const handleDateRangeChange = useCallback(
-    (startDate: string, endDate: string) => {
-      setDateStart(startDate);
-      setDateEnd(endDate);
+  const handleStartDateChange = useCallback(
+    (dateTime: DateTime | undefined) => {
+      setDateStart(dateTime);
       setErrorMessage(''); // Clear any date-related errors
     },
     [],
   );
+
+  const handleEndDateChange = useCallback((dateTime: DateTime | undefined) => {
+    setDateEnd(dateTime);
+    setErrorMessage(''); // Clear any date-related errors
+  }, []);
 
   const handleSubmit = useCallback(() => {
     return async (elForm: HTMLFormElement) => {
@@ -74,28 +83,18 @@ export function MacroplanForm({
       const formData = new FormData(elForm);
       const name = (formData.get('name') as string | null) ?? '';
       const notes = (formData.get('notes') as string | null) ?? '';
-      const dateStartStr = dateStart;
-      const dateEndStr = dateEnd;
-      const dateStartDateTime = getDateTimeFromDateInput(
-        dateStartStr,
-        tripTimeZone,
-      );
-      const dateEndDateTime = getDateTimeFromDateInput(
-        dateEndStr,
-        tripTimeZone,
-      ).plus({ day: 1 });
+      const dateStartDateTime = dateStart;
+      const dateEndDateTime = dateEnd?.plus({ day: 1 });
       console.log('MacroplanForm', {
         mode,
         macroplanId,
         tripId,
         name,
         notes,
-        timeStartString: dateStartStr,
-        timeEndString: dateEndStr,
-        timeStartDateTime: dateStartDateTime,
-        timeEndDateTime: dateEndDateTime,
+        dateStartDateTime,
+        dateEndDateTime,
       });
-      if (!name || !dateStartStr || !dateEndStr) {
+      if (!name || !dateStartDateTime || !dateEndDateTime) {
         return;
       }
       if (dateEndDateTime.diff(dateStartDateTime).as('minute') < 0) {
@@ -144,7 +143,6 @@ export function MacroplanForm({
     publishToast,
     onFormSuccess,
     tripId,
-    tripTimeZone,
     dateStart,
     dateEnd,
   ]);
@@ -179,17 +177,39 @@ export function MacroplanForm({
           required
         />
         <Text as="label">
-          Date range{' '}
+          Start date{' '}
           <Text weight="light" size="1">
             (required; in {tripTimeZone} time zone)
           </Text>
         </Text>
-        <DateRangePicker
-          startDate={dateStart}
-          endDate={dateEnd}
-          min={tripStartStr}
-          max={tripEndStr}
-          onRangeChange={handleDateRangeChange}
+        <DateTimePicker
+          value={dateStart}
+          onChange={handleStartDateChange}
+          mode={DateTimePickerMode.Date}
+          name="startDate"
+          required
+          aria-label="Day plan start date"
+          placeholder="Select start date"
+          min={tripStartDateTime}
+          max={tripEndDateTime}
+        />
+
+        <Text as="label">
+          End date{' '}
+          <Text weight="light" size="1">
+            (required; in {tripTimeZone} time zone)
+          </Text>
+        </Text>
+        <DateTimePicker
+          value={dateEnd}
+          onChange={handleEndDateChange}
+          mode={DateTimePickerMode.Date}
+          name="endDate"
+          required
+          aria-label="Day plan end date"
+          placeholder="Select end date"
+          min={tripStartDateTime}
+          max={tripEndDateTime}
         />
         <Text as="label" htmlFor={idNotes}>
           Notes
