@@ -7,7 +7,6 @@ import type { TripSliceTrip } from '../Trip/store/types';
 import { ActivityForm } from './ActivityForm/ActivityForm';
 import { ActivityFormMode } from './ActivityForm/ActivityFormMode';
 import { getNewActivityTimestamp } from './activityStorage';
-import { formatToDatetimeLocalInput } from './time';
 
 export function ActivityNewDialog({
   trip,
@@ -20,15 +19,13 @@ export function ActivityNewDialog({
   };
 }) {
   const popDialog = useBoundStore((state) => state.popDialog);
-  const tripStartStr = formatToDatetimeLocalInput(
-    DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone),
+  const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
+    trip.timeZone,
   );
-  const tripEndStr = formatToDatetimeLocalInput(
-    DateTime.fromMillis(trip.timestampEnd)
-      .setZone(trip.timeZone)
-      .minus({ minute: 1 }),
-  );
-  const [activityStartStr, activityEndStr] = useMemo(() => {
+  const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd)
+    .setZone(trip.timeZone)
+    .minus({ minute: 1 });
+  const [activityStartDateTime, activityEndDateTime] = useMemo(() => {
     if (prefillData) {
       // Convert timeStart (HHMM format) to DateTime
       const hours = parseInt(prefillData.timeStart.substring(0, 2), 10);
@@ -49,27 +46,17 @@ export function ActivityNewDialog({
       });
       const activityEndTime = activityStartTime.plus({ hours: 1 });
 
-      return [
-        formatToDatetimeLocalInput(activityStartTime),
-        formatToDatetimeLocalInput(activityEndTime),
-      ];
+      return [activityStartTime, activityEndTime];
     }
 
     // Default behavior when no prefillData
     const activityStartTimestamp = getNewActivityTimestamp(trip);
+    const activityStartTime = DateTime.fromMillis(
+      activityStartTimestamp,
+    ).setZone(trip.timeZone);
+    const activityEndTime = activityStartTime.plus({ hours: 1 });
 
-    return [
-      formatToDatetimeLocalInput(
-        DateTime.fromMillis(activityStartTimestamp).setZone(trip.timeZone),
-      ),
-      formatToDatetimeLocalInput(
-        DateTime.fromMillis(activityStartTimestamp)
-          .setZone(trip.timeZone)
-          .plus({
-            hours: 1,
-          }),
-      ),
-    ];
+    return [activityStartTime, activityEndTime];
   }, [trip, prefillData]);
 
   return (
@@ -83,13 +70,13 @@ export function ActivityNewDialog({
         <ActivityForm
           mode={ActivityFormMode.New}
           tripId={trip.id}
-          tripStartStr={tripStartStr}
-          tripEndStr={tripEndStr}
+          tripStartDateTime={tripStartDateTime}
+          tripEndDateTime={tripEndDateTime}
           tripTimeZone={trip.timeZone}
           tripRegion={trip.region}
           activityTitle={''}
-          activityStartStr={activityStartStr}
-          activityEndStr={activityEndStr}
+          activityStartDateTime={activityStartDateTime}
+          activityEndDateTime={activityEndDateTime}
           activityLocation={''}
           activityDescription={''}
           activityLocationLat={undefined}

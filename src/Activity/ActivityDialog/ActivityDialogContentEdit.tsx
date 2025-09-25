@@ -6,7 +6,6 @@ import { useTrip } from '../../Trip/store/hooks';
 import type { TripSliceActivity } from '../../Trip/store/types';
 import { ActivityForm } from '../ActivityForm/ActivityForm';
 import { ActivityFormMode } from '../ActivityForm/ActivityFormMode';
-import { formatToDatetimeLocalInput } from '../time';
 import { ActivityDialogMode } from './ActivityDialogMode';
 
 export function ActivityDialogContentEdit({
@@ -17,32 +16,24 @@ export function ActivityDialogContentEdit({
 }: DialogContentProps<TripSliceActivity>) {
   const { trip } = useTrip(activity?.tripId);
 
-  const tripStartStr =
+  const tripStartDateTime =
     activity && trip
-      ? formatToDatetimeLocalInput(
-          DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone),
-        )
-      : '';
-  const tripEndStr =
+      ? DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone)
+      : undefined;
+  const tripEndDateTime =
     activity && trip
-      ? formatToDatetimeLocalInput(
-          DateTime.fromMillis(trip.timestampEnd)
-            .setZone(trip.timeZone)
-            .minus({ minute: 1 }),
-        )
-      : '';
-  const activityStartStr =
+      ? DateTime.fromMillis(trip.timestampEnd)
+          .setZone(trip.timeZone)
+          .minus({ minute: 1 })
+      : undefined;
+  const activityStartDateTime =
     activity && trip && activity.timestampStart != null
-      ? formatToDatetimeLocalInput(
-          DateTime.fromMillis(activity.timestampStart).setZone(trip.timeZone),
-        )
-      : '';
-  const activityEndStr =
+      ? DateTime.fromMillis(activity.timestampStart).setZone(trip.timeZone)
+      : undefined;
+  const activityEndDateTime =
     activity && trip && activity.timestampEnd != null
-      ? formatToDatetimeLocalInput(
-          DateTime.fromMillis(activity.timestampEnd).setZone(trip.timeZone),
-        )
-      : '';
+      ? DateTime.fromMillis(activity.timestampEnd).setZone(trip.timeZone)
+      : undefined;
   const backToViewMode = useCallback(() => {
     setMode(ActivityDialogMode.View);
   }, [setMode]);
@@ -60,13 +51,13 @@ export function ActivityDialogContentEdit({
         <ActivityForm
           activityId={activity.id}
           mode={ActivityFormMode.Edit}
-          tripStartStr={tripStartStr}
-          tripEndStr={tripEndStr}
+          tripStartDateTime={tripStartDateTime}
+          tripEndDateTime={tripEndDateTime}
           tripTimeZone={trip.timeZone}
           tripRegion={trip.region}
           activityTitle={activity.title}
-          activityStartStr={activityStartStr}
-          activityEndStr={activityEndStr}
+          activityStartDateTime={activityStartDateTime}
+          activityEndDateTime={activityEndDateTime}
           activityLocationLat={activity.locationLat}
           activityLocationLng={activity.locationLng}
           activityLocationZoom={activity.locationZoom}

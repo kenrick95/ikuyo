@@ -6,13 +6,15 @@ import {
   TextArea,
   TextField,
 } from '@radix-ui/themes';
+import type { DateTime } from 'luxon';
 import { useCallback, useId, useReducer, useState } from 'react';
+import { DateTimePicker } from '../../common/DatePicker2/DateTimePicker';
+import { DateTimePickerMode } from '../../common/DatePicker2/DateTimePickerMode';
 import { dangerToken } from '../../common/ui';
 import { useBoundStore } from '../../data/store';
 import { ActivityMap } from '../ActivityDialog/ActivityDialogMap';
 import { setNewActivityTimestamp } from '../activityStorage';
 import { dbAddActivity, dbUpdateActivity } from '../db';
-import { getDateTimeFromDatetimeLocalInput } from '../time';
 import { geocodingRequest } from './ActivityFormGeocoding';
 import {
   ActivityFormMode,
@@ -94,13 +96,13 @@ export function ActivityForm({
   mode,
   activityId,
   tripId,
-  tripStartStr,
-  tripEndStr,
+  tripStartDateTime,
+  tripEndDateTime,
   tripTimeZone,
   tripRegion,
   activityTitle,
-  activityStartStr,
-  activityEndStr,
+  activityStartDateTime,
+  activityEndDateTime,
   activityLocation,
   activityLocationLng,
   activityLocationLat,
@@ -119,13 +121,13 @@ export function ActivityForm({
   mode: ActivityFormModeType;
   activityId?: string;
   tripId?: string;
-  tripStartStr: string;
-  tripEndStr: string;
+  tripStartDateTime: DateTime | undefined;
+  tripEndDateTime: DateTime | undefined;
   tripTimeZone: string;
   tripRegion: string;
   activityTitle: string;
-  activityStartStr: string;
-  activityEndStr: string;
+  activityStartDateTime: DateTime | undefined;
+  activityEndDateTime: DateTime | undefined;
   activityLocation: string;
   activityLocationLat: number | null | undefined;
   activityLocationLng: number | null | undefined;
@@ -154,6 +156,14 @@ export function ActivityForm({
   const idCoordinates = useId();
   const publishToast = useBoundStore((state) => state.publishToast);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // State for DateTime pickers
+  const [startDateTime, setStartDateTime] = useState<DateTime | undefined>(
+    activityStartDateTime,
+  );
+  const [endDateTime, setEndDateTime] = useState<DateTime | undefined>(
+    activityEndDateTime,
+  );
 
   const [locationFieldsState, dispatchLocationFieldsState] = useReducer(
     coordinateStateReducer,
@@ -323,17 +333,8 @@ export function ActivityForm({
       const location = (formData.get('location') as string | null) ?? '';
       const locationDestination =
         (formData.get('locationDestination') as string | null) ?? '';
-      const timeStartString =
-        (formData.get('startTime') as string | null) ?? '';
-      const timeEndString = (formData.get('endTime') as string | null) ?? '';
-      const timeStartDate = getDateTimeFromDatetimeLocalInput(
-        timeStartString,
-        tripTimeZone,
-      );
-      const timeEndDate = getDateTimeFromDatetimeLocalInput(
-        timeEndString,
-        tripTimeZone,
-      );
+      const timeStartDate = startDateTime;
+      const timeEndDate = endDateTime;
       console.log('ActivityForm', {
         mode,
         activityId,
@@ -343,8 +344,6 @@ export function ActivityForm({
         tripId,
         title,
         tripTimeZone,
-        timeStartString,
-        timeEndString,
         startTime: timeStartDate,
         endTime: timeEndDate,
         coordinateState: locationFieldsState,
@@ -460,12 +459,14 @@ export function ActivityForm({
     };
   }, [
     activityId,
+    endDateTime,
+    locationFieldsState,
     mode,
-    publishToast,
     onFormSuccess,
+    publishToast,
+    startDateTime,
     tripId,
     tripTimeZone,
-    locationFieldsState,
   ]);
 
   return (
@@ -602,13 +603,13 @@ export function ActivityForm({
             (in {tripTimeZone} time zone)
           </Text>
         </Text>
-        <TextField.Root
-          id={idTimeStart}
+        <DateTimePicker
           name="startTime"
-          type="datetime-local"
-          min={tripStartStr}
-          max={tripEndStr}
-          defaultValue={activityStartStr}
+          mode={DateTimePickerMode.DateTime}
+          min={tripStartDateTime}
+          max={tripEndDateTime}
+          value={startDateTime}
+          onChange={setStartDateTime}
         />
         <Text as="label" htmlFor={idTimeEnd}>
           End time{' '}
@@ -616,13 +617,13 @@ export function ActivityForm({
             (in {tripTimeZone} time zone)
           </Text>
         </Text>
-        <TextField.Root
-          id={idTimeEnd}
+        <DateTimePicker
           name="endTime"
-          type="datetime-local"
-          min={tripStartStr}
-          max={tripEndStr}
-          defaultValue={activityEndStr}
+          mode={DateTimePickerMode.DateTime}
+          min={tripStartDateTime}
+          max={tripEndDateTime}
+          value={endDateTime}
+          onChange={setEndDateTime}
         />
         <Text as="label" htmlFor={idDescription}>
           Description
