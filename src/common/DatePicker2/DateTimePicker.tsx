@@ -279,7 +279,10 @@ export const DateTimePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
               sideOffset={4}
               align="start"
               onEscapeKeyDown={closePopoverContent}
+              // TODO: on mobile, the dialog is too wide
               minWidth="330px"
+              // TODO: seem to be colliding with screen boundary
+              avoidCollisions={true}
             >
               <div className={s.calendarAndTime}>
                 <CalendarMonth
