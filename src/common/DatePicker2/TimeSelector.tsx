@@ -345,7 +345,7 @@ export function TimeSelector({
   );
 
   return (
-    <Flex className={clsx(s.container, className)} gap="2" align="start">
+    <Flex className={clsx(s.container, className)} gap="1" align="start">
       <div
         className={s.hourList}
         tabIndex={-1}
