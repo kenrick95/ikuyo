@@ -33,7 +33,11 @@ export type DayGroups = {
   }>;
 };
 
-/** Return `DateTime` objects for each of day in the trip */
+/**
+ * Return `DateTime` objects for each of day in the trip.
+ * Activities spanning multiple days (can be longer than 24 hours) are automatically
+ * "split" across days with timestamps clipped to day boundaries.
+ */
 export function groupActivitiesByDays({
   trip,
   activities,
@@ -101,11 +105,30 @@ export function groupActivitiesByDays({
       const activityEndDateTime = DateTime.fromMillis(
         activity.timestampEnd,
       ).setZone(trip.timeZone);
+
+      // Check if activity overlaps with this day
       if (
-        dayStartDateTime <= activityStartDateTime &&
-        activityEndDateTime <= dayEndDateTime
+        activityStartDateTime < dayEndDateTime &&
+        activityEndDateTime > dayStartDateTime
       ) {
-        dayActivities.push(activity);
+        // Clip the activity times to the day boundaries
+        const clippedStartDateTime = DateTime.max(
+          activityStartDateTime,
+          dayStartDateTime,
+        );
+        const clippedEndDateTime = DateTime.min(
+          activityEndDateTime,
+          dayEndDateTime,
+        );
+
+        // Create a new activity object with clipped timestamps
+        const clippedActivity: TripSliceActivityWithTime = {
+          ...activity,
+          timestampStart: clippedStartDateTime.toMillis(),
+          timestampEnd: clippedEndDateTime.toMillis(),
+        };
+
+        dayActivities.push(clippedActivity);
       }
     }
     dayActivities.sort((a, b) => {

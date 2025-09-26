@@ -45,7 +45,13 @@ export function TripHomeActivities() {
         const activityStart = DateTime.fromMillis(
           activity.timestampStart,
         ).setZone(trip.timeZone);
-        return activityStart >= todayStart && activityStart <= tomorrowEnd;
+        const activityEnd = DateTime.fromMillis(activity.timestampEnd).setZone(
+          trip.timeZone,
+        );
+
+        // Check if activity overlaps with the next 48 hours (today + tomorrow)
+        // Activity overlaps if it starts before the end of the period AND ends after the start of the period
+        return activityStart <= tomorrowEnd && activityEnd >= todayStart;
       })
       .sort((a, b) => (a.timestampStart || 0) - (b.timestampStart || 0));
   }, [activities, trip]);

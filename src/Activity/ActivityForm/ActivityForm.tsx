@@ -359,15 +359,6 @@ export function ActivityForm({
         setErrorMessage('End time must be after start time');
         return;
       }
-      // TODO: remove this validation when timetable support showing activities spanning more than 1 day
-      if (
-        timeEndDate &&
-        timeStartDate &&
-        !timeEndDate.hasSame(timeStartDate, 'day')
-      ) {
-        setErrorMessage('Activity must occur on same day');
-        return;
-      }
       if (mode === ActivityFormMode.Edit && activityId) {
         await dbUpdateActivity({
           id: activityId,

@@ -56,8 +56,18 @@ function ActivityInner({
       : activityEndDateTime.toFormat('dd MMMM yyyy HH:mm')
     : undefined;
 
-  const timeStart = formatTime(activity.timestampStart, tripTimeZone);
-  const timeEnd = formatTime(activity.timestampEnd, tripTimeZone);
+  const timeStart = useMemo(
+    () => formatTime(activity.timestampStart, tripTimeZone),
+    [activity.timestampStart, tripTimeZone],
+  );
+  const timeEnd = useMemo(() => {
+    // If the activity ends exactly at midnight, use 2359; else it layout will be wrong
+    const end = formatTime(activity.timestampEnd, tripTimeZone);
+    if (end === '0000') {
+      return '2359';
+    }
+    return end;
+  }, [activity.timestampEnd, tripTimeZone]);
   const [dayStart, dayEnd] = getDayStartEnd(
     activity,
     tripTimestampStart,
