@@ -596,7 +596,11 @@ function TimetableDayHeaderInner({
     <Text
       as="div"
       size={{ initial: '1', sm: '3' }}
-      className={clsx(s.timetableColumn, isActive && s.timetableActive)}
+      className={clsx(
+        s.timetableColumn,
+        s.timetableColumnHeader,
+        isActive && s.timetableActive,
+      )}
       style={style}
     >
       {dateString}

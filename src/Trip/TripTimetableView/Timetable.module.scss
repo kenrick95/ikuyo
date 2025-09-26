@@ -122,14 +122,14 @@
     background: var(--color-panel-solid);
     font-weight: bold;
     border: 1px solid var(--gray-6);
-    z-index: 4;
+    z-index: 6;
   }
 
   .timetableAccommodationHeader {
     @extend .timetableTimeHeader;
     grid-column: 1 / span 1;
     grid-row: accommodation / span 1;
-    z-index: 3;
+    z-index: 4;
     min-height: 30px;
     height: fill-available;
   }
@@ -138,7 +138,7 @@
     @extend .timetableTimeHeader;
     grid-column: 1 / span 1;
     grid-row: macroplan / span 1;
-    z-index: 3;
+    z-index: 4;
     min-height: 30px;
     height: fill-available;
   }
@@ -162,6 +162,10 @@
     z-index: 2;
   }
 
+  .timetableColumnHeader {
+    z-index: 6;
+  }
+
   .timetableActive {
     border-color: var(--accent-indicator);
     background-color: var(--accent-surface-solid);
@@ -183,7 +187,7 @@
     padding: 0.1em;
     font-weight: bold;
     border: 1px solid var(--gray-6);
-    z-index: 2;
+    z-index: 4;
   }
 
   .timetableItem {
