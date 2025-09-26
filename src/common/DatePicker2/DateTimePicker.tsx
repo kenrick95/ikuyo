@@ -107,9 +107,9 @@ export const DateTimePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
   (props, ref) => {
     const [state, dispatch] = useReducer(datePickerReducer, {
       isOpen: false,
+      // We need at least focusedDate to decide which month to show, else we can't show anything
       focusedDate: props.value?.startOf('day') ?? DateTime.now().startOf('day'),
-      selectedDate:
-        props.value?.startOf('day') ?? DateTime.now().startOf('day'),
+      selectedDate: props.value?.startOf('day') ?? undefined,
       selectedDateTime: props.value,
       hoveredDate: undefined,
       focusedHour: props.value?.hour,

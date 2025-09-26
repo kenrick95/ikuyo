@@ -5,6 +5,7 @@ import { CommonLargeDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
 import type { TripSliceTrip } from '../Trip/store/types';
 import { AccommodationForm } from './AccommodationForm/AccommodationForm';
+import { AccommodationFormMode } from './AccommodationForm/AccommodationFormMode';
 
 export function AccommodationNewDialog({
   trip,
@@ -67,7 +68,7 @@ export function AccommodationNewDialog({
         </Dialog.Description>
         <Box height="16px" />{' '}
         <AccommodationForm
-          mode="new"
+          mode={AccommodationFormMode.New}
           tripId={trip.id}
           tripTimeZone={trip.timeZone}
           tripStartDateTime={tripStartDateTime}
