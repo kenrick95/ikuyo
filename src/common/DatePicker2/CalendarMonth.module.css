@@ -1,5 +1,5 @@
-.calendarGrid {
-  max-width: 300px;
+.calendarMonth {
+  padding: var(--space-1);
 }
 .monthLabel {
   text-align: center;
@@ -10,14 +10,43 @@
   text-align: center;
   font-weight: var(--font-weight-medium);
   font-size: var(--font-size-2);
+  text-decoration: none;
+}
+.dayButton {
+  all: unset;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-family: var(--default-font-family);
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-2);
+  letter-spacing: var(--letter-spacing-2);
+  font-weight: var(--font-weight-medium);
+  height: 32px;
+  flex: none;
+  padding-left: var(--space-3);
+  padding-right: var(--space-3);
+  border-radius: var(--radius-2);
+  user-select: none;
+  cursor: var(--cursor-button);
+  box-sizing: border-box;
+}
+.dayButton:disabled {
+  color: var(--gray-8);
+  cursor: not-allowed;
+}
+.dayButton:not(:disabled):hover {
+  background: var(--accent-7);
 }
 .dayButton:focus-visible {
   outline: 2px solid var(--focus-8);
-  outline-offset: 2px;
+  outline-offset: 1px;
   z-index: 3;
 }
-.dayButton:hover {
-  background: var(--accent-7);
+.dayButtonSelected {
+  background-color: var(--accent-9);
+  color: var(--accent-contrast);
 }
 .prevMonthButton {
   justify-self: start;

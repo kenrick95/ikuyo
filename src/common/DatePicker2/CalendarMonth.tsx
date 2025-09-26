@@ -48,10 +48,12 @@ export function CalendarMonth({
       });
   }, [startOfMonth]);
   const daysBeforeStartOfMonthArray = useMemo(() => {
-    return Array.from({ length: startOfMonth.weekday - 1 });
+    return Array.from({ length: startOfMonth.weekday - 1 }).map((_, i) => i);
   }, [startOfMonth.weekday]);
   const daysInMonthArray = useMemo(() => {
-    return Array.from({ length: startOfMonth.daysInMonth ?? 0 });
+    return Array.from({ length: startOfMonth.daysInMonth ?? 0 }).map(
+      (_, i) => i,
+    );
   }, [startOfMonth.daysInMonth]);
   const gridRef = useRef<HTMLDivElement>(null);
   // When the calendar is opened, focus is moved to the selected date
@@ -190,8 +192,8 @@ export function CalendarMonth({
   return (
     <Grid
       columns="repeat(7, 1fr)"
-      rows="auto"
-      gap="2"
+      rows="repeat(7, 35px)"
+      gap="1"
       ref={gridRef}
       className={clsx(s.calendarMonth, className)}
       role="grid"
@@ -208,7 +210,6 @@ export function CalendarMonth({
         <ArrowLeftIcon aria-hidden="true" />
       </Button>
       <Box gridColumnStart="2" gridColumnEnd="7" className={s.monthLabel}>
-        {/* A11Y: Phase 1 - Month/year should be announced to screen readers as a heading */}
         {startOfMonth.toFormat('MMMM yyyy')}
       </Box>
       <Button
@@ -222,17 +223,19 @@ export function CalendarMonth({
         <ArrowRightIcon aria-hidden="true" />
       </Button>
       {dayOfWeekArray.map(({ abbr, full }) => (
-        <Box key={abbr} className={s.dayOfWeekLabel}>
-          <abbr title={full} aria-label={full}>
-            {abbr}
-          </abbr>
-        </Box>
+        <abbr
+          title={full}
+          aria-label={full}
+          key={abbr}
+          className={s.dayOfWeekLabel}
+        >
+          {abbr}
+        </abbr>
       ))}
-      {daysBeforeStartOfMonthArray.map((_, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: no need for unique keys here
+      {daysBeforeStartOfMonthArray.map((i) => (
         <Box key={i} />
       ))}
-      {daysInMonthArray.map((_, i) => {
+      {daysInMonthArray.map((i) => {
         const date = startOfMonth.set({ day: i + 1 });
         const isFocused = date.hasSame(focusedDate, 'day');
         const isSelected = selectedDate
@@ -243,10 +246,11 @@ export function CalendarMonth({
         const isToday = date.hasSame(DateTime.now(), 'day');
 
         return (
-          <Button
+          // biome-ignore lint/a11y/useSemanticElements: this is a button on a grid
+          <button
+            type="button"
+            role="gridcell"
             disabled={isDisabled}
-            variant={isSelected ? 'solid' : 'surface'}
-            color={isSelected ? undefined : 'gray'}
             key={date.toISODate()}
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
@@ -255,14 +259,15 @@ export function CalendarMonth({
             onMouseOver={handleMouseOver}
             tabIndex={isFocused ? 0 : -1}
             data-date={date.toISODate()}
-            className={s.dayButton}
-            role="gridcell"
+            className={clsx(s.dayButton, {
+              [s.dayButtonSelected]: isSelected,
+            })}
             aria-label={date.toFormat('cccc, MMMM d, yyyy')}
             aria-selected={isSelected}
             aria-current={isToday ? 'date' : undefined}
           >
             {date.toFormat('d')}
-          </Button>
+          </button>
         );
       })}
     </Grid>
