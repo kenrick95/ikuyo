@@ -610,6 +610,7 @@ export function ActivityForm({
           max={tripEndDateTime}
           value={startDateTime}
           onChange={setStartDateTime}
+          clearable={true}
         />
         <Text as="label" htmlFor={idTimeEnd}>
           End time{' '}
@@ -624,6 +625,7 @@ export function ActivityForm({
           max={tripEndDateTime}
           value={endDateTime}
           onChange={setEndDateTime}
+          clearable={true}
         />
         <Text as="label" htmlFor={idDescription}>
           Description
