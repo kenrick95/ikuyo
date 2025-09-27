@@ -122,7 +122,6 @@ export function ExpenseInlineCardForm({
       if (
         !timestampIncurred ||
         !title ||
-        !description ||
         !currency ||
         Number.isNaN(amountFloat)
       ) {
@@ -135,7 +134,7 @@ export function ExpenseInlineCardForm({
         dbUpdateExpense({
           id: expense.id,
           title,
-          description,
+          description: description || '',
           currency,
           amount: amountFloat,
           currencyConversionFactor: currencyConversionFactorFloat,
@@ -392,14 +391,13 @@ export function ExpenseInlineCardForm({
 
       <div className={s.formRow}>
         <Text color="gray" size="1" weight="medium" className={s.formLabel}>
-          Description *
+          Description
         </Text>
         <TextField.Root
           name="description"
           type="text"
           value={formState.description}
           onChange={handleInputChange}
-          required
           disabled={formState.loading}
         />
       </div>
