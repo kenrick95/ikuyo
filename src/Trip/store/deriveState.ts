@@ -47,7 +47,17 @@ export function deriveNewTripState(
       macroplanIds: trip.macroplan.map((a) => a.id),
       tripUserIds: trip.tripUser.map((a) => a.id),
       commentGroupIds: trip.commentGroup.map((a) => a.id),
-      expenseIds: trip.expense.map((a) => a.id),
+      expenseIds: trip.expense
+        .sort((a, b) => {
+          const compareTimestampIncurredDesc =
+            b.timestampIncurred - a.timestampIncurred;
+          if (compareTimestampIncurredDesc !== 0) {
+            return compareTimestampIncurredDesc;
+          }
+          // if timestampIncurred is the same, sort by createdAt descending
+          return b.createdAt - a.createdAt;
+        })
+        .map((a) => a.id),
       taskListIds: trip.taskList
         .sort((a, b) => a.index - b.index)
         .map((a) => a.id),

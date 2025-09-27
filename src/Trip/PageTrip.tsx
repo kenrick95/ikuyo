@@ -26,8 +26,8 @@ const ActivityList = withLoading()(
 );
 const ExpenseList = withLoading()(
   React.lazy(() =>
-    import('./TripExpenseView').then((module) => {
-      return { default: module.TripExpenseView };
+    import('./TripExpenseViewCards').then((module) => {
+      return { default: module.TripExpenseViewCards };
     }),
   ),
 );

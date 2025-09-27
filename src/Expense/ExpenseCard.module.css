@@ -1,0 +1,147 @@
+.expenseCard {
+  transition: all 0.2s ease;
+}
+
+.expenseCard:hover {
+  box-shadow: var(--shadow-2);
+}
+
+.cardContent {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Collapsed Header Styles */
+.collapsedHeader {
+  box-sizing: border-box;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-2);
+  margin: 5px;
+}
+
+.collapsedHeader:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: 1px;
+}
+
+.collapsedContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+}
+
+.collapsedLeft {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.collapsedRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.date {
+  text-transform: uppercase;
+}
+.title {
+  word-break: break-word;
+}
+
+.amountDisplay {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.expandButton {
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.collapsedHeader:hover .expandButton {
+  opacity: 1;
+}
+
+/* Expanded Content Styles */
+.expandedContent {
+  padding: var(--space-3);
+  border-top: 1px solid var(--gray-4);
+  background-color: var(--gray-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.detailSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.detailLabel {
+  text-transform: uppercase;
+}
+
+.description {
+  word-break: break-word;
+  padding: var(--space-2);
+  background-color: var(--gray-3);
+  border-radius: var(--radius-2);
+}
+
+.conversionInfo {
+  padding: var(--space-3);
+  background-color: var(--gray-3);
+  border-radius: var(--radius-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tooltipIcon {
+  vertical-align: -2px;
+}
+
+.conversionRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.actionsSection {
+  display: flex;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--gray-4);
+}
+
+/* Form styles when editing */
+.cardForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.formRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.formActions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.errorMessage {
+  margin-top: var(--space-2);
+}
