@@ -25,7 +25,7 @@ export function TripExpenseViewCards() {
   }, []);
 
   return (
-    <Container py="2" pb="9">
+    <Container py="2" px="2" pb="9">
       <Grid className={s.expenseGrid}>
         {userCanModifyExpense ? (
           expenseMode === ExpenseMode.View ? (
