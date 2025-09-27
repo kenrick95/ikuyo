@@ -111,7 +111,8 @@ export function TaskList({
   }, []);
 
   const handleFormSuccess = useCallback(() => {
-    setShowInlineForm(false);
+    // After adding a task, keep the form open for adding more
+    // setShowInlineForm(false);
   }, []);
 
   const handleFormCancel = useCallback(() => {

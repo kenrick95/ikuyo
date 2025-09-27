@@ -1,5 +1,5 @@
 import { Button, Flex, Text, TextArea, TextField } from '@radix-ui/themes';
-import { useCallback, useId, useState } from 'react';
+import { useCallback, useId, useLayoutEffect, useRef, useState } from 'react';
 import { useBoundStore } from '../../../data/store';
 import { dbAddTask } from '../../../Task/db';
 import { TaskStatus } from '../../../Task/TaskStatus';
@@ -16,6 +16,8 @@ export function TaskInlineForm({
   const idForm = useId();
   const idTitle = useId();
   const idDescription = useId();
+
+  const titleRef = useRef<HTMLInputElement>(null);
 
   const publishToast = useBoundStore((state) => state.publishToast);
   const [errorMessage, setErrorMessage] = useState('');
@@ -85,6 +87,13 @@ export function TaskInlineForm({
           description: '',
         });
 
+        // Focus the title input for adding another task, need setTimeout to ensure it happens after state update
+        setTimeout(() => {
+          if (titleRef.current) {
+            titleRef.current.focus();
+          }
+        }, 0);
+
         onFormSuccess();
       } catch (error) {
         console.error('Error adding task:', error);
@@ -101,6 +110,13 @@ export function TaskInlineForm({
     [formData, taskListId, publishToast, onFormSuccess],
   );
 
+  useLayoutEffect(() => {
+    // on mount, focus the title input
+    if (titleRef.current) {
+      titleRef.current.focus();
+    }
+  }, []);
+
   return (
     <form id={idForm} onSubmit={handleSubmit} className={styles.form}>
       <Flex direction="column" gap="3">
@@ -111,6 +127,7 @@ export function TaskInlineForm({
           onChange={handleTitleChange}
           required
           disabled={isSubmitting}
+          ref={titleRef}
         />
 
         <TextArea
