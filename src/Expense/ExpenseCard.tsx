@@ -150,7 +150,7 @@ function ExpenseCardView({
           </div>
           <div className={s.collapsedRight}>
             <div className={s.amountDisplay}>
-              <Badge variant="soft" size="1">
+              <Badge variant="soft" color="grass" size="1">
                 {expense.currency}
               </Badge>
               <Text size="4" weight="bold">
