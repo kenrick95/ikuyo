@@ -1,0 +1,26 @@
+.expenseHeaderCard {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+}
+.summaryItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.summaryKey {
+  text-transform: uppercase;
+}
+.summaryValue {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1);
+}
+.summaryCurrencyBadge {
+  justify-self: start;
+}
+.summaryTotalAmount {
+  text-align: end;
+  margin-left: auto;
+}

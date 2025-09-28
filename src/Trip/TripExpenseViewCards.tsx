@@ -1,8 +1,9 @@
 import { PlusIcon } from '@radix-ui/react-icons';
-import { Button, Card, Container, Grid } from '@radix-ui/themes';
+import { Button, Card, Container, Grid, Heading } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { useCallback, useMemo, useState } from 'react';
 import { ExpenseCard } from '../Expense/ExpenseCard';
+import { ExpenseHeaderCard } from '../Expense/ExpenseHeaderCard';
 import { ExpenseInlineCardForm } from '../Expense/ExpenseInlineCardForm';
 import { ExpenseMode } from '../Expense/ExpenseMode';
 import { TripUserRole } from '../User/TripUserRole';
@@ -26,7 +27,11 @@ export function TripExpenseViewCards() {
 
   return (
     <Container py="2" px="2" pb="9">
+      <Heading as="h2" size="4">
+        Expenses
+      </Heading>
       <Grid className={s.expenseGrid}>
+        <ExpenseHeaderCard />
         {userCanModifyExpense ? (
           expenseMode === ExpenseMode.View ? (
             <Card

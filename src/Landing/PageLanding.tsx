@@ -155,7 +155,8 @@ export function PageLanding() {
                   <Heading size="4">Expense Tracking</Heading>
                   <Text color="gray">
                     Track expenses in multiple currencies. Keep tabs on your
-                    trip spending so you can split costs among group members.
+                    trip spending so you can split costs among group members
+                    (future feature).
                   </Text>
                 </Flex>
               </Card>
