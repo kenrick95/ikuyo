@@ -101,7 +101,10 @@ export function CommentForm({
           close: {},
         });
         setIsFormLoading(false);
-        refTextArea.current?.focus();
+        // Keep the focus on the text area for adding more comments. setTimeout to wait for state to be updated
+        setTimeout(() => {
+          refTextArea.current?.focus();
+        }, 0);
       }
 
       elForm.reset();
