@@ -133,37 +133,34 @@ function ExpenseCardView({
         aria-expanded={isExpanded}
         aria-label={`${isExpanded ? 'Collapse' : 'Expand'} expense details for ${expense.title}`}
       >
-        <div className={s.collapsedContent}>
-          <div className={s.collapsedLeft}>
-            <Text size="1" color="gray" className={s.date}>
-              {trip
-                ? formatTimestampToReadableDate(
-                    DateTime.fromMillis(expense.timestampIncurred, {
-                      zone: trip.timeZone,
-                    }),
-                  )
-                : ''}
-            </Text>
-            <Text size="3" weight="bold" className={s.title}>
-              {expense.title}
-            </Text>
-          </div>
-          <div className={s.collapsedRight}>
-            <div className={s.amountDisplay}>
-              <Badge variant="soft" color="grass" size="1">
-                {expense.currency}
-              </Badge>
-              <Text size="4" weight="bold">
-                {expense.amount.toFixed(2)}
-              </Text>
-            </div>
-            {isExpanded ? (
-              <ChevronDownIcon className={s.expandButton} />
-            ) : (
-              <ChevronRightIcon className={s.expandButton} />
-            )}
-          </div>
-        </div>
+        <Text size="1" color="gray" className={s.date}>
+          {trip
+            ? formatTimestampToReadableDate(
+                DateTime.fromMillis(expense.timestampIncurred, {
+                  zone: trip.timeZone,
+                }),
+              )
+            : ''}
+        </Text>
+        <Text size="3" weight="bold" className={s.title}>
+          {expense.title}
+        </Text>
+        <Badge
+          variant="soft"
+          color="grass"
+          size="1"
+          className={s.currencyBadge}
+        >
+          {expense.currency}
+        </Badge>
+        <Text size="4" weight="bold">
+          {expense.amount.toFixed(2)}
+        </Text>
+        {isExpanded ? (
+          <ChevronDownIcon className={s.expandButton} />
+        ) : (
+          <ChevronRightIcon className={s.expandButton} />
+        )}
       </button>
 
       {isExpanded && (
