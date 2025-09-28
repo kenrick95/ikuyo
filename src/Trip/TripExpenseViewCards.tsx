@@ -32,6 +32,7 @@ export function TripExpenseViewCards() {
             <Card
               size="1"
               className={clsx(s.addExpenseCard, s.addExpenseCardView)}
+              variant="ghost"
             >
               <Button
                 variant="outline"

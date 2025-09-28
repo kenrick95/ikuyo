@@ -5,13 +5,12 @@
   margin-top: var(--space-2);
   max-width: 100%;
 }
-
 .addExpenseCard {
   min-height: 80px;
   border: 2px dashed var(--gray-6);
   background-color: var(--gray-1);
   transition: all 0.2s ease;
-  box-shadow: none;
+  margin: 0;
 }
 .addExpenseCardView {
   display: flex;
