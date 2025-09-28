@@ -51,48 +51,53 @@ function CommentInner({
   const [commentMode, setCommentMode] = useState<CommentModeType>(
     CommentMode.View,
   );
-  const [objectTargetName, objectTargetLinkRoutePath] = useMemo(() => {
-    if (!showCommentObjectTarget) {
-      return ['', ''];
-    }
-    const objectType = commentGroup?.objectType;
-    const objectId = commentGroup?.objectId;
-    const objectName = commentGroup?.objectName;
-    if (!objectType || !objectId || !objectName) {
-      return ['', ''];
-    }
+  const [objectTargetName, objectTargetTypeName, objectTargetLinkRoutePath] =
+    useMemo(() => {
+      if (!showCommentObjectTarget) {
+        return ['', '', ''];
+      }
+      const objectType = commentGroup?.objectType;
+      const objectId = commentGroup?.objectId;
+      const objectName = commentGroup?.objectName;
+      if (!objectType || !objectId || !objectName) {
+        return ['', '', ''];
+      }
 
-    if (objectType === 'activity') {
-      return [
-        objectName,
-        RouteTripTimetableView.asRouteTarget() +
-          RouteTripTimetableViewActivity.asRouteTarget(objectId),
-      ];
-    } else if (objectType === 'macroplan') {
-      return [
-        objectName,
-        RouteTripTimetableView.asRouteTarget() +
-          RouteTripTimetableViewMacroplan.asRouteTarget(objectId),
-      ];
-    } else if (objectType === 'accommodation') {
-      return [
-        objectName,
-        RouteTripTimetableView.asRouteTarget() +
-          RouteTripTimetableViewAccommodation.asRouteTarget(objectId),
-      ];
-    } else if (objectType === 'task') {
-      return [
-        objectName,
-        RouteTripTaskList.asRouteTarget() +
-          RouteTripTaskListTask.asRouteTarget(objectId),
-      ];
-    } else if (objectType === 'expense') {
-      return [objectName, RouteTripExpenses.asRouteTarget()];
-    } else if (objectType === 'trip') {
-      return [objectName, '/'];
-    }
-    return ['', ''];
-  }, [commentGroup, showCommentObjectTarget]);
+      if (objectType === 'activity') {
+        return [
+          objectName,
+          'activity',
+          RouteTripTimetableView.asRouteTarget() +
+            RouteTripTimetableViewActivity.asRouteTarget(objectId),
+        ];
+      } else if (objectType === 'macroplan') {
+        return [
+          objectName,
+          'day plan',
+          RouteTripTimetableView.asRouteTarget() +
+            RouteTripTimetableViewMacroplan.asRouteTarget(objectId),
+        ];
+      } else if (objectType === 'accommodation') {
+        return [
+          objectName,
+          'accommodation',
+          RouteTripTimetableView.asRouteTarget() +
+            RouteTripTimetableViewAccommodation.asRouteTarget(objectId),
+        ];
+      } else if (objectType === 'task') {
+        return [
+          objectName,
+          'task',
+          RouteTripTaskList.asRouteTarget() +
+            RouteTripTaskListTask.asRouteTarget(objectId),
+        ];
+      } else if (objectType === 'expense') {
+        return [objectName, 'expense', RouteTripExpenses.asRouteTarget()];
+      } else if (objectType === 'trip') {
+        return [objectName, 'trip', '/'];
+      }
+      return ['', '', ''];
+    }, [commentGroup, showCommentObjectTarget]);
   return (
     <Flex gap="3" align="start">
       <UserAvatar user={user} />
@@ -106,7 +111,9 @@ function CommentInner({
           objectTargetLinkRoutePath ? (
             <Text size="1">
               {' '}
-              on <Link to={objectTargetLinkRoutePath}>{objectTargetName}</Link>
+              on {objectTargetTypeName}{' '}
+              <Link to={objectTargetLinkRoutePath}>{objectTargetName}</Link>{' '}
+              &middot;
             </Text>
           ) : null}
           <Text
@@ -224,7 +231,7 @@ function CommentInner({
 
 function formatTimestampToDateTimeString(timestamp: number): string {
   const dateTime = DateTime.fromMillis(timestamp);
-  return dateTime.toFormat('d LLLL yyyy, HH:mm ZZ');
+  return dateTime.toFormat('d LLL yyyy, HH:mm ZZ');
 }
 export const Comment = memo(CommentInner, (prevProps, nextProps) => {
   return (
