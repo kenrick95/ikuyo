@@ -10,6 +10,7 @@ import {
   Button,
   Card,
   Flex,
+  Heading,
   Inset,
   Popover,
   Text,
@@ -17,8 +18,10 @@ import {
 } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { useCallback, useState } from 'react';
+import { CommentGroupWithForm } from '../Comment/CommentGroupWithForm';
+import { COMMENT_GROUP_OBJECT_TYPE } from '../Comment/db';
 import { dangerToken } from '../common/ui';
-import { useBoundStore } from '../data/store';
+import { useBoundStore, useDeepBoundStore } from '../data/store';
 import { useTrip } from '../Trip/store/hooks';
 import type { TripSliceExpense } from '../Trip/store/types';
 import { dbDeleteExpense } from './db';
@@ -26,6 +29,8 @@ import s from './ExpenseCard.module.css';
 import { ExpenseInlineCardForm } from './ExpenseInlineCardForm';
 import { ExpenseMode } from './ExpenseMode';
 import { formatTimestampToReadableDate } from './time';
+
+const noop = () => {};
 
 export function ExpenseCard({ expense }: { expense: TripSliceExpense }) {
   const [expenseMode, setExpenseMode] = useState(ExpenseMode.View);
@@ -77,7 +82,8 @@ function ExpenseCardView({
   setIsExpanded: (expanded: boolean) => void;
 }) {
   const publishToast = useBoundStore((state) => state.publishToast);
-  const { trip } = useTrip(expense.tripId);
+  const { trip, loading } = useTrip(expense.tripId);
+  const currentUser = useDeepBoundStore((state) => state.currentUser);
 
   const handleClick = useCallback(
     (_e: React.MouseEvent<HTMLButtonElement>) => {
@@ -165,73 +171,6 @@ function ExpenseCardView({
 
       {isExpanded && (
         <div className={s.expandedContent}>
-          {/* Description */}
-          {expense.description && (
-            <div className={s.detailSection}>
-              <Text
-                size="1"
-                color="gray"
-                weight="medium"
-                className={s.detailLabel}
-              >
-                Description
-              </Text>
-              <Text size="2" className={s.description}>
-                {expense.description}
-              </Text>
-            </div>
-          )}
-
-          {/* Currency Conversion Details */}
-          {expense.currencyConversionFactor != null &&
-            expense.amountInOriginCurrency != null && (
-              <div className={s.detailSection}>
-                <Text
-                  size="1"
-                  color="gray"
-                  weight="medium"
-                  className={s.detailLabel}
-                >
-                  Currency Conversion
-                </Text>
-                <div className={s.conversionInfo}>
-                  <div className={s.conversionRow}>
-                    <Text size="2" color="gray">
-                      Amount in Destination's Currency ({trip?.currency}) :
-                    </Text>
-                    <Flex align="center" gap="1">
-                      <Text size="2">{expense.amount?.toFixed(2)}</Text>
-                    </Flex>
-                  </div>
-                  <div className={s.conversionRow}>
-                    <Text size="2" color="gray">
-                      Conversion Factor{' '}
-                      <Tooltip
-                        content={`How much does 1 unit of origin's currency is worth in the entry's currency. This is equal to "Amount" divided by "Amount in Origin's Currency".`}
-                      >
-                        <QuestionMarkCircledIcon className={s.tooltipIcon} />
-                      </Tooltip>{' '}
-                      :
-                    </Text>
-                    <Flex align="center" gap="1">
-                      <Text size="2">
-                        {expense.currencyConversionFactor?.toFixed(2)}
-                      </Text>
-                    </Flex>
-                  </div>
-                  <div className={s.conversionRow}>
-                    <Text size="2" color="gray">
-                      Amount in Origin's Currency
-                      {trip?.originCurrency ? ` (${trip.originCurrency})` : ''}:
-                    </Text>
-                    <Text size="2" weight="medium">
-                      {expense.amountInOriginCurrency?.toFixed(2)}
-                    </Text>
-                  </div>
-                </div>
-              </div>
-            )}
-
           {/* Actions */}
           <div className={s.actionsSection}>
             <Button variant="outline" size="2" onClick={handleEditExpense}>
@@ -269,6 +208,95 @@ function ExpenseCardView({
               </Popover.Content>
             </Popover.Root>
           </div>
+
+          {/* Description */}
+          {expense.description ? (
+            <div className={s.detailSection}>
+              <Heading
+                as="h5"
+                className={s.detailLabel}
+                size="1"
+                color="gray"
+                weight="medium"
+              >
+                Description
+              </Heading>
+              <Text size="2" className={s.description}>
+                {expense.description}
+              </Text>
+            </div>
+          ) : null}
+
+          {/* Currency Conversion Details */}
+          <div className={s.detailSection}>
+            <Heading
+              as="h5"
+              className={s.detailLabel}
+              size="1"
+              color="gray"
+              weight="medium"
+            >
+              Currency Conversion
+            </Heading>
+            <div className={s.conversionInfo}>
+              <div className={s.conversionRow}>
+                <Text size="2" color="gray">
+                  Amount in Destination's Currency ({trip?.currency}) :
+                </Text>
+                <Flex align="center" gap="1">
+                  <Text size="2">{expense.amount?.toFixed(2)}</Text>
+                </Flex>
+              </div>
+              <div className={s.conversionRow}>
+                <Text size="2" color="gray">
+                  Conversion Factor{' '}
+                  <Tooltip
+                    content={`How much does 1 unit of origin's currency is worth in the entry's currency. This is equal to "Amount" divided by "Amount in Origin's Currency".`}
+                  >
+                    <QuestionMarkCircledIcon className={s.tooltipIcon} />
+                  </Tooltip>{' '}
+                  :
+                </Text>
+                <Flex align="center" gap="1">
+                  <Text size="2">
+                    {expense.currencyConversionFactor?.toFixed(2)}
+                  </Text>
+                </Flex>
+              </div>
+              <div className={s.conversionRow}>
+                <Text size="2" color="gray">
+                  Amount in Origin's Currency
+                  {trip?.originCurrency ? ` (${trip.originCurrency})` : ''}:
+                </Text>
+                <Text size="2" weight="medium">
+                  {expense.amountInOriginCurrency?.toFixed(2)}
+                </Text>
+              </div>
+            </div>
+          </div>
+
+          {/* Comments */}
+          <Flex direction="column" gap="2">
+            <Heading
+              as="h5"
+              className={s.detailLabel}
+              size="1"
+              color="gray"
+              weight="medium"
+            >
+              Comments
+            </Heading>
+
+            <CommentGroupWithForm
+              tripId={expense?.tripId}
+              objectId={expense?.id}
+              objectType={COMMENT_GROUP_OBJECT_TYPE.EXPENSE}
+              user={currentUser}
+              onFormFocus={noop}
+              commentGroupId={expense?.commentGroupId}
+              isLoading={loading}
+            />
+          </Flex>
         </div>
       )}
     </Inset>
