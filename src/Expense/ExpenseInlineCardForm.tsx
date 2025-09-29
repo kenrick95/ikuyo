@@ -1,4 +1,5 @@
-import { Button, Select, Text, TextField } from '@radix-ui/themes';
+import { QuestionMarkCircledIcon } from '@radix-ui/react-icons';
+import { Button, Select, Text, TextField, Tooltip } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import type * as React from 'react';
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
@@ -426,7 +427,15 @@ export function ExpenseInlineCardForm({
 
       <div className={s.formRow}>
         <Text color="gray" size="1" weight="medium" className={s.formLabel}>
-          Currency Conversion Factor *
+          Currency Conversion Factor *{' '}
+          <Text size="2" color="gray">
+            <Tooltip
+              content={`How much does 1 unit of origin's currency${trip?.originCurrency ? ` (${trip.originCurrency})` : ''} is worth in the entry's currency ${formState.currency ? ` (${formState.currency})` : ''}. This is equal to "Amount" divided by "Amount in Origin's Currency".`}
+            >
+              <QuestionMarkCircledIcon className={s.tooltipIcon} />
+            </Tooltip>{' '}
+            :
+          </Text>
         </Text>
         <TextField.Root
           name="currencyConversionFactor"
