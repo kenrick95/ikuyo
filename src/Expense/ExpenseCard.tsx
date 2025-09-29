@@ -241,7 +241,7 @@ function ExpenseCardView({
             <div className={s.conversionInfo}>
               <div className={s.conversionRow}>
                 <Text size="2" color="gray">
-                  Amount in Destination's Currency ({trip?.currency}) :
+                  Amount in {expense.currency}:
                 </Text>
                 <Flex align="center" gap="1">
                   <Text size="2">{expense.amount?.toFixed(2)}</Text>
@@ -251,7 +251,7 @@ function ExpenseCardView({
                 <Text size="2" color="gray">
                   Conversion Factor{' '}
                   <Tooltip
-                    content={`How much does 1 unit of origin's currency is worth in the entry's currency. This is equal to "Amount" divided by "Amount in Origin's Currency".`}
+                    content={`How much does 1 unit of origin's currency${trip?.originCurrency ? ` (${trip.originCurrency})` : ''} is worth in the entry's currency (${expense.currency}). This is equal to "Amount" divided by "Amount in Origin's Currency".`}
                   >
                     <QuestionMarkCircledIcon className={s.tooltipIcon} />
                   </Tooltip>{' '}
