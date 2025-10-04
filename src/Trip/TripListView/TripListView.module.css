@@ -34,3 +34,39 @@
     height: calc(100vh - var(--space-8));
   }
 }
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0.2cm;
+  }
+  .list {
+    height: auto;
+    overscroll-behavior: auto;
+    overflow: auto;
+    width: 100%;
+    max-width: 100%;
+    display: block;
+  }
+  .listSubheader {
+    position: static;
+    border: none;
+    background: none;
+    break-inside: avoid;
+  }
+  .listSubheader:not(:nth-of-type(1)) {
+    break-before: always;
+  }
+  .listSubheaderActive {
+    background: none;
+    border: none;
+  }
+  .listItem {
+    break-inside: avoid;
+  }
+  .listItem + .listItem {
+    margin-top: var(--space-2);
+  }
+  .mapContainer {
+    display: none;
+  }
+}

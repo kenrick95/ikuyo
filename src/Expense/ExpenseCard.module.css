@@ -158,3 +158,17 @@
 .errorMessage {
   margin-top: var(--space-2);
 }
+
+@media print {
+  .cardContent,
+  .expenseCard {
+    break-inside: avoid;
+    border-color: black;
+    box-shadow: none;
+    background-color: white;
+    color: black;
+  }
+  .expandButton {
+    display: none;
+  }
+}

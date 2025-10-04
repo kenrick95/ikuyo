@@ -69,3 +69,8 @@
 .boxRight.boxRightFirst {
   margin-left: auto;
 }
+@media print {
+  .container {
+    display: none;
+  }
+}

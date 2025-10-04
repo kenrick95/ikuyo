@@ -106,3 +106,9 @@
     transform: translateX(0) translateY(-50%);
   }
 }
+
+@media print {
+  .sidebar {
+    display: none;
+  }
+}

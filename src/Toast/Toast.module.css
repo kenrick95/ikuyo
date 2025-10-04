@@ -49,6 +49,15 @@
   animation: swipeOut 100ms ease-out;
 }
 
+@media print {
+  .ToastViewport {
+    display: none;
+  }
+  .ToastRoot {
+    display: none;
+  }
+}
+
 @keyframes hide {
   from {
     opacity: 1;

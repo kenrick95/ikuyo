@@ -239,13 +239,23 @@ function ActivityInner({
           }}
         >
           {tripViewMode === TripViewMode.List ? (
-            <Text as="div" size={responsiveTextSize} color="gray">
+            <Text
+              as="div"
+              size={responsiveTextSize}
+              color="gray"
+              className={style.activityTime}
+            >
               <ClockIcon style={{ verticalAlign: '-2px' }} /> {timeStart} -{' '}
               {timeEnd}
             </Text>
           ) : null}
           {tripViewMode === TripViewMode.Home ? (
-            <Text as="div" size={responsiveTextSize} color="gray">
+            <Text
+              as="div"
+              size={responsiveTextSize}
+              color="gray"
+              className={style.activityTime}
+            >
               <ClockIcon style={{ verticalAlign: '-2px' }} />{' '}
               {activityStartStr && activityEndStr ? (
                 // Both are set
@@ -266,12 +276,22 @@ function ActivityInner({
             </Text>
           ) : null}
 
-          <Text as="div" size={responsiveTextSize} weight="bold">
+          <Text
+            as="div"
+            size={responsiveTextSize}
+            weight="bold"
+            className={style.activityTitle}
+          >
             {activity.title}
           </Text>
 
           {activity.location ? (
-            <Text as="div" size={responsiveTextSize} color="gray">
+            <Text
+              as="div"
+              size={responsiveTextSize}
+              color="gray"
+              className={style.activityLocation}
+            >
               <SewingPinIcon style={{ verticalAlign: '-2px' }} />{' '}
               {activity.location}
               {activity.locationDestination

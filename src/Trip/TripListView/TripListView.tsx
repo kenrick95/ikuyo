@@ -348,6 +348,7 @@ export function TripListView() {
           flexGrow="1"
           maxWidth={{ initial: '100%', sm: '50%' }}
           display={{ initial: 'none', sm: 'flex' }}
+          className={s.mapContainer}
         >
           <TripMap useCase="list" />
         </Flex>

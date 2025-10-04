@@ -76,6 +76,7 @@
     min-width: 0;
     min-height: 0;
     overflow: auto;
+    height: var(--timetable-height);
     max-height: var(--timetable-height);
     overscroll-behavior-y: contain;
   }
@@ -258,5 +259,85 @@
     @media (max-width: 480px) {
       transform: translateY(-50%) translateX(calc(-100vw + 48px));
     }
+  }
+}
+
+@media print {
+
+  // Hide interactive elements that don't make sense in print
+  .sidebarToggle,
+  .sidebarToggleActive {
+    display: none;
+  }
+}
+
+// Print styles for A4 paper 
+@layer timetableOverride {
+
+  @media print {
+    @page {
+      size: A4 portrait;
+      margin: 0.2cm;
+    }
+
+    .timetable {
+      --timetable-height: calc(100vh);
+      --row-minute-height: calc(var(--timetable-height) / 1440);
+      --row-minute-narrow-height: calc(var(--timetable-height) / 1440 * 0.5);
+
+      overflow: hidden;
+      break-inside: avoid;
+
+      // Use smaller fonts and padding for print
+      font-size: 10px;
+      line-height: 1.2;
+      // Ensure good contrast for printing
+      background-color: white;
+      color: black;
+    }
+
+    .timetableTimeHeader,
+    .timetableAccommodationHeader,
+    .timetableMacroplanHeader {
+      font-size: 10px;
+      padding: 2px 4px;
+
+      background: white;
+      color: black;
+      border-color: black;
+    }
+
+    .timetableColumn {
+      font-size: 10px;
+      padding: 2px 4px;
+
+      background: white;
+      color: black;
+      border-color: black;
+    }
+
+    .timetableTime {
+      font-size: 9px;
+      padding: 1px 2px;
+
+      background: white;
+      color: black;
+      border-color: black;
+    }
+
+    .timetableCell {
+      font-size: 10px;
+      min-height: var(--row-minute-height);
+
+      background: white;
+      color: black;
+      border-color: black;
+    }
+
+    .timetableActive {
+      background-color: #f0f0f0;
+      border-color: #000;
+    }
+
   }
 }

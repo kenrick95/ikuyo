@@ -8,6 +8,11 @@
   justify-content: center;
   height: 0;
 }
+@media print {
+  .nav {
+    display: none;
+  }
+}
 
 .controlContainer {
   background-color: var(--color-panel-solid);

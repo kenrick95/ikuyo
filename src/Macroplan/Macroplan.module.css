@@ -23,3 +23,13 @@
   outline-color: var(--accent-9);
   z-index: 3;
 }
+
+@media print {
+  .macroplan {
+    color: black;
+    border-color: black;
+    box-shadow: none;
+    background-color: white;
+    break-inside: avoid;
+  }
+}

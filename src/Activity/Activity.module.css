@@ -52,3 +52,21 @@
 .newFormButtonSubmit {
   grid-column: -2 / span 1;
 }
+@media print {
+  .activity,
+  .activityOngoing {
+    border-color: black;
+    box-shadow: none;
+    background-color: white;
+    color: black;
+    transform: none;
+    cursor: default;
+    break-inside: avoid;
+  }
+  .activityTime,
+  .activityDescription,
+  .activityTitle,
+  .activityLocation {
+    color: black;
+  }
+}

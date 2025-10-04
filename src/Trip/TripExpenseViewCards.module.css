@@ -22,3 +22,14 @@
   border-color: var(--gray-8);
   background-color: var(--gray-2);
 }
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0.2cm;
+  }
+  .addExpenseCard,
+  .addExpenseCardView {
+    display: none;
+  }
+}
