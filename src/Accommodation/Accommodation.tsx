@@ -1,4 +1,10 @@
-import { ClockIcon, HomeIcon } from '@radix-ui/react-icons';
+import {
+  ClockIcon,
+  EnvelopeClosedIcon,
+  HomeIcon,
+  InfoCircledIcon,
+  SewingPinIcon,
+} from '@radix-ui/react-icons';
 import { Box, ContextMenu, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
@@ -125,7 +131,12 @@ function AccommodationInner({
           {tripViewMode === TripViewMode.List &&
           (displayTimeMode === AccommodationDisplayTimeMode.CheckIn ||
             displayTimeMode === AccommodationDisplayTimeMode.CheckOut) ? (
-            <Text as="div" size={responsiveTextSize} color="gray">
+            <Text
+              as="div"
+              size={responsiveTextSize}
+              color="gray"
+              className={s.accommodationCheckInCheckOut}
+            >
               <ClockIcon style={{ verticalAlign: '-2px' }} /> {displayTimeMode}:{' '}
               {formatTime(
                 displayTimeMode === AccommodationDisplayTimeMode.CheckIn
@@ -135,8 +146,47 @@ function AccommodationInner({
               )}
             </Text>
           ) : null}
+          {tripViewMode === TripViewMode.List &&
+          displayTimeMode === AccommodationDisplayTimeMode.CheckIn &&
+          accommodation.address ? (
+            <Text
+              as="div"
+              size={responsiveTextSize}
+              color="gray"
+              className={s.accommodationAddress}
+            >
+              <SewingPinIcon style={{ verticalAlign: '-2px' }} />{' '}
+              {accommodation.address}
+            </Text>
+          ) : null}
+          {tripViewMode === TripViewMode.List &&
+          displayTimeMode === AccommodationDisplayTimeMode.CheckIn &&
+          accommodation.phoneNumber ? (
+            <Text
+              as="div"
+              size={responsiveTextSize}
+              color="gray"
+              className={s.accommodationPhoneNumber}
+            >
+              <EnvelopeClosedIcon style={{ verticalAlign: '-2px' }} />{' '}
+              {accommodation.phoneNumber}
+            </Text>
+          ) : null}
+          {tripViewMode === TripViewMode.List &&
+          displayTimeMode === AccommodationDisplayTimeMode.CheckIn &&
+          accommodation.notes ? (
+            <Text
+              as="div"
+              size={responsiveTextSize}
+              color="gray"
+              className={s.accommodationNotes}
+            >
+              <InfoCircledIcon style={{ verticalAlign: '-2px' }} />{' '}
+              {accommodation.notes}
+            </Text>
+          ) : null}
         </Box>
-      </ContextMenu.Trigger>{' '}
+      </ContextMenu.Trigger>
       <ContextMenu.Content>
         <ContextMenu.Label>{accommodation.name}</ContextMenu.Label>
         <ContextMenu.Item onClick={handleContextMenuView}>

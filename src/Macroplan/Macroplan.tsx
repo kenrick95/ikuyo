@@ -1,10 +1,11 @@
+import { InfoCircledIcon } from '@radix-ui/react-icons';
 import { Box, ContextMenu, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { dangerToken } from '../common/ui';
 import type { TripSliceMacroplan } from '../Trip/store/types';
-import type { TripViewModeType } from '../Trip/TripViewMode';
+import { TripViewMode, type TripViewModeType } from '../Trip/TripViewMode';
 import s from './Macroplan.module.css';
 import { useMacroplanDialogHooks } from './MacroplanDialog/macroplanDialogHooks';
 
@@ -17,6 +18,7 @@ function MacroplanInner({
   gridColumnEnd,
   tripViewMode,
   userCanEditOrDelete,
+  index,
 }: {
   className?: string;
   macroplan: TripSliceMacroplan;
@@ -24,6 +26,7 @@ function MacroplanInner({
   gridColumnEnd?: string;
   tripViewMode: TripViewModeType;
   userCanEditOrDelete: boolean;
+  index: number;
 }) {
   const macroplanRef = useRef<HTMLDivElement>(null);
   const [location] = useLocation();
@@ -116,8 +119,21 @@ function MacroplanInner({
           <Text as="div" size={responsiveTextSize} weight="bold">
             {macroplan.name}
           </Text>
+          {tripViewMode === TripViewMode.List &&
+          macroplan.notes &&
+          index === 0 ? (
+            <Text
+              as="div"
+              size={responsiveTextSize}
+              color="gray"
+              className={s.macroplanNotes}
+            >
+              <InfoCircledIcon style={{ verticalAlign: '-2px' }} />{' '}
+              {macroplan.notes}
+            </Text>
+          ) : null}
         </Box>
-      </ContextMenu.Trigger>{' '}
+      </ContextMenu.Trigger>
       <ContextMenu.Content>
         <ContextMenu.Label>{macroplan.name}</ContextMenu.Label>
         <ContextMenu.Item onClick={handleContextMenuView}>
@@ -148,6 +164,7 @@ export const Macroplan = memo(MacroplanInner, (prevProps, nextProps) => {
     prevProps.className === nextProps.className &&
     prevProps.gridColumnStart === nextProps.gridColumnStart &&
     prevProps.gridColumnEnd === nextProps.gridColumnEnd &&
-    prevProps.userCanEditOrDelete === nextProps.userCanEditOrDelete
+    prevProps.userCanEditOrDelete === nextProps.userCanEditOrDelete &&
+    prevProps.index === nextProps.index
   );
 });

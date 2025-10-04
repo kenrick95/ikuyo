@@ -437,6 +437,7 @@ export function Timetable() {
                     columnIndex.endColumn,
                   )}`}
                   userCanEditOrDelete={userCanModifyTrip}
+                  index={-1}
                 />
               );
             })}

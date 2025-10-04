@@ -23,6 +23,10 @@
   outline-color: var(--accent-9);
   z-index: 3;
 }
+.accommodationNotes {
+  word-break: break-all;
+  white-space: pre-wrap;
+}
 @media print {
   .accommodation {
     color: black;
@@ -30,5 +34,10 @@
     box-shadow: none;
     background-color: white;
     break-inside: avoid;
+  }
+  .accommodationCheckInCheckOut,
+  .accommodationAddress,
+  .accommodationPhoneNumber {
+    color: black;
   }
 }

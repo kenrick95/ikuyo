@@ -23,6 +23,10 @@
   outline-color: var(--accent-9);
   z-index: 3;
 }
+.macroplanNotes {
+  word-break: break-all;
+  white-space: pre-wrap;
+}
 
 @media print {
   .macroplan {
@@ -31,5 +35,8 @@
     box-shadow: none;
     background-color: white;
     break-inside: avoid;
+  }
+  .macroplanNotes {
+    color: black;
   }
 }

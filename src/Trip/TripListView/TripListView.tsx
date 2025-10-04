@@ -210,6 +210,7 @@ export function TripListView() {
                         className={s.listItem}
                         tripViewMode={TripViewMode.List}
                         userCanEditOrDelete={userCanEditOrDelete}
+                        index={0}
                       />
                     );
                   })}
@@ -275,6 +276,7 @@ export function TripListView() {
                         className={s.listItem}
                         tripViewMode={TripViewMode.List}
                         userCanEditOrDelete={userCanEditOrDelete}
+                        index={i}
                       />
                     );
                   }),
