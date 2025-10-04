@@ -413,7 +413,7 @@ export function Timetable() {
           const isCurrentDay = currentDayIndex === dayNumber;
           return (
             <TimetableDayHeader
-              dateString={dayGroup.startDateTime.toFormat('ccc, dd LLL yyyy')}
+              dateString={dayGroup.startDateTime.toFormat('ccc, d LLL yyyy')}
               key={dayGroup.startDateTime.toISODate()}
               gridColumnStart={`d${String(dayNumber)}`}
               gridColumnEnd={`de${String(dayNumber)}`}

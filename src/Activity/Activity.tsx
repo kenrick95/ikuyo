@@ -47,13 +47,13 @@ function ActivityInner({
       : undefined;
 
   const activityStartStr = activityStartDateTime
-    ? activityStartDateTime.toFormat('dd MMMM yyyy HH:mm')
+    ? activityStartDateTime.toFormat('d MMMM yyyy HH:mm')
     : undefined;
   const activityEndStr = activityEndDateTime
     ? activityStartDateTime?.hasSame(activityEndDateTime, 'day')
       ? // If same day, only show time
         activityEndDateTime.toFormat('HH:mm')
-      : activityEndDateTime.toFormat('dd MMMM yyyy HH:mm')
+      : activityEndDateTime.toFormat('d MMMM yyyy HH:mm')
     : undefined;
 
   const timeStart = useMemo(

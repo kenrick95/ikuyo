@@ -265,7 +265,7 @@ export function TripListView() {
                       isCurrentDay && s.listSubheaderActive,
                     )}
                   >
-                    {dayGroup.startDateTime.toFormat('cccc, dd LLLL yyyy')}
+                    {dayGroup.startDateTime.toFormat('cccc, d LLLL yyyy')}
                   </Heading>,
                   ...dayMacroplans.map((macroplan, i) => {
                     return (
