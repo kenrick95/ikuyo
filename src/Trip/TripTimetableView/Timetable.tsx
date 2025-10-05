@@ -24,6 +24,7 @@ import {
 import { useBoundStore } from '../../data/store';
 import { Macroplan } from '../../Macroplan/Macroplan';
 import { MacroplanDialog } from '../../Macroplan/MacroplanDialog/MacroplanDialog';
+import { DocTitle } from '../../Nav/DocTitle';
 import {
   RouteTripTimetableViewAccommodation,
   RouteTripTimetableViewActivity,
@@ -394,6 +395,7 @@ export function Timetable() {
 
   return (
     <Section py="0">
+      <DocTitle title={`${trip?.title ?? 'Trip'} - Timetable`} />
       {/** biome-ignore lint/a11y/noStaticElementInteractions: Only drag-and-drop */}
       <div
         className={clsx(

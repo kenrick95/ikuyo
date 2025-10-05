@@ -1,5 +1,7 @@
 import { Box, Flex } from '@radix-ui/themes';
 import { TripMap } from '../../Map/TripMap';
+import { DocTitle } from '../../Nav/DocTitle';
+import { useCurrentTrip } from '../store/hooks';
 import { TripHeading } from './TripHeading';
 import s from './TripHome.module.css';
 import { TripHomeActivities } from './TripHomeActivities';
@@ -14,6 +16,7 @@ const containerDirection = { initial: 'column' as const, sm: 'row' as const };
 const containerWrap = { initial: 'wrap' as const, md: 'nowrap' as const };
 const sideColumnMarginTop = { initial: '0', sm: '6' };
 export function TripHome() {
+  const { trip } = useCurrentTrip();
   // For ongoing trips, prioritize activities and comments
   return (
     <Flex
@@ -26,6 +29,7 @@ export function TripHome() {
       wrap={containerWrap}
       className={s.container}
     >
+      <DocTitle title={`${trip?.title ?? 'Trip'} - Overview`} />
       <Flex
         gap="2"
         direction="column"

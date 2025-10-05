@@ -19,6 +19,7 @@ import { Macroplan } from '../../Macroplan/Macroplan';
 import { MacroplanDialog } from '../../Macroplan/MacroplanDialog/MacroplanDialog';
 import { MacroplanNewDialog } from '../../Macroplan/MacroplanNewDialog';
 import { TripMap } from '../../Map/TripMap';
+import { DocTitle } from '../../Nav/DocTitle';
 import {
   RouteTripListViewAccommodation,
   RouteTripListViewActivity,
@@ -187,6 +188,7 @@ export function TripListView() {
         justify="between"
         direction={{ initial: 'column', sm: 'row' }}
       >
+        <DocTitle title={`${trip?.title ?? 'Trip'} - List`} />
         <ContextMenu.Root>
           <ContextMenu.Trigger>
             <Flex

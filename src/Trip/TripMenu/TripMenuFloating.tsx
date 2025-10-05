@@ -78,7 +78,7 @@ function TripMenuFloatingInner() {
             >
               <HomeIcon className={s.controlIcon} />
               <Text size="1" className={s.controlText}>
-                Home
+                Overview
               </Text>
             </SegmentedControl.Item>
           </Tooltip>

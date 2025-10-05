@@ -44,7 +44,7 @@ export function TripNavbar() {
           className={s.tripTabSelector}
         />
         <Select.Content position="popper">
-          <Select.Item value={RouteTripHome.routePath}>Home</Select.Item>
+          <Select.Item value={RouteTripHome.routePath}>Overview</Select.Item>
           <Select.Item value={RouteTripTimetableView.routePath}>
             Timetable
           </Select.Item>

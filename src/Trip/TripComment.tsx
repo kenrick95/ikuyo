@@ -1,5 +1,6 @@
 import { Container, Flex, Heading, Text } from '@radix-ui/themes';
 import { Comment } from '../Comment/Comment';
+import { DocTitle } from '../Nav/DocTitle';
 import { useCurrentTrip, useTripAllComments } from './store/hooks';
 
 const containerPx = { initial: '1', md: '0' };
@@ -11,6 +12,7 @@ export function TripComment() {
 
   return (
     <Container mt="2" pb={containerPb} px={containerPx}>
+      <DocTitle title={`${trip?.title ?? 'Trip'} - Comments`} />
       <Heading as="h2" size="4" mb="2">
         All Comments
       </Heading>

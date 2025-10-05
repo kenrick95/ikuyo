@@ -6,6 +6,7 @@ import { ExpenseCard } from '../Expense/ExpenseCard';
 import { ExpenseHeaderCard } from '../Expense/ExpenseHeaderCard';
 import { ExpenseInlineCardForm } from '../Expense/ExpenseInlineCardForm';
 import { ExpenseMode } from '../Expense/ExpenseMode';
+import { DocTitle } from '../Nav/DocTitle';
 import { TripUserRole } from '../User/TripUserRole';
 import { useCurrentTrip, useTripExpenses } from './store/hooks';
 import s from './TripExpenseViewCards.module.css';
@@ -27,6 +28,7 @@ export function TripExpenseViewCards() {
 
   return (
     <Container py="2" px="2" pb="9">
+      <DocTitle title={`${trip?.title ?? 'Trip'} - Expenses`} />
       <Heading as="h2" size="4">
         Expenses
       </Heading>

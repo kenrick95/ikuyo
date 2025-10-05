@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { ExpenseInlineForm } from '../Expense/ExpenseInlineForm';
 import { ExpenseMode } from '../Expense/ExpenseMode';
 import { ExpenseRow } from '../Expense/ExpenseRow';
+import { DocTitle } from '../Nav/DocTitle';
 import { TripUserRole } from '../User/TripUserRole';
 import { useCurrentTrip, useTripExpenses } from './store/hooks';
 import s from './TripExpenseView.module.css';
@@ -22,6 +23,7 @@ export function TripExpenseView() {
 
   return (
     <Section py="0" pb="9">
+      <DocTitle title={`${trip?.title ?? 'Trip'} - Expenses`} />
       <Table.Root>
         <colgroup>
           <col className={s.tableCellDateIncurred} />

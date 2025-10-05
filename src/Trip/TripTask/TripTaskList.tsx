@@ -20,6 +20,7 @@ import { PlusIcon } from '@radix-ui/react-icons';
 import { Box, Button, Container, Flex, Heading, Text } from '@radix-ui/themes';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Route, Switch } from 'wouter';
+import { DocTitle } from '../../Nav/DocTitle';
 import { RouteTripTaskListTask } from '../../Routes/routes';
 import {
   dbMoveTaskToTaskList,
@@ -363,6 +364,7 @@ export function TripTaskList() {
 
   return (
     <Box mt="2" pb={containerPb} px={containerPx}>
+      <DocTitle title={`${trip?.title ?? 'Trip'} - Tasks`} />
       <Container className={style.taskBoardHeader}>
         <Flex justify="start" align="center" gap="2">
           <Heading as="h2" size="4">
