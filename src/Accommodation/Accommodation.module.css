@@ -37,7 +37,8 @@
   }
   .accommodationCheckInCheckOut,
   .accommodationAddress,
-  .accommodationPhoneNumber {
+  .accommodationPhoneNumber,
+  .accommodationNotes {
     color: black;
   }
 }
