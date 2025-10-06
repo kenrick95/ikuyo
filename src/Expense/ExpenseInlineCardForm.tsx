@@ -5,7 +5,7 @@ import type * as React from 'react';
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
 import { DateTimePicker } from '../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../common/DatePicker2/DateTimePickerMode';
-import { TimeZoneSelect } from '../common/TimeZoneSelect/TimeZoneSelect';
+// import { TimeZoneSelect } from '../common/TimeZoneSelect/TimeZoneSelect';
 import { dangerToken } from '../common/ui';
 import { useBoundStore } from '../data/store';
 import type { TripSliceExpense, TripSliceTrip } from '../Trip/store/types';
@@ -68,7 +68,7 @@ export function ExpenseInlineCardForm({
         },
   );
   const [errorMessage, setErrorMessage] = useState('');
-  const [timeZoneIncurred, setTimeZoneIncurred] = useState<string>(
+  const [timeZoneIncurred] = useState<string>(
     expenseMode === ExpenseMode.Edit && expense && expense.timeZoneIncurred
       ? expense.timeZoneIncurred
       : trip.timeZone,
@@ -99,9 +99,10 @@ export function ExpenseInlineCardForm({
     [],
   );
 
-  const handleTimeZoneChange = useCallback((newTimeZone: string) => {
-    setTimeZoneIncurred(newTimeZone);
-  }, []);
+  // TODO: implement later
+  // const handleTimeZoneChange = useCallback((newTimeZone: string) => {
+  //   setTimeZoneIncurred(newTimeZone);
+  // }, []);
 
   const handleForm = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
@@ -388,7 +389,8 @@ export function ExpenseInlineCardForm({
         {fieldTimestampIncurred}
       </div>
 
-      <div className={s.formRow}>
+      {/* TODO: implement later */}
+      {/* <div className={s.formRow}>
         <Text color="gray" size="1" weight="medium" className={s.formLabel}>
           Time Zone (trip default: {trip.timeZone})
         </Text>
@@ -399,7 +401,7 @@ export function ExpenseInlineCardForm({
           handleChange={handleTimeZoneChange}
           isFormLoading={formState.loading}
         />
-      </div>
+      </div> */}
 
       <div className={s.formRow}>
         <Text color="gray" size="1" weight="medium" className={s.formLabel}>
