@@ -19,30 +19,37 @@ export function formatTime(timestamp: number, timeZone: string): string {
 export function formatAccommodationTimeRange({
   timestampCheckIn,
   timestampCheckOut,
-  timeZone,
+  timeZoneCheckIn,
+  timeZoneCheckOut,
 }: {
   timestampCheckIn: number | undefined;
   timestampCheckOut: number | undefined;
-  timeZone: string | undefined;
+  timeZoneCheckIn: string | undefined;
+  timeZoneCheckOut: string | undefined;
 }): string | null {
   const dtStart = timestampCheckIn
     ? DateTime.fromMillis(timestampCheckIn, {
-        zone: timeZone,
+        zone: timeZoneCheckIn,
       })
     : undefined;
   const dtEnd = timestampCheckOut
     ? DateTime.fromMillis(timestampCheckOut, {
-        zone: timeZone,
+        zone: timeZoneCheckOut,
       })
     : undefined;
 
   if (dtStart && dtEnd) {
-    if (dtStart.hasSame(dtEnd, 'day')) {
-      // e.g. "1 January 2025 15:00-22:00"
-      return `${dtStart.toFormat('d LLLL yyyy HH:mm')}–${dtEnd.toFormat('HH:mm')}`;
+    if (timeZoneCheckIn === timeZoneCheckOut) {
+      if (dtStart.hasSame(dtEnd, 'day')) {
+        // e.g. "1 January 2025 15:00-22:00"
+        return `${dtStart.toFormat('d LLLL yyyy HH:mm')}–${dtEnd.toFormat('HH:mm')} (${timeZoneCheckIn})`;
+      }
+      // e.g. "1 December 2025 15:00-15 February 2026 11:00"
+      return `${dtStart.toFormat('d LLLL yyyy HH:mm')}–${dtEnd.toFormat('d LLLL yyyy HH:mm')} (${timeZoneCheckIn})`;
+    } else {
+      // e.g. "1 January 2025 15:00 (Asia/Tokyo)-31 January 2025 11:00 (America/New_York)"
+      return `${dtStart.toFormat('d LLLL yyyy HH:mm')} (${timeZoneCheckIn})–${dtEnd.toFormat('d LLLL yyyy HH:mm')} (${timeZoneCheckOut})`;
     }
-    // e.g. "1 December 2025 15:00-15 February 2026 11:00"
-    return `${dtStart.toFormat('d LLLL yyyy HH:mm')}–${dtEnd.toFormat('d LLLL yyyy HH:mm')}`;
   } else if (dtStart) {
     // e.g. "1 January 2025 15:00-Check out time not set"
     return `${dtStart.toFormat('d LLLL yyyy HH:mm')}–Check out time not set`;

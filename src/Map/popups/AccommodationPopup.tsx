@@ -48,7 +48,8 @@ export function AccommodationPopup({
           ? formatAccommodationTimeRange({
               timestampCheckIn: accommodation.timestampCheckIn,
               timestampCheckOut: accommodation.timestampCheckOut,
-              timeZone: trip.timeZone,
+              timeZoneCheckIn: accommodation.timeZoneCheckIn ?? trip.timeZone,
+              timeZoneCheckOut: accommodation.timeZoneCheckOut ?? trip.timeZone,
             })
           : null}
       </Text>
