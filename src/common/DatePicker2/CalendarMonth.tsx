@@ -139,8 +139,9 @@ export function CalendarMonth({
     (e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
       const dateStr = target.getAttribute('data-date');
+      const dateZone = target.getAttribute('data-timezone');
       if (dateStr) {
-        const date = DateTime.fromISO(dateStr);
+        const date = DateTime.fromISO(dateStr, { zone: dateZone ?? undefined });
         if (!isDateInRange(date, min, max)) {
           return;
         }
@@ -155,8 +156,9 @@ export function CalendarMonth({
     (e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
       const dateStr = target.getAttribute('data-date');
+      const dateZone = target.getAttribute('data-timezone');
       if (dateStr) {
-        const date = DateTime.fromISO(dateStr);
+        const date = DateTime.fromISO(dateStr, { zone: dateZone ?? undefined });
         if (!isDateInRange(date, min, max)) {
           return;
         }
@@ -259,6 +261,7 @@ export function CalendarMonth({
             onMouseOver={handleMouseOver}
             tabIndex={isFocused ? 0 : -1}
             data-date={date.toISODate()}
+            data-timezone={date.zoneName}
             className={clsx(s.dayButton, {
               [s.dayButtonSelected]: isSelected,
             })}
@@ -275,6 +278,7 @@ export function CalendarMonth({
 }
 
 function isDateInRange(date: DateTime, start?: DateTime, end?: DateTime) {
+  console.log('isDateInRange', { date, start, end });
   if (start != null && end != null) {
     return date >= start && date <= end;
   } else if (start != null) {
