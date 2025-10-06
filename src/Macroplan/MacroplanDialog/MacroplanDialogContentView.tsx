@@ -37,7 +37,8 @@ export function MacroplanDialogContentView({
       ? formatMacroplanDateRange({
           timestampStart: macroplan.timestampStart,
           timestampEnd: macroplan.timestampEnd,
-          timeZone: trip.timeZone,
+          timeZoneStart: macroplan.timeZoneStart ?? trip.timeZone,
+          timeZoneEnd: macroplan.timeZoneEnd ?? trip.timeZone,
         })
       : undefined;
   const notes = useParseTextIntoNodes(macroplan?.notes);
