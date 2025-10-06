@@ -20,6 +20,8 @@ const _schema = i.schema({
       phoneNumber: i.string(),
       timestampCheckIn: i.number(),
       timestampCheckOut: i.number(),
+      timeZoneCheckIn: i.string().optional(),
+      timeZoneCheckOut: i.string().optional(),
       locationLat: i.number().optional(),
       locationLng: i.number().optional(),
       locationZoom: i.number().optional(),
@@ -29,6 +31,8 @@ const _schema = i.schema({
       notes: i.string(),
       timestampStart: i.number(),
       timestampEnd: i.number(),
+      timeZoneStart: i.string().optional(),
+      timeZoneEnd: i.string().optional(),
       createdAt: i.number(),
       lastUpdatedAt: i.number(),
     }),
@@ -46,8 +50,10 @@ const _schema = i.schema({
       locationDestinationLng: i.number().optional(),
       locationDestinationZoom: i.number().optional(),
 
-      timestampEnd: i.number().optional(),
       timestampStart: i.number().optional(),
+      timestampEnd: i.number().optional(),
+      timeZoneStart: i.string().optional(),
+      timeZoneEnd: i.string().optional(),
       title: i.string(),
     }),
     expense: i.entity({
@@ -59,6 +65,7 @@ const _schema = i.schema({
       description: i.string(),
       lastUpdatedAt: i.number(),
       timestampIncurred: i.number(),
+      timeZoneIncurred: i.string().optional(),
       title: i.string(),
     }),
     trip: i.entity({
