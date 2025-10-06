@@ -148,6 +148,8 @@ export type DbTripQueryReturnType = {
     locationLat?: number | null | undefined;
     locationLng?: number | null | undefined;
     locationZoom?: number | null | undefined;
+    timeZoneCheckIn?: string | null | undefined;
+    timeZoneCheckOut?: string | null | undefined;
   }[];
   activity: {
     id: string;
@@ -157,6 +159,8 @@ export type DbTripQueryReturnType = {
     lastUpdatedAt: number;
     timestampStart?: number | null | undefined;
     timestampEnd?: number | null | undefined;
+    timeZoneStart?: string | null | undefined;
+    timeZoneEnd?: string | null | undefined;
     location: string;
     locationLat?: number | null | undefined;
     locationLng?: number | null | undefined;
@@ -174,6 +178,8 @@ export type DbTripQueryReturnType = {
     notes: string;
     timestampStart: number;
     timestampEnd: number;
+    timeZoneStart?: string | null | undefined;
+    timeZoneEnd?: string | null | undefined;
   }[];
   expense: {
     id: string;
@@ -183,6 +189,7 @@ export type DbTripQueryReturnType = {
     createdAt: number;
     lastUpdatedAt: number;
     timestampIncurred: number;
+    timeZoneIncurred?: string | null | undefined;
     amount: number;
     currencyConversionFactor: number;
     amountInOriginCurrency: number;

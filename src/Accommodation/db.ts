@@ -14,6 +14,12 @@ export type DbAccommodation = {
   timestampCheckIn: number;
   /** ms */
   timestampCheckOut: number;
+
+  /** default: trip.timeZone */
+  timeZoneCheckIn: string | null | undefined;
+  /** default: trip.timeZone */
+  timeZoneCheckOut: string | null | undefined;
+
   phoneNumber: string;
   notes: string;
 

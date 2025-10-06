@@ -19,7 +19,6 @@ import {
 import { useBoundStore } from '../data/store';
 import { RouteTrip } from '../Routes/routes';
 import { dbAddTrip, dbUpdateTrip } from './db';
-import type { TripSliceActivity } from './store/types';
 import { TripFormMode } from './TripFormMode';
 import {
   TripSharingLevel,
@@ -38,7 +37,6 @@ export function TripForm({
   tripOriginCurrency,
   tripSharingLevel,
   userId,
-  activities,
   onFormSuccess,
   onFormCancel,
 }: {
@@ -53,7 +51,6 @@ export function TripForm({
   tripOriginCurrency: string;
   tripSharingLevel: TripSharingLevelType;
   userId?: string;
-  activities?: TripSliceActivity[];
   onFormSuccess: () => void;
   onFormCancel: () => void;
 }) {

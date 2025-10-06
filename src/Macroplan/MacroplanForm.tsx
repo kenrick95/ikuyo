@@ -3,6 +3,7 @@ import type { DateTime } from 'luxon';
 import { useCallback, useId, useState } from 'react';
 import { DateTimePicker } from '../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../common/DatePicker2/DateTimePickerMode';
+import { TimeZoneSelect } from '../common/TimeZoneSelect/TimeZoneSelect';
 import { dangerToken } from '../common/ui';
 import { useBoundStore } from '../data/store';
 import { dbAddMacroplan, dbUpdateMacroplan } from './db';
@@ -71,6 +72,24 @@ export function MacroplanForm({
     setErrorMessage(''); // Clear any date-related errors
   }, []);
 
+  const handleTimeZoneStartChange = useCallback(
+    (newTimeZone: string) => {
+      if (dateStart) {
+        setDateStart(dateStart.setZone(newTimeZone, { keepLocalTime: true }));
+      }
+    },
+    [dateStart],
+  );
+
+  const handleTimeZoneEndChange = useCallback(
+    (newTimeZone: string) => {
+      if (dateEnd) {
+        setDateEnd(dateEnd.setZone(newTimeZone, { keepLocalTime: true }));
+      }
+    },
+    [dateEnd],
+  );
+
   const handleSubmit = useCallback(() => {
     return async (elForm: HTMLFormElement) => {
       setErrorMessage('');
@@ -101,12 +120,24 @@ export function MacroplanForm({
         setErrorMessage('End date must not be before start date');
         return;
       }
+      // start date cannot be earlier than trip start date
+      if (tripStartDateTime && dateStartDateTime < tripStartDateTime) {
+        setErrorMessage('Start date cannot be earlier than trip start date');
+        return;
+      }
+      // end date cannot be later than trip end date
+      if (tripEndDateTime && dateEndDateTime > tripEndDateTime) {
+        setErrorMessage('End date cannot be later than trip end date');
+        return;
+      }
       if (mode === MacroplanFormMode.Edit && macroplanId) {
         await dbUpdateMacroplan({
           id: macroplanId,
           name,
           timestampStart: dateStartDateTime.toMillis(),
           timestampEnd: dateEndDateTime.toMillis(),
+          timeZoneStart: dateStartDateTime.zoneName,
+          timeZoneEnd: dateEndDateTime.zoneName,
           notes,
         });
         publishToast({
@@ -120,6 +151,8 @@ export function MacroplanForm({
             name,
             timestampStart: dateStartDateTime.toMillis(),
             timestampEnd: dateEndDateTime.toMillis(),
+            timeZoneStart: dateStartDateTime.zoneName,
+            timeZoneEnd: dateEndDateTime.zoneName,
             notes,
           },
           {
@@ -145,6 +178,8 @@ export function MacroplanForm({
     tripId,
     dateStart,
     dateEnd,
+    tripStartDateTime,
+    tripEndDateTime,
   ]);
 
   return (
@@ -159,9 +194,6 @@ export function MacroplanForm({
       }}
     >
       <Flex direction="column" gap="2">
-        <Text color={dangerToken} size="2">
-          {errorMessage}&nbsp;
-        </Text>
         <Text as="label" htmlFor={idName}>
           Day plan <br />
           <Text weight="light" size="1">
@@ -177,9 +209,22 @@ export function MacroplanForm({
           required
         />
         <Text as="label">
+          Start date time zone{' '}
+          <Text weight="light" size="1">
+            (trip default time zone is {tripTimeZone})
+          </Text>
+        </Text>
+        <TimeZoneSelect
+          id="timeZoneStart"
+          name="timeZoneStart"
+          value={dateStart?.zoneName ?? tripTimeZone}
+          handleChange={handleTimeZoneStartChange}
+          isFormLoading={false}
+        />
+        <Text as="label">
           Start date{' '}
           <Text weight="light" size="1">
-            (required; in {tripTimeZone} time zone)
+            (required; in {dateStart?.zoneName ?? tripTimeZone} time zone)
           </Text>
         </Text>
         <DateTimePicker
@@ -195,9 +240,22 @@ export function MacroplanForm({
         />
 
         <Text as="label">
+          End date time zone{' '}
+          <Text weight="light" size="1">
+            (trip default time zone is {tripTimeZone})
+          </Text>
+        </Text>
+        <TimeZoneSelect
+          id="timeZoneEnd"
+          name="timeZoneEnd"
+          value={dateEnd?.zoneName ?? tripTimeZone}
+          handleChange={handleTimeZoneEndChange}
+          isFormLoading={false}
+        />
+        <Text as="label">
           End date{' '}
           <Text weight="light" size="1">
-            (required; in {tripTimeZone} time zone)
+            (required; in {dateEnd?.zoneName ?? tripTimeZone} time zone)
           </Text>
         </Text>
         <DateTimePicker
@@ -222,7 +280,12 @@ export function MacroplanForm({
           style={{ minHeight: 240 }}
         />
       </Flex>
-      <Flex gap="3" mt="5" justify="end">
+      <Flex mt="5" justify="end">
+        <Text color={dangerToken} size="2">
+          {errorMessage}&nbsp;
+        </Text>
+      </Flex>
+      <Flex gap="3" mt="2" justify="end">
         <Button
           type="button"
           size="2"

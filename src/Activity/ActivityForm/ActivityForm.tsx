@@ -10,6 +10,7 @@ import type { DateTime } from 'luxon';
 import { useCallback, useId, useReducer, useState } from 'react';
 import { DateTimePicker } from '../../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../../common/DatePicker2/DateTimePickerMode';
+import { TimeZoneSelect } from '../../common/TimeZoneSelect/TimeZoneSelect';
 import { dangerToken } from '../../common/ui';
 import { useBoundStore } from '../../data/store';
 import { ActivityMap } from '../ActivityDialog/ActivityDialogMap';
@@ -318,6 +319,28 @@ export function ActivityForm({
     }
   }, []);
 
+  const handleTimeZoneStartChange = useCallback(
+    (newTimeZone: string) => {
+      if (startDateTime) {
+        setStartDateTime(
+          startDateTime.setZone(newTimeZone, { keepLocalTime: true }),
+        );
+      }
+    },
+    [startDateTime],
+  );
+
+  const handleTimeZoneEndChange = useCallback(
+    (newTimeZone: string) => {
+      if (endDateTime) {
+        setEndDateTime(
+          endDateTime.setZone(newTimeZone, { keepLocalTime: true }),
+        );
+      }
+    },
+    [endDateTime],
+  );
+
   const handleSubmit = useCallback(() => {
     return async (elForm: HTMLFormElement) => {
       setErrorMessage('');
@@ -359,6 +382,20 @@ export function ActivityForm({
         setErrorMessage('End time must be after start time');
         return;
       }
+      // start time cannot be earlier than trip start time
+      if (
+        tripStartDateTime &&
+        timeStartDate &&
+        timeStartDate < tripStartDateTime
+      ) {
+        setErrorMessage('Start time cannot be earlier than trip start time');
+        return;
+      }
+      // end time cannot be later than trip end time
+      if (tripEndDateTime && timeEndDate && timeEndDate > tripEndDateTime) {
+        setErrorMessage('End time cannot be later than trip end time');
+        return;
+      }
       if (mode === ActivityFormMode.Edit && activityId) {
         await dbUpdateActivity({
           id: activityId,
@@ -391,6 +428,8 @@ export function ActivityForm({
 
           timestampStart: timeStartDate ? timeStartDate.toMillis() : null,
           timestampEnd: timeEndDate ? timeEndDate.toMillis() : null,
+          timeZoneStart: timeStartDate ? timeStartDate.zoneName : null,
+          timeZoneEnd: timeEndDate ? timeEndDate.zoneName : null,
         });
         publishToast({
           root: {},
@@ -433,6 +472,8 @@ export function ActivityForm({
                 : null,
             timestampStart: timeStartDate ? timeStartDate.toMillis() : null,
             timestampEnd: timeEndDate ? timeEndDate.toMillis() : null,
+            timeZoneStart: timeStartDate ? timeStartDate.zoneName : null,
+            timeZoneEnd: timeEndDate ? timeEndDate.zoneName : null,
           },
           {
             tripId: tripId,
@@ -458,6 +499,8 @@ export function ActivityForm({
     startDateTime,
     tripId,
     tripTimeZone,
+    tripStartDateTime,
+    tripEndDateTime,
   ]);
 
   return (
@@ -473,9 +516,6 @@ export function ActivityForm({
       }}
     >
       <Flex direction="column" gap="2">
-        <Text color={dangerToken} size="2">
-          {errorMessage}&nbsp;
-        </Text>
         <Text as="label" htmlFor={idTitle}>
           Activity name{' '}
           <Text weight="light" size="1">
@@ -588,10 +628,23 @@ export function ActivityForm({
           </>
         ) : null}
 
+        <Text as="label">
+          Start time zone{' '}
+          <Text weight="light" size="1">
+            (trip default time zone is {tripTimeZone})
+          </Text>
+        </Text>
+        <TimeZoneSelect
+          id="timeZoneStart"
+          name="timeZoneStart"
+          value={startDateTime?.zoneName ?? tripTimeZone}
+          handleChange={handleTimeZoneStartChange}
+          isFormLoading={false}
+        />
         <Text as="label" htmlFor={idTimeStart}>
           Start time{' '}
           <Text weight="light" size="1">
-            (in {tripTimeZone} time zone)
+            (in {startDateTime?.zoneName ?? tripTimeZone} time zone)
           </Text>
         </Text>
         <DateTimePicker
@@ -601,12 +654,26 @@ export function ActivityForm({
           max={tripEndDateTime}
           value={startDateTime}
           onChange={setStartDateTime}
-          clearable={true}
+          // TODO: setting clearable not working very well with selecting time zone, so disable for now
+          // clearable={true}
+        />
+        <Text as="label">
+          End time zone{' '}
+          <Text weight="light" size="1">
+            (trip default time zone is {tripTimeZone})
+          </Text>
+        </Text>
+        <TimeZoneSelect
+          id="timeZoneEnd"
+          name="timeZoneEnd"
+          value={endDateTime?.zoneName ?? tripTimeZone}
+          handleChange={handleTimeZoneEndChange}
+          isFormLoading={false}
         />
         <Text as="label" htmlFor={idTimeEnd}>
           End time{' '}
           <Text weight="light" size="1">
-            (in {tripTimeZone} time zone)
+            (in {endDateTime?.zoneName ?? tripTimeZone} time zone)
           </Text>
         </Text>
         <DateTimePicker
@@ -616,7 +683,8 @@ export function ActivityForm({
           max={tripEndDateTime}
           value={endDateTime}
           onChange={setEndDateTime}
-          clearable={true}
+          // TODO: setting clearable not working very well with selecting time zone, so disable for now
+          // clearable={true}
         />
         <Text as="label" htmlFor={idDescription}>
           Description
@@ -629,7 +697,12 @@ export function ActivityForm({
           style={{ minHeight: 240 }}
         />
       </Flex>
-      <Flex gap="3" mt="5" justify="end">
+      <Flex mt="5" justify="end">
+        <Text color={dangerToken} size="2">
+          {errorMessage}&nbsp;
+        </Text>
+      </Flex>
+      <Flex gap="3" mt="2" justify="end">
         <Button
           type="button"
           size="2"

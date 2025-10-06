@@ -5,7 +5,13 @@ import {
 } from '@radix-ui/react-icons';
 import { Button, Popover } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
-import { forwardRef, useCallback, useReducer, useState } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useReducer,
+  useState,
+} from 'react';
 import { CalendarMonth } from './CalendarMonth';
 import s from './DateTimePicker.module.css';
 import { DateTimePickerMode } from './DateTimePickerMode';
@@ -119,6 +125,19 @@ export const DateTimePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
       min: props.min?.startOf('day') ?? undefined,
       max: props.max?.startOf('day') ?? undefined,
     });
+
+    // Handle props.value change from outside
+    useEffect(() => {
+      if (props.value) {
+        dispatch({ type: 'setSelectedDate', date: props.value.startOf('day') });
+        if (props.mode === DateTimePickerMode.DateTime) {
+          dispatch({ type: 'setSelectedHour', hour: props.value.hour });
+          dispatch({ type: 'setSelectedMinute', minute: props.value.minute });
+        }
+      } else {
+        dispatch({ type: 'clear' });
+      }
+    }, [props.value, props.mode]);
 
     const [liveMessage, setLiveMessage] = useState('');
     const handleFocusDay = useCallback((date: DateTime) => {

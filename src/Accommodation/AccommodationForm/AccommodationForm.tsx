@@ -10,6 +10,7 @@ import type { DateTime } from 'luxon';
 import { useCallback, useId, useReducer, useState } from 'react';
 import { DateTimePicker } from '../../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../../common/DatePicker2/DateTimePickerMode';
+import { TimeZoneSelect } from '../../common/TimeZoneSelect/TimeZoneSelect';
 import { dangerToken } from '../../common/ui';
 import { useBoundStore } from '../../data/store';
 import { AccommodationMap } from '../AccommodationDialog/AccommodationDialogMap';
@@ -252,6 +253,16 @@ export function AccommodationForm({
         setErrorMessage('Check out time must be after check in time');
         return;
       }
+      // check in time cannot be earlier than trip start time
+      if (tripStartDateTime && timeCheckInDate < tripStartDateTime) {
+        setErrorMessage('Check in time cannot be earlier than trip start time');
+        return;
+      }
+      // check out time cannot be later than trip end time
+      if (tripEndDateTime && timeCheckOutDate > tripEndDateTime) {
+        setErrorMessage('Check out time cannot be later than trip end time');
+        return;
+      }
       if (mode === AccommodationFormMode.Edit && accommodationId) {
         await dbUpdateAccommodation({
           id: accommodationId,
@@ -259,6 +270,8 @@ export function AccommodationForm({
           address,
           timestampCheckIn: timeCheckInDate.toMillis(),
           timestampCheckOut: timeCheckOutDate.toMillis(),
+          timeZoneCheckIn: timeCheckInDate.zoneName,
+          timeZoneCheckOut: timeCheckOutDate.zoneName,
           phoneNumber,
           notes,
           locationLat: coordinateState.enabled ? coordinateState.lat : null,
@@ -277,6 +290,8 @@ export function AccommodationForm({
             address,
             timestampCheckIn: timeCheckInDate.toMillis(),
             timestampCheckOut: timeCheckOutDate.toMillis(),
+            timeZoneCheckIn: timeCheckInDate.zoneName,
+            timeZoneCheckOut: timeCheckOutDate.zoneName,
             phoneNumber,
             notes,
             locationLat: coordinateState.enabled ? coordinateState.lat : null,
@@ -304,10 +319,33 @@ export function AccommodationForm({
     publishToast,
     onFormSuccess,
     tripId,
+    tripEndDateTime,
+    tripStartDateTime,
     coordinateState,
     checkInDateTime,
     checkOutDateTime,
   ]);
+
+  const handleTimeZoneCheckInChange = useCallback(
+    (newTimeZone: string) => {
+      if (checkInDateTime) {
+        setCheckInDateTime(
+          checkInDateTime.setZone(newTimeZone, { keepLocalTime: true }),
+        );
+      }
+    },
+    [checkInDateTime],
+  );
+  const handleTimeZoneCheckOutChange = useCallback(
+    (newTimeZone: string) => {
+      if (checkOutDateTime) {
+        setCheckOutDateTime(
+          checkOutDateTime.setZone(newTimeZone, { keepLocalTime: true }),
+        );
+      }
+    },
+    [checkOutDateTime],
+  );
 
   return (
     <form
@@ -321,9 +359,6 @@ export function AccommodationForm({
       }}
     >
       <Flex direction="column" gap="2">
-        <Text color={dangerToken} size="2">
-          {errorMessage}&nbsp;
-        </Text>
         <Text as="label" htmlFor={idName}>
           Accommodation name{' '}
           <Text weight="light" size="1">
@@ -378,9 +413,22 @@ export function AccommodationForm({
           />
         ) : null}
         <Text as="label">
+          Check in time zone{' '}
+          <Text weight="light" size="1">
+            (required; trip default time zone is {tripTimeZone})
+          </Text>
+        </Text>
+        <TimeZoneSelect
+          id="timeZoneCheckIn"
+          name="timeZoneCheckIn"
+          value={checkInDateTime?.zoneName ?? tripTimeZone}
+          handleChange={handleTimeZoneCheckInChange}
+          isFormLoading={false}
+        />
+        <Text as="label">
           Check in time{' '}
           <Text weight="light" size="1">
-            (required; in {tripTimeZone} time zone)
+            (required; in {checkInDateTime?.zoneName ?? tripTimeZone} time zone)
           </Text>
         </Text>
         <DateTimePicker
@@ -395,9 +443,23 @@ export function AccommodationForm({
           max={tripEndDateTime}
         />
         <Text as="label">
+          Check out time zone{' '}
+          <Text weight="light" size="1">
+            (required; trip default time zone is {tripTimeZone})
+          </Text>
+        </Text>
+        <TimeZoneSelect
+          id="timeZoneCheckOut"
+          name="timeZoneCheckOut"
+          value={checkOutDateTime?.zoneName ?? tripTimeZone}
+          handleChange={handleTimeZoneCheckOutChange}
+          isFormLoading={false}
+        />
+        <Text as="label">
           Check out time{' '}
           <Text weight="light" size="1">
-            (required; in {tripTimeZone} time zone)
+            (required; in {checkOutDateTime?.zoneName ?? tripTimeZone} time
+            zone)
           </Text>
         </Text>
         <DateTimePicker
@@ -432,7 +494,12 @@ export function AccommodationForm({
           style={{ minHeight: 240 }}
         />
       </Flex>
-      <Flex gap="3" mt="5" justify="end">
+      <Flex mt="5" justify="end">
+        <Text color={dangerToken} size="2">
+          {errorMessage}&nbsp;
+        </Text>
+      </Flex>
+      <Flex gap="3" mt="2" justify="end">
         <Button
           type="button"
           size="2"

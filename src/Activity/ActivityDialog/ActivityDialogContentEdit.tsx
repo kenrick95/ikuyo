@@ -28,11 +28,15 @@ export function ActivityDialogContentEdit({
       : undefined;
   const activityStartDateTime =
     activity && trip && activity.timestampStart != null
-      ? DateTime.fromMillis(activity.timestampStart).setZone(trip.timeZone)
+      ? DateTime.fromMillis(activity.timestampStart).setZone(
+          activity.timeZoneStart ?? trip.timeZone,
+        )
       : undefined;
   const activityEndDateTime =
     activity && trip && activity.timestampEnd != null
-      ? DateTime.fromMillis(activity.timestampEnd).setZone(trip.timeZone)
+      ? DateTime.fromMillis(activity.timestampEnd).setZone(
+          activity.timeZoneEnd ?? trip.timeZone,
+        )
       : undefined;
   const backToViewMode = useCallback(() => {
     setMode(ActivityDialogMode.View);

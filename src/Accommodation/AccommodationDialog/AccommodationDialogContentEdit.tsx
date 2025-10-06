@@ -28,13 +28,13 @@ export function AccommodationDialogContentEdit({
   const accommodationCheckInDateTime =
     accommodation && trip
       ? DateTime.fromMillis(accommodation.timestampCheckIn).setZone(
-          trip.timeZone,
+          accommodation.timeZoneCheckIn ?? trip.timeZone,
         )
       : undefined;
   const accommodationCheckOutDateTime =
     accommodation && trip
       ? DateTime.fromMillis(accommodation.timestampCheckOut).setZone(
-          trip.timeZone,
+          accommodation.timeZoneCheckOut ?? trip.timeZone,
         )
       : undefined;
   const backToViewMode = useCallback(() => {

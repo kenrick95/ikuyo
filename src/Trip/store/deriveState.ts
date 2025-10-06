@@ -90,6 +90,8 @@ export function deriveNewAccommodationState(
       locationLat: accommodation.locationLat,
       locationLng: accommodation.locationLng,
       locationZoom: accommodation.locationZoom,
+      timeZoneCheckIn: accommodation.timeZoneCheckIn ?? trip.timeZone,
+      timeZoneCheckOut: accommodation.timeZoneCheckOut ?? trip.timeZone,
     } satisfies TripSliceAccommodation;
   }
   return newAccommodationState;
@@ -113,6 +115,8 @@ export function deriveNewActivityState(
       tripId: trip.id,
       timestampStart: activity.timestampStart,
       timestampEnd: activity.timestampEnd,
+      timeZoneStart: activity.timeZoneStart ?? trip.timeZone,
+      timeZoneEnd: activity.timeZoneEnd ?? trip.timeZone,
       commentGroupId: commentGroup?.id ?? undefined,
       locationLat: activity.locationLat,
       locationLng: activity.locationLng,
@@ -143,6 +147,8 @@ export function deriveNewMacroplanState(
       ...macroplan,
       tripId: trip.id,
       commentGroupId: commentGroup?.id ?? undefined,
+      timeZoneStart: macroplan.timeZoneStart ?? trip.timeZone,
+      timeZoneEnd: macroplan.timeZoneEnd ?? trip.timeZone,
     } satisfies TripSliceMacroplan;
   }
   return newMacroplanState;
@@ -214,6 +220,7 @@ export function deriveNewExpenseState(
       ...expense,
       tripId: trip.id,
       commentGroupId: commentGroup?.id ?? undefined,
+      timeZoneIncurred: expense.timeZoneIncurred ?? trip.timeZone,
     } satisfies TripSliceExpense;
   }
   return newExpenseState;
