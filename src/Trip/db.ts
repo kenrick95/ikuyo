@@ -1,5 +1,4 @@
 import { id, lookup, type TransactionChunk } from '@instantdb/core';
-import { DateTime } from 'luxon';
 import type { AppSchema } from '../../instant.schema';
 import type {
   DbAccommodation,
@@ -11,7 +10,7 @@ import { db } from '../data/db';
 import type { DbUser } from '../data/types';
 import type { DbMacroplan, DbMacroplanWithTrip } from '../Macroplan/db';
 import { TripUserRole } from '../User/TripUserRole';
-import type { TripSliceActivity, TripSliceTrip } from './store/types';
+import type { TripSliceTrip } from './store/types';
 import type { TripSharingLevelType } from './tripSharingLevel';
 
 export type DbTripFull = Omit<
@@ -124,13 +123,6 @@ export async function dbUpdateTrip(
     | 'macroplan'
     | 'commentGroup'
   >,
-  {
-    previousTimeZone,
-    activities,
-  }: {
-    previousTimeZone: string;
-    activities?: TripSliceActivity[];
-  },
 ) {
   const tripId = trip.id;
 
@@ -142,40 +134,6 @@ export async function dbUpdateTrip(
       lastUpdatedAt: transactionTimestamp,
     }),
   ];
-
-  if (previousTimeZone !== trip.timeZone && activities) {
-    // Time zone changed, so need to migrate all activities to new time zone to "preserve" time relative to each day
-    for (const activity of activities) {
-      transactions.push(
-        db.tx.activity[activity.id].merge({
-          timestampStart:
-            activity.timestampStart != null
-              ? DateTime.fromMillis(activity.timestampStart, {
-                  zone: previousTimeZone,
-                })
-                  .setZone(trip.timeZone, {
-                    keepLocalTime: true,
-                  })
-                  .toMillis()
-              : undefined,
-          timestampEnd:
-            activity.timestampEnd != null
-              ? DateTime.fromMillis(activity.timestampEnd, {
-                  zone: previousTimeZone,
-                })
-                  .setZone(trip.timeZone, {
-                    keepLocalTime: true,
-                  })
-                  .toMillis()
-              : undefined,
-          lastUpdatedAt:
-            activity.timestampStart != null || activity.timestampEnd != null
-              ? transactionTimestamp
-              : undefined,
-        }),
-      );
-    }
-  }
 
   return db.transact(transactions);
 }

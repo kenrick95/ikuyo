@@ -2,12 +2,20 @@ import { Button, Flex, Select, Text, TextField } from '@radix-ui/themes';
 import type { DateTime } from 'luxon';
 import { useCallback, useId, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
+import { CurrencySelect } from '../common/CurrencySelect/CurrencySelect';
 import { DateTimePicker } from '../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../common/DatePicker2/DateTimePickerMode';
+import { TimeZoneSelect } from '../common/TimeZoneSelect/TimeZoneSelect';
 import { dangerToken } from '../common/ui';
-import { getDefaultCurrencyForRegion } from '../data/intl/currencies';
+import {
+  ALL_CURRENCIES,
+  getDefaultCurrencyForRegion,
+} from '../data/intl/currencies';
 import { REGIONS_LIST } from '../data/intl/regions';
-import { getDefaultTimezoneForRegion } from '../data/intl/timezones';
+import {
+  ALL_TIMEZONES,
+  getDefaultTimezoneForRegion,
+} from '../data/intl/timezones';
 import { useBoundStore } from '../data/store';
 import { RouteTrip } from '../Routes/routes';
 import { dbAddTrip, dbUpdateTrip } from './db';
@@ -68,8 +76,6 @@ export function TripForm({
   );
 
   const [errorMessage, setErrorMessage] = useState('');
-  const timeZones = useMemo(() => Intl.supportedValuesOf('timeZone'), []);
-  const currencies = useMemo(() => Intl.supportedValuesOf('currency'), []);
 
   // Handler for start date changes
   const handleStartDateChange = useCallback(
@@ -115,13 +121,13 @@ export function TripForm({
       // Only auto-set timezone if it's not already set (for new trips) or if user hasn't manually changed it
       if (mode === TripFormMode.New || currentTimeZone === tripTimeZone) {
         const defaultTimezone = getDefaultTimezoneForRegion(newRegion);
-        if (defaultTimezone && timeZones.includes(defaultTimezone)) {
+        if (defaultTimezone && ALL_TIMEZONES.includes(defaultTimezone)) {
           handleTimeZoneChange(defaultTimezone);
         }
       }
       if (mode === TripFormMode.New || currentCurrency === tripCurrency) {
         const defaultCurrency = getDefaultCurrencyForRegion(newRegion);
-        if (defaultCurrency && currencies.includes(defaultCurrency)) {
+        if (defaultCurrency && ALL_CURRENCIES.includes(defaultCurrency)) {
           setCurrentCurrency(defaultCurrency);
         }
       }
@@ -130,10 +136,8 @@ export function TripForm({
       mode,
       currentTimeZone,
       tripTimeZone,
-      timeZones,
       currentCurrency,
       tripCurrency,
-      currencies,
       handleTimeZoneChange,
     ],
   );
@@ -183,23 +187,17 @@ export function TripForm({
         return;
       }
       if (mode === TripFormMode.Edit && tripId) {
-        await dbUpdateTrip(
-          {
-            id: tripId,
-            title,
-            timeZone,
-            timestampStart: dateStartDateTime.toMillis(),
-            timestampEnd: dateEndDateTime.toMillis(),
-            region,
-            currency,
-            originCurrency,
-            sharingLevel: tripSharingLevel,
-          },
-          {
-            activities,
-            previousTimeZone: tripTimeZone,
-          },
-        );
+        await dbUpdateTrip({
+          id: tripId,
+          title,
+          timeZone,
+          timestampStart: dateStartDateTime.toMillis(),
+          timestampEnd: dateEndDateTime.toMillis(),
+          region,
+          currency,
+          originCurrency,
+          sharingLevel: tripSharingLevel,
+        });
         publishToast({
           root: {},
           title: { children: `Trip ${title} edited` },
@@ -250,8 +248,6 @@ export function TripForm({
     tripId,
     userId,
     setLocation,
-    activities,
-    tripTimeZone,
     tripSharingLevel,
     currentTimeZone,
     currentRegion,
@@ -259,59 +255,6 @@ export function TripForm({
     currentStartDate,
     currentEndDate,
   ]);
-
-  const fieldSelectCurrency = useMemo(() => {
-    return (
-      <Select.Root
-        name="currency"
-        value={currentCurrency}
-        onValueChange={setCurrentCurrency}
-        required
-        disabled={isFormLoading}
-      >
-        <Select.Trigger id={idCurrency} />
-        <Select.Content>
-          {currencies.map((currency) => {
-            return (
-              <Select.Item key={currency} value={currency}>
-                {currency}
-              </Select.Item>
-            );
-          })}
-        </Select.Content>
-      </Select.Root>
-    );
-  }, [currencies, idCurrency, isFormLoading, currentCurrency]);
-
-  const fieldSelectTimeZone = useMemo(() => {
-    return (
-      <Select.Root
-        name="timeZone"
-        value={currentTimeZone}
-        onValueChange={handleTimeZoneChange}
-        required
-        disabled={isFormLoading}
-      >
-        <Select.Trigger id={idTimeZone} />
-        <Select.Content>
-          {timeZones.map((tz) => {
-            return (
-              <Select.Item key={tz} value={tz}>
-                {tz}
-              </Select.Item>
-            );
-          })}
-        </Select.Content>
-      </Select.Root>
-    );
-  }, [
-    timeZones,
-    currentTimeZone,
-    idTimeZone,
-    isFormLoading,
-    handleTimeZoneChange,
-  ]);
-
   const fieldSelectRegion = useMemo(() => {
     return (
       <Select.Root
@@ -382,26 +325,39 @@ export function TripForm({
         {fieldSelectRegion}
 
         <Text as="label" htmlFor={idTimeZone}>
-          Destination's time zone{' '}
+          Destination's default time zone{' '}
           <Text weight="light" size="1">
             (required)
           </Text>
           {mode === TripFormMode.Edit ? (
             <>
               <br />
-              <Text weight="light" size="1">
-                Editing this value will adjust all the activities to this local
-                time zone
+              <Text size="1">
+                <Text weight="bold" color={dangerToken} size="1">
+                  Warning:
+                </Text>{' '}
+                Changing this may cause some activities, accommodations, and day
+                plans{' '}
+                <Text weight="bold" size="1">
+                  to disappear from the trip view
+                </Text>{' '}
+                as they may fall outside the trip date range.
               </Text>
             </>
           ) : null}
         </Text>
-        {fieldSelectTimeZone}
+        <TimeZoneSelect
+          name="timeZone"
+          id={idTimeZone}
+          value={currentTimeZone}
+          isFormLoading={isFormLoading}
+          handleChange={handleTimeZoneChange}
+        />
 
         <Text as="label">
           Start date{' '}
           <Text weight="light" size="1">
-            (in destination's time zone; required)
+            (in destination's default time zone; required)
           </Text>
         </Text>
         <DateTimePicker
@@ -418,7 +374,7 @@ export function TripForm({
         <Text as="label">
           End date{' '}
           <Text weight="light" size="1">
-            (in destination's time zone; required)
+            (in destination's default time zone; required)
           </Text>
         </Text>
         <DateTimePicker
@@ -446,7 +402,13 @@ export function TripForm({
               : null}
           </Text>
         </Text>
-        {fieldSelectCurrency}
+        <CurrencySelect
+          name="currency"
+          id={idCurrency}
+          value={currentCurrency}
+          isFormLoading={isFormLoading}
+          handleChange={setCurrentCurrency}
+        />
 
         <Text as="label" htmlFor={idOriginCurrency}>
           Origin's currency{' '}
@@ -461,23 +423,12 @@ export function TripForm({
               : null}
           </Text>
         </Text>
-        <Select.Root
+        <CurrencySelect
+          id={idOriginCurrency}
           name="originCurrency"
-          defaultValue={tripOriginCurrency}
-          required
-          disabled={isFormLoading}
-        >
-          <Select.Trigger id={idOriginCurrency} />
-          <Select.Content>
-            {currencies.map((currency) => {
-              return (
-                <Select.Item key={currency} value={currency}>
-                  {currency}
-                </Select.Item>
-              );
-            })}
-          </Select.Content>
-        </Select.Root>
+          value={tripOriginCurrency}
+          isFormLoading={isFormLoading}
+        />
       </Flex>
       <Flex gap="3" mt="5" justify="end">
         <Button
