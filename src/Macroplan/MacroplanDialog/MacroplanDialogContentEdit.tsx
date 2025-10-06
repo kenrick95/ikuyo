@@ -29,12 +29,14 @@ export function MacroplanDialogContentEdit({
 
   const macroplanDateStartDateTime =
     macroplan && trip
-      ? DateTime.fromMillis(macroplan.timestampStart).setZone(trip.timeZone)
+      ? DateTime.fromMillis(macroplan.timestampStart).setZone(
+          macroplan.timeZoneStart ?? trip.timeZone,
+        )
       : undefined;
   const macroplanDateEndDateTime =
     macroplan && trip
       ? DateTime.fromMillis(macroplan.timestampEnd)
-          .setZone(trip.timeZone)
+          .setZone(macroplan.timeZoneEnd ?? trip.timeZone)
           .minus({ minute: 1 })
       : undefined;
   const backToViewMode = useCallback(() => {

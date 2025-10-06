@@ -101,10 +101,10 @@ export function groupActivitiesByDays({
       activityColumnIndexMap.set(activity.id, { start: 1, end: 1 });
       const activityStartDateTime = DateTime.fromMillis(
         activity.timestampStart,
-      ).setZone(trip.timeZone);
+      ).setZone(activity.timeZoneStart ?? trip.timeZone);
       const activityEndDateTime = DateTime.fromMillis(
         activity.timestampEnd,
-      ).setZone(trip.timeZone);
+      ).setZone(activity.timeZoneEnd ?? trip.timeZone);
 
       // Check if activity overlaps with this day
       if (
@@ -141,10 +141,10 @@ export function groupActivitiesByDays({
     for (const macroplan of macroplans) {
       const macroplanStartDateTime = DateTime.fromMillis(
         macroplan.timestampStart,
-      ).setZone(trip.timeZone);
+      ).setZone(macroplan.timeZoneStart ?? trip.timeZone);
       const macroplanEndDateTime = DateTime.fromMillis(
         macroplan.timestampEnd,
-      ).setZone(trip.timeZone);
+      ).setZone(macroplan.timeZoneEnd ?? trip.timeZone);
       // if the macroplan involves this day, add it to the list
       if (
         macroplanStartDateTime <= dayStartDateTime &&
@@ -157,10 +157,10 @@ export function groupActivitiesByDays({
     for (const accommodation of accommodations) {
       const accommodationCheckInDateTime = DateTime.fromMillis(
         accommodation.timestampCheckIn,
-      ).setZone(trip.timeZone);
+      ).setZone(accommodation.timeZoneCheckIn ?? trip.timeZone);
       const accommodationCheckOutDateTime = DateTime.fromMillis(
         accommodation.timestampCheckOut,
-      ).setZone(trip.timeZone);
+      ).setZone(accommodation.timeZoneCheckOut ?? trip.timeZone);
       if (
         // This day is the start of the stay: check in time is this day
         dayStartDateTime <= accommodationCheckInDateTime &&

@@ -29,14 +29,14 @@ export function getAccommodationIndexes({
   for (const accommodation of accommodations) {
     const accommodationCheckInDateTime = DateTime.fromMillis(
       accommodation.timestampCheckIn,
-    ).setZone(trip.timeZone);
+    ).setZone(accommodation.timeZoneCheckIn ?? trip.timeZone);
     const accommodationCheckInDay =
       accommodationCheckInDateTime
         .startOf('day')
         .diff(tripStartDateTime, 'days').days + 1;
     const accommodationCheckOutDateTime = DateTime.fromMillis(
       accommodation.timestampCheckOut,
-    ).setZone(trip.timeZone);
+    ).setZone(accommodation.timeZoneCheckOut ?? trip.timeZone);
     const accommodationCheckOutDay =
       accommodationCheckOutDateTime
         .startOf('day')

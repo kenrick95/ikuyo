@@ -27,6 +27,11 @@ export type DbMacroplan = {
   /** ms of day _after_ of macroplan end. This means the final full day of macroplan is one day before `timestampEnd` */
   timestampEnd: number;
 
+  /** default: trip.timeZone */
+  timeZoneStart: string | null | undefined;
+  /** default: trip.timeZone */
+  timeZoneEnd: string | null | undefined;
+
   /** ms */
   createdAt: number;
 

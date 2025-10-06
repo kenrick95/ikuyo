@@ -4,6 +4,7 @@ import type * as React from 'react';
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
 import { DateTimePicker } from '../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../common/DatePicker2/DateTimePickerMode';
+import { TimeZoneSelect } from '../common/TimeZoneSelect/TimeZoneSelect';
 import { dangerToken } from '../common/ui';
 import { useBoundStore } from '../data/store';
 import type { TripSliceExpense, TripSliceTrip } from '../Trip/store/types';
@@ -64,6 +65,11 @@ export function ExpenseInlineForm({
         },
   );
   const [errorMessage, setErrorMessage] = useState('');
+  const [timeZoneIncurred, setTimeZoneIncurred] = useState<string>(
+    expenseMode === ExpenseMode.Edit && expense && expense.timeZoneIncurred
+      ? expense.timeZoneIncurred
+      : trip.timeZone,
+  );
   const currencies = useMemo(() => Intl.supportedValuesOf('currency'), []);
 
   const resetFormState = useCallback(() => {
@@ -89,6 +95,10 @@ export function ExpenseInlineForm({
     [],
   );
 
+  const handleTimeZoneChange = useCallback((newTimeZone: string) => {
+    setTimeZoneIncurred(newTimeZone);
+  }, []);
+
   const handleForm = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
@@ -106,7 +116,7 @@ export function ExpenseInlineForm({
 
       const dateTimestampIncurred = getDateTimeFromDateInput(
         timestampIncurred,
-        trip.timeZone,
+        timeZoneIncurred,
       );
       const amountFloat = Number.parseFloat(amount);
       const currencyConversionFactorFloat = Number.parseFloat(
@@ -148,6 +158,7 @@ export function ExpenseInlineForm({
           currencyConversionFactor: currencyConversionFactorFloat,
           amountInOriginCurrency: amountInOriginCurrencyFloat,
           timestampIncurred: dateTimestampIncurred.toMillis(),
+          timeZoneIncurred: dateTimestampIncurred.zoneName ?? timeZoneIncurred,
         })
           .then(() => {
             publishToast({
@@ -182,6 +193,8 @@ export function ExpenseInlineForm({
             currencyConversionFactor: currencyConversionFactorFloat,
             amountInOriginCurrency: amountInOriginCurrencyFloat,
             timestampIncurred: dateTimestampIncurred.toMillis(),
+            timeZoneIncurred:
+              dateTimestampIncurred.zoneName ?? timeZoneIncurred,
           },
           { tripId: trip.id },
         )
@@ -206,7 +219,7 @@ export function ExpenseInlineForm({
     },
     [
       formState,
-      trip.timeZone,
+      timeZoneIncurred,
       trip.id,
       expenseMode,
       expense,
@@ -235,7 +248,7 @@ export function ExpenseInlineForm({
 
   const fieldTimestampIncurred = useMemo(() => {
     const currentValue = formState.timestampIncurred
-      ? getDateTimeFromDateInput(formState.timestampIncurred, trip.timeZone)
+      ? getDateTimeFromDateInput(formState.timestampIncurred, timeZoneIncurred)
       : undefined;
 
     return (
@@ -251,7 +264,7 @@ export function ExpenseInlineForm({
     );
   }, [
     formState.timestampIncurred,
-    trip.timeZone,
+    timeZoneIncurred,
     handleTimestampIncurredChange,
   ]);
   const fieldSelectCurrency = useMemo(() => {
@@ -430,6 +443,15 @@ export function ExpenseInlineForm({
   return (
     <>
       <Table.Cell>{fieldTimestampIncurred}</Table.Cell>
+      <Table.Cell>
+        <TimeZoneSelect
+          id="timeZoneIncurred"
+          name="timeZoneIncurred"
+          value={timeZoneIncurred}
+          handleChange={handleTimeZoneChange}
+          isFormLoading={formState.loading}
+        />
+      </Table.Cell>
       <Table.Cell>
         <TextField.Root
           name="title"

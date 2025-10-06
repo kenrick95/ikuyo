@@ -39,28 +39,81 @@ function ActivityInner({
 }) {
   const activityStartDateTime =
     activity && activity.timestampStart != null
-      ? DateTime.fromMillis(activity.timestampStart).setZone(tripTimeZone)
+      ? DateTime.fromMillis(activity.timestampStart).setZone(
+          activity.timeZoneStart ?? tripTimeZone,
+        )
       : undefined;
   const activityEndDateTime =
     activity && activity.timestampEnd != null
-      ? DateTime.fromMillis(activity.timestampEnd).setZone(tripTimeZone)
+      ? DateTime.fromMillis(activity.timestampEnd).setZone(
+          activity.timeZoneEnd ?? tripTimeZone,
+        )
       : undefined;
 
-  const activityStartStr = activityStartDateTime
-    ? activityStartDateTime.toFormat('d MMMM yyyy HH:mm')
-    : undefined;
-  const activityEndStr = activityEndDateTime
-    ? activityStartDateTime?.hasSame(activityEndDateTime, 'day')
-      ? // If same day, only show time
-        activityEndDateTime.toFormat('HH:mm')
-      : activityEndDateTime.toFormat('d MMMM yyyy HH:mm')
-    : undefined;
+  /** Relative to activity (for home) */
+  const activityTimeStr = useMemo(() => {
+    if (activityStartDateTime && activityEndDateTime) {
+      if (activityStartDateTime.zoneName === activityEndDateTime.zoneName) {
+        // Same timezone, show timezone only once
 
-  const timeStart = useMemo(
+        if (activityStartDateTime.hasSame(activityEndDateTime, 'day')) {
+          // If same day, only show time
+          return (
+            <>
+              {activityStartDateTime.toFormat('d MMMM yyyy')}{' '}
+              {activityStartDateTime.toFormat('HH:mm')} &ndash;{' '}
+              {activityEndDateTime.toFormat('HH:mm')} (
+              {activityStartDateTime.zoneName})
+            </>
+          );
+        }
+        return (
+          <>
+            {activityStartDateTime.toFormat('d MMMM yyyy HH:mm')} &ndash;{' '}
+            {activityEndDateTime.toFormat('d MMMM yyyy HH:mm')} (
+            {activityStartDateTime.zoneName})
+          </>
+        );
+      } else {
+        // Different timezone, show both
+        return (
+          <>
+            {activityStartDateTime.toFormat('d MMMM yyyy HH:mm')} (
+            {activityStartDateTime.zoneName}) &ndash;{' '}
+            {activityEndDateTime.toFormat('d MMMM yyyy HH:mm')} (
+            {activityEndDateTime.zoneName})
+          </>
+        );
+      }
+    } else if (activityStartDateTime) {
+      // Only start is set
+      return (
+        <>
+          {activityStartDateTime.toFormat('d MMMM yyyy HH:mm')} (
+          {activityStartDateTime.zoneName}) &ndash; No end time
+        </>
+      );
+    } else if (activityEndDateTime) {
+      // Only end is set
+      return (
+        <>
+          No start time &ndash;{' '}
+          {activityEndDateTime.toFormat('d MMMM yyyy HH:mm')} (
+          {activityEndDateTime.zoneName})
+        </>
+      );
+    } else {
+      return 'No time set';
+    }
+  }, [activityStartDateTime, activityEndDateTime]);
+
+  /** Relative to trip (for timetable/list) */
+  const timeStartRelativeToTrip = useMemo(
     () => formatTime(activity.timestampStart, tripTimeZone),
     [activity.timestampStart, tripTimeZone],
   );
-  const timeEnd = useMemo(() => {
+  /** Relative to trip (for timetable/list) */
+  const timeEndRelativeToTrip = useMemo(() => {
     // If the activity ends exactly at midnight, use 2359; else it layout will be wrong
     const end = formatTime(activity.timestampEnd, tripTimeZone);
     if (end === '0000') {
@@ -118,8 +171,8 @@ function ActivityInner({
         'text/plain',
         JSON.stringify({
           activityId: activity.id,
-          originalTimeStart: timeStart,
-          originalTimeEnd: timeEnd,
+          originalTimeStart: timeStartRelativeToTrip,
+          originalTimeEnd: timeEndRelativeToTrip,
           originalDayStart: dayStart,
         }),
       );
@@ -132,8 +185,8 @@ function ActivityInner({
     },
     [
       activity.id,
-      timeStart,
-      timeEnd,
+      timeStartRelativeToTrip,
+      timeEndRelativeToTrip,
       dayStart,
       tripViewMode,
       isDragAndDropDisabled,
@@ -229,8 +282,8 @@ function ActivityInner({
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
           style={{
-            gridRowStart: `t${timeStart}`,
-            gridRowEnd: `te${timeEnd}`,
+            gridRowStart: `t${timeStartRelativeToTrip}`,
+            gridRowEnd: `te${timeEndRelativeToTrip}`,
             gridColumnStart: `d${String(dayStart)}-c${String(columnIndex)}`,
             gridColumnEnd:
               columnIndex === columnEndIndex
@@ -245,8 +298,8 @@ function ActivityInner({
               color="gray"
               className={style.activityTime}
             >
-              <ClockIcon style={{ verticalAlign: '-2px' }} /> {timeStart} -{' '}
-              {timeEnd}
+              <ClockIcon style={{ verticalAlign: '-2px' }} />{' '}
+              {timeStartRelativeToTrip} - {timeEndRelativeToTrip}
             </Text>
           ) : null}
           {tripViewMode === TripViewMode.Home ? (
@@ -256,23 +309,7 @@ function ActivityInner({
               color="gray"
               className={style.activityTime}
             >
-              <ClockIcon style={{ verticalAlign: '-2px' }} />{' '}
-              {activityStartStr && activityEndStr ? (
-                // Both are set
-                <>
-                  {activityStartStr}
-                  &ndash;{activityEndStr}
-                </>
-              ) : activityStartStr ? (
-                // Only start is set
-                <>{activityStartStr} &ndash;No end time</>
-              ) : activityEndStr ? (
-                // Only end is set
-                <>No start time&ndash;{activityEndStr}</>
-              ) : (
-                // Both are not set
-                'No time set'
-              )}
+              <ClockIcon style={{ verticalAlign: '-2px' }} /> {activityTimeStr}
             </Text>
           ) : null}
 
@@ -344,14 +381,14 @@ function getDayStartEnd(
 ): [number, number] {
   const tripStart =
     DateTime.fromMillis(tripTimestampStart).setZone(tripTimeZone);
-  const activityStart = DateTime.fromMillis(activity.timestampStart).setZone(
-    tripTimeZone,
-  );
-  const activityEnd = DateTime.fromMillis(activity.timestampEnd).setZone(
-    tripTimeZone,
-  );
-  const diffStart = activityStart.diff(tripStart, 'day');
-  const diffEnd = activityEnd.diff(tripStart, 'day');
+  const activityStartRelativeToTrip = DateTime.fromMillis(
+    activity.timestampStart,
+  ).setZone(tripTimeZone);
+  const activityEndRelativeToTrip = DateTime.fromMillis(
+    activity.timestampEnd,
+  ).setZone(tripTimeZone);
+  const diffStart = activityStartRelativeToTrip.diff(tripStart, 'day');
+  const diffEnd = activityEndRelativeToTrip.diff(tripStart, 'day');
   return [Math.floor(diffStart.days) + 1, Math.floor(diffEnd.days) + 1];
 }
 export const Activity = memo(ActivityInner, (prevProps, nextProps) => {

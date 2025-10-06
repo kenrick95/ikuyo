@@ -32,6 +32,12 @@ export type DbActivity = {
   timestampStart: number | null | undefined;
   /** ms */
   timestampEnd: number | null | undefined;
+
+  /** default: trip.timeZone */
+  timeZoneStart: string | null | undefined;
+  /** default: trip.timeZone */
+  timeZoneEnd: string | null | undefined;
+
   /** ms */
   createdAt: number;
   /** ms */

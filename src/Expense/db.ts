@@ -21,6 +21,9 @@ export type DbExpense = {
   currencyConversionFactor: number | undefined;
   /** default: trip.originCurrency */
   amountInOriginCurrency: number | undefined;
+  /** default: trip.timeZone */
+  timeZoneIncurred: string | null | undefined;
+
   trip?: DbTrip | undefined;
 };
 
