@@ -439,8 +439,9 @@ export function AccommodationForm({
           required
           aria-label="Accommodation check in time"
           placeholder="Select check in time"
-          min={tripStartDateTime}
-          max={tripEndDateTime}
+          // Buffer one day before and after trip start/end date to allow some flexibility
+          min={tripStartDateTime?.minus({ days: 1 })}
+          max={tripEndDateTime?.plus({ days: 1 })}
         />
         <Text as="label">
           Check out time zone{' '}
@@ -470,8 +471,9 @@ export function AccommodationForm({
           required
           aria-label="Accommodation check out time"
           placeholder="Select check out time"
-          min={tripStartDateTime}
-          max={tripEndDateTime}
+          // Buffer one day before and after trip start/end date to allow some flexibility
+          min={tripStartDateTime?.minus({ days: 1 })}
+          max={tripEndDateTime?.plus({ days: 1 })}
         />
         <Text as="label" htmlFor={idPhoneNumber}>
           Phone number

@@ -650,8 +650,9 @@ export function ActivityForm({
         <DateTimePicker
           name="startTime"
           mode={DateTimePickerMode.DateTime}
-          min={tripStartDateTime}
-          max={tripEndDateTime}
+          // Buffer one day before and after trip start/end date to allow some flexibility
+          min={tripStartDateTime?.minus({ days: 1 })}
+          max={tripEndDateTime?.plus({ days: 1 })}
           value={startDateTime}
           onChange={setStartDateTime}
           // TODO: setting clearable not working very well with selecting time zone, so disable for now
@@ -679,8 +680,9 @@ export function ActivityForm({
         <DateTimePicker
           name="endTime"
           mode={DateTimePickerMode.DateTime}
-          min={tripStartDateTime}
-          max={tripEndDateTime}
+          // Buffer one day before and after trip start/end date to allow some flexibility
+          min={tripStartDateTime?.minus({ days: 1 })}
+          max={tripEndDateTime?.plus({ days: 1 })}
           value={endDateTime}
           onChange={setEndDateTime}
           // TODO: setting clearable not working very well with selecting time zone, so disable for now
