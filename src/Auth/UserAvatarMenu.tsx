@@ -22,6 +22,27 @@ export function UserAvatarMenu({ user }: { user: DbUser | null | undefined }) {
             <Link to={RouteAccount.asRootRoute()}>Edit account</Link>
           </DropdownMenu.Item>
           <DropdownMenu.Separator />
+          {/* Help */}
+          <DropdownMenu.Label>Others</DropdownMenu.Label>
+          <DropdownMenu.Item asChild>
+            <a
+              href="https://blog.kenrick95.org/2025/06/ikuyo-plan-your-next-trip/#respond"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Feedback
+            </a>
+          </DropdownMenu.Item>
+          <DropdownMenu.Item asChild>
+            <a
+              href="https://github.com/kenrick95/ikuyo"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Source Code (GitHub)
+            </a>
+          </DropdownMenu.Item>
+          <DropdownMenu.Separator />
           <DropdownMenu.Item
             onClick={() => {
               if (!user) {
@@ -45,6 +66,27 @@ export function UserAvatarMenu({ user }: { user: DbUser | null | undefined }) {
             }}
           >
             Log in
+          </DropdownMenu.Item>
+          <DropdownMenu.Separator />
+          {/* Help */}
+          <DropdownMenu.Label>Others</DropdownMenu.Label>
+          <DropdownMenu.Item asChild>
+            <a
+              href="https://blog.kenrick95.org/2025/06/ikuyo-plan-your-next-trip/#respond"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Feedback
+            </a>
+          </DropdownMenu.Item>
+          <DropdownMenu.Item asChild>
+            <a
+              href="https://github.com/kenrick95/ikuyo"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Source Code (GitHub)
+            </a>
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       )}

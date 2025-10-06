@@ -146,6 +146,32 @@ export function TripMenu() {
             View trips
           </DropdownMenu.Item>
 
+          {/* Help */}
+          <DropdownMenu.Separator className={s.onlyForXs} />
+          <DropdownMenu.Label className={s.onlyForXs}>
+            Others
+          </DropdownMenu.Label>
+          <DropdownMenu.Item asChild>
+            <a
+              href="https://blog.kenrick95.org/2025/06/ikuyo-plan-your-next-trip/#respond"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={s.onlyForXs}
+            >
+              Feedback
+            </a>
+          </DropdownMenu.Item>
+          <DropdownMenu.Item asChild>
+            <a
+              href="https://github.com/kenrick95/ikuyo"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={s.onlyForXs}
+            >
+              Source Code (GitHub)
+            </a>
+          </DropdownMenu.Item>
+
           {/* On small screen, account section is under hamburger menu  */}
           <DropdownMenu.Separator className={s.onlyForXs} />
           <DropdownMenu.Label className={s.onlyForXs}>
