@@ -1,5 +1,5 @@
 import { DoubleArrowRightIcon } from '@radix-ui/react-icons';
-import { Heading, Select, Skeleton } from '@radix-ui/themes';
+import { Badge, Heading, Select, Skeleton, Tooltip } from '@radix-ui/themes';
 import { useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Navbar } from '../../Nav/Navbar';
@@ -74,7 +74,21 @@ export function TripNavbar() {
           <DoubleArrowRightIcon className={s.tripTitleDivider} />
           {selector}
         </Heading>,
-      ]}
+        selection === RouteTripTimetableView.routePath ||
+        selection === RouteTripListView.routePath ||
+        selection === RouteTripExpenses.routePath ? (
+          <Tooltip
+            key="tz"
+            content={`${selection === RouteTripTimetableView.routePath ? 'Timetable' : selection === RouteTripExpenses.routePath ? 'Expense' : 'List'} is displayed in ${trip?.timeZone} time zone`}
+          >
+            <Badge key="tz" size={{ initial: '1', xs: '2' }} color="gray">
+              {trip?.timeZone}
+            </Badge>
+          </Tooltip>
+        ) : undefined,
+      ].filter((item): item is React.ReactElement => {
+        return item !== undefined;
+      })}
       rightItems={[<TripMenu key="menu" />]}
     />
   );
