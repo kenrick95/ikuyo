@@ -288,9 +288,6 @@ export function TripForm({
       }}
     >
       <Flex direction="column" gap="2">
-        <Text color={dangerToken} size="2">
-          {errorMessage}&nbsp;
-        </Text>
         <Text as="label" htmlFor={idTitle}>
           Trip name{' '}
           <Text weight="light" size="1">
@@ -326,22 +323,6 @@ export function TripForm({
           <Text weight="light" size="1">
             (required)
           </Text>
-          {mode === TripFormMode.Edit ? (
-            <>
-              <br />
-              <Text size="1">
-                <Text weight="bold" color={dangerToken} size="1">
-                  Warning:
-                </Text>{' '}
-                Changing this may cause some activities, accommodations, and day
-                plans{' '}
-                <Text weight="bold" size="1">
-                  to disappear from the trip view
-                </Text>{' '}
-                as they may fall outside the trip date range.
-              </Text>
-            </>
-          ) : null}
         </Text>
         <TimeZoneSelect
           name="timeZone"
@@ -427,7 +408,29 @@ export function TripForm({
           isFormLoading={isFormLoading}
         />
       </Flex>
-      <Flex gap="3" mt="5" justify="end">
+      {mode === TripFormMode.Edit ? (
+        <Flex mt="5">
+          <Text size="1">
+            <Text weight="bold" color={dangerToken} size="1">
+              Warning:
+            </Text>{' '}
+            Changing trip start date, end date, and time zone may cause existing
+            activities, accommodations, and day plans{' '}
+            <Text weight="bold" size="1">
+              to disappear from the trip view
+            </Text>{' '}
+            as existing activities, accommodations, and day plans' time zones
+            are not changed, and therefore they may fall outside the new trip's
+            date range.
+          </Text>
+        </Flex>
+      ) : null}
+      <Flex mt="5" justify="end">
+        <Text color={dangerToken} size="2">
+          {errorMessage}&nbsp;
+        </Text>
+      </Flex>
+      <Flex gap="3" mt="2" justify="end">
         <Button
           type="button"
           size="2"

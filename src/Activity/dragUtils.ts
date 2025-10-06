@@ -33,6 +33,8 @@ export function gridColumnToDay(gridColumn: string): number {
 
 /**
  * Calculate new timestamps based on the drag position
+ *
+ * Note: calculation is relative to trip time zone, results are in timestamp (so activity time zone not changed)
  */
 export function calculateNewTimestamps(
   gridRow: string,
@@ -62,7 +64,7 @@ export function calculateNewTimestamps(
     originalDuration = 30 * 60 * 1000; // Default to 30 minutes if duration is not set
   }
 
-  // Calculate the start of the day for the activity's new position
+  // Calculate the start of `the day for the activity's new position
   const tripStart =
     DateTime.fromMillis(tripTimestampStart).setZone(tripTimeZone);
   const newDayStart = tripStart.plus({ days: newDayIndex }).startOf('day');
