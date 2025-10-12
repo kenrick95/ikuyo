@@ -24,15 +24,27 @@ export function ExpenseInlineCardForm({
   expenseMode: ExpenseMode;
   setExpenseMode: (mode: ExpenseMode) => void;
 }) {
+  const tripLocalState = useBoundStore((state) =>
+    state.getTripLocalState(trip.id),
+  );
+  const setTripLocalState = useBoundStore((state) => state.setTripLocalState);
+
   const dateTimeIncurred = useMemo(
     () =>
       DateTime.fromMillis(
         expenseMode === ExpenseMode.Edit && expense
           ? expense.timestampIncurred
-          : // TODO: use last used time zone & date from store
-            trip.timestampStart,
+          : tripLocalState?.expenseTimestampIncurred != null
+            ? tripLocalState?.expenseTimestampIncurred
+            : trip.timestampStart,
       ).setZone(trip.timeZone),
-    [trip.timestampStart, trip.timeZone, expense, expenseMode],
+    [
+      trip.timestampStart,
+      trip.timeZone,
+      tripLocalState?.expenseTimestampIncurred,
+      expense,
+      expenseMode,
+    ],
   );
   const publishToast = useBoundStore((state) => state.publishToast);
   const idForm = useId();
@@ -59,9 +71,15 @@ export function ExpenseInlineCardForm({
           dateTimeIncurred,
           title: '',
           description: '',
-          currency: trip.currency,
+          currency:
+            tripLocalState?.expenseCurrency != null
+              ? tripLocalState?.expenseCurrency
+              : trip.currency,
           amount: '',
-          currencyConversionFactor: '1',
+          currencyConversionFactor:
+            tripLocalState?.expenseCurrencyConversionFactor != null
+              ? tripLocalState?.expenseCurrencyConversionFactor.toFixed(2)
+              : '1',
           amountInOriginCurrency: '',
         },
   );
@@ -74,17 +92,17 @@ export function ExpenseInlineCardForm({
   const currencies = useMemo(() => Intl.supportedValuesOf('currency'), []);
 
   const resetFormState = useCallback(() => {
-    setFormState({
+    setFormState((prevValue) => ({
       loading: false,
-      dateTimeIncurred,
+      dateTimeIncurred: prevValue.dateTimeIncurred,
       title: '',
       description: '',
-      currency: trip.currency,
+      currency: prevValue.currency,
       amount: '',
-      currencyConversionFactor: '1',
+      currencyConversionFactor: prevValue.currencyConversionFactor,
       amountInOriginCurrency: '',
-    });
-  }, [trip.currency, dateTimeIncurred]);
+    }));
+  }, []);
 
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -154,6 +172,11 @@ export function ExpenseInlineCardForm({
               title: { children: `Updated expense: ${title}` },
               close: {},
             });
+            setTripLocalState(trip.id, {
+              expenseCurrency: currency,
+              expenseCurrencyConversionFactor: currencyConversionFactorFloat,
+              expenseTimestampIncurred: dateTimeIncurred.toMillis(),
+            });
 
             setExpenseMode(ExpenseMode.View);
             resetFormState();
@@ -186,6 +209,11 @@ export function ExpenseInlineCardForm({
           { tripId: trip.id },
         )
           .then(() => {
+            setTripLocalState(trip.id, {
+              expenseCurrency: currency,
+              expenseCurrencyConversionFactor: currencyConversionFactorFloat,
+              expenseTimestampIncurred: dateTimeIncurred.toMillis(),
+            });
             publishToast({
               root: {},
               title: { children: `Added expense: ${title}` },
@@ -213,6 +241,7 @@ export function ExpenseInlineCardForm({
       publishToast,
       resetFormState,
       setExpenseMode,
+      setTripLocalState,
     ],
   );
 

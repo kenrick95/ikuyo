@@ -4,13 +4,36 @@ import type { TripSliceAccommodation, TripSliceMacroplan } from './types';
 export function useTrip(tripId: string | undefined) {
   const trip = useDeepBoundStore((state) => state.getTrip(tripId));
   const tripMeta = useDeepBoundStore((state) => state.getTripMeta(tripId));
-  return { trip, loading: tripMeta?.loading, error: tripMeta?.error };
+  const localState = useDeepBoundStore((state) =>
+    state.getTripLocalState(tripId),
+  );
+  return {
+    trip,
+    loading: tripMeta?.loading,
+    error: tripMeta?.error,
+    localState,
+  };
 }
 export function useCurrentTrip() {
   const trip = useDeepBoundStore((state) => state.getCurrentTrip());
   const tripMeta = useDeepBoundStore((state) => state.getCurrentTripMeta());
-  return { trip, loading: tripMeta?.loading, error: tripMeta?.error };
+  const localState = useDeepBoundStore((state) =>
+    state.getCurrentTripLocalState(),
+  );
+  return {
+    trip,
+    loading: tripMeta?.loading,
+    error: tripMeta?.error,
+    localState,
+  };
 }
+export function useTripLocalState(tripId: string | undefined) {
+  const localState = useDeepBoundStore((state) =>
+    state.getTripLocalState(tripId),
+  );
+  return localState;
+}
+
 export function useTripActivity(activityId: string) {
   const activity = useDeepBoundStore((state) => state.getActivity(activityId));
   return activity;

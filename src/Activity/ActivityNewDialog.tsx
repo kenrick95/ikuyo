@@ -3,10 +3,10 @@ import { DateTime } from 'luxon';
 import { useMemo } from 'react';
 import { CommonLargeDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
+import { useTripLocalState } from '../Trip/store/hooks';
 import type { TripSliceTrip } from '../Trip/store/types';
 import { ActivityForm } from './ActivityForm/ActivityForm';
 import { ActivityFormMode } from './ActivityForm/ActivityFormMode';
-import { getNewActivityTimestamp } from './activityStorage';
 
 export function ActivityNewDialog({
   trip,
@@ -18,6 +18,7 @@ export function ActivityNewDialog({
     timeStart: string;
   };
 }) {
+  const localState = useTripLocalState(trip.id);
   const popDialog = useBoundStore((state) => state.popDialog);
   const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
     trip.timeZone,
@@ -50,14 +51,13 @@ export function ActivityNewDialog({
     }
 
     // Default behavior when no prefillData
-    const activityStartTimestamp = getNewActivityTimestamp(trip);
     const activityStartTime = DateTime.fromMillis(
-      activityStartTimestamp,
+      localState?.activityTimestampStart ?? trip.timestampStart,
     ).setZone(trip.timeZone);
     const activityEndTime = activityStartTime.plus({ hours: 1 });
 
     return [activityStartTime, activityEndTime];
-  }, [trip, prefillData]);
+  }, [trip, prefillData, localState?.activityTimestampStart]);
 
   return (
     <Dialog.Root open>

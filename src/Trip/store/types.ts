@@ -25,6 +25,15 @@ export type TripSliceTripMeta = {
   loading: boolean;
   error: string | undefined;
 };
+export type TripSliceTripLocalState = {
+  /* For next entry of expense: save last used currency, currency conversion factor, and timestamp inccured, use it again */
+  expenseCurrency: string;
+  expenseCurrencyConversionFactor: number;
+  expenseTimestampIncurred: number;
+
+  /* For next entry of activity: save last timestamp end, use it as new timestamp start */
+  activityTimestampStart: number;
+};
 export type TripSliceActivity = Omit<DbActivity, 'trip' | 'commentGroup'> & {
   tripId: string;
   commentGroupId: string | undefined;
@@ -297,6 +306,9 @@ export interface TripSlice {
   tripMeta: {
     [id: string]: TripSliceTripMeta;
   };
+  tripLocalState: {
+    [id: string]: TripSliceTripLocalState;
+  };
   activity: {
     [id: string]: TripSliceActivity;
   };
@@ -343,6 +355,15 @@ export interface TripSlice {
   setCurrentTripId: (tripId: string | undefined) => void;
   getCurrentTrip: () => TripSliceTrip | undefined;
   getCurrentTripMeta: () => TripSliceTripMeta;
+  getCurrentTripLocalState: () => TripSliceTripLocalState | undefined;
+  getTripLocalState: (
+    tripId: string | undefined,
+  ) => TripSliceTripLocalState | undefined;
+  setTripLocalState: (
+    tripId: string,
+    state: Partial<TripSliceTripLocalState>,
+  ) => void;
+
   /** return: unsubscribe function */
   subscribeTrip: (id: string) => () => void;
 

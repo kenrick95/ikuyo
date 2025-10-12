@@ -278,7 +278,7 @@ export function CalendarMonth({
 }
 
 function isDateInRange(date: DateTime, start?: DateTime, end?: DateTime) {
-  console.log('isDateInRange', { date, start, end });
+  // console.log('isDateInRange', { date, start, end });
   if (start != null && end != null) {
     return date >= start && date <= end;
   } else if (start != null) {

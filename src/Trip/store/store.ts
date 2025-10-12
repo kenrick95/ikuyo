@@ -39,6 +39,7 @@ export const createTripSlice: StateCreator<
     currentTripId: undefined,
     tripMeta: {},
     trip: {},
+    tripLocalState: {},
     accommodation: {},
     activity: {},
     macroplan: {},
@@ -213,6 +214,35 @@ export const createTripSlice: StateCreator<
           error: undefined,
         }
       );
+    },
+    getCurrentTripLocalState: () => {
+      const state = get();
+      const tripId = state.currentTripId;
+      if (!tripId) {
+        return undefined;
+      }
+      return state.getTripLocalState(tripId);
+    },
+    getTripLocalState: (tripId: string | undefined) => {
+      const state = get();
+      if (!tripId) {
+        return undefined;
+      }
+      return state.tripLocalState[tripId] ?? undefined;
+    },
+    setTripLocalState: (
+      tripId: string,
+      newState: Partial<NonNullable<TripSlice['tripLocalState'][string]>>,
+    ) => {
+      set((state) => ({
+        tripLocalState: {
+          ...state.tripLocalState,
+          [tripId]: {
+            ...state.tripLocalState[tripId],
+            ...newState,
+          },
+        },
+      }));
     },
     getTrip: (id: string | undefined): TripSliceTrip | undefined => {
       if (!id) {

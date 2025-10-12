@@ -14,7 +14,6 @@ import { TimeZoneSelect } from '../../common/TimeZoneSelect/TimeZoneSelect';
 import { dangerToken } from '../../common/ui';
 import { useBoundStore } from '../../data/store';
 import { ActivityMap } from '../ActivityDialog/ActivityDialogMap';
-import { setNewActivityTimestamp } from '../activityStorage';
 import { dbAddActivity, dbUpdateActivity } from '../db';
 import { geocodingRequest } from './ActivityFormGeocoding';
 import {
@@ -157,6 +156,8 @@ export function ActivityForm({
   const idCoordinates = useId();
   const publishToast = useBoundStore((state) => state.publishToast);
   const [errorMessage, setErrorMessage] = useState('');
+
+  const setTripLocalState = useBoundStore((state) => state.setTripLocalState);
 
   // State for DateTime pickers
   const [startDateTime, setStartDateTime] = useState<DateTime | undefined>(
@@ -438,9 +439,8 @@ export function ActivityForm({
         });
       } else if (mode === ActivityFormMode.New && tripId) {
         if (timeEndDate) {
-          setNewActivityTimestamp({
-            timestamp: timeEndDate.toMillis(),
-            tripId: tripId,
+          setTripLocalState(tripId, {
+            activityTimestampStart: timeEndDate.toMillis(),
           });
         }
         await dbAddActivity(
@@ -501,6 +501,7 @@ export function ActivityForm({
     tripTimeZone,
     tripStartDateTime,
     tripEndDateTime,
+    setTripLocalState,
   ]);
 
   return (

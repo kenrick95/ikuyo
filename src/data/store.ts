@@ -28,13 +28,14 @@ export const useBoundStore = create<BoundStoreType>()(
     }),
     {
       name: 'ikuyo-storage',
-      version: 2,
+      version: 3,
       partialize: (state) => {
         return {
           // Stale-while-revalidate: Don't persist the 'loading' or 'error' fields
           currentUser: state.currentUser,
           authUser: state.authUser,
           trip: state.trip,
+          tripLocalState: state.tripLocalState,
           comment: state.comment,
           commentGroup: state.commentGroup,
           commentUser: state.commentUser,
@@ -51,6 +52,16 @@ export const useBoundStore = create<BoundStoreType>()(
       },
       // biome-ignore lint/suspicious/noExplicitAny: schema migration code
       migrate: (persistedState: any, version) => {
+        let newState = { ...persistedState };
+
+        // Migration from version 2 to 3: Add tripLocalState to persisted state
+        if (version === 2) {
+          newState = {
+            ...newState,
+            tripLocalState: {},
+          };
+        }
+
         // Migration from version 0 or 1 to 2: Add task and taskList to persisted state
         if (version === 0 || version === 1) {
           const newTrip: TripSlice['trip'] = {};
@@ -62,14 +73,14 @@ export const useBoundStore = create<BoundStoreType>()(
               taskListIds: trip.taskListIds ?? [],
             } as TripSliceTrip;
           }
-          return {
-            ...persistedState,
+          newState = {
+            ...newState,
             trip: newTrip,
             task: {},
             taskList: {},
           };
         }
-        return persistedState;
+        return newState;
       },
     },
   ),
