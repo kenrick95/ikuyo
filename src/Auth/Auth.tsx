@@ -157,7 +157,9 @@ function Email({
         return;
       }
       const formData = new FormData(elForm);
-      const email = (formData.get('email') as string | null) ?? '';
+      const email = ((formData.get('email') as string | null) || '')
+        .trim()
+        .toLowerCase();
 
       db.auth
         .sendMagicCode({ email })
