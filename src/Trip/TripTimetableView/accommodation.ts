@@ -31,16 +31,20 @@ export function getAccommodationIndexes({
       accommodation.timestampCheckIn,
     ).setZone(accommodation.timeZoneCheckIn ?? trip.timeZone);
     const accommodationCheckInDay =
-      accommodationCheckInDateTime
-        .startOf('day')
-        .diff(tripStartDateTime, 'days').days + 1;
+      Math.floor(
+        accommodationCheckInDateTime
+          .startOf('day')
+          .diff(tripStartDateTime, 'days').days,
+      ) + 1;
     const accommodationCheckOutDateTime = DateTime.fromMillis(
       accommodation.timestampCheckOut,
     ).setZone(accommodation.timeZoneCheckOut ?? trip.timeZone);
     const accommodationCheckOutDay =
-      accommodationCheckOutDateTime
-        .startOf('day')
-        .diff(tripStartDateTime, 'days').days + 1;
+      Math.floor(
+        accommodationCheckOutDateTime
+          .startOf('day')
+          .diff(tripStartDateTime, 'days').days,
+      ) + 1;
 
     res.push({
       accommodation,

@@ -27,14 +27,18 @@ export function getMacroplanIndexes({
     );
     /** Trip's first day: Day 1 */
     const startDay =
-      startDateTime.startOf('day').diff(tripStartDateTime, 'days').days + 1;
+      Math.floor(
+        startDateTime.startOf('day').diff(tripStartDateTime, 'days').days,
+      ) + 1;
     const endDateTime = DateTime.fromMillis(macroplan.timestampEnd)
       .setZone(trip.timeZone)
       // Because timestampEnd is the day after it ended, subtract 1 minute to make this this represent final day of the macroplan
       .minus({ minute: 1 });
     /** Trip's final day: Day N */
     const endDay =
-      endDateTime.startOf('day').diff(tripStartDateTime, 'days').days + 1;
+      Math.floor(
+        endDateTime.startOf('day').diff(tripStartDateTime, 'days').days,
+      ) + 1;
 
     res.push({
       macroplan: macroplan,
