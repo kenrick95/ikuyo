@@ -65,6 +65,8 @@ export function TripForm({
   const [currentTimeZone, setCurrentTimeZone] = useState(tripTimeZone);
   const [currentRegion, setCurrentRegion] = useState(tripRegion);
   const [currentCurrency, setCurrentCurrency] = useState(tripCurrency);
+  const [currentOriginCurrency, setCurrentOriginCurrency] =
+    useState(tripOriginCurrency);
   const [currentStartDate, setCurrentStartDate] = useState<
     DateTime | undefined
   >(tripStartDateTime);
@@ -404,8 +406,9 @@ export function TripForm({
         <CurrencySelect
           id={idOriginCurrency}
           name="originCurrency"
-          value={tripOriginCurrency}
+          value={currentOriginCurrency}
           isFormLoading={isFormLoading}
+          handleChange={setCurrentOriginCurrency}
         />
       </Flex>
       {mode === TripFormMode.Edit ? (
