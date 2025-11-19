@@ -63,12 +63,11 @@ export const createUserSlice: StateCreator<
               return;
             }
 
-            // TODO: write script to link "$user" and "user" so we can query by the link instead of by email
             const { data: userData } = await db.queryOnce({
               user: {
                 $: {
                   where: {
-                    email: userEmail,
+                    '$users.id': authResult.user.id,
                   },
                   limit: 1,
                 },
