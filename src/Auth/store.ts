@@ -1,3 +1,4 @@
+import type { User as InstantdbUser } from '@instantdb/core';
 import { setUser } from '@sentry/react';
 import type { StateCreator } from 'zustand';
 import { db } from '../data/db';
@@ -7,7 +8,7 @@ import { type DbUser, dbUpsertUser } from '../User/db';
 export interface UserSlice {
   subscribeUser: () => () => void;
 
-  authUser: undefined | { id: string; email: string };
+  authUser: undefined | InstantdbUser;
   authUserLoading: boolean;
   authUserError: string | null;
 
