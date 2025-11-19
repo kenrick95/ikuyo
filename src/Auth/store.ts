@@ -48,11 +48,22 @@ export const createUserSlice: StateCreator<
             if (process.env.SENTRY_ENABLED) {
               setUser({
                 id: authResult.user.id,
-                email: authResult.user.email,
+                email: authResult.user.email ?? undefined,
               });
             }
 
             const userEmail = authResult.user.email;
+            if (!userEmail) {
+              // Guest user - no email
+              // TODO: support guest user in the future, at the moment we require email to identify users
+              set(() => ({
+                currentUser: undefined,
+                authUserLoading: false,
+              }));
+              return;
+            }
+
+            // TODO: write script to link "$user" and "user" so we can query by the link instead of by email
             const { data: userData } = await db.queryOnce({
               user: {
                 $: {
@@ -63,10 +74,14 @@ export const createUserSlice: StateCreator<
                 },
               },
             });
-            const user = userData.user[0] as DbUser | undefined;
+            const user = userData?.user?.[0] as DbUser | undefined;
 
             const state = get();
-            if (userData.user.length === 0 || !userData.user[0].activated) {
+            if (
+              !userData?.user ||
+              userData.user.length === 0 ||
+              !userData.user[0]?.activated
+            ) {
               // Create new user if not exist, or alr exist but not yet activated
               const defaultHandle = userEmail
                 .toLowerCase()
