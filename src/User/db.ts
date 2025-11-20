@@ -10,37 +10,61 @@ export type DbUser = {
   activated: boolean;
 };
 
-export async function dbUpsertUser(
-  newUser: Omit<DbUser, 'id' | 'createdAt' | 'lastUpdatedAt' | 'tripUser'>,
-) {
-  const { data: userData } = await db.queryOnce({
-    user: {
-      $: {
-        where: {
-          email: newUser.email,
-        },
-        limit: 1,
-      },
-    },
-  });
-  const user = userData.user[0] as undefined | Omit<DbUser, 'tripUser'>;
-  let userId = user?.id;
-  if (!userId) {
-    // new user
-    userId = id();
-    return db.transact(
-      db.tx.user[userId].update({
-        ...newUser,
-        createdAt: Date.now(),
-        lastUpdatedAt: Date.now(),
+export async function dbCreateUser({
+  email,
+  handle,
+  defaultUserNamespaceId,
+}: {
+  email: string;
+  handle: string;
+  /** 'id' in $user table/namespace */
+  defaultUserNamespaceId: string;
+}) {
+  const newUserId = id();
+  const now = Date.now();
+  const result = await db.transact(
+    db.tx.user[newUserId]
+      .create({
+        email,
+        handle,
+        createdAt: now,
+        lastUpdatedAt: now,
+        activated: true,
+      })
+      .link({
+        $users: defaultUserNamespaceId,
       }),
-    );
-  }
-  // existing user
-  return db.transact(
-    db.tx.user[userId].update({
-      ...newUser,
-      lastUpdatedAt: Date.now(),
-    }),
   );
+  return {
+    id: newUserId,
+    result,
+  };
+}
+
+export async function dbUpdateUser({
+  id: userId,
+  email,
+  handle,
+  activated,
+}: {
+  id: string;
+  email: string;
+  handle: string;
+  activated: boolean;
+}) {
+  const result = db.transact(
+    db.tx.user[userId].update(
+      {
+        email,
+        handle,
+        activated,
+        lastUpdatedAt: Date.now(),
+      },
+      { upsert: false },
+    ),
+  );
+  return {
+    id: userId,
+    result,
+  };
 }
