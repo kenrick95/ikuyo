@@ -52,7 +52,7 @@ export async function dbUpdateUser({
   handle: string;
   activated: boolean;
 }) {
-  const result = db.transact(
+  const result = await db.transact(
     db.tx.user[userId].update(
       {
         email,
