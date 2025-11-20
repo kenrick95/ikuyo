@@ -94,7 +94,7 @@ export const createUserSlice: StateCreator<
                   : // If user not activated, activate it
                     await dbUpdateUser({
                       id: userData.user[0].id,
-                      handle: defaultHandle,
+                      handle: userData.user[0].handle || defaultHandle,
                       email: userEmail,
                       activated: true,
                     });
