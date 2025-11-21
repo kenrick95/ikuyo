@@ -1,13 +1,14 @@
+import type { User as InstantdbUser } from '@instantdb/core';
 import { setUser } from '@sentry/react';
 import type { StateCreator } from 'zustand';
 import { db } from '../data/db';
 import type { BoundStoreType } from '../data/store';
-import { type DbUser, dbUpsertUser } from '../User/db';
+import { type DbUser, dbCreateUser, dbUpdateUser } from '../User/db';
 
 export interface UserSlice {
   subscribeUser: () => () => void;
 
-  authUser: undefined | { id: string; email: string };
+  authUser: undefined | InstantdbUser;
   authUserLoading: boolean;
   authUserError: string | null;
 
@@ -47,34 +48,68 @@ export const createUserSlice: StateCreator<
             if (process.env.SENTRY_ENABLED) {
               setUser({
                 id: authResult.user.id,
-                email: authResult.user.email,
+                email: authResult.user.email ?? undefined,
               });
             }
 
             const userEmail = authResult.user.email;
+            if (!userEmail) {
+              // Guest user - no email
+              // TODO: support guest user in the future, at the moment we require email to identify users
+              set(() => ({
+                currentUser: undefined,
+                authUserLoading: false,
+              }));
+              return;
+            }
+
             const { data: userData } = await db.queryOnce({
               user: {
                 $: {
                   where: {
-                    email: userEmail,
+                    '$users.id': authResult.user.id,
                   },
                   limit: 1,
                 },
               },
             });
-            const user = userData.user[0] as DbUser | undefined;
-
             const state = get();
-            if (userData.user.length === 0 || !userData.user[0].activated) {
+            if (
+              !userData?.user ||
+              userData.user.length === 0 ||
+              !userData.user?.[0]?.activated
+            ) {
               // Create new user if not exist, or alr exist but not yet activated
               const defaultHandle = userEmail
                 .toLowerCase()
                 .replace(/[@.]/g, '_');
-              await dbUpsertUser({
-                handle: defaultHandle,
-                email: userEmail,
-                activated: true,
-              });
+              const { id: newUserId } =
+                !userData?.user || userData.user.length === 0
+                  ? // If user does not exist, create a new user
+                    await dbCreateUser({
+                      handle: defaultHandle,
+                      email: userEmail,
+                      defaultUserNamespaceId: authResult.user.id,
+                    })
+                  : // If user not activated, activate it
+                    await dbUpdateUser({
+                      id: userData.user[0].id,
+                      handle: userData.user[0].handle || defaultHandle,
+                      email: userEmail,
+                      activated: true,
+                    });
+              const user = (
+                await db.queryOnce({
+                  user: {
+                    $: {
+                      where: {
+                        id: newUserId,
+                      },
+                      limit: 1,
+                    },
+                  },
+                })
+              ).data?.user?.[0] as DbUser | undefined;
               set(() => {
                 return {
                   currentUser: user,
@@ -91,6 +126,8 @@ export const createUserSlice: StateCreator<
               });
             } else if (userData.user.length > 0) {
               const userHandle = userData.user[0].handle;
+              const user = userData.user[0] satisfies DbUser;
+
               set(() => {
                 return {
                   currentUser: user,

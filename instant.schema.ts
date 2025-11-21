@@ -6,10 +6,12 @@ const _schema = i.schema({
   entities: {
     $files: i.entity({
       path: i.string().unique().indexed(),
-      url: i.any(),
+      url: i.string(),
     }),
     $users: i.entity({
-      email: i.string().unique().indexed(),
+      email: i.string().unique().indexed().optional(),
+      imageURL: i.string().optional(),
+      type: i.string().optional(),
     }),
     accommodation: i.entity({
       address: i.string(),
@@ -189,6 +191,19 @@ const _schema = i.schema({
         on: 'tripUser',
         has: 'many',
         label: 'trip',
+      },
+    },
+    $usersLinkedPrimaryUser: {
+      forward: {
+        on: '$users',
+        has: 'one',
+        label: 'linkedPrimaryUser',
+        onDelete: 'cascade',
+      },
+      reverse: {
+        on: '$users',
+        has: 'many',
+        label: 'linkedGuestUsers',
       },
     },
     /** user 1:1 $users */
@@ -380,7 +395,6 @@ const _schema = i.schema({
 
 // This helps Typescript display nicer intellisense
 type _AppSchema = typeof _schema;
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface AppSchema extends _AppSchema {}
 const schema: AppSchema = _schema;
 

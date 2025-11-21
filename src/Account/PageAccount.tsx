@@ -13,7 +13,7 @@ import { dangerToken } from '../common/ui';
 import { useBoundStore, useDeepBoundStore } from '../data/store';
 import { DocTitle } from '../Nav/DocTitle';
 import { Navbar } from '../Nav/Navbar';
-import { dbUpsertUser } from '../User/db';
+import { dbUpdateUser } from '../User/db';
 
 export default PageAccount;
 export function PageAccount(_props: RouteComponentProps) {
@@ -44,9 +44,11 @@ export function PageAccount(_props: RouteComponentProps) {
       }
       try {
         resetToast();
-        await dbUpsertUser({
-          ...currentUser,
+        await dbUpdateUser({
+          id: currentUser.id,
+          email: currentUser.email,
           handle,
+          activated: currentUser.activated,
         });
         publishToast({
           root: {},
