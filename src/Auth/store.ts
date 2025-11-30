@@ -73,27 +73,71 @@ export const createUserSlice: StateCreator<
           }
 
           try {
-            const { data: userData } = await db.queryOnce({
-              user: {
-                $: {
-                  where: {
-                    '$users.id': authResult.user.id,
+            const [
+              { data: userDataUsingAuthUserId },
+              { data: userDataUsingEmail },
+            ] = await Promise.all([
+              db.queryOnce({
+                user: {
+                  $: {
+                    where: {
+                      // This will only succeed if they are linked
+                      '$users.id': authResult.user.id,
+                    },
+                    limit: 1,
                   },
-                  limit: 1,
                 },
-              },
-            });
+              }),
+              db.queryOnce({
+                user: {
+                  $: {
+                    where: {
+                      // Fallback to link by email
+                      email: userEmail,
+                    },
+                    limit: 1,
+                  },
+                },
+              }),
+            ]);
+
+            console.log(
+              'Fetched user data using auth user id:',
+              authResult.user.id,
+              userDataUsingAuthUserId,
+            );
+            console.log(
+              'Fetched user data using user email:',
+              userEmail,
+              userDataUsingEmail,
+            );
             const state = get();
-            if (!userData?.user || userData.user.length === 0) {
-              // New user flow
+            if (
+              !userDataUsingAuthUserId?.user ||
+              userDataUsingAuthUserId.user.length === 0
+            ) {
+              // $user is not linked with user, could either mean:
+              // 1. New user - no entry in user table
+              // 2. Existing user but not activated - entry in user table with activated=false
+
               const defaultHandle = userEmail
                 .toLowerCase()
                 .replace(/[@.]/g, '_');
-              const { id: newUserId } = await dbCreateUser({
-                handle: defaultHandle,
-                email: userEmail,
-                defaultUserNamespaceId: authResult.user.id,
-              });
+
+              const { id: newUserId } = userDataUsingEmail.user?.[0].id
+                ? await dbUpdateUser({
+                    id: userDataUsingEmail.user?.[0].id,
+                    handle:
+                      userDataUsingEmail.user?.[0].handle || defaultHandle,
+                    email: userEmail,
+                    activated: true,
+                    defaultUserNamespaceId: authResult.user.id,
+                  })
+                : await dbCreateUser({
+                    handle: defaultHandle,
+                    email: userEmail,
+                    defaultUserNamespaceId: authResult.user.id,
+                  });
 
               const user = (
                 await db.queryOnce({
@@ -121,65 +165,67 @@ export const createUserSlice: StateCreator<
                 },
                 close: {},
               });
-            } else if (
-              userData.user.length > 0 &&
-              !userData.user[0].activated
-            ) {
-              // Activate user flow
-              const defaultHandle = userEmail
-                .toLowerCase()
-                .replace(/[@.]/g, '_');
-              const userId = userData.user[0].id;
-              await dbUpdateUser({
-                id: userData.user[0].id,
-                handle: userData.user[0].handle || defaultHandle,
-                email: userEmail,
-                activated: true,
-                defaultUserNamespaceId: authResult.user.id,
-              });
-              const user = (
-                await db.queryOnce({
-                  user: {
-                    $: {
-                      where: {
-                        id: userId,
+            } else if (userDataUsingAuthUserId.user.length > 0) {
+              // Exists on both $users and user table
+              if (!userDataUsingAuthUserId.user[0].activated) {
+                // User exists but not activated
+                // Activate user flow
+                const defaultHandle = userEmail
+                  .toLowerCase()
+                  .replace(/[@.]/g, '_');
+                const userId = userDataUsingAuthUserId.user[0].id;
+                await dbUpdateUser({
+                  id: userDataUsingAuthUserId.user[0].id,
+                  handle:
+                    userDataUsingAuthUserId.user[0].handle || defaultHandle,
+                  email: userEmail,
+                  activated: true,
+                  defaultUserNamespaceId: authResult.user.id,
+                });
+                const user = (
+                  await db.queryOnce({
+                    user: {
+                      $: {
+                        where: {
+                          id: userId,
+                        },
+                        limit: 1,
                       },
-                      limit: 1,
                     },
+                  })
+                ).data?.user?.[0] as DbUser | undefined;
+                set(() => {
+                  return {
+                    currentUser: user,
+                    authUserLoading: false,
+                  };
+                });
+                state.publishToast({
+                  root: { duration: Number.POSITIVE_INFINITY },
+                  title: { children: 'Welcome!' },
+                  description: {
+                    children: `Activated account for ${userEmail}. Account handle is set as ${defaultHandle}`,
                   },
-                })
-              ).data?.user?.[0] as DbUser | undefined;
-              set(() => {
-                return {
-                  currentUser: user,
-                  authUserLoading: false,
-                };
-              });
-              state.publishToast({
-                root: { duration: Number.POSITIVE_INFINITY },
-                title: { children: 'Welcome!' },
-                description: {
-                  children: `Activated account for ${userEmail}. Account handle is set as ${defaultHandle}`,
-                },
-                close: {},
-              });
-            } else if (userData.user.length > 0 && userData.user[0].activated) {
-              // Existing activated user flow
-              const userHandle = userData.user[0].handle;
-              const user = userData.user[0] satisfies DbUser;
+                  close: {},
+                });
+              } else {
+                // Existing activated user flow
+                const userHandle = userDataUsingAuthUserId.user[0].handle;
+                const user = userDataUsingAuthUserId.user[0] satisfies DbUser;
 
-              set(() => {
-                return {
-                  currentUser: user,
-                  authUserLoading: false,
-                };
-              });
+                set(() => {
+                  return {
+                    currentUser: user,
+                    authUserLoading: false,
+                  };
+                });
 
-              state.publishToast({
-                root: {},
-                title: { children: `Welcome back ${userHandle}!` },
-                close: {},
-              });
+                state.publishToast({
+                  root: {},
+                  title: { children: `Welcome back ${userHandle}!` },
+                  close: {},
+                });
+              }
             }
 
             // Subscribe for user updates
