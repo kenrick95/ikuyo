@@ -8,6 +8,7 @@ import {
 } from '@radix-ui/themes';
 import { useCallback, useId, useState } from 'react';
 import type { RouteComponentProps } from 'wouter';
+import { useAuthUser } from '../Auth/hooks';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
 import { dangerToken } from '../common/ui';
 import { useBoundStore, useDeepBoundStore } from '../data/store';
@@ -26,6 +27,7 @@ export function PageAccount(_props: RouteComponentProps) {
   const idHandle = useId();
 
   const [errorMessage, setErrorMessage] = useState('');
+  const { authUser } = useAuthUser();
 
   const handleForm = useCallback(() => {
     return async (elForm: HTMLFormElement) => {
@@ -38,7 +40,7 @@ export function PageAccount(_props: RouteComponentProps) {
       const formData = new FormData(elForm);
       const handle = (formData.get('handle') as string | null) ?? '';
 
-      if (!handle || !currentUser) {
+      if (!handle || !currentUser || !authUser?.id) {
         setIsFormLoading(false);
         return;
       }
@@ -49,6 +51,7 @@ export function PageAccount(_props: RouteComponentProps) {
           email: currentUser.email,
           handle,
           activated: currentUser.activated,
+          defaultUserNamespaceId: authUser.id,
         });
         publishToast({
           root: {},
@@ -74,7 +77,7 @@ export function PageAccount(_props: RouteComponentProps) {
         elForm.reset();
       }
     };
-  }, [currentUser, resetToast, publishToast]);
+  }, [currentUser, resetToast, publishToast, authUser?.id]);
 
   return (
     <>

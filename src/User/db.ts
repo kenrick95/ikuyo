@@ -46,22 +46,28 @@ export async function dbUpdateUser({
   email,
   handle,
   activated,
+  defaultUserNamespaceId,
 }: {
   id: string;
   email: string;
   handle: string;
   activated: boolean;
+  defaultUserNamespaceId: string;
 }) {
   const result = await db.transact(
-    db.tx.user[userId].update(
-      {
-        email,
-        handle,
-        activated,
-        lastUpdatedAt: Date.now(),
-      },
-      { upsert: false },
-    ),
+    db.tx.user[userId]
+      .update(
+        {
+          email,
+          handle,
+          activated,
+          lastUpdatedAt: Date.now(),
+        },
+        { upsert: false },
+      )
+      .link({
+        $users: defaultUserNamespaceId,
+      }),
   );
   return {
     id: userId,

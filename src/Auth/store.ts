@@ -135,6 +135,7 @@ export const createUserSlice: StateCreator<
                 handle: userData.user[0].handle || defaultHandle,
                 email: userEmail,
                 activated: true,
+                defaultUserNamespaceId: authResult.user.id,
               });
               const user = (
                 await db.queryOnce({
