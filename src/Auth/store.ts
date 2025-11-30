@@ -40,10 +40,14 @@ export const createUserSlice: StateCreator<
               authUserError: authResult.error.message,
             }));
           } else if (authResult.user) {
+            // authResult.user.id is $users namespace id
+            // this is different from id in our user table
+
             // User is logged in
             set(() => ({
               authUser: authResult.user,
               authUserError: null,
+              // setting authUserLoading: true later after user data is loaded
             }));
             if (process.env.SENTRY_ENABLED) {
               setUser({
@@ -74,30 +78,17 @@ export const createUserSlice: StateCreator<
               },
             });
             const state = get();
-            if (
-              !userData?.user ||
-              userData.user.length === 0 ||
-              !userData.user?.[0]?.activated
-            ) {
-              // Create new user if not exist, or alr exist but not yet activated
+            if (!userData?.user || userData.user.length === 0) {
+              // New user flow
               const defaultHandle = userEmail
                 .toLowerCase()
                 .replace(/[@.]/g, '_');
-              const { id: newUserId } =
-                !userData?.user || userData.user.length === 0
-                  ? // If user does not exist, create a new user
-                    await dbCreateUser({
-                      handle: defaultHandle,
-                      email: userEmail,
-                      defaultUserNamespaceId: authResult.user.id,
-                    })
-                  : // If user not activated, activate it
-                    await dbUpdateUser({
-                      id: userData.user[0].id,
-                      handle: userData.user[0].handle || defaultHandle,
-                      email: userEmail,
-                      activated: true,
-                    });
+              const { id: newUserId } = await dbCreateUser({
+                handle: defaultHandle,
+                email: userEmail,
+                defaultUserNamespaceId: authResult.user.id,
+              });
+
               const user = (
                 await db.queryOnce({
                   user: {
@@ -120,11 +111,53 @@ export const createUserSlice: StateCreator<
                 root: { duration: Number.POSITIVE_INFINITY },
                 title: { children: 'Welcome!' },
                 description: {
+                  children: `Hello ${userEmail}. Account handle is set as ${defaultHandle}`,
+                },
+                close: {},
+              });
+            } else if (
+              userData.user.length > 0 &&
+              !userData.user[0].activated
+            ) {
+              // Activate user flow
+              const defaultHandle = userEmail
+                .toLowerCase()
+                .replace(/[@.]/g, '_');
+              const userId = userData.user[0].id;
+              await dbUpdateUser({
+                id: userData.user[0].id,
+                handle: userData.user[0].handle || defaultHandle,
+                email: userEmail,
+                activated: true,
+              });
+              const user = (
+                await db.queryOnce({
+                  user: {
+                    $: {
+                      where: {
+                        id: userId,
+                      },
+                      limit: 1,
+                    },
+                  },
+                })
+              ).data?.user?.[0] as DbUser | undefined;
+              set(() => {
+                return {
+                  currentUser: user,
+                  authUserLoading: false,
+                };
+              });
+              state.publishToast({
+                root: { duration: Number.POSITIVE_INFINITY },
+                title: { children: 'Welcome!' },
+                description: {
                   children: `Activated account for ${userEmail}. Account handle is set as ${defaultHandle}`,
                 },
                 close: {},
               });
-            } else if (userData.user.length > 0) {
+            } else if (userData.user.length > 0 && userData.user[0].activated) {
+              // Existing activated user flow
               const userHandle = userData.user[0].handle;
               const user = userData.user[0] satisfies DbUser;
 
@@ -134,6 +167,7 @@ export const createUserSlice: StateCreator<
                   authUserLoading: false,
                 };
               });
+
               state.publishToast({
                 root: {},
                 title: { children: `Welcome back ${userHandle}!` },
@@ -148,7 +182,7 @@ export const createUserSlice: StateCreator<
                   user: {
                     $: {
                       where: {
-                        email: userEmail,
+                        '$users.id': authResult.user.id,
                       },
                       limit: 1,
                     },
