@@ -29,44 +29,50 @@ export const createUserSlice: StateCreator<
 
     currentUser: undefined,
     subscribeUser: () => {
-      const unsubscribeFns: (() => void)[] = [];
+      let userUnsubscribe: (() => void) | null = null;
 
-      unsubscribeFns.push(
-        db.subscribeAuth(async (authResult) => {
-          if (authResult.error) {
+      const authUnsubscribe = db.subscribeAuth(async (authResult) => {
+        // Cleanup previous user subscription if exists
+        if (userUnsubscribe) {
+          userUnsubscribe();
+          userUnsubscribe = null;
+        }
+
+        if (authResult.error) {
+          set(() => ({
+            authUser: undefined,
+            authUserLoading: false,
+            authUserError: authResult.error.message,
+          }));
+        } else if (authResult.user) {
+          // authResult.user.id is $users namespace id
+          // this is different from id in our user table
+
+          // User is logged in
+          set(() => ({
+            authUser: authResult.user,
+            authUserError: null,
+            // authUserLoading remains true until user data is loaded
+          }));
+          if (process.env.SENTRY_ENABLED) {
+            setUser({
+              id: authResult.user.id,
+              email: authResult.user.email ?? undefined,
+            });
+          }
+
+          const userEmail = authResult.user.email;
+          if (!userEmail) {
+            // Guest user - no email
+            // TODO: support guest user in the future, at the moment we require email to identify users
             set(() => ({
-              authUser: undefined,
+              currentUser: undefined,
               authUserLoading: false,
-              authUserError: authResult.error.message,
             }));
-          } else if (authResult.user) {
-            // authResult.user.id is $users namespace id
-            // this is different from id in our user table
+            return;
+          }
 
-            // User is logged in
-            set(() => ({
-              authUser: authResult.user,
-              authUserError: null,
-              // setting authUserLoading: true later after user data is loaded
-            }));
-            if (process.env.SENTRY_ENABLED) {
-              setUser({
-                id: authResult.user.id,
-                email: authResult.user.email ?? undefined,
-              });
-            }
-
-            const userEmail = authResult.user.email;
-            if (!userEmail) {
-              // Guest user - no email
-              // TODO: support guest user in the future, at the moment we require email to identify users
-              set(() => ({
-                currentUser: undefined,
-                authUserLoading: false,
-              }));
-              return;
-            }
-
+          try {
             const { data: userData } = await db.queryOnce({
               user: {
                 $: {
@@ -176,42 +182,47 @@ export const createUserSlice: StateCreator<
             }
 
             // Subscribe for user updates
-            unsubscribeFns.push(
-              db.subscribeQuery(
-                {
-                  user: {
-                    $: {
-                      where: {
-                        '$users.id': authResult.user.id,
-                      },
-                      limit: 1,
+            userUnsubscribe = db.subscribeQuery(
+              {
+                user: {
+                  $: {
+                    where: {
+                      '$users.id': authResult.user.id,
                     },
+                    limit: 1,
                   },
                 },
-                (userData) => {
-                  const user = userData.data?.user?.[0] as DbUser | undefined;
-                  set(() => ({
-                    currentUser: user,
-                  }));
-                },
-              ),
+              },
+              (userData) => {
+                const user = userData.data?.user?.[0] as DbUser | undefined;
+                set(() => ({
+                  currentUser: user,
+                }));
+              },
             );
-          } else {
-            // User is logged out
+          } catch (error) {
+            console.error('Error fetching user data', error);
             set(() => ({
-              currentUser: undefined,
-              authUser: undefined,
               authUserLoading: false,
-              authUserError: null,
+              authUserError: (error as Error).message || 'Unknown error',
             }));
           }
-        }),
-      );
+        } else {
+          // User is logged out
+          set(() => ({
+            currentUser: undefined,
+            authUser: undefined,
+            authUserLoading: false,
+            authUserError: null,
+          }));
+        }
+      });
 
       return () => {
-        unsubscribeFns.forEach((fn) => {
-          fn();
-        });
+        authUnsubscribe();
+        if (userUnsubscribe) {
+          userUnsubscribe();
+        }
       };
     },
     setCurrentUser: (user) => {
