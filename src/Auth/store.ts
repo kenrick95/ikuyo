@@ -124,11 +124,11 @@ export const createUserSlice: StateCreator<
                 .toLowerCase()
                 .replace(/[@.]/g, '_');
 
-              const { id: newUserId } = userDataUsingEmail.user?.[0].id
+              const { id: newUserId } = userDataUsingEmail.user?.[0]?.id
                 ? await dbUpdateUser({
-                    id: userDataUsingEmail.user?.[0].id,
+                    id: userDataUsingEmail.user?.[0]?.id,
                     handle:
-                      userDataUsingEmail.user?.[0].handle || defaultHandle,
+                      userDataUsingEmail.user?.[0]?.handle || defaultHandle,
                     email: userEmail,
                     activated: true,
                     defaultUserNamespaceId: authResult.user.id,
