@@ -1,7 +1,8 @@
-import { PlusIcon } from '@radix-ui/react-icons';
-import { Button, Card, Container, Grid, Heading } from '@radix-ui/themes';
+import { DownloadIcon, PlusIcon } from '@radix-ui/react-icons';
+import { Button, Card, Container, Flex, Grid, Heading } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { useCallback, useMemo, useState } from 'react';
+import { downloadCsv, expensesToCsv } from '../Expense/csvExport';
 import { ExpenseCard } from '../Expense/ExpenseCard';
 import { ExpenseHeaderCard } from '../Expense/ExpenseHeaderCard';
 import { ExpenseInlineCardForm } from '../Expense/ExpenseInlineCardForm';
@@ -26,12 +27,29 @@ export function TripExpenseViewCards() {
     setExpenseMode(ExpenseMode.Add);
   }, []);
 
+  const handleExportToCsv = useCallback(() => {
+    if (!trip || expenses.length === 0) return;
+
+    const csvContent = expensesToCsv(expenses, trip.timeZone);
+    const filename = `${trip.title.replace(/[^a-z0-9]/gi, '_')}_expenses_${new Date().toISOString().split('T')[0]}.csv`;
+    downloadCsv(csvContent, filename);
+  }, [trip, expenses]);
+
   return (
     <Container py="2" px="2" pb="9">
       <DocTitle title={`${trip?.title ?? 'Trip'} - Expenses`} />
-      <Heading as="h2" size="4">
-        Expenses
-      </Heading>
+      <Flex justify="between" align="center" mb="3">
+        <Heading as="h2" size="4">
+          Expenses
+        </Heading>
+        {/* TODO: how to put this in TripMenu */}
+        {expenses.length > 0 && (
+          <Button variant="outline" size="2" onClick={handleExportToCsv}>
+            <DownloadIcon />
+            Export to CSV
+          </Button>
+        )}
+      </Flex>
       <Grid className={s.expenseGrid}>
         <ExpenseHeaderCard />
         {userCanModifyExpense ? (
