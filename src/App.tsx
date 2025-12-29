@@ -3,7 +3,8 @@ import './accent.css';
 
 import { Portal, Theme } from '@radix-ui/themes';
 import React from 'react';
-import { Redirect, Route, Switch } from 'wouter';
+import { flushSync } from 'react-dom';
+import { type AroundNavHandler, Redirect, Route, Router, Switch } from 'wouter';
 import s from './App.module.css';
 import {
   useRedirectUnauthenticatedRoutes,
@@ -37,6 +38,32 @@ const PageAccount = withLoading()(
 );
 const PageDemo = withLoading()(React.lazy(() => import('./PageDemo')));
 
+// Handle view transitions for route changes
+let pendingTransition: ViewTransition | null = null;
+
+const aroundNav: AroundNavHandler = (navigate, to, options) => {
+  if (!document.startViewTransition) {
+    // check if supported
+    navigate(to, options);
+    return;
+  }
+
+  // Skip transition if one is already in progress
+  if (pendingTransition) {
+    pendingTransition.skipTransition();
+  }
+
+  pendingTransition = document.startViewTransition(() => {
+    flushSync(() => {
+      navigate(to, options);
+    });
+  });
+
+  pendingTransition.finished.finally(() => {
+    pendingTransition = null;
+  });
+};
+
 function App() {
   useSubscribeTheme();
   const theme = useTheme();
@@ -46,22 +73,24 @@ function App() {
   return (
     <>
       <Theme appearance={theme} accentColor="red">
-        <Switch>
-          {import.meta.env.DEV ? (
-            <Route path={'/demo'} component={PageDemo} />
-          ) : null}
-          <Route path={RouteLogin.routePath} component={PageLogin} />
-          <Route path={RouteTrips.routePath} component={PageTrips} />
-          <Route path={RouteTrip.routePath} component={PageTrip} nest />
-          <Route path={RouteAccount.routePath} component={PageAccount} />
-          <Route path={RoutePrivacy.routePath} component={PagePrivacy} />
-          <Route path={RouteTerms.routePath} component={PageTerms} />
-          <Route path={RouteLanding.routePath} component={PageLanding} />
-          <Route>
-            <Redirect to={RouteLanding.routePath} />
-          </Route>
-        </Switch>
-        <DialogRoot />
+        <Router aroundNav={aroundNav}>
+          <Switch>
+            {import.meta.env.DEV ? (
+              <Route path={'/demo'} component={PageDemo} />
+            ) : null}
+            <Route path={RouteLogin.routePath} component={PageLogin} />
+            <Route path={RouteTrips.routePath} component={PageTrips} />
+            <Route path={RouteTrip.routePath} component={PageTrip} nest />
+            <Route path={RouteAccount.routePath} component={PageAccount} />
+            <Route path={RoutePrivacy.routePath} component={PagePrivacy} />
+            <Route path={RouteTerms.routePath} component={PageTerms} />
+            <Route path={RouteLanding.routePath} component={PageLanding} />
+            <Route>
+              <Redirect to={RouteLanding.routePath} />
+            </Route>
+          </Switch>
+          <DialogRoot />
+        </Router>
       </Theme>
       <Portal className={s.notificationArea} asChild>
         <Theme
