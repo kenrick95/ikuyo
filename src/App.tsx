@@ -59,9 +59,13 @@ const aroundNav: AroundNavHandler = (navigate, to, options) => {
     });
   });
 
-  pendingTransition.finished.finally(() => {
-    pendingTransition = null;
-  });
+  pendingTransition.finished
+    .catch(() => {
+      // Ignore AbortError from skipTransition()
+    })
+    .finally(() => {
+      pendingTransition = null;
+    });
 };
 
 function App() {
