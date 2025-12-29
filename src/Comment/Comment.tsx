@@ -1,6 +1,14 @@
-import { Box, Button, Card, Flex, Popover, Text } from '@radix-ui/themes';
+import {
+  Box,
+  Button,
+  Card,
+  Flex,
+  Popover,
+  Text,
+  Tooltip,
+} from '@radix-ui/themes';
 import { DateTime } from 'luxon';
-import { memo, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'wouter';
 import { UserAvatar } from '../Auth/UserAvatar';
 import { useParseTextIntoNodes } from '../common/text/parseTextIntoNodes';
@@ -51,6 +59,46 @@ function CommentInner({
   const [commentMode, setCommentMode] = useState<CommentModeType>(
     CommentMode.View,
   );
+  const containerRef = useRef<HTMLDivElement>(null);
+  const commentId = `comment-${comment.id}`;
+
+  useEffect(() => {
+    if (
+      typeof window !== 'undefined' &&
+      window.location.hash === `#${commentId}`
+    ) {
+      containerRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }
+  }, [commentId]);
+
+  const handleCopyLink = useCallback(() => {
+    const url = `${window.location.origin}${window.location.pathname}${window.location.search}#${commentId}`;
+    navigator.clipboard
+      .writeText(url)
+      .then(() => {
+        publishToast({
+          root: {},
+          title: {
+            children: 'Link copied to clipboard',
+          },
+          close: {},
+        });
+      })
+      .catch((error: unknown) => {
+        console.error('Error copying link to clipboard', error);
+        publishToast({
+          root: {},
+          title: {
+            children: 'Error copying link',
+          },
+          close: {},
+        });
+      });
+  }, [commentId, publishToast]);
+
   const [objectTargetName, objectTargetTypeName, objectTargetLinkRoutePath] =
     useMemo(() => {
       if (!showCommentObjectTarget) {
@@ -99,7 +147,7 @@ function CommentInner({
       return ['', '', ''];
     }, [commentGroup, showCommentObjectTarget]);
   return (
-    <Flex gap="3" align="start">
+    <Flex gap="3" align="start" ref={containerRef} id={commentId}>
       <UserAvatar user={user} />
       <Flex direction="column" gap="1" flexGrow="1">
         <Box className={s.commentHeader}>
@@ -116,20 +164,35 @@ function CommentInner({
               &middot;
             </Text>
           ) : null}
-          <Text
-            size="1"
-            title={`Created ${formattedDateTimeStringCreated}${
-              formattedDateTimeStringCreated !== formattedDateTimeStringUpdated
-                ? ` (edited ${formattedDateTimeStringUpdated})`
-                : ''
-            }`}
+          <Tooltip
+            content={
+              <>
+                Created on {formattedDateTimeStringCreated}
+                {formattedDateTimeStringCreated !==
+                formattedDateTimeStringUpdated ? (
+                  <>
+                    <br />
+                    Updated on {formattedDateTimeStringUpdated}
+                  </>
+                ) : null}
+                <br />
+                Click to copy link to comment
+              </>
+            }
           >
-            {' '}
-            {formattedDateTimeStringCreated}
-            {formattedDateTimeStringCreated !== formattedDateTimeStringUpdated
-              ? ' (edited)'
-              : ''}
-          </Text>
+            <Button
+              className={s.commentDate}
+              size="1"
+              variant="ghost"
+              color="gray"
+              onClick={handleCopyLink}
+            >
+              {formattedDateTimeStringCreated}
+              {formattedDateTimeStringCreated !== formattedDateTimeStringUpdated
+                ? ' (edited)'
+                : ''}
+            </Button>
+          </Tooltip>
         </Box>
 
         {commentMode === CommentMode.Edit && commentGroup ? (

@@ -5,3 +5,7 @@
 .commentHeader {
   line-height: var(--line-height-1);
 }
+.commentDate {
+  vertical-align: baseline;
+  margin-left: var(--space-1);
+}
