@@ -42,8 +42,8 @@ const PageDemo = withLoading()(React.lazy(() => import('./PageDemo')));
 let pendingTransition: ViewTransition | null = null;
 
 const aroundNav: AroundNavHandler = (navigate, to, options) => {
-  if (!document.startViewTransition) {
-    // check if supported
+  if (!document.startViewTransition || document.visibilityState === 'hidden') {
+    // check if supported and document is visible
     navigate(to, options);
     return;
   }
@@ -51,21 +51,31 @@ const aroundNav: AroundNavHandler = (navigate, to, options) => {
   // Skip transition if one is already in progress
   if (pendingTransition) {
     pendingTransition.skipTransition();
+    pendingTransition = null;
   }
 
-  pendingTransition = document.startViewTransition(() => {
-    flushSync(() => {
-      navigate(to, options);
+  try {
+    pendingTransition = document.startViewTransition(() => {
+      flushSync(() => {
+        navigate(to, options);
+      });
     });
-  });
 
-  pendingTransition.finished
-    .catch(() => {
-      // Ignore AbortError from skipTransition()
-    })
-    .finally(() => {
-      pendingTransition = null;
-    });
+    pendingTransition.finished
+      .catch((error) => {
+        // Silently ignore AbortError from skipTransition()
+        if (error.name !== 'AbortError') {
+          throw error;
+        }
+      })
+      .finally(() => {
+        pendingTransition = null;
+      });
+  } catch {
+    // Fallback to regular navigation if transition fails
+    pendingTransition = null;
+    navigate(to, options);
+  }
 };
 
 function App() {
