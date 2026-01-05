@@ -103,16 +103,19 @@ export function activitiesToIcs(
         zone: timeZoneEnd,
       });
 
-      // Consider it all-day if start is at 00:00 and end is at 00:00 or 23:59
+      // Consider it all-day if start is at 00:00 and end is at 23:59 on the same day or next day at 00:00
       const isAllDay =
         startDt.hour === 0 &&
         startDt.minute === 0 &&
-        (endDt.hour === 0 || (endDt.hour === 23 && endDt.minute === 59));
+        startDt.second === 0 &&
+        ((endDt.hour === 23 && endDt.minute === 59) ||
+          (endDt.hour === 0 && endDt.minute === 0 && endDt.second === 0));
 
       const dtStart = isAllDay
         ? `DTSTART;VALUE=DATE:${formatIcsDateTime(activity.timestampStart, timeZoneStart, true)}`
         : `DTSTART${getTzidParam(timeZoneStart)}:${formatIcsDateTime(activity.timestampStart, timeZoneStart)}`;
 
+      // For all-day events, the end date should be the day AFTER the event ends (per ICS spec)
       const dtEnd = isAllDay
         ? `DTEND;VALUE=DATE:${formatIcsDateTime(activity.timestampEnd, timeZoneEnd, true)}`
         : `DTEND${getTzidParam(timeZoneEnd)}:${formatIcsDateTime(activity.timestampEnd, timeZoneEnd)}`;

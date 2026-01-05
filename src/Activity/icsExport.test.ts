@@ -129,18 +129,14 @@ describe('activitiesToIcs', () => {
         locationLng: null,
         locationDestination: null,
         description: 'Full day event',
-        timestampStart: new Date('2024-06-15T00:00:00Z').getTime(),
-        timestampEnd: new Date('2024-06-15T23:59:00Z').getTime(),
+        timestampStart: new Date('2024-06-15T00:00:00-04:00').getTime(),
+        timestampEnd: new Date('2024-06-15T23:59:00-04:00').getTime(),
         timeZoneStart: 'America/New_York',
         timeZoneEnd: 'America/New_York',
       },
     ];
 
-    const icsContent = activitiesToIcs(
-      activities,
-      'America/New_York',
-      'Trip',
-    );
+    const icsContent = activitiesToIcs(activities, 'America/New_York', 'Trip');
 
     expect(icsContent).toContain('DTSTART;VALUE=DATE:');
     expect(icsContent).toContain('DTEND;VALUE=DATE:');
@@ -189,11 +185,7 @@ describe('activitiesToIcs', () => {
       },
     ];
 
-    const icsContent = activitiesToIcs(
-      activities,
-      'America/New_York',
-      'Trip',
-    );
+    const icsContent = activitiesToIcs(activities, 'America/New_York', 'Trip');
 
     expect(icsContent).toContain('DTSTART;TZID=America/New_York:');
     expect(icsContent).toContain('DTEND;TZID=Europe/London:');
@@ -217,16 +209,13 @@ describe('activitiesToIcs', () => {
       },
     ];
 
-    const icsContent = activitiesToIcs(
-      activities,
-      'America/New_York',
-      'Trip',
-    );
+    const icsContent = activitiesToIcs(activities, 'America/New_York', 'Trip');
 
     expect(icsContent).toContain('GEO:40.6892;-74.0445');
-    expect(icsContent).toContain(
-      'DESCRIPTION:Iconic landmark\\n\\nLocation: https://www.google.com/maps?q=40.6892,-74.0445',
-    );
+    expect(icsContent).toContain('Iconic landmark');
+    // Line may be folded, so check for parts of the URL
+    expect(icsContent).toContain('https://www.google.com/maps?q=40.6');
+    expect(icsContent).toMatch(/892,-74\.0445/);
   });
 
   it('should handle activities without location', () => {
@@ -435,11 +424,7 @@ describe('activitiesToIcs', () => {
       },
     ];
 
-    const icsContent = activitiesToIcs(
-      activities,
-      'America/Chicago',
-      'Trip',
-    );
+    const icsContent = activitiesToIcs(activities, 'America/Chicago', 'Trip');
 
     expect(icsContent).toContain('DTSTART;TZID=America/Chicago:');
     expect(icsContent).toContain('DTEND;TZID=America/Chicago:');
@@ -512,11 +497,7 @@ describe('activitiesToIcs', () => {
       },
     ];
 
-    const icsContent = activitiesToIcs(
-      activities,
-      'America/New_York',
-      'Trip',
-    );
+    const icsContent = activitiesToIcs(activities, 'America/New_York', 'Trip');
 
     // Should not duplicate the location name
     expect(icsContent).toContain('LOCATION:Central Park');
