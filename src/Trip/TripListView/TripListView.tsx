@@ -1,4 +1,5 @@
-import { ContextMenu, Flex, Heading } from '@radix-ui/themes';
+import { DownloadIcon } from '@radix-ui/react-icons';
+import { Button, ContextMenu, Flex, Heading } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { DateTime } from 'luxon';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -14,6 +15,7 @@ import {
   type DayGroups,
   groupActivitiesByDays,
 } from '../../Activity/eventGrouping';
+import { activitiesToIcs, downloadIcs } from '../../Activity/icsExport';
 import { useBoundStore } from '../../data/store';
 import { Macroplan } from '../../Macroplan/Macroplan';
 import { MacroplanDialog } from '../../Macroplan/MacroplanDialog/MacroplanDialog';
@@ -176,6 +178,16 @@ export function TripListView() {
     pushDialog(MacroplanNewDialog, { trip });
   }, [pushDialog, trip]);
 
+  const handleExportToIcs = useCallback(() => {
+    if (!trip || !activities || activities.length === 0) return;
+
+    const icsContent = activitiesToIcs(activities, trip.timeZone, trip.title);
+    if (!icsContent) return;
+
+    const filename = `${trip.title.replace(/[^a-z0-9]/gi, '_')}_activities_${new Date().toISOString().split('T')[0]}.ics`;
+    downloadIcs(icsContent, filename);
+  }, [trip, activities]);
+
   const hasOutTrip =
     dayGroups.outTrip.activities.length > 0 ||
     dayGroups.outTrip.accommodations.length > 0 ||
@@ -189,6 +201,14 @@ export function TripListView() {
         direction={{ initial: 'column', sm: 'row' }}
       >
         <DocTitle title={`${trip?.title ?? 'Trip'} - List`} />
+        {activities && activities.length > 0 && (
+          <Flex justify="end" pb="2" px="2">
+            <Button variant="outline" size="2" onClick={handleExportToIcs}>
+              <DownloadIcon />
+              Export activities to ICS
+            </Button>
+          </Flex>
+        )}
         <ContextMenu.Root>
           <ContextMenu.Trigger>
             <Flex
