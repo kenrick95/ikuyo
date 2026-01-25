@@ -71,6 +71,7 @@ export function ActivityDialogContentEdit({
           activityLocationDestinationLat={activity.locationDestinationLat}
           activityLocationDestinationLng={activity.locationDestinationLng}
           activityLocationDestinationZoom={activity.locationDestinationZoom}
+          activityFlags={activity.flags}
           onFormCancel={backToViewMode}
           onFormSuccess={backToViewMode}
         />

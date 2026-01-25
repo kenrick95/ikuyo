@@ -86,6 +86,7 @@ export function ActivityNewDialog({
           activityLocationDestinationLat={undefined}
           activityLocationDestinationLng={undefined}
           activityLocationDestinationZoom={undefined}
+          activityFlags={undefined}
           onFormCancel={popDialog}
           onFormSuccess={popDialog}
         />

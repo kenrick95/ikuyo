@@ -14,6 +14,11 @@ import { TimeZoneSelect } from '../../common/TimeZoneSelect/TimeZoneSelect';
 import { dangerToken } from '../../common/ui';
 import { useBoundStore } from '../../data/store';
 import { ActivityMap } from '../ActivityDialog/ActivityDialogMap';
+import {
+  ActivityFlag,
+  hasActivityFlag,
+  updateActivityFlag,
+} from '../activityFlag';
 import { dbAddActivity, dbUpdateActivity } from '../db';
 import { geocodingRequest } from './ActivityFormGeocoding';
 import {
@@ -114,6 +119,7 @@ export function ActivityForm({
   activityLocationDestinationZoom,
 
   activityDescription,
+  activityFlags,
 
   onFormSuccess,
   onFormCancel,
@@ -138,6 +144,8 @@ export function ActivityForm({
   activityLocationDestinationLng: number | null | undefined;
   activityLocationDestinationZoom: number | null | undefined;
 
+  activityFlags: number | null | undefined;
+
   activityDescription: string;
 
   onFormSuccess: () => void;
@@ -151,6 +159,7 @@ export function ActivityForm({
   const idTwoLocationEnabled = useId();
   const idLocationDestination = useId();
   const idCoordinatesDestination = useId();
+  const idIsIdea = useId();
 
   const idDescription = useId();
   const idCoordinates = useId();
@@ -159,12 +168,23 @@ export function ActivityForm({
 
   const setTripLocalState = useBoundStore((state) => state.setTripLocalState);
 
+  const [isIdea, setIsIdea] = useState(() => {
+    return hasActivityFlag(activityFlags, ActivityFlag.IsIdea);
+  });
+
   // State for DateTime pickers
   const [startDateTime, setStartDateTime] = useState<DateTime | undefined>(
     activityStartDateTime,
   );
   const [endDateTime, setEndDateTime] = useState<DateTime | undefined>(
     activityEndDateTime,
+  );
+
+  const [startTimeZone, setStartTimeZone] = useState<string>(
+    activityStartDateTime?.zoneName ?? tripTimeZone,
+  );
+  const [endTimeZone, setEndTimeZone] = useState<string>(
+    activityEndDateTime?.zoneName ?? tripTimeZone,
   );
 
   const [locationFieldsState, dispatchLocationFieldsState] = useReducer(
@@ -322,6 +342,7 @@ export function ActivityForm({
 
   const handleTimeZoneStartChange = useCallback(
     (newTimeZone: string) => {
+      setStartTimeZone(newTimeZone);
       if (startDateTime) {
         setStartDateTime(
           startDateTime.setZone(newTimeZone, { keepLocalTime: true }),
@@ -333,6 +354,7 @@ export function ActivityForm({
 
   const handleTimeZoneEndChange = useCallback(
     (newTimeZone: string) => {
+      setEndTimeZone(newTimeZone);
       if (endDateTime) {
         setEndDateTime(
           endDateTime.setZone(newTimeZone, { keepLocalTime: true }),
@@ -340,6 +362,36 @@ export function ActivityForm({
       }
     },
     [endDateTime],
+  );
+
+  // Wrapper for start datetime changes that applies the selected timezone
+  const handleStartDateTimeChange = useCallback(
+    (newDateTime: DateTime | undefined) => {
+      if (newDateTime) {
+        // Apply the selected timezone to the new datetime
+        setStartDateTime(
+          newDateTime.setZone(startTimeZone, { keepLocalTime: true }),
+        );
+      } else {
+        setStartDateTime(undefined);
+      }
+    },
+    [startTimeZone],
+  );
+
+  // Wrapper for end datetime changes that applies the selected timezone
+  const handleEndDateTimeChange = useCallback(
+    (newDateTime: DateTime | undefined) => {
+      if (newDateTime) {
+        // Apply the selected timezone to the new datetime
+        setEndDateTime(
+          newDateTime.setZone(endTimeZone, { keepLocalTime: true }),
+        );
+      } else {
+        setEndDateTime(undefined);
+      }
+    },
+    [endTimeZone],
   );
 
   const handleSubmit = useCallback(() => {
@@ -359,6 +411,11 @@ export function ActivityForm({
         (formData.get('locationDestination') as string | null) ?? '';
       const timeStartDate = startDateTime;
       const timeEndDate = endDateTime;
+      const flags = updateActivityFlag(
+        activityFlags,
+        ActivityFlag.IsIdea,
+        isIdea,
+      );
       console.log('ActivityForm', {
         mode,
         activityId,
@@ -371,6 +428,8 @@ export function ActivityForm({
         startTime: timeStartDate,
         endTime: timeEndDate,
         coordinateState: locationFieldsState,
+        isIdea,
+        flags,
       });
       if (!title) {
         return;
@@ -431,6 +490,7 @@ export function ActivityForm({
           timestampEnd: timeEndDate ? timeEndDate.toMillis() : null,
           timeZoneStart: timeStartDate ? timeStartDate.zoneName : null,
           timeZoneEnd: timeEndDate ? timeEndDate.zoneName : null,
+          flags: flags,
         });
         publishToast({
           root: {},
@@ -474,6 +534,7 @@ export function ActivityForm({
             timestampEnd: timeEndDate ? timeEndDate.toMillis() : null,
             timeZoneStart: timeStartDate ? timeStartDate.zoneName : null,
             timeZoneEnd: timeEndDate ? timeEndDate.zoneName : null,
+            flags: flags,
           },
           {
             tripId: tripId,
@@ -497,11 +558,13 @@ export function ActivityForm({
     onFormSuccess,
     publishToast,
     startDateTime,
+    isIdea,
     tripId,
     tripTimeZone,
     tripStartDateTime,
     tripEndDateTime,
     setTripLocalState,
+    activityFlags,
   ]);
 
   return (
@@ -530,6 +593,18 @@ export function ActivityForm({
           type="text"
           id={idTitle}
           required
+        />
+        <Text as="label" htmlFor={idIsIdea}>
+          Is this activity an idea?{' '}
+          <Text weight="light" size="1">
+            (if yes, will appear in activity idea list)
+          </Text>
+        </Text>
+        <Switch
+          name="isIdea"
+          id={idIsIdea}
+          checked={isIdea}
+          onCheckedChange={setIsIdea}
         />
 
         <Text as="label" htmlFor={idTwoLocationEnabled}>
@@ -638,14 +713,14 @@ export function ActivityForm({
         <TimeZoneSelect
           id="timeZoneStart"
           name="timeZoneStart"
-          value={startDateTime?.zoneName ?? tripTimeZone}
+          value={startTimeZone}
           handleChange={handleTimeZoneStartChange}
           isFormLoading={false}
         />
         <Text as="label" htmlFor={idTimeStart}>
           Start time{' '}
           <Text weight="light" size="1">
-            (in {startDateTime?.zoneName ?? tripTimeZone} time zone)
+            (in {startTimeZone} time zone)
           </Text>
         </Text>
         <DateTimePicker
@@ -655,9 +730,8 @@ export function ActivityForm({
           min={tripStartDateTime?.minus({ days: 1 })}
           max={tripEndDateTime?.plus({ days: 1 })}
           value={startDateTime}
-          onChange={setStartDateTime}
-          // TODO: setting clearable not working very well with selecting time zone, so disable for now
-          // clearable={true}
+          onChange={handleStartDateTimeChange}
+          clearable={true}
         />
         <Text as="label">
           End time zone{' '}
@@ -668,14 +742,14 @@ export function ActivityForm({
         <TimeZoneSelect
           id="timeZoneEnd"
           name="timeZoneEnd"
-          value={endDateTime?.zoneName ?? tripTimeZone}
+          value={endTimeZone}
           handleChange={handleTimeZoneEndChange}
           isFormLoading={false}
         />
         <Text as="label" htmlFor={idTimeEnd}>
           End time{' '}
           <Text weight="light" size="1">
-            (in {endDateTime?.zoneName ?? tripTimeZone} time zone)
+            (in {endTimeZone} time zone)
           </Text>
         </Text>
         <DateTimePicker
@@ -685,9 +759,8 @@ export function ActivityForm({
           min={tripStartDateTime?.minus({ days: 1 })}
           max={tripEndDateTime?.plus({ days: 1 })}
           value={endDateTime}
-          onChange={setEndDateTime}
-          // TODO: setting clearable not working very well with selecting time zone, so disable for now
-          // clearable={true}
+          onChange={handleEndDateTimeChange}
+          clearable={true}
         />
         <Text as="label" htmlFor={idDescription}>
           Description

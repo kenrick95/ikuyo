@@ -2,6 +2,7 @@ import { id } from '@instantdb/core';
 import type { DbCommentGroup } from '../Comment/db';
 import { db } from '../data/db';
 import type { DbTrip, DbTripWithActivity } from '../Trip/db';
+import { ActivityFlag, updateActivityFlag } from './activityFlag';
 
 export type DbActivityWithTrip = Omit<DbActivity, 'trip'> & {
   trip: DbTripWithActivity;
@@ -42,6 +43,9 @@ export type DbActivity = {
   createdAt: number;
   /** ms */
   lastUpdatedAt: number;
+
+  /** bitmask, check ActivityFlag */
+  flags?: number | null | undefined;
 
   trip: DbTrip | undefined;
 
@@ -110,16 +114,26 @@ export async function dbUpdateActivity(
     }),
   );
 }
-export async function dbUpdateActivityTime(
+export async function dbUpdateActivityDragEnd(
   activityId: string,
-  timestampStart: number,
-  timestampEnd: number,
+  {
+    currentFlags,
+    timestampStart,
+    timestampEnd,
+    isIdea,
+  }: {
+    currentFlags: number | null | undefined;
+    timestampStart: number;
+    timestampEnd: number;
+    isIdea: boolean;
+  },
 ) {
   return db.transact(
     db.tx.activity[activityId].merge({
       timestampStart,
       timestampEnd,
       lastUpdatedAt: Date.now(),
+      flags: updateActivityFlag(currentFlags, ActivityFlag.IsIdea, isIdea),
     }),
   );
 }

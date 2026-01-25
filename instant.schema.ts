@@ -57,6 +57,8 @@ const _schema = i.schema({
       timeZoneStart: i.string().optional(),
       timeZoneEnd: i.string().optional(),
       title: i.string(),
+
+      flags: i.number().optional(),
     }),
     expense: i.entity({
       amount: i.number(),

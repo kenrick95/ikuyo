@@ -15,7 +15,7 @@ import { Accommodation } from '../../Accommodation/Accommodation';
 import { AccommodationDialog } from '../../Accommodation/AccommodationDialog/AccommodationDialog';
 import { Activity } from '../../Activity/Activity';
 import { ActivityDialog } from '../../Activity/ActivityDialog/ActivityDialog';
-import { dbUpdateActivityTime } from '../../Activity/db';
+import { dbUpdateActivityDragEnd } from '../../Activity/db';
 import { calculateNewTimestamps } from '../../Activity/dragUtils';
 import {
   type DayGroups,
@@ -73,7 +73,11 @@ export function Timetable() {
     if (!trip || !activities || !tripAccommodations || !tripMacroplans)
       return {
         inTrip: [],
-        outTrip: { accommodations: [], activities: [], macroplans: [] },
+        ideas: {
+          activities: [],
+          accommodations: [],
+          macroplans: [],
+        },
       } satisfies DayGroups;
     return groupActivitiesByDays({
       trip,
@@ -103,7 +107,10 @@ export function Timetable() {
     initialWindowWidth > 768,
   );
 
-  const unscheduledActivitiesCount = dayGroups.outTrip.activities.length;
+  const ideasCount =
+    dayGroups.ideas.activities.length +
+    dayGroups.ideas.accommodations.length +
+    dayGroups.ideas.macroplans.length;
 
   const isUsingClampedTable = dayGroups.inTrip.length < 5;
   const timetableAccommodationStyle = useMemo(() => {
@@ -362,7 +369,13 @@ export function Timetable() {
         }
 
         // Update the activity's timestamps in the database
-        await dbUpdateActivityTime(activityId, timestampStart, timestampEnd);
+        await dbUpdateActivityDragEnd(activityId, {
+          timestampStart,
+          timestampEnd,
+          currentFlags: activity.flags,
+          // if it's dropped into timetable, means removed from idea list
+          isIdea: false,
+        });
 
         publishToast({
           root: {},
@@ -505,9 +518,9 @@ export function Timetable() {
         userCanEditOrDelete={userCanModifyTrip}
         isVisible={isSidebarVisible}
       />
-      {unscheduledActivitiesCount > 0 && (
+      {ideasCount > 0 && (
         <Tooltip
-          content={`${isSidebarVisible ? 'Hide' : 'Show'} unscheduled activities (${unscheduledActivitiesCount})`}
+          content={`${isSidebarVisible ? 'Hide' : 'Show'} ideas (${ideasCount})`}
         >
           <IconButton
             variant="outline"

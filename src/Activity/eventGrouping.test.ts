@@ -130,7 +130,7 @@ describe('Trip', () => {
       accommodations,
       macroplans: [],
     });
-    expect(result.outTrip.activities.length).toBe(1);
+    expect(result.ideas.activities.length).toBe(1);
     expect(result.inTrip.length).toBe(2);
     expect(result.inTrip[0].columns).toBe(1);
     expect(result.inTrip[0].activities.length).toBe(3);
