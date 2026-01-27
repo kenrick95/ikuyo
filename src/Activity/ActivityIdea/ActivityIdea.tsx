@@ -106,7 +106,7 @@ export function ActivityIdea({
           onClick={openActivityViewDialog}
           onKeyDown={handleKeyDown}
           tabIndex={0}
-          aria-label={`Activity: ${activity.title}${activity.location ? `, at ${activity.location}` : ''}`}
+          aria-label={`Activity Idea: ${activity.title}${activity.location ? `, at ${activity.location}` : ''}`}
         >
           <Flex direction="column" gap="1">
             <Text size="2" weight="medium" className={s.activityTitle}>

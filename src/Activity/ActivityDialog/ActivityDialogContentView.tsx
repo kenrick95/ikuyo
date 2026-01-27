@@ -16,6 +16,7 @@ import { useDeepBoundStore } from '../../data/store';
 import { useTrip } from '../../Trip/store/hooks';
 import type { TripSliceActivity } from '../../Trip/store/types';
 import { TripUserRole } from '../../User/TripUserRole';
+import { ActivityFlag, hasActivityFlag } from '../activityFlag';
 import s from './ActivityDialog.module.css';
 import { ActivityMap } from './ActivityDialogMap';
 import { ActivityDialogMode } from './ActivityDialogMode';
@@ -119,12 +120,17 @@ export function ActivityDialogContentView({
     setDialogClosable(false);
   }, [setDialogClosable]);
 
+  const isIdea = useMemo(() => {
+    return hasActivityFlag(activity?.flags, ActivityFlag.IsIdea);
+  }, [activity?.flags]);
+
   return (
     <Dialog.Content {...dialogContentProps}>
       <DialogTitleSection
         title={
           <>
-            Activity: {activity?.title ?? <Skeleton>Activity Title</Skeleton>}
+            Activity{isIdea ? ' Idea' : ''}:{' '}
+            {activity?.title ?? <Skeleton>Activity Title</Skeleton>}
           </>
         }
       />

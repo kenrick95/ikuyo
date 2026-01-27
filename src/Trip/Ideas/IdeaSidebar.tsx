@@ -3,6 +3,7 @@ import { Badge, Box, Card, ScrollArea, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { memo, useMemo } from 'react';
 import { ActivityIdea } from '../../Activity/ActivityIdea/ActivityIdea';
+import { ActivityFlag, hasActivityFlag } from '../../Activity/activityFlag';
 import { useShouldDisableDragAndDrop } from '../../common/deviceUtils';
 import type { TripSliceActivity } from '../store/types';
 import { TripViewMode } from '../TripViewMode';
@@ -25,7 +26,8 @@ function IdeaSidebarInner({
         !activity.timestampStart ||
         !activity.timestampEnd ||
         activity.timestampStart === null ||
-        activity.timestampEnd === null,
+        activity.timestampEnd === null ||
+        hasActivityFlag(activity.flags, ActivityFlag.IsIdea),
     );
   }, [activities]);
 
@@ -64,10 +66,10 @@ function IdeaSidebarInner({
         {ideaActivities.length > 0 && (
           <Box className={s.footer}>
             <Text size="1" color="gray">
-              <CalendarIcon className={s.footerIcon} /> These are activities
-              that do not have a specific time assigned yet.
+              <CalendarIcon className={s.footerIcon} /> These activities are
+              explicitly marked as ideas, or do not have start or end time yet.
               {userCanEditOrDelete && !isDragAndDropDisabled
-                ? ` You can assign them a time by dragging them to the timetable.`
+                ? ` You can drag and drop them into the timetable.`
                 : ''}
             </Text>
           </Box>

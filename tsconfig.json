@@ -6,6 +6,7 @@
     "noEmit": true,
     "skipLibCheck": true,
     "useDefineForClassFields": true,
+    "types": ["@testing-library/jest-dom"],
 
     /* modules */
     "module": "ESNext",
@@ -19,5 +20,5 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": ["src"]
+  "include": ["src", "vitest.setup.ts"]
 }

@@ -7,10 +7,11 @@ import type {
   TripSliceMacroplan,
   TripSliceTrip,
 } from '../Trip/store/types';
+import { ActivityFlag, hasActivityFlag } from './activityFlag';
 
 export type DayGroups = {
-  /** entities that are in "bucket list" or "idea list", and don't have both timestamp start & end yet */
-  outTrip: {
+  /** entities that are in "bucket list" or "idea list": either marked explicitly, OR no start time, OR no end time */
+  ideas: {
     activities: TripSliceActivity[];
     accommodations: TripSliceAccommodation[];
     macroplans: TripSliceMacroplan[];
@@ -51,7 +52,7 @@ export function groupActivitiesByDays({
 }): DayGroups {
   const res: DayGroups = {
     inTrip: [],
-    outTrip: {
+    ideas: {
       activities: [],
       accommodations: [],
       macroplans: [],
@@ -65,7 +66,7 @@ export function groupActivitiesByDays({
   );
   const tripDuration = tripEndDateTime.diff(tripStartDateTime, 'days');
   const activitiesWithTime: TripSliceActivityWithTime[] = [];
-  const activitiesWithoutTime: TripSliceActivity[] = [];
+  const activityIdeas: TripSliceActivity[] = [];
   for (const activity of activities) {
     if (
       activity.timestampStart !== undefined &&
@@ -78,11 +79,15 @@ export function groupActivitiesByDays({
         timestampStart: activity.timestampStart,
         timestampEnd: activity.timestampEnd,
       });
+      // Activities that have both start and end time AND explicitly marked as ideas are included in BOTH `activitiesWithTime` and `activityIdeas`
+      if (hasActivityFlag(activity.flags, ActivityFlag.IsIdea)) {
+        activityIdeas.push(activity);
+      }
     } else {
-      activitiesWithoutTime.push(activity);
+      activityIdeas.push(activity);
     }
   }
-  res.outTrip.activities = activitiesWithoutTime;
+  res.ideas.activities = activityIdeas;
 
   for (let d = 0; d < tripDuration.days; d++) {
     const dayStartDateTime = tripStartDateTime.plus({ day: d });
