@@ -25,10 +25,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4.0.0
-      - name: Use Node.js 22
+      - name: Use Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: 'pnpm'
       # TODO: Use the artifact from the Testing workflow... seems quite complicated for now
       # https://stackoverflow.com/questions/67973057/github-actions-workflow-run-outputs
