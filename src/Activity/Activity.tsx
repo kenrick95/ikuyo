@@ -252,10 +252,13 @@ function ActivityInner({
     openActivityDeleteDialog();
   }, [openActivityDeleteDialog]);
 
+  const activityTitle = activity.icon
+    ? `${activity.icon} ${activity.title}`
+    : activity.title;
+
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger>
-        {/** biome-ignore lint/a11y/useSemanticElements: <Box> need to be a <div> */}
         <Box
           p={{ initial: '1' }}
           as="div"
@@ -319,7 +322,7 @@ function ActivityInner({
             weight="bold"
             className={style.activityTitle}
           >
-            {activity.title}
+            {activityTitle}
           </Text>
 
           {activity.location ? (
@@ -351,7 +354,7 @@ function ActivityInner({
         </Box>
       </ContextMenu.Trigger>
       <ContextMenu.Content>
-        <ContextMenu.Label>{activity.title}</ContextMenu.Label>
+        <ContextMenu.Label>{activityTitle}</ContextMenu.Label>
         <ContextMenu.Item onClick={handleContextMenuView}>
           View
         </ContextMenu.Item>
@@ -395,6 +398,7 @@ export const Activity = memo(ActivityInner, (prevProps, nextProps) => {
   return (
     prevProps.activity.id === nextProps.activity.id &&
     prevProps.activity.title === nextProps.activity.title &&
+    prevProps.activity.icon === nextProps.activity.icon &&
     prevProps.activity.timestampStart === nextProps.activity.timestampStart &&
     prevProps.activity.timestampEnd === nextProps.activity.timestampEnd &&
     prevProps.activity.location === nextProps.activity.location &&

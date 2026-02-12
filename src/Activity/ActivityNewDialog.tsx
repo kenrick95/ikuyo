@@ -75,6 +75,7 @@ export function ActivityNewDialog({
           tripTimeZone={trip.timeZone}
           tripRegion={trip.region}
           activityTitle={''}
+          activityIcon={undefined}
           activityStartDateTime={activityStartDateTime}
           activityEndDateTime={activityEndDateTime}
           activityLocation={''}

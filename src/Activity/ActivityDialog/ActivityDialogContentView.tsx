@@ -124,13 +124,22 @@ export function ActivityDialogContentView({
     return hasActivityFlag(activity?.flags, ActivityFlag.IsIdea);
   }, [activity?.flags]);
 
+  const activityTitle = useMemo(() => {
+    if (!activity) {
+      return undefined;
+    }
+    return activity.icon
+      ? `${activity.icon} ${activity.title}`
+      : activity.title;
+  }, [activity]);
+
   return (
     <Dialog.Content {...dialogContentProps}>
       <DialogTitleSection
         title={
           <>
             Activity{isIdea ? ' Idea' : ''}:{' '}
-            {activity?.title ?? <Skeleton>Activity Title</Skeleton>}
+            {activityTitle ?? <Skeleton>Activity Title</Skeleton>}
           </>
         }
       />
@@ -171,7 +180,7 @@ export function ActivityDialogContentView({
           <Heading as="h2" size="4">
             Title
           </Heading>
-          <Text>{activity?.title ?? <Skeleton>Activity Title</Skeleton>}</Text>
+          <Text>{activityTitle ?? <Skeleton>Activity Title</Skeleton>}</Text>
           <Heading as="h2" size="4">
             Time
           </Heading>

@@ -19,6 +19,7 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@emoji-mart/data": "^1.2.1",
     "@instantdb/admin": "~0.22.138",
     "@instantdb/core": "~0.22.138",
     "@maptiler/geocoding-control": "^2.1.7",
@@ -64,7 +65,7 @@
     "overrides": {
       "caniuse-lite": "1.0.30001741",
       "esbuild": "0.25.9",
-      "@types/react": "19.2.11",
+      "@types/react": "19.2.14",
       "@types/react-dom": "19.2.3",
       "es-set-tostringtag": "npm:@nolyfill/es-set-tostringtag@^1",
       "safe-buffer": "npm:@nolyfill/safe-buffer@^1",

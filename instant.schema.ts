@@ -59,6 +59,7 @@ const _schema = i.schema({
       title: i.string(),
 
       flags: i.number().optional(),
+      icon: i.string().optional(),
     }),
     expense: i.entity({
       amount: i.number(),

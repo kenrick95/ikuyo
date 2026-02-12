@@ -47,6 +47,9 @@ export type DbActivity = {
   /** bitmask, check ActivityFlag */
   flags?: number | null | undefined;
 
+  /** emoji */
+  icon?: string | null | undefined;
+
   trip: DbTrip | undefined;
 
   commentGroup?: DbCommentGroup<'activity'>;

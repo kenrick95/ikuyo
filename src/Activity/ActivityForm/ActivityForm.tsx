@@ -1,15 +1,10 @@
-import {
-  Button,
-  Flex,
-  Switch,
-  Text,
-  TextArea,
-  TextField,
-} from '@radix-ui/themes';
+import { Button, Flex, Switch, Text, TextArea } from '@radix-ui/themes';
 import type { DateTime } from 'luxon';
+import type { SubmitEvent } from 'react';
 import { useCallback, useId, useReducer, useState } from 'react';
 import { DateTimePicker } from '../../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../../common/DatePicker2/DateTimePickerMode';
+import { EmojiTextField } from '../../common/EmojiTextField/EmojiTextField';
 import { TimeZoneSelect } from '../../common/TimeZoneSelect/TimeZoneSelect';
 import { dangerToken } from '../../common/ui';
 import { useBoundStore } from '../../data/store';
@@ -106,6 +101,7 @@ export function ActivityForm({
   tripTimeZone,
   tripRegion,
   activityTitle,
+  activityIcon,
   activityStartDateTime,
   activityEndDateTime,
   activityLocation,
@@ -132,6 +128,7 @@ export function ActivityForm({
   tripTimeZone: string;
   tripRegion: string;
   activityTitle: string;
+  activityIcon?: string | null | undefined;
   activityStartDateTime: DateTime | undefined;
   activityEndDateTime: DateTime | undefined;
   activityLocation: string;
@@ -405,6 +402,8 @@ export function ActivityForm({
       }
       const formData = new FormData(elForm);
       const title = (formData.get('title') as string | null) ?? '';
+      const iconRaw = (formData.get('icon') as string | null) ?? '';
+      const icon = iconRaw.trim();
       const description = (formData.get('description') as string | null) ?? '';
       const location = (formData.get('location') as string | null) ?? '';
       const locationDestination =
@@ -424,6 +423,7 @@ export function ActivityForm({
         locationDestination,
         tripId,
         title,
+        icon,
         tripTimeZone,
         startTime: timeStartDate,
         endTime: timeEndDate,
@@ -460,6 +460,7 @@ export function ActivityForm({
         await dbUpdateActivity({
           id: activityId,
           title,
+          icon: icon || null,
           description,
           location,
           locationLat: locationFieldsState.enabled[0]
@@ -506,6 +507,7 @@ export function ActivityForm({
         await dbAddActivity(
           {
             title,
+            icon: icon || null,
             description,
             location,
             locationLat: locationFieldsState.enabled[0]
@@ -567,18 +569,21 @@ export function ActivityForm({
     activityFlags,
   ]);
 
+  const onFormInput = useCallback(() => {
+    setErrorMessage('');
+  }, []);
+
+  const onFormSubmit = useCallback(
+    (event: SubmitEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const elForm = event.currentTarget;
+      void handleSubmit()(elForm);
+    },
+    [handleSubmit],
+  );
+
   return (
-    <form
-      id={idForm}
-      onInput={() => {
-        setErrorMessage('');
-      }}
-      onSubmit={(e) => {
-        e.preventDefault();
-        const elForm = e.currentTarget;
-        void handleSubmit()(elForm);
-      }}
-    >
+    <form id={idForm} onInput={onFormInput} onSubmit={onFormSubmit}>
       <Flex direction="column" gap="2">
         <Text as="label" htmlFor={idTitle}>
           Activity name{' '}
@@ -586,13 +591,15 @@ export function ActivityForm({
             (required)
           </Text>
         </Text>
-        <TextField.Root
+        <EmojiTextField
           defaultValue={activityTitle}
           placeholder="Enter activity name"
           name="title"
-          type="text"
           id={idTitle}
+          iconName="icon"
+          defaultIcon={activityIcon}
           required
+          clearable
         />
         <Text as="label" htmlFor={idIsIdea}>
           Is this activity an idea?{' '}

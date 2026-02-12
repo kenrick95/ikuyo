@@ -1,5 +1,6 @@
 import { Button, Flex, Text, TextArea, TextField } from '@radix-ui/themes';
 import type { DateTime } from 'luxon';
+import type { SubmitEvent } from 'react';
 import { useCallback, useId, useState } from 'react';
 import { DateTimePicker } from '../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../common/DatePicker2/DateTimePickerMode';
@@ -182,17 +183,21 @@ export function MacroplanForm({
     tripEndDateTime,
   ]);
 
+  const onFormInput = useCallback(() => {
+    setErrorMessage('');
+  }, []);
+
+  const onFormSubmit = useCallback(
+    (event: SubmitEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const elForm = event.currentTarget;
+      void handleSubmit()(elForm);
+    },
+    [handleSubmit],
+  );
+
   return (
-    <form
-      onInput={() => {
-        setErrorMessage('');
-      }}
-      onSubmit={(e) => {
-        e.preventDefault();
-        const elForm = e.currentTarget;
-        void handleSubmit()(elForm);
-      }}
-    >
+    <form onInput={onFormInput} onSubmit={onFormSubmit}>
       <Flex direction="column" gap="2">
         <Text as="label" htmlFor={idName}>
           Day plan <br />

@@ -1,4 +1,5 @@
 import { Box, Button, Flex, Text, TextArea } from '@radix-ui/themes';
+import type { SubmitEvent } from 'react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { UserAvatar } from '../Auth/UserAvatar';
 import { dangerToken } from '../common/ui';
@@ -120,19 +121,27 @@ export function CommentForm({
     user,
     setCommentMode,
   ]);
+
+  const onFormInput = useCallback(() => {
+    setErrorMessage('');
+  }, []);
+
+  const onFormSubmit = useCallback(
+    (event: SubmitEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const elForm = event.currentTarget;
+      void handleSubmit()(elForm);
+    },
+    [handleSubmit],
+  );
+
   return (
     <form
       id={idForm}
       onFocus={onFormFocus}
-      onInput={() => {
-        setErrorMessage('');
-      }}
-      onSubmit={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const elForm = e.currentTarget;
-        void handleSubmit()(elForm);
-      }}
+      onInput={onFormInput}
+      onSubmit={onFormSubmit}
     >
       <Flex gap="3">
         {mode === CommentMode.Add ? <UserAvatar user={user} /> : null}

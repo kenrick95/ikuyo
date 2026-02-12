@@ -81,10 +81,13 @@ export function ActivityIdea({
     [openActivityViewDialog],
   );
 
+  const activityTitle = activity.icon
+    ? `${activity.icon} ${activity.title}`
+    : activity.title;
+
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger>
-        {/** biome-ignore lint/a11y/useSemanticElements: <Box> need to be a <div> */}
         <Box
           p={{ initial: '1' }}
           as="div"
@@ -106,11 +109,11 @@ export function ActivityIdea({
           onClick={openActivityViewDialog}
           onKeyDown={handleKeyDown}
           tabIndex={0}
-          aria-label={`Activity Idea: ${activity.title}${activity.location ? `, at ${activity.location}` : ''}`}
+          aria-label={`Activity Idea: ${activityTitle}${activity.location ? `, at ${activity.location}` : ''}`}
         >
           <Flex direction="column" gap="1">
             <Text size="2" weight="medium" className={s.activityTitle}>
-              {activity.title}
+              {activityTitle}
             </Text>
             {activity.location && (
               <Flex align="center" gap="1">
