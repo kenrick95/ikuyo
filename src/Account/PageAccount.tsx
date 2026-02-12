@@ -6,6 +6,7 @@ import {
   Text,
   TextField,
 } from '@radix-ui/themes';
+import type { SubmitEvent } from 'react';
 import { useCallback, useId, useState } from 'react';
 import type { RouteComponentProps } from 'wouter';
 import { useAuthUser } from '../Auth/hooks';
@@ -79,6 +80,19 @@ export function PageAccount(_props: RouteComponentProps) {
     };
   }, [currentUser, resetToast, publishToast, authUser?.id]);
 
+  const onFormInput = useCallback(() => {
+    setErrorMessage('');
+  }, []);
+
+  const onFormSubmit = useCallback(
+    (event: SubmitEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const elForm = event.currentTarget;
+      void handleForm()(elForm);
+    },
+    [handleForm],
+  );
+
   return (
     <>
       <DocTitle title={'Account'} />
@@ -94,16 +108,7 @@ export function PageAccount(_props: RouteComponentProps) {
       />
       <Container p="2" my="2">
         <Heading as="h2">Edit Account Details</Heading>
-        <form
-          onInput={() => {
-            setErrorMessage('');
-          }}
-          onSubmit={(e) => {
-            e.preventDefault();
-            const elForm = e.currentTarget;
-            void handleForm()(elForm);
-          }}
-        >
+        <form onInput={onFormInput} onSubmit={onFormSubmit}>
           <Flex direction="column" gap="2">
             <Text color={dangerToken} size="2">
               {errorMessage}&nbsp;

@@ -1,5 +1,6 @@
 import { Button, Flex, Select, Text, TextField } from '@radix-ui/themes';
 import type { DateTime } from 'luxon';
+import type { SubmitEvent } from 'react';
 import { useCallback, useId, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
 import { CurrencySelect } from '../common/CurrencySelect/CurrencySelect';
@@ -277,18 +278,22 @@ export function TripForm({
     );
   }, [currentRegion, idRegion, isFormLoading, handleRegionChange]);
 
+  const onFormInput = useCallback(() => {
+    setErrorMessage('');
+  }, []);
+
+  const onFormSubmit = useCallback(
+    (event: SubmitEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const elForm = event.currentTarget;
+      setIsFormLoading(true);
+      void handleForm()(elForm);
+    },
+    [handleForm],
+  );
+
   return (
-    <form
-      onInput={() => {
-        setErrorMessage('');
-      }}
-      onSubmit={(e) => {
-        e.preventDefault();
-        const elForm = e.currentTarget;
-        setIsFormLoading(true);
-        void handleForm()(elForm);
-      }}
-    >
+    <form onInput={onFormInput} onSubmit={onFormSubmit}>
       <Flex direction="column" gap="2">
         <Text as="label" htmlFor={idTitle}>
           Trip name{' '}

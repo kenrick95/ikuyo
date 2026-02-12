@@ -102,6 +102,11 @@ export function ActivityPopup({
   }, [activityStartDateTime, activityEndDateTime]);
 
   const description = useParseTextIntoNodes(activity?.description);
+  const activityTitle = activity
+    ? activity.icon
+      ? `${activity.icon} ${activity.title}`
+      : activity.title
+    : '';
   const linkTarget = activity?.tripId
     ? `~${RouteTrip.asRouteTarget(activity?.tripId)}${
         linkTargetBasePage === 'timetable'
@@ -113,7 +118,7 @@ export function ActivityPopup({
   return (
     <Container>
       <Heading as="h3" size="2">
-        {linkTarget ? <Link to={linkTarget}>{activity?.title}</Link> : ''}
+        {linkTarget ? <Link to={linkTarget}>{activityTitle}</Link> : ''}
       </Heading>
       {activityTimeStr ? (
         <Text as="p" size="1">

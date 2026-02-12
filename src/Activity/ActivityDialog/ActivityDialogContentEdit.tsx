@@ -60,6 +60,7 @@ export function ActivityDialogContentEdit({
           tripTimeZone={trip.timeZone}
           tripRegion={trip.region}
           activityTitle={activity.title}
+          activityIcon={activity.icon}
           activityStartDateTime={activityStartDateTime}
           activityEndDateTime={activityEndDateTime}
           activityLocationLat={activity.locationLat}

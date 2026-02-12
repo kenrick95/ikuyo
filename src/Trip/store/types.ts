@@ -178,6 +178,8 @@ export type DbTripQueryReturnType = {
     locationDestinationLat?: number | null | undefined;
     locationDestinationLng?: number | null | undefined;
     locationDestinationZoom?: number | null | undefined;
+    flags?: number | null | undefined;
+    icon?: string | null | undefined;
   }[];
   macroplan: {
     id: string;

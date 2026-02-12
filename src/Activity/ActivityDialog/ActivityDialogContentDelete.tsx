@@ -15,6 +15,12 @@ export function ActivityDialogContentDelete({
 }: DialogContentProps<TripSliceActivity>) {
   const [, setLocation] = useLocation();
   const publishToast = useBoundStore((state) => state.publishToast);
+  const activityTitle = activity
+    ? activity.icon
+      ? `${activity.icon} ${activity.title}`
+      : activity.title
+    : undefined;
+  const activityTitleRaw = activity?.title;
   const deleteActivity = useCallback(() => {
     if (!activity) {
       console.error('Activity is undefined');
@@ -24,27 +30,27 @@ export function ActivityDialogContentDelete({
       .then(() => {
         publishToast({
           root: {},
-          title: { children: `Activity "${activity.title}" deleted` },
+          title: { children: `Activity "${activityTitleRaw}" deleted` },
           close: {},
         });
         setLocation('');
       })
       .catch((err: unknown) => {
-        console.error(`Error deleting "${activity.title}"`, err);
+        console.error(`Error deleting "${activityTitleRaw}"`, err);
         publishToast({
           root: {},
-          title: { children: `Error deleting "${activity.title}"` },
+          title: { children: `Error deleting "${activityTitleRaw}"` },
           close: {},
         });
       });
-  }, [publishToast, activity, setLocation]);
+  }, [publishToast, activity, activityTitleRaw, setLocation]);
 
   return (
     <Dialog.Content {...dialogContentProps}>
       <DialogTitleSection title="Delete Activity" />
       <Dialog.Description size="2">
         Are you sure to delete activity "
-        {activity?.title ?? <Skeleton>Activity name</Skeleton>}"?
+        {activityTitle ?? <Skeleton>Activity name</Skeleton>}"?
       </Dialog.Description>
 
       <Flex gap="3" mt="4" justify="end">
