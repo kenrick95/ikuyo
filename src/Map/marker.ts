@@ -22,12 +22,16 @@ export function createMarkerElement(location: MarkerLocation): HTMLDivElement {
     markerElement.style.boxShadow = 'var(--shadow-2)';
   }
 
-  if (location.type === LocationType.Accommodation) {
-    markerElement.innerHTML = '🏠';
-  } else if (location.type === LocationType.Activity) {
-    markerElement.innerHTML = '📍';
-  } else if (location.type === LocationType.ActivityDestination) {
-    markerElement.innerHTML = '🎯';
+  if (location.customIcon) {
+    markerElement.innerHTML = location.customIcon;
+  } else {
+    if (location.type === LocationType.Accommodation) {
+      markerElement.innerHTML = '🏠';
+    } else if (location.type === LocationType.Activity) {
+      markerElement.innerHTML = '📍';
+    } else if (location.type === LocationType.ActivityDestination) {
+      markerElement.innerHTML = '🎯';
+    }
   }
   return markerElement;
 }

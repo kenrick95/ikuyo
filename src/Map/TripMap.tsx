@@ -154,6 +154,7 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
           lat: activity.locationLat,
           lng: activity.locationLng,
           isToday: isActivityToday(activity, trip),
+          customIcon: activity.icon ?? null,
         });
       }
       if (
@@ -166,6 +167,7 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
           lat: activity.locationDestinationLat,
           lng: activity.locationDestinationLng,
           isToday: isActivityToday(activity, trip),
+          customIcon: null,
         });
       }
     }
@@ -180,6 +182,7 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
           lat: accommodation.locationLat,
           lng: accommodation.locationLng,
           isToday: isAccommodationToday(accommodation, trip),
+          customIcon: null,
         });
       }
     }
