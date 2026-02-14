@@ -23,14 +23,14 @@ export function createMarkerElement(location: MarkerLocation): HTMLDivElement {
   }
 
   if (location.customIcon) {
-    markerElement.innerHTML = location.customIcon;
+    markerElement.textContent = location.customIcon;
   } else {
     if (location.type === LocationType.Accommodation) {
-      markerElement.innerHTML = '🏠';
+      markerElement.textContent = '🏠';
     } else if (location.type === LocationType.Activity) {
-      markerElement.innerHTML = '📍';
+      markerElement.textContent = '📍';
     } else if (location.type === LocationType.ActivityDestination) {
-      markerElement.innerHTML = '🎯';
+      markerElement.textContent = '🎯';
     }
   }
   return markerElement;
