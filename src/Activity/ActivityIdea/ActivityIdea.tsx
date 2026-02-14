@@ -6,6 +6,7 @@ import { useTripTimetableDragging } from '../../Trip/store/hooks';
 import type { TripSliceActivity } from '../../Trip/store/types';
 import { TripViewMode, type TripViewModeType } from '../../Trip/TripViewMode';
 import { useActivityDialogHooks } from '../ActivityDialog/activityDialogHooks';
+import { getActivityDisplayTitle } from '../activityTitle';
 import s from './ActivityIdea.module.css';
 
 interface ActivityIdeaProps {
@@ -81,9 +82,7 @@ export function ActivityIdea({
     [openActivityViewDialog],
   );
 
-  const activityTitle = activity.icon
-    ? `${activity.icon} ${activity.title}`
-    : activity.title;
+  const activityTitle = getActivityDisplayTitle(activity);
 
   return (
     <ContextMenu.Root>

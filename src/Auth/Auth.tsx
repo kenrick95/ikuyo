@@ -178,7 +178,7 @@ function Email({
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent<HTMLFormElement>) => {
+    (e: React.SubmitEvent<HTMLFormElement>) => {
       setIsLoading(true);
       e.preventDefault();
       const elForm = e.currentTarget;
@@ -269,7 +269,7 @@ function MagicCode({
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent<HTMLFormElement>) => {
+    (e: React.SubmitEvent<HTMLFormElement>) => {
       e.preventDefault();
       setIsLoading(true);
       const elForm = e.currentTarget;

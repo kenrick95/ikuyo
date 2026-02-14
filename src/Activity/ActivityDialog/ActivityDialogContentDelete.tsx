@@ -5,6 +5,7 @@ import { dangerToken } from '../../common/ui';
 import { type DialogContentProps, DialogMode } from '../../Dialog/DialogRoute';
 import { useBoundStore } from '../../data/store';
 import type { TripSliceActivity } from '../../Trip/store/types';
+import { getActivityDisplayTitle } from '../activityTitle';
 import { dbDeleteActivity } from '../db';
 
 export function ActivityDialogContentDelete({
@@ -16,9 +17,7 @@ export function ActivityDialogContentDelete({
   const [, setLocation] = useLocation();
   const publishToast = useBoundStore((state) => state.publishToast);
   const activityTitle = activity
-    ? activity.icon
-      ? `${activity.icon} ${activity.title}`
-      : activity.title
+    ? getActivityDisplayTitle(activity)
     : undefined;
   const activityTitleRaw = activity?.title;
   const deleteActivity = useCallback(() => {

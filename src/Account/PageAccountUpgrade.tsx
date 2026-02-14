@@ -22,34 +22,41 @@ import imgUrl from '../logo/ikuyo.svg';
 import { DocTitle } from '../Nav/DocTitle';
 import { Navbar } from '../Nav/Navbar';
 import { RouteAccount, RouteTrips } from '../Routes/routes';
+import { isEmailTakenByOtherUser } from '../User/emailCheck';
 import s from './PageAccountUpgrade.module.css';
 
 export default PageAccountUpgrade;
 
-enum UpgradeScreen {
-  Selection = 0,
-  EmailInput = 1,
-  EmailVerify = 2,
-  GoogleRedirect = 3,
-}
+const UpgradeScreen = {
+  Selection: 0,
+  EmailInput: 1,
+  EmailVerify: 2,
+  GoogleRedirect: 3,
+} as const;
+type UpgradeScreenType = (typeof UpgradeScreen)[keyof typeof UpgradeScreen];
 
 export function PageAccountUpgrade(_props: RouteComponentProps) {
   const currentUser = useCurrentUser();
   const { authUser, authUserLoading } = useAuthUser();
-  const [screen, setScreen] = useState(UpgradeScreen.Selection);
+  const [screen, setScreen] = useState<UpgradeScreenType>(
+    UpgradeScreen.Selection,
+  );
   const [sentEmail, setSentEmail] = useState('');
   const [, setLocation] = useLocation();
 
   const isGuest = !currentUser?.email;
 
-  const googleAuthUrl = useMemo(
-    () =>
-      db.auth.createAuthorizationURL({
+  const googleAuthUrl = useMemo(() => {
+    try {
+      return db.auth.createAuthorizationURL({
         clientName: 'ikuyo.kenrick95.org',
         redirectURL: window.location.href,
-      }),
-    [],
-  );
+      });
+    } catch (err) {
+      console.error('Failed to create Google auth URL', err);
+      return '';
+    }
+  }, []);
 
   // If user already has email, redirect to account page
   useEffect(() => {
@@ -112,7 +119,7 @@ function UpgradeSelection({
   setScreen,
   googleAuthUrl,
 }: {
-  setScreen: (screen: UpgradeScreen) => void;
+  setScreen: (screen: UpgradeScreenType) => void;
   googleAuthUrl: string;
 }) {
   return (
@@ -151,7 +158,7 @@ function UpgradeSelection({
 function UpgradeGoogleRedirect({
   setScreen,
 }: {
-  setScreen: (screen: UpgradeScreen) => void;
+  setScreen: (screen: UpgradeScreenType) => void;
 }) {
   return (
     <Flex direction="column" gap="2">
@@ -175,14 +182,14 @@ function UpgradeEmailInput({
   currentUserId,
 }: {
   setSentEmail: (email: string) => void;
-  setScreen: (screen: UpgradeScreen) => void;
+  setScreen: (screen: UpgradeScreenType) => void;
   currentUserId: string | undefined;
 }) {
   const publishToast = useBoundStore((state) => state.publishToast);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent<HTMLFormElement>) => {
+    (e: React.SubmitEvent<HTMLFormElement>) => {
       setIsLoading(true);
       e.preventDefault();
       const elForm = e.currentTarget;
@@ -195,18 +202,9 @@ function UpgradeEmailInput({
         .trim()
         .toLowerCase();
 
-      void db
-        .queryOnce({
-          user: {
-            $: {
-              where: { email },
-              limit: 1,
-            },
-          },
-        })
-        .then(({ data }) => {
-          const existingUser = data?.user?.[0] as { id: string } | undefined;
-          if (existingUser && existingUser.id !== currentUserId) {
+      void isEmailTakenByOtherUser(email, currentUserId)
+        .then((taken) => {
+          if (taken) {
             setSentEmail('');
             publishToast({
               root: { duration: Number.POSITIVE_INFINITY },
@@ -312,14 +310,14 @@ function UpgradeEmailVerify({
   currentUserId,
 }: {
   sentEmail: string;
-  setScreen: (screen: UpgradeScreen) => void;
+  setScreen: (screen: UpgradeScreenType) => void;
   currentUserId: string | undefined;
 }) {
   const publishToast = useBoundStore((state) => state.publishToast);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent<HTMLFormElement>) => {
+    (e: React.SubmitEvent<HTMLFormElement>) => {
       e.preventDefault();
       setIsLoading(true);
       const elForm = e.currentTarget;
@@ -329,18 +327,9 @@ function UpgradeEmailVerify({
       }
       const formData = new FormData(elForm);
       const code = (formData.get('code') as string | null) ?? '';
-      void db
-        .queryOnce({
-          user: {
-            $: {
-              where: { email: sentEmail },
-              limit: 1,
-            },
-          },
-        })
-        .then(({ data }) => {
-          const existingUser = data?.user?.[0] as { id: string } | undefined;
-          if (existingUser && existingUser.id !== currentUserId) {
+      void isEmailTakenByOtherUser(sentEmail, currentUserId)
+        .then((taken) => {
+          if (taken) {
             publishToast({
               root: { duration: Number.POSITIVE_INFINITY },
               title: { children: 'Email already in use' },

@@ -121,7 +121,7 @@ export function ExpenseInlineCardForm({
   // }, []);
 
   const handleForm = useCallback(
-    (e: React.FormEvent<HTMLFormElement>) => {
+    (e: React.SubmitEvent<HTMLFormElement>) => {
       e.preventDefault();
       setErrorMessage('');
       setFormState((prev) => ({ ...prev, loading: true }));

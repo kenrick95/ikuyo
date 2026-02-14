@@ -4,6 +4,7 @@ import type { StateCreator } from 'zustand';
 import { db } from '../data/db';
 import type { BoundStoreType } from '../data/store';
 import { type DbUser, dbCreateUser, dbUpdateUser } from '../User/db';
+import { isEmailTakenByOtherUser } from '../User/emailCheck';
 
 export interface UserSlice {
   subscribeUser: () => () => void;
@@ -97,7 +98,7 @@ export const createUserSlice: StateCreator<
                 const defaultHandle = userEmail
                   ? userEmail.toLowerCase().replace(/[@.]/g, '_')
                   : existingUser.handle ||
-                    `guest_${authResult.user.id.slice(0, 8)}`;
+                    `guest_${authResult.user.id.slice(0, 12)}`;
                 const userId = existingUser.id;
                 await dbUpdateUser({
                   id: userId,
@@ -136,16 +137,11 @@ export const createUserSlice: StateCreator<
 
                 // If auth now has email but user record doesn't, persist the email (guest upgrade)
                 if (userEmail && !user.email) {
-                  const { data: userDataUsingEmail } = await db.queryOnce({
-                    user: {
-                      $: {
-                        where: { email: userEmail },
-                        limit: 1,
-                      },
-                    },
-                  });
-                  const existingEmailUser = userDataUsingEmail?.user?.[0];
-                  if (existingEmailUser && existingEmailUser.id !== user.id) {
+                  const emailTaken = await isEmailTakenByOtherUser(
+                    userEmail,
+                    user.id,
+                  );
+                  if (emailTaken) {
                     set(() => ({
                       currentUser: user,
                       authUserLoading: false,
@@ -258,7 +254,7 @@ export const createUserSlice: StateCreator<
                 });
               } else {
                 // Guest user path: create new app user without email
-                const defaultHandle = `guest_${authResult.user.id.slice(0, 8)}`;
+                const defaultHandle = `guest_${authResult.user.id.slice(0, 12)}`;
                 const { id: newUserId } = await dbCreateUser({
                   handle: defaultHandle,
                   defaultUserNamespaceId: authResult.user.id,

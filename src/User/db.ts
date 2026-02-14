@@ -48,7 +48,7 @@ export async function dbUpdateUser({
   defaultUserNamespaceId,
 }: {
   id: string;
-  email?: string;
+  email: string | undefined;
   handle: string;
   activated: boolean;
   defaultUserNamespaceId: string;
@@ -58,7 +58,7 @@ export async function dbUpdateUser({
     activated,
     lastUpdatedAt: Date.now(),
   };
-  if (email) {
+  if (email !== undefined) {
     attrs.email = email;
   }
   const result = await db.transact(
