@@ -4,6 +4,10 @@ export const RouteLogin = createRouteParam('/login', identity);
 export const RouteTrips = createRouteParam('/trip', identity);
 export const RouteTrip = createRouteParam('/trip/:id', replaceId);
 export const RouteAccount = createRouteParam('/account/edit', identity);
+export const RouteAccountUpgrade = createRouteParam(
+  '/account/upgrade',
+  identity,
+);
 export const RoutePrivacy = createRouteParam('/privacy', identity);
 export const RouteTerms = createRouteParam('/terms', identity);
 export const RouteLanding = createRouteParam('/landing', identity);

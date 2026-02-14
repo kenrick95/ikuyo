@@ -29,6 +29,7 @@ export function PageAccount(_props: RouteComponentProps) {
 
   const [errorMessage, setErrorMessage] = useState('');
   const { authUser } = useAuthUser();
+  const isGuest = !currentUser?.email;
 
   const handleForm = useCallback(() => {
     return async (elForm: HTMLFormElement) => {
@@ -49,7 +50,7 @@ export function PageAccount(_props: RouteComponentProps) {
         resetToast();
         await dbUpdateUser({
           id: currentUser.id,
-          email: currentUser.email,
+          email: currentUser.email ?? undefined,
           handle,
           activated: currentUser.activated,
           defaultUserNamespaceId: authUser.id,
@@ -116,22 +117,26 @@ export function PageAccount(_props: RouteComponentProps) {
             <Text as="label" htmlFor={idEmail}>
               E-mail address{' '}
               <Text weight="light" size="1">
-                (cannot be changed)
+                {currentUser?.email
+                  ? '(cannot be changed)'
+                  : '(sign in with email to set)'}
               </Text>
             </Text>
             <TextField.Root
-              defaultValue={currentUser?.email}
+              defaultValue={currentUser?.email ?? ''}
               name="email"
               type="email"
               disabled
               readOnly
               id={idEmail}
+              placeholder={currentUser?.email ? undefined : 'Not set (guest)'}
             />
             <Text as="label" htmlFor={idHandle}>
               Account handle{' '}
               <Text weight="light" size="1">
-                (4-16 characters; lowercase alphabets, numbers, or underscore
-                only)
+                {isGuest
+                  ? '(sign in with email to change)'
+                  : '(4-16 characters; lowercase alphabets, numbers, or underscore only)'}
               </Text>
             </Text>
             <TextField.Root
@@ -140,6 +145,8 @@ export function PageAccount(_props: RouteComponentProps) {
               type="text"
               pattern="[a-z0-9_]{4,16}"
               id={idHandle}
+              disabled={isGuest}
+              readOnly={isGuest}
             />
           </Flex>
           <Flex gap="3" mt="5">
@@ -148,6 +155,7 @@ export function PageAccount(_props: RouteComponentProps) {
               size="2"
               variant="solid"
               loading={isFormLoading}
+              disabled={isGuest}
             >
               Save
             </Button>

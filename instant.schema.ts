@@ -93,7 +93,7 @@ const _schema = i.schema({
     user: i.entity({
       activated: i.boolean(),
       createdAt: i.number(),
-      email: i.string().unique().indexed(),
+      email: i.string().unique().indexed().optional(),
       handle: i.string().unique().indexed(),
       lastUpdatedAt: i.number(),
     }),
