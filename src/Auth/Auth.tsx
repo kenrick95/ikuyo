@@ -281,7 +281,6 @@ function MagicCode({
       const code = (formData.get('code') as string | null) ?? '';
       db.auth
         .signInWithMagicCode({ email: sentEmail, code })
-        .then(() => {})
         .catch((err: unknown) => {
           publishToast({
             root: { duration: Number.POSITIVE_INFINITY },

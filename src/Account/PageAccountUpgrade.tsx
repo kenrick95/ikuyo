@@ -356,7 +356,6 @@ function UpgradeEmailVerify({
 
           db.auth
             .signInWithMagicCode({ email: sentEmail, code })
-            .then(() => {})
             .catch((err: unknown) => {
               publishToast({
                 root: { duration: Number.POSITIVE_INFINITY },
