@@ -68,6 +68,11 @@
   display: block;
 }
 
+.emojiPlaceholder {
+  opacity: 0.7;
+  filter: grayscale(1);
+}
+
 .srOnly {
   position: absolute;
   width: 1px;

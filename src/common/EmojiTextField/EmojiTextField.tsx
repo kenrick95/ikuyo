@@ -643,7 +643,9 @@ export function EmojiTextField({
                 size="1"
                 aria-label="Choose emoji icon"
               >
-                {icon || '🙂'}
+                <span className={icon ? undefined : s.emojiPlaceholder}>
+                  {icon || '🙂'}
+                </span>
               </IconButton>
             </Popover.Trigger>
             <Popover.Content
