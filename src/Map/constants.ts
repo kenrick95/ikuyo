@@ -20,6 +20,7 @@ export type MarkerLocation =
       lat: number;
       lng: number;
       isToday: boolean;
+      customIcon: string | null;
     }
   | {
       type: typeof LocationType.ActivityDestination;
@@ -27,6 +28,7 @@ export type MarkerLocation =
       lat: number;
       lng: number;
       isToday: boolean;
+      customIcon: string | null;
     }
   | {
       type: typeof LocationType.Accommodation;
@@ -34,6 +36,7 @@ export type MarkerLocation =
       lat: number;
       lng: number;
       isToday: boolean;
+      customIcon: string | null;
     };
 
 export type PopupPortal =
