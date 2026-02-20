@@ -157,7 +157,7 @@ function LoginSelection({
         Log in via Google
       </Button>
       <Button
-        variant="soft"
+        variant="outline"
         color="gray"
         onClick={handleGuestSignIn}
         loading={isGuestLoading}
