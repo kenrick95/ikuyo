@@ -15,6 +15,7 @@ import type { TripSliceActivityWithTime } from '../Trip/store/types';
 import { TripViewMode, type TripViewModeType } from '../Trip/TripViewMode';
 import style from './Activity.module.css';
 import { useActivityDialogHooks } from './ActivityDialog/activityDialogHooks';
+import { getActivityDisplayTitle } from './activityTitle';
 import { formatTime } from './time';
 
 function ActivityInner({
@@ -252,9 +253,7 @@ function ActivityInner({
     openActivityDeleteDialog();
   }, [openActivityDeleteDialog]);
 
-  const activityTitle = activity.icon
-    ? `${activity.icon} ${activity.title}`
-    : activity.title;
+  const activityTitle = getActivityDisplayTitle(activity);
 
   return (
     <ContextMenu.Root>

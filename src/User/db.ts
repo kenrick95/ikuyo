@@ -4,7 +4,7 @@ import { db } from '../data/db';
 export type DbUser = {
   id: string;
   handle: string;
-  email: string;
+  email: string | undefined;
   createdAt: number;
   lastUpdatedAt: number;
   activated: boolean;
@@ -15,25 +15,24 @@ export async function dbCreateUser({
   handle,
   defaultUserNamespaceId,
 }: {
-  email: string;
+  email?: string;
   handle: string;
   /** 'id' in $user table/namespace */
   defaultUserNamespaceId: string;
 }) {
   const newUserId = id();
   const now = Date.now();
+  const baseAttrs = {
+    handle,
+    createdAt: now,
+    lastUpdatedAt: now,
+    activated: true,
+  };
+  const attrs = email ? { ...baseAttrs, email } : baseAttrs;
   const result = await db.transact(
-    db.tx.user[newUserId]
-      .create({
-        email,
-        handle,
-        createdAt: now,
-        lastUpdatedAt: now,
-        activated: true,
-      })
-      .link({
-        $users: defaultUserNamespaceId,
-      }),
+    db.tx.user[newUserId].create(attrs).link({
+      $users: defaultUserNamespaceId,
+    }),
   );
   return {
     id: newUserId,
@@ -49,25 +48,23 @@ export async function dbUpdateUser({
   defaultUserNamespaceId,
 }: {
   id: string;
-  email: string;
+  email: string | undefined;
   handle: string;
   activated: boolean;
   defaultUserNamespaceId: string;
 }) {
+  const attrs: Record<string, unknown> = {
+    handle,
+    activated,
+    lastUpdatedAt: Date.now(),
+  };
+  if (email !== undefined) {
+    attrs.email = email;
+  }
   const result = await db.transact(
-    db.tx.user[userId]
-      .update(
-        {
-          email,
-          handle,
-          activated,
-          lastUpdatedAt: Date.now(),
-        },
-        { upsert: false },
-      )
-      .link({
-        $users: defaultUserNamespaceId,
-      }),
+    db.tx.user[userId].update(attrs, { upsert: false }).link({
+      $users: defaultUserNamespaceId,
+    }),
   );
   return {
     id: userId,

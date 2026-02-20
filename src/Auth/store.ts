@@ -4,6 +4,7 @@ import type { StateCreator } from 'zustand';
 import { db } from '../data/db';
 import type { BoundStoreType } from '../data/store';
 import { type DbUser, dbCreateUser, dbUpdateUser } from '../User/db';
+import { isEmailTakenByOtherUser } from '../User/emailCheck';
 
 export interface UserSlice {
   subscribeUser: () => () => void;
@@ -62,123 +63,47 @@ export const createUserSlice: StateCreator<
           }
 
           const userEmail = authResult.user.email;
-          if (!userEmail) {
-            // Guest user - no email
-            // TODO: support guest user in the future, at the moment we require email to identify users
-            set(() => ({
-              currentUser: undefined,
-              authUserLoading: false,
-            }));
-            return;
-          }
+          const isGuest = !userEmail;
 
           try {
-            const [
-              { data: userDataUsingAuthUserId },
-              { data: userDataUsingEmail },
-            ] = await Promise.all([
-              db.queryOnce({
-                user: {
-                  $: {
-                    where: {
-                      // This will only succeed if they are linked
-                      '$users.id': authResult.user.id,
-                    },
-                    limit: 1,
+            // Step 1: Try to find user by auth namespace id link (works for both guest and full users)
+            const { data: userDataUsingAuthUserId } = await db.queryOnce({
+              user: {
+                $: {
+                  where: {
+                    '$users.id': authResult.user.id,
                   },
+                  limit: 1,
                 },
-              }),
-              db.queryOnce({
-                user: {
-                  $: {
-                    where: {
-                      // Fallback to link by email
-                      email: userEmail,
-                    },
-                    limit: 1,
-                  },
-                },
-              }),
-            ]);
+              },
+            });
 
             console.log(
               'Fetched user data using auth user id:',
               authResult.user.id,
               userDataUsingAuthUserId,
             );
-            console.log(
-              'Fetched user data using user email:',
-              userEmail,
-              userDataUsingEmail,
-            );
+
             const state = get();
+
             if (
-              !userDataUsingAuthUserId?.user ||
-              userDataUsingAuthUserId.user.length === 0
+              userDataUsingAuthUserId?.user &&
+              userDataUsingAuthUserId.user.length > 0
             ) {
-              // $user is not linked with user, could either mean:
-              // 1. New user - no entry in user table
-              // 2. Existing user but not activated - entry in user table with activated=false
+              // User record linked to $users exists
+              const existingUser = userDataUsingAuthUserId.user[0];
 
-              const defaultHandle = userEmail
-                .toLowerCase()
-                .replace(/[@.]/g, '_');
-
-              const { id: newUserId } = userDataUsingEmail.user?.[0]?.id
-                ? await dbUpdateUser({
-                    id: userDataUsingEmail.user?.[0]?.id,
-                    handle:
-                      userDataUsingEmail.user?.[0]?.handle || defaultHandle,
-                    email: userEmail,
-                    activated: true,
-                    defaultUserNamespaceId: authResult.user.id,
-                  })
-                : await dbCreateUser({
-                    handle: defaultHandle,
-                    email: userEmail,
-                    defaultUserNamespaceId: authResult.user.id,
-                  });
-
-              const user = (
-                await db.queryOnce({
-                  user: {
-                    $: {
-                      where: {
-                        id: newUserId,
-                      },
-                      limit: 1,
-                    },
-                  },
-                })
-              ).data?.user?.[0] as DbUser | undefined;
-              set(() => {
-                return {
-                  currentUser: user,
-                  authUserLoading: false,
-                };
-              });
-              state.publishToast({
-                root: { duration: Number.POSITIVE_INFINITY },
-                title: { children: 'Welcome!' },
-                description: {
-                  children: `Hello ${userEmail}. Account handle is set as ${defaultHandle}`,
-                },
-                close: {},
-              });
-            } else if (userDataUsingAuthUserId.user.length > 0) {
-              // Exists on both $users and user table
-              if (!userDataUsingAuthUserId.user[0].activated) {
-                // User exists but not activated
-                // Activate user flow
+              if (!existingUser.activated) {
+                // User exists but not activated — activate
                 const defaultHandle = userEmail
-                  .toLowerCase()
-                  .replace(/[@.]/g, '_');
-                const userId = userDataUsingAuthUserId.user[0].id;
+                  ? userEmail.toLowerCase().replace(/[@.]/g, '_')
+                  : existingUser.handle ||
+                    `guest_${authResult.user.id.slice(0, 12)}`;
+                const userId = existingUser.id;
                 await dbUpdateUser({
-                  id: userDataUsingAuthUserId.user[0].id,
-                  handle:
-                    userDataUsingAuthUserId.user[0].handle || defaultHandle,
-                  email: userEmail,
+                  id: userId,
+                  handle: existingUser.handle || defaultHandle,
+                  email: userEmail || undefined,
                   activated: true,
                   defaultUserNamespaceId: authResult.user.id,
                 });
@@ -186,43 +111,175 @@ export const createUserSlice: StateCreator<
                   await db.queryOnce({
                     user: {
                       $: {
-                        where: {
-                          id: userId,
-                        },
+                        where: { id: userId },
                         limit: 1,
                       },
                     },
                   })
                 ).data?.user?.[0] as DbUser | undefined;
-                set(() => {
-                  return {
-                    currentUser: user,
-                    authUserLoading: false,
-                  };
-                });
+                set(() => ({
+                  currentUser: user,
+                  authUserLoading: false,
+                }));
                 state.publishToast({
                   root: { duration: Number.POSITIVE_INFINITY },
                   title: { children: 'Welcome!' },
                   description: {
-                    children: `Activated account for ${userEmail}. Account handle is set as ${defaultHandle}`,
+                    children: isGuest
+                      ? `Activated guest account. Handle: ${defaultHandle}`
+                      : `Activated account for ${userEmail}. Handle: ${defaultHandle}`,
                   },
                   close: {},
                 });
               } else {
-                // Existing activated user flow
-                const userHandle = userDataUsingAuthUserId.user[0].handle;
-                const user = userDataUsingAuthUserId.user[0] satisfies DbUser;
+                // Existing activated user — welcome back
+                const user = existingUser as DbUser;
 
-                set(() => {
-                  return {
+                // If auth now has email but user record doesn't, persist the email (guest upgrade)
+                if (userEmail && !user.email) {
+                  const emailTaken = await isEmailTakenByOtherUser(
+                    userEmail,
+                    user.id,
+                  );
+                  if (emailTaken) {
+                    set(() => ({
+                      currentUser: user,
+                      authUserLoading: false,
+                    }));
+                    state.publishToast({
+                      root: { duration: Number.POSITIVE_INFINITY },
+                      title: { children: 'Upgrade blocked' },
+                      description: {
+                        children:
+                          'This email is already linked to another account. Log in to that account instead.',
+                      },
+                      close: {},
+                    });
+                    return;
+                  }
+
+                  await dbUpdateUser({
+                    id: user.id,
+                    email: userEmail,
+                    handle: user.handle,
+                    activated: true,
+                    defaultUserNamespaceId: authResult.user.id,
+                  });
+                  set(() => ({
+                    currentUser: { ...user, email: userEmail },
+                    authUserLoading: false,
+                  }));
+                  state.publishToast({
+                    root: { duration: Number.POSITIVE_INFINITY },
+                    title: { children: 'Account upgraded!' },
+                    description: {
+                      children: `Your account is now linked to ${userEmail}. You can now change your handle and share trips.`,
+                    },
+                    close: {},
+                  });
+                } else {
+                  set(() => ({
                     currentUser: user,
                     authUserLoading: false,
-                  };
+                  }));
+                  state.publishToast({
+                    root: {},
+                    title: {
+                      children: `Welcome back ${user.handle}!`,
+                    },
+                    close: {},
+                  });
+                }
+              }
+            } else {
+              // No user linked to auth id — need to create or link
+
+              if (userEmail) {
+                // Full user path: check if user exists by email
+                const { data: userDataUsingEmail } = await db.queryOnce({
+                  user: {
+                    $: {
+                      where: { email: userEmail },
+                      limit: 1,
+                    },
+                  },
                 });
 
+                console.log(
+                  'Fetched user data using user email:',
+                  userEmail,
+                  userDataUsingEmail,
+                );
+
+                const defaultHandle = userEmail
+                  .toLowerCase()
+                  .replace(/[@.]/g, '_');
+
+                const { id: newUserId } = userDataUsingEmail.user?.[0]?.id
+                  ? await dbUpdateUser({
+                      id: userDataUsingEmail.user[0].id,
+                      handle:
+                        userDataUsingEmail.user[0].handle || defaultHandle,
+                      email: userEmail,
+                      activated: true,
+                      defaultUserNamespaceId: authResult.user.id,
+                    })
+                  : await dbCreateUser({
+                      handle: defaultHandle,
+                      email: userEmail,
+                      defaultUserNamespaceId: authResult.user.id,
+                    });
+
+                const user = (
+                  await db.queryOnce({
+                    user: {
+                      $: {
+                        where: { id: newUserId },
+                        limit: 1,
+                      },
+                    },
+                  })
+                ).data?.user?.[0] as DbUser | undefined;
+                set(() => ({
+                  currentUser: user,
+                  authUserLoading: false,
+                }));
                 state.publishToast({
-                  root: {},
-                  title: { children: `Welcome back ${userHandle}!` },
+                  root: { duration: Number.POSITIVE_INFINITY },
+                  title: { children: 'Welcome!' },
+                  description: {
+                    children: `Hello ${userEmail}. Account handle is set as ${defaultHandle}`,
+                  },
+                  close: {},
+                });
+              } else {
+                // Guest user path: create new app user without email
+                const defaultHandle = `guest_${authResult.user.id.slice(0, 12)}`;
+                const { id: newUserId } = await dbCreateUser({
+                  handle: defaultHandle,
+                  defaultUserNamespaceId: authResult.user.id,
+                });
+
+                const user = (
+                  await db.queryOnce({
+                    user: {
+                      $: {
+                        where: { id: newUserId },
+                        limit: 1,
+                      },
+                    },
+                  })
+                ).data?.user?.[0] as DbUser | undefined;
+                set(() => ({
+                  currentUser: user,
+                  authUserLoading: false,
+                }));
+                state.publishToast({
+                  root: { duration: Number.POSITIVE_INFINITY },
+                  title: { children: 'Welcome, Guest!' },
+                  description: {
+                    children: `You're using a guest account (${defaultHandle}). Sign up anytime to keep your data.`,
+                  },
                   close: {},
                 });
               }

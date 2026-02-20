@@ -107,9 +107,9 @@ export function TripMenu() {
           </DropdownMenu.Item>
 
           <DropdownMenu.Item
-            disabled={!userIsOwner}
+            disabled={!userIsOwner || !user?.email}
             onClick={
-              userIsOwner
+              userIsOwner && user?.email
                 ? () => {
                     if (trip && user) {
                       pushDialog(TripSharingDialog, { tripId: trip.id });

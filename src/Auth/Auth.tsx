@@ -112,6 +112,28 @@ function LoginSelection({
   setScreen: (screen: AuthScreen) => void;
   googleAuthUrl: string;
 }) {
+  const publishToast = useBoundStore((state) => state.publishToast);
+  const [isGuestLoading, setIsGuestLoading] = useState(false);
+
+  const handleGuestSignIn = useCallback(() => {
+    setIsGuestLoading(true);
+    db.auth
+      .signInAsGuest()
+      .catch((err: unknown) => {
+        publishToast({
+          root: { duration: Number.POSITIVE_INFINITY },
+          title: { children: 'Error signing in as guest' },
+          description: {
+            children: (err as { body?: { message?: string } }).body?.message,
+          },
+          close: {},
+        });
+      })
+      .finally(() => {
+        setIsGuestLoading(false);
+      });
+  }, [publishToast]);
+
   return (
     <Flex direction="column" gap="2">
       <Heading>
@@ -134,6 +156,14 @@ function LoginSelection({
       >
         Log in via Google
       </Button>
+      <Button
+        variant="soft"
+        color="gray"
+        onClick={handleGuestSignIn}
+        loading={isGuestLoading}
+      >
+        Try as guest
+      </Button>
     </Flex>
   );
 }
@@ -148,7 +178,7 @@ function Email({
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent<HTMLFormElement>) => {
+    (e: React.SubmitEvent<HTMLFormElement>) => {
       setIsLoading(true);
       e.preventDefault();
       const elForm = e.currentTarget;
@@ -172,7 +202,6 @@ function Email({
             description: { children: `Please check your mailbox for ${email}` },
             close: {},
           });
-          setIsLoading(false);
         })
         .catch((err: unknown) => {
           setSentEmail('');
@@ -184,6 +213,8 @@ function Email({
             },
             close: {},
           });
+        })
+        .finally(() => {
           setIsLoading(false);
         });
     },
@@ -238,7 +269,7 @@ function MagicCode({
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent<HTMLFormElement>) => {
+    (e: React.SubmitEvent<HTMLFormElement>) => {
       e.preventDefault();
       setIsLoading(true);
       const elForm = e.currentTarget;
@@ -250,9 +281,6 @@ function MagicCode({
       const code = (formData.get('code') as string | null) ?? '';
       db.auth
         .signInWithMagicCode({ email: sentEmail, code })
-        .then(() => {
-          setIsLoading(false);
-        })
         .catch((err: unknown) => {
           publishToast({
             root: { duration: Number.POSITIVE_INFINITY },
@@ -262,6 +290,8 @@ function MagicCode({
             },
             close: {},
           });
+        })
+        .finally(() => {
           setIsLoading(false);
         });
     },

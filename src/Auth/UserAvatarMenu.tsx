@@ -2,7 +2,11 @@ import { Button, DropdownMenu } from '@radix-ui/themes';
 import { Link, useLocation } from 'wouter';
 import { db } from '../data/db';
 import type { DbUser } from '../data/types';
-import { RouteAccount, RouteLogin } from '../Routes/routes';
+import {
+  RouteAccount,
+  RouteAccountUpgrade,
+  RouteLogin,
+} from '../Routes/routes';
 import { UserAvatar } from './UserAvatar';
 
 export function UserAvatarMenu({ user }: { user: DbUser | null | undefined }) {
@@ -21,6 +25,13 @@ export function UserAvatarMenu({ user }: { user: DbUser | null | undefined }) {
           <DropdownMenu.Item asChild>
             <Link to={RouteAccount.asRootRoute()}>Edit account</Link>
           </DropdownMenu.Item>
+          {!user.email ? (
+            <DropdownMenu.Item asChild>
+              <Link to={RouteAccountUpgrade.asRootRoute()}>
+                Upgrade account
+              </Link>
+            </DropdownMenu.Item>
+          ) : null}
           <DropdownMenu.Separator />
           {/* Help */}
           <DropdownMenu.Label>Others</DropdownMenu.Label>

@@ -14,6 +14,7 @@ import { DialogRoot } from './Dialog/DialogRoot';
 import { withLoading } from './Loading/withLoading';
 import {
   RouteAccount,
+  RouteAccountUpgrade,
   RouteLanding,
   RouteLogin,
   RoutePrivacy,
@@ -35,6 +36,9 @@ const PageTrips = withLoading()(React.lazy(() => import('./Trips/PageTrips')));
 const PageTrip = withLoading()(React.lazy(() => import('./Trip/PageTrip')));
 const PageAccount = withLoading()(
   React.lazy(() => import('./Account/PageAccount')),
+);
+const PageAccountUpgrade = withLoading()(
+  React.lazy(() => import('./Account/PageAccountUpgrade')),
 );
 const PageDemo = withLoading()(React.lazy(() => import('./PageDemo')));
 
@@ -96,6 +100,10 @@ function App() {
             <Route path={RouteTrips.routePath} component={PageTrips} />
             <Route path={RouteTrip.routePath} component={PageTrip} nest />
             <Route path={RouteAccount.routePath} component={PageAccount} />
+            <Route
+              path={RouteAccountUpgrade.routePath}
+              component={PageAccountUpgrade}
+            />
             <Route path={RoutePrivacy.routePath} component={PagePrivacy} />
             <Route path={RouteTerms.routePath} component={PageTerms} />
             <Route path={RouteLanding.routePath} component={PageLanding} />

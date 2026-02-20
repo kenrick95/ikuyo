@@ -7,6 +7,7 @@ import { Container, Heading, Text } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { useMemo } from 'react';
 import { Link } from 'wouter';
+import { getActivityDisplayTitle } from '../../Activity/activityTitle';
 import { useParseTextIntoNodes } from '../../common/text/parseTextIntoNodes';
 import {
   RouteTrip,
@@ -102,11 +103,7 @@ export function ActivityPopup({
   }, [activityStartDateTime, activityEndDateTime]);
 
   const description = useParseTextIntoNodes(activity?.description);
-  const activityTitle = activity
-    ? activity.icon
-      ? `${activity.icon} ${activity.title}`
-      : activity.title
-    : '';
+  const activityTitle = activity ? getActivityDisplayTitle(activity) : '';
   const linkTarget = activity?.tripId
     ? `~${RouteTrip.asRouteTarget(activity?.tripId)}${
         linkTargetBasePage === 'timetable'

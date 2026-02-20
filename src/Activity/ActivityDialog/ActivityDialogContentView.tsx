@@ -17,6 +17,7 @@ import { useTrip } from '../../Trip/store/hooks';
 import type { TripSliceActivity } from '../../Trip/store/types';
 import { TripUserRole } from '../../User/TripUserRole';
 import { ActivityFlag, hasActivityFlag } from '../activityFlag';
+import { getActivityDisplayTitle } from '../activityTitle';
 import s from './ActivityDialog.module.css';
 import { ActivityMap } from './ActivityDialogMap';
 import { ActivityDialogMode } from './ActivityDialogMode';
@@ -128,9 +129,7 @@ export function ActivityDialogContentView({
     if (!activity) {
       return undefined;
     }
-    return activity.icon
-      ? `${activity.icon} ${activity.title}`
-      : activity.title;
+    return getActivityDisplayTitle(activity);
   }, [activity]);
 
   return (

@@ -3,6 +3,7 @@ import { Button, DataList, Heading } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { useCallback, useMemo } from 'react';
 import { Link } from 'wouter';
+import { useCurrentUser } from '../../Auth/hooks';
 import { REGIONS_MAP, type RegionCode } from '../../data/intl/regions';
 import { useBoundStore } from '../../data/store';
 import { RouteTripExpenses } from '../../Routes/routes';
@@ -17,14 +18,17 @@ const statisticsOrientation = {
 export function TripStatistics() {
   const { trip } = useCurrentTrip();
   const pushDialog = useBoundStore((state) => state.pushDialog);
+  const currentUser = useCurrentUser();
+  const isGuest = !currentUser?.email;
   const userIsOwner = useMemo(() => {
     return trip?.currentUserRole === TripUserRole.Owner;
   }, [trip?.currentUserRole]);
+  const canShare = userIsOwner && !isGuest;
   const openTripSharingDialog = useCallback(() => {
-    if (trip && userIsOwner) {
+    if (trip && canShare) {
       pushDialog(TripSharingDialog, { tripId: trip.id });
     }
-  }, [trip, userIsOwner, pushDialog]);
+  }, [trip, canShare, pushDialog]);
 
   const tripStartDateTime = trip
     ? DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone)
@@ -116,7 +120,7 @@ export function TripStatistics() {
               mx="2"
               size="1"
               onClick={openTripSharingDialog}
-              disabled={!userIsOwner}
+              disabled={!canShare}
             >
               <Share1Icon />
               Share trip

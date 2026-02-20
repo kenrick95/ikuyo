@@ -231,7 +231,7 @@ export type DbTripQueryReturnType = {
     role: string;
     user: {
       id: string;
-      email: string;
+      email: string | undefined;
       activated: boolean;
       handle: string;
     }[];

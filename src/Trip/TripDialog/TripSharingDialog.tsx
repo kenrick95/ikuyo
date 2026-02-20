@@ -269,7 +269,8 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
                         tripUser.handle
                       ) : (
                         <>
-                          {tripUser.email} <Text size="1">(not activated)</Text>
+                          {tripUser.email || tripUser.handle || 'Guest user'}{' '}
+                          <Text size="1">(not activated)</Text>
                         </>
                       )}
                     </Table.RowHeaderCell>

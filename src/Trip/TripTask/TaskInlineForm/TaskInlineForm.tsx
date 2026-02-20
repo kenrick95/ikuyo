@@ -51,7 +51,7 @@ export function TaskInlineForm({
   );
 
   const handleSubmit = useCallback(
-    async (event: React.FormEvent<HTMLFormElement>) => {
+    async (event: React.SubmitEvent<HTMLFormElement>) => {
       event.preventDefault();
       setIsSubmitting(true);
       setErrorMessage('');
