@@ -10,7 +10,6 @@ import { useEffect, useRef } from 'react';
 import s from './AccommodationDialogMap.module.css';
 import '@maptiler/sdk/style.css';
 import { GeocodingControl } from '@maptiler/geocoding-control/maptilersdk';
-import '@maptiler/geocoding-control/style.css';
 import { ThemeAppearance } from '../../theme/constants';
 import { useTheme } from '../../theme/hooks';
 import { MapStyle } from '../../theme/maptiler';

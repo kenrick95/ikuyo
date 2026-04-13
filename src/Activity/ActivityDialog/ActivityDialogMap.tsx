@@ -12,7 +12,6 @@ import { MapStyle } from '../../theme/maptiler';
 import s from './ActivityDialogMap.module.css';
 import '@maptiler/sdk/style.css';
 import { GeocodingControl } from '@maptiler/geocoding-control/maptilersdk';
-import '@maptiler/geocoding-control/style.css';
 import { ThemeAppearance } from '../../theme/constants';
 import { useTheme } from '../../theme/hooks';
 
