@@ -1,9 +1,10 @@
 import { HamburgerMenuIcon } from '@radix-ui/react-icons';
 import { Button, DropdownMenu, Flex } from '@radix-ui/themes';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
 import { AccommodationNewDialog } from '../../Accommodation/AccommodationNewDialog';
 import { ActivityNewDialog } from '../../Activity/ActivityNewDialog';
+import { activitiesToIcs, downloadIcs } from '../../Activity/icsExport';
 import { useCurrentUser } from '../../Auth/hooks';
 import { UserAvatarMenu } from '../../Auth/UserAvatarMenu';
 import { db } from '../../data/db';
@@ -11,7 +12,7 @@ import { useBoundStore } from '../../data/store';
 import { MacroplanNewDialog } from '../../Macroplan/MacroplanNewDialog';
 import { RouteAccount, RouteLogin, RouteTrips } from '../../Routes/routes';
 import { TripUserRole } from '../../User/TripUserRole';
-import { useCurrentTrip } from '../store/hooks';
+import { useCurrentTrip, useTripActivities } from '../store/hooks';
 import { TripDeleteDialog } from '../TripDialog/TripDeleteDialog';
 import { TripEditDialog } from '../TripDialog/TripEditDialog';
 import { TripSharingDialog } from '../TripDialog/TripSharingDialog';
@@ -20,6 +21,15 @@ import s from './TripMenu.module.css';
 export function TripMenu() {
   const [, setLocation] = useLocation();
   const { trip } = useCurrentTrip();
+  const activities = useTripActivities(trip?.activityIds ?? []);
+  const hasExportableActivities = useMemo(
+    () =>
+      activities?.some(
+        (activity) =>
+          activity.timestampStart != null && activity.timestampEnd != null,
+      ) ?? false,
+    [activities],
+  );
   const user = useCurrentUser();
   const userIsOwner = useMemo(() => {
     return trip?.currentUserRole === TripUserRole.Owner;
@@ -31,6 +41,16 @@ export function TripMenu() {
     );
   }, [trip?.currentUserRole]);
   const pushDialog = useBoundStore((state) => state.pushDialog);
+
+  const handleExportToIcs = useCallback(() => {
+    if (!trip || !activities || activities.length === 0) return;
+
+    const icsContent = activitiesToIcs(activities, trip.timeZone, trip.title);
+    if (!icsContent) return;
+
+    const filename = `${trip.title.replace(/[^a-z0-9]/gi, '_')}_activities_${new Date().toISOString().split('T')[0]}.ics`;
+    downloadIcs(icsContent, filename);
+  }, [trip, activities]);
   return (
     <Flex className={s.tripMenu} align="center">
       <DropdownMenu.Root>
@@ -120,6 +140,12 @@ export function TripMenu() {
           >
             Share trip
           </DropdownMenu.Item>
+
+          {hasExportableActivities && (
+            <DropdownMenu.Item onClick={handleExportToIcs}>
+              Export activities to ICS
+            </DropdownMenu.Item>
+          )}
 
           <DropdownMenu.Item
             disabled={!userCanModifyTrip}
