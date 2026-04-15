@@ -141,6 +141,12 @@ export function TripMenu() {
             Share trip
           </DropdownMenu.Item>
 
+          {hasExportableActivities && (
+            <DropdownMenu.Item onClick={handleExportToIcs}>
+              Export activities to ICS
+            </DropdownMenu.Item>
+          )}
+
           <DropdownMenu.Item
             disabled={!userCanModifyTrip}
             onClick={
@@ -155,12 +161,6 @@ export function TripMenu() {
           >
             Delete trip
           </DropdownMenu.Item>
-
-          {hasExportableActivities && (
-            <DropdownMenu.Item onClick={handleExportToIcs}>
-              Export activities to ICS
-            </DropdownMenu.Item>
-          )}
 
           <DropdownMenu.Separator />
           <DropdownMenu.Label>Trips</DropdownMenu.Label>

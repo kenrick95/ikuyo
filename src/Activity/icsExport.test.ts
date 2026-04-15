@@ -547,7 +547,7 @@ describe('activitiesToIcs', () => {
         locationDestination: null,
         description: 'Starts at midnight',
         timestampStart: new Date('2024-06-15T00:00:00Z').getTime(),
-        timestampEnd: new Date('2024-06-15T00:00:00Z').getTime(),
+        timestampEnd: new Date('2024-06-15T23:59:00Z').getTime(),
         timeZoneStart: 'UTC',
         timeZoneEnd: 'UTC',
       },
@@ -557,5 +557,6 @@ describe('activitiesToIcs', () => {
 
     expect(icsContent).toContain('BEGIN:VEVENT');
     expect(icsContent).toContain('DTSTART;VALUE=DATE:');
+    expect(icsContent).toContain('DTEND;VALUE=DATE:');
   });
 });
