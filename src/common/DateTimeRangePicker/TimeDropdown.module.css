@@ -1,0 +1,106 @@
+.wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.trigger {
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  font-family: var(--default-font-family);
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-2);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-2);
+  cursor: text;
+  user-select: none;
+  color: var(--gray-12);
+  background-color: var(--color-surface);
+  border: 1px solid var(--gray-6);
+  min-width: 72px;
+  width: 72px;
+  text-align: center;
+  box-sizing: border-box;
+}
+.trigger:hover {
+  background-color: var(--gray-3);
+}
+.trigger:focus {
+  outline: 2px solid var(--focus-8);
+  outline-offset: 1px;
+  border-color: var(--accent-8);
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 4px;
+  z-index: 1000;
+  background: var(--color-panel-solid);
+  border: 1px solid var(--gray-6);
+  border-radius: var(--radius-2);
+  box-shadow: var(--shadow-4);
+  padding: var(--space-1);
+}
+
+.timeList {
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: var(--space-1);
+  scrollbar-width: thin;
+}
+
+.item {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--default-font-family);
+  font-size: var(--font-size-2);
+  line-height: var(--line-height-2);
+  letter-spacing: var(--letter-spacing-2);
+  font-weight: var(--font-weight-medium);
+  height: 28px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-2);
+  user-select: none;
+  cursor: var(--cursor-button);
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+.item:hover {
+  background: var(--accent-4);
+}
+.item:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: 1px;
+  z-index: 3;
+}
+.selected {
+  background-color: var(--accent-9);
+  color: var(--accent-contrast);
+}
+.selected:hover {
+  background-color: var(--accent-10);
+}
+
+.timeLabel {
+  flex-shrink: 0;
+}
+.durationLabel {
+  font-size: var(--font-size-1);
+  color: var(--gray-9);
+  font-weight: var(--font-weight-regular);
+}
+.selected .durationLabel {
+  color: var(--accent-contrast);
+  opacity: 0.8;
+}

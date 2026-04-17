@@ -2,10 +2,8 @@ import { Button, Flex, Switch, Text, TextArea } from '@radix-ui/themes';
 import type { DateTime } from 'luxon';
 import type { SubmitEvent } from 'react';
 import { useCallback, useId, useReducer, useState } from 'react';
-import { DateTimePicker } from '../../common/DatePicker2/DateTimePicker';
-import { DateTimePickerMode } from '../../common/DatePicker2/DateTimePickerMode';
+import { DateTimeRangePicker } from '../../common/DateTimeRangePicker/DateTimeRangePicker';
 import { EmojiTextField } from '../../common/EmojiTextField/EmojiTextField';
-import { TimeZoneSelect } from '../../common/TimeZoneSelect/TimeZoneSelect';
 import { dangerToken } from '../../common/ui';
 import { useBoundStore } from '../../data/store';
 import { ActivityMap } from '../ActivityDialog/ActivityDialogMap';
@@ -150,8 +148,6 @@ export function ActivityForm({
 }) {
   const idForm = useId();
   const idTitle = useId();
-  const idTimeStart = useId();
-  const idTimeEnd = useId();
   const idLocation = useId();
   const idTwoLocationEnabled = useId();
   const idLocationDestination = useId();
@@ -337,7 +333,29 @@ export function ActivityForm({
     }
   }, []);
 
-  const handleTimeZoneStartChange = useCallback(
+  const handleStartDateTimeChange = useCallback(
+    (newDateTime: DateTime | undefined) => {
+      if (newDateTime) {
+        setStartDateTime(newDateTime);
+      } else {
+        setStartDateTime(undefined);
+      }
+    },
+    [],
+  );
+
+  const handleEndDateTimeChange = useCallback(
+    (newDateTime: DateTime | undefined) => {
+      if (newDateTime) {
+        setEndDateTime(newDateTime);
+      } else {
+        setEndDateTime(undefined);
+      }
+    },
+    [],
+  );
+
+  const handleStartTimeZoneChange = useCallback(
     (newTimeZone: string) => {
       setStartTimeZone(newTimeZone);
       if (startDateTime) {
@@ -349,7 +367,7 @@ export function ActivityForm({
     [startDateTime],
   );
 
-  const handleTimeZoneEndChange = useCallback(
+  const handleEndTimeZoneChange = useCallback(
     (newTimeZone: string) => {
       setEndTimeZone(newTimeZone);
       if (endDateTime) {
@@ -359,36 +377,6 @@ export function ActivityForm({
       }
     },
     [endDateTime],
-  );
-
-  // Wrapper for start datetime changes that applies the selected timezone
-  const handleStartDateTimeChange = useCallback(
-    (newDateTime: DateTime | undefined) => {
-      if (newDateTime) {
-        // Apply the selected timezone to the new datetime
-        setStartDateTime(
-          newDateTime.setZone(startTimeZone, { keepLocalTime: true }),
-        );
-      } else {
-        setStartDateTime(undefined);
-      }
-    },
-    [startTimeZone],
-  );
-
-  // Wrapper for end datetime changes that applies the selected timezone
-  const handleEndDateTimeChange = useCallback(
-    (newDateTime: DateTime | undefined) => {
-      if (newDateTime) {
-        // Apply the selected timezone to the new datetime
-        setEndDateTime(
-          newDateTime.setZone(endTimeZone, { keepLocalTime: true }),
-        );
-      } else {
-        setEndDateTime(undefined);
-      }
-    },
-    [endTimeZone],
   );
 
   const handleSubmit = useCallback(() => {
@@ -711,63 +699,19 @@ export function ActivityForm({
           </>
         ) : null}
 
-        <Text as="label">
-          Start time zone{' '}
-          <Text weight="light" size="1">
-            (trip default time zone is {tripTimeZone})
-          </Text>
-        </Text>
-        <TimeZoneSelect
-          id="timeZoneStart"
-          name="timeZoneStart"
-          value={startTimeZone}
-          handleChange={handleTimeZoneStartChange}
-          isFormLoading={false}
-        />
-        <Text as="label" htmlFor={idTimeStart}>
-          Start time{' '}
-          <Text weight="light" size="1">
-            (in {startTimeZone} time zone)
-          </Text>
-        </Text>
-        <DateTimePicker
-          name="startTime"
-          mode={DateTimePickerMode.DateTime}
-          // Buffer one day before and after trip start/end date to allow some flexibility
+        <Text as="label">Date & time</Text>
+        <DateTimeRangePicker
+          startDateTime={startDateTime}
+          endDateTime={endDateTime}
+          startTimeZone={startTimeZone}
+          endTimeZone={endTimeZone}
+          defaultTimeZone={tripTimeZone}
           min={tripStartDateTime?.minus({ days: 1 })}
           max={tripEndDateTime?.plus({ days: 1 })}
-          value={startDateTime}
-          onChange={handleStartDateTimeChange}
-          clearable={true}
-        />
-        <Text as="label">
-          End time zone{' '}
-          <Text weight="light" size="1">
-            (trip default time zone is {tripTimeZone})
-          </Text>
-        </Text>
-        <TimeZoneSelect
-          id="timeZoneEnd"
-          name="timeZoneEnd"
-          value={endTimeZone}
-          handleChange={handleTimeZoneEndChange}
-          isFormLoading={false}
-        />
-        <Text as="label" htmlFor={idTimeEnd}>
-          End time{' '}
-          <Text weight="light" size="1">
-            (in {endTimeZone} time zone)
-          </Text>
-        </Text>
-        <DateTimePicker
-          name="endTime"
-          mode={DateTimePickerMode.DateTime}
-          // Buffer one day before and after trip start/end date to allow some flexibility
-          min={tripStartDateTime?.minus({ days: 1 })}
-          max={tripEndDateTime?.plus({ days: 1 })}
-          value={endDateTime}
-          onChange={handleEndDateTimeChange}
-          clearable={true}
+          onStartDateTimeChange={handleStartDateTimeChange}
+          onEndDateTimeChange={handleEndDateTimeChange}
+          onStartTimeZoneChange={handleStartTimeZoneChange}
+          onEndTimeZoneChange={handleEndTimeZoneChange}
         />
         <Text as="label" htmlFor={idDescription}>
           Description
