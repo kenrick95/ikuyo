@@ -6,12 +6,17 @@ on:
   pull_request:
     branches: ['main']
 
+permissions: {}
+
 jobs:
   test:
+    name: "Lint, Typecheck, Test, and Build"
     concurrency:
       group: ci-${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     outputs:
       build-artifact-id: ${{ steps.artifact-upload-step.outputs.artifact-id }}
     env:
@@ -22,10 +27,12 @@ jobs:
       SENTRY_DSN: ${{ vars.SENTRY_DSN }}
       SENTRY_ENABLED: ${{ vars.SENTRY_ENABLED }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4.0.0
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
       - name: Use Node.js 24
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
       - name: Install dependencies
@@ -38,9 +45,18 @@ jobs:
         run: pnpm test
       - name: Build
         run: pnpm build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         id: artifact-upload-step
         with:
           name: build-artifact
           path: dist/
           if-no-files-found: error
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/deploy.yml
+    secrets:
+      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}

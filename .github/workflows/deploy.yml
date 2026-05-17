@@ -1,19 +1,23 @@
 name: Deploy
 
 on:
-  workflow_run:
-    workflows: [Testing]
-    types: [completed]
-    branches: [main]
+  workflow_call:
+    secrets:
+      DEPLOY_SSH_KEY:
+        required: true
+
+permissions: {}
 
 jobs:
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    name: "Deploy to Production"
     concurrency:
       group: ci-${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     runs-on: ubuntu-24.04
     environment: production
+    permissions:
+      contents: read
     env:
       INSTANT_APP_ID: ${{ vars.INSTANT_APP_ID }}
       MAPTILER_API_KEY: ${{ vars.MAPTILER_API_KEY }}
@@ -23,20 +27,15 @@ jobs:
       SENTRY_ENABLED: ${{ vars.SENTRY_ENABLED }}
       SENTRY_RELEASE: ${{ github.sha }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4.0.0
-      - name: Use Node.js 24
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
-          node-version: 24
-      # TODO: Use the artifact from the Testing workflow... seems quite complicated for now
-      # https://stackoverflow.com/questions/67973057/github-actions-workflow-run-outputs
-      - name: Install dependencies
-        run: pnpm install
-      - name: Build
-        run: pnpm build 
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: build-artifact
+          path: dist/
       - name: Upload dist folder
-        uses: up9cloud/action-rsync@v1.4
+        uses: up9cloud/action-rsync@e032bd158d5e7d4b3e46fd3263178276fe0126d5 # v1.4
         env:
           HOST: ${{ vars.DEPLOY_HOST }}
           KEY: ${{ secrets.DEPLOY_SSH_KEY }}
