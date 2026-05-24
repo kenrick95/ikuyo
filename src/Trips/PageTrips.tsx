@@ -42,6 +42,9 @@ export function PageTrips(_props: RouteComponentProps) {
   const tripGroups = useTripsGrouped(currentUser?.id, now);
   const tripsLoading = useDeepBoundStore((state) => state.tripsLoading);
   const tripsError = useDeepBoundStore((state) => state.tripsError);
+  const tripsLoadMore = useDeepBoundStore((state) => state.tripsLoadMore);
+  const tripsHasMore = useDeepBoundStore((state) => state.tripsHasMore);
+  const tripsLoadingMore = useDeepBoundStore((state) => state.tripsLoadingMore);
 
   return (
     <>
@@ -100,6 +103,23 @@ export function PageTrips(_props: RouteComponentProps) {
             isLoading={tripsLoading}
           />
         </Flex>
+
+        {tripsHasMore ? (
+          <Button
+            variant="outline"
+            color="gray"
+            onClick={() => {
+              if (tripsLoadMore) {
+                tripsLoadMore();
+              }
+            }}
+            mx="2"
+            mb="4"
+            loading={!!tripsLoadingMore}
+          >
+            Load more
+          </Button>
+        ) : null}
       </Container>
     </>
   );

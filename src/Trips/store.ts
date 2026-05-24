@@ -23,6 +23,9 @@ export type TripsSlice = {
     currentUserId: string | undefined,
     now: number,
   ) => Record<TripGroupType, TripsSliceTrip[]>;
+  tripsHasMore: null | boolean;
+  tripsLoadMore: undefined | (() => void);
+  tripsLoadingMore: null | boolean;
 };
 export const createTripsSlice: StateCreator<
   BoundStoreType,
@@ -34,24 +37,32 @@ export const createTripsSlice: StateCreator<
     trips: {},
     tripsLoading: true,
     tripsError: null,
+    tripsHasMore: null,
+    tripsLoadMore: undefined,
+    tripsLoadingMore: null,
     subscribeTrips: (currentUserId: string, _now: number) => {
       const queryKey = getQueryKey(currentUserId);
-      return db.subscribeQuery(
+      const PAGE_SIZE = 10;
+      const query = db.subscribeInfiniteQuery(
         {
           trip: {
             $: {
+              limit: PAGE_SIZE,
               where: {
                 and: [{ 'tripUser.user.id': currentUserId }],
               },
             },
           },
         },
-        ({ data, error }) => {
+        ({ data, error, canLoadNextPage }) => {
           if (error) {
             console.error('subscribeTrips error', error);
             set(() => ({
               tripsLoading: false,
               tripsError: error.message,
+              tripsHasMore: null,
+              tripLoadMore: undefined,
+              tripsLoadingMore: null,
             }));
             return;
           }
@@ -71,10 +82,25 @@ export const createTripsSlice: StateCreator<
             return {
               trips: { ...state.trips, [queryKey]: trips },
               tripsLoading: false,
+              tripsLoadingMore: false,
+              tripsHasMore: canLoadNextPage ?? null,
             };
           });
         },
       );
+
+      set(() => {
+        return {
+          tripsLoadMore: query.loadNextPage
+            ? () => {
+                set(() => ({ tripsLoadingMore: true }));
+                query.loadNextPage();
+              }
+            : undefined,
+        };
+      });
+
+      return query.unsubscribe;
     },
     getTripsGrouped: (currentUserId: string | undefined, now: number) => {
       const groups: Record<TripGroupType, TripsSliceTrip[]> = {
