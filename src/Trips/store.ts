@@ -40,67 +40,120 @@ export const createTripsSlice: StateCreator<
     tripsHasMore: null,
     tripsLoadMore: undefined,
     tripsLoadingMore: null,
-    subscribeTrips: (currentUserId: string, _now: number) => {
+    subscribeTrips: (currentUserId: string, now: number) => {
       const queryKey = getQueryKey(currentUserId);
       const PAGE_SIZE = 10;
-      const query = db.subscribeInfiniteQuery(
+
+      // Internal caches — merged into `trips` whenever either subscription fires
+      let activeTrips: TripsSliceTrip[] = [];
+      let pastTrips: TripsSliceTrip[] = [];
+      let activeLoaded = false;
+      let pastLoaded = false;
+
+      const mergeAndSet = () => {
+        if (!activeLoaded || !pastLoaded) return;
+        set((state) => ({
+          trips: {
+            ...state.trips,
+            [queryKey]: [...activeTrips, ...pastTrips],
+          },
+          tripsLoading: false,
+        }));
+      };
+
+      // Subscription 1: active trips (ongoing + upcoming) — load all, no pagination
+      const unsubscribeActive = db.subscribeQuery(
+        {
+          trip: {
+            $: {
+              where: {
+                'tripUser.user.id': currentUserId,
+                timestampEnd: { $gte: now },
+              },
+            },
+          },
+        },
+        ({ data, error }) => {
+          if (error) {
+            console.error('subscribeTrips (active) error', error);
+            set(() => ({
+              tripsLoading: false,
+              tripsError: error.message,
+            }));
+            return;
+          }
+          activeTrips =
+            data?.trip?.map((trip) => ({
+              id: trip.id,
+              title: trip.title,
+              timestampStart: trip.timestampStart,
+              timestampEnd: trip.timestampEnd,
+              timeZone: trip.timeZone,
+              createdAt: trip.createdAt,
+              lastUpdatedAt: trip.lastUpdatedAt,
+            })) ?? [];
+          activeLoaded = true;
+          mergeAndSet();
+        },
+      );
+
+      // Subscription 2: past trips — paginated
+      const pastQuery = db.subscribeInfiniteQuery(
         {
           trip: {
             $: {
               limit: PAGE_SIZE,
+              order: {
+                timestampEnd: 'desc',
+              },
               where: {
-                and: [{ 'tripUser.user.id': currentUserId }],
+                'tripUser.user.id': currentUserId,
+                timestampEnd: { $lt: now },
               },
             },
           },
         },
         ({ data, error, canLoadNextPage }) => {
           if (error) {
-            console.error('subscribeTrips error', error);
+            console.error('subscribeTrips (past) error', error);
             set(() => ({
               tripsLoading: false,
               tripsError: error.message,
               tripsHasMore: null,
-              tripLoadMore: undefined,
               tripsLoadingMore: null,
             }));
             return;
           }
-          const trips =
-            data?.trip?.map((trip) => {
-              return {
-                id: trip.id,
-                title: trip.title,
-                timestampStart: trip.timestampStart,
-                timestampEnd: trip.timestampEnd,
-                timeZone: trip.timeZone,
-                createdAt: trip.createdAt,
-                lastUpdatedAt: trip.lastUpdatedAt,
-              } satisfies TripsSliceTrip;
-            }) ?? [];
-          set((state) => {
-            return {
-              trips: { ...state.trips, [queryKey]: trips },
-              tripsLoading: false,
-              tripsLoadingMore: false,
-              tripsHasMore: canLoadNextPage ?? null,
-            };
-          });
+          pastTrips =
+            data?.trip?.map((trip) => ({
+              id: trip.id,
+              title: trip.title,
+              timestampStart: trip.timestampStart,
+              timestampEnd: trip.timestampEnd,
+              timeZone: trip.timeZone,
+              createdAt: trip.createdAt,
+              lastUpdatedAt: trip.lastUpdatedAt,
+            })) ?? [];
+          pastLoaded = true;
+          set(() => ({
+            tripsHasMore: canLoadNextPage ?? null,
+            tripsLoadingMore: false,
+          }));
+          mergeAndSet();
         },
       );
 
-      set(() => {
-        return {
-          tripsLoadMore: query.loadNextPage
-            ? () => {
-                set(() => ({ tripsLoadingMore: true }));
-                query.loadNextPage();
-              }
-            : undefined,
-        };
-      });
+      set(() => ({
+        tripsLoadMore: () => {
+          set(() => ({ tripsLoadingMore: true }));
+          pastQuery.loadNextPage();
+        },
+      }));
 
-      return query.unsubscribe;
+      return () => {
+        unsubscribeActive();
+        pastQuery.unsubscribe();
+      };
     },
     getTripsGrouped: (currentUserId: string | undefined, now: number) => {
       const groups: Record<TripGroupType, TripsSliceTrip[]> = {
