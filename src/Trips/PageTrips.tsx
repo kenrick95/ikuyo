@@ -41,8 +41,7 @@ export function PageTrips(_props: RouteComponentProps) {
   }, [currentUser, subscribeTrips, now]);
   const tripGroups = useTripsGrouped(currentUser?.id, now);
   const tripsLoading = useDeepBoundStore((state) => state.tripsLoading);
-  // TODO: how to show error
-  // const tripsError = useDeepBoundStore((state) => state.tripsError);
+  const tripsError = useDeepBoundStore((state) => state.tripsError);
 
   return (
     <>
@@ -73,7 +72,11 @@ export function PageTrips(_props: RouteComponentProps) {
             </Callout.Text>
           </Callout.Root>
         ) : null}
-
+        {tripsError ? (
+          <Callout.Root my="2">
+            <Callout.Text>Error loading trips: {tripsError}</Callout.Text>
+          </Callout.Root>
+        ) : null}
         <Flex direction="column" my="2" gap="3" p="2">
           <Trips
             type={TripGroup.Ongoing}
