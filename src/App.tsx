@@ -2,15 +2,23 @@ import '@radix-ui/themes/styles.css';
 import './accent.css';
 
 import { Portal, Theme } from '@radix-ui/themes';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { flushSync } from 'react-dom';
-import { type AroundNavHandler, Redirect, Route, Router, Switch } from 'wouter';
+import {
+  type AroundNavHandler,
+  Redirect,
+  Route,
+  Router,
+  Switch,
+  useLocation,
+} from 'wouter';
 import s from './App.module.css';
 import {
   useRedirectUnauthenticatedRoutes,
   useSubscribeUser,
 } from './Auth/hooks';
 import { DialogRoot } from './Dialog/DialogRoot';
+import { useBoundStore } from './data/store';
 import { withLoading } from './Loading/withLoading';
 import {
   RouteAccount,
@@ -87,6 +95,13 @@ function App() {
   const theme = useTheme();
   useSubscribeUser();
   useRedirectUnauthenticatedRoutes();
+
+  const clearDialogs = useBoundStore((state) => state.clearDialogs);
+  const [location] = useLocation();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Clear all dialogs on route change to prevent showing stale dialogs after navigation
+  useEffect(() => {
+    clearDialogs();
+  }, [location]);
 
   return (
     <>
