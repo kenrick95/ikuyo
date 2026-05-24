@@ -53,7 +53,8 @@ export const createUserSlice: StateCreator<
           set(() => ({
             authUser: authResult.user,
             authUserError: null,
-            // authUserLoading remains true until user data is loaded
+            // Need to explicitly set to true for logged out user to log in as guest
+            authUserLoading: true,
           }));
           if (process.env.SENTRY_ENABLED) {
             setUser({
