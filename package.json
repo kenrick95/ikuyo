@@ -13,7 +13,8 @@
     "dev": "rsbuild dev --open",
     "preview": "rsbuild preview",
     "test": "vitest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "s:delete-users": "node --experimental-transform-types ./scripts/delete-inactive-users.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
