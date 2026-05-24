@@ -2,6 +2,7 @@ import { PlusIcon } from '@radix-ui/react-icons';
 import {
   Box,
   Button,
+  Callout,
   Container,
   Flex,
   Heading,
@@ -10,13 +11,14 @@ import {
 } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { useEffect, useState } from 'react';
-import type { RouteComponentProps } from 'wouter';
+import { Link, type RouteComponentProps } from 'wouter';
 import { useCurrentUser } from '../Auth/hooks';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
 import { useBoundStore, useDeepBoundStore } from '../data/store';
 import type { DbUser } from '../data/types';
 import { DocTitle } from '../Nav/DocTitle';
 import { Navbar } from '../Nav/Navbar';
+import { RouteAccountUpgrade } from '../Routes/routes';
 import { TripNewDialog } from '../Trip/TripDialog/TripNewDialog';
 import { TripGroup, type TripGroupType } from '../Trip/TripGroup';
 import { useTripsGrouped } from './hooks';
@@ -57,6 +59,21 @@ export function PageTrips(_props: RouteComponentProps) {
       />
 
       <Container>
+        {currentUser && !currentUser?.email ? (
+          <Callout.Root my="2">
+            <Callout.Text>
+              You're currently using a guest account.{' '}
+              <Link to={RouteAccountUpgrade.asRouteTarget()}>
+                Upgrade your account with email or Google login
+              </Link>{' '}
+              to keep your data.
+              <br />
+              Otherwise, data will be lost when you clear cookies or switch
+              browsers.
+            </Callout.Text>
+          </Callout.Root>
+        ) : null}
+
         <Flex direction="column" my="2" gap="3" p="2">
           <Trips
             type={TripGroup.Ongoing}
