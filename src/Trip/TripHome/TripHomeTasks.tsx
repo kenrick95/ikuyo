@@ -72,6 +72,17 @@ export function TripHomeTasks() {
       const needed = 5 - result.length;
       result = [...result, ...otherTasks.slice(0, needed)];
     }
+    // If still less than 5 tasks, pick newest created tasks to fill remaining slots
+    if (result.length < 5) {
+      const remainingTasks = allTasks.filter((task) => {
+        // Exclude tasks already in result list
+        if (result.some((r) => r.id === task.id)) return false;
+        return true;
+      });
+
+      const needed = 5 - result.length;
+      result = [...result, ...remainingTasks.slice(0, needed)];
+    }
 
     // Sort all tasks appropriately
     return result.sort((a, b) => {
