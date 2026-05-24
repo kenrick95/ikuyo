@@ -20,15 +20,18 @@ export function TripHomeActivities() {
     );
   }, [trip?.currentUserRole]);
 
-  // Determine if trip is {stating soon, or current, or past}
-  const isTripStartingOrCurrentOrPast = useMemo(() => {
+  // Determine if trip is {stating soon, or current}
+  const isTripStartingOrCurrent = useMemo(() => {
     if (!trip) return false;
     const now = DateTime.now().setZone(trip.timeZone);
     const tripStartTwoDaysBefore = DateTime.fromMillis(trip.timestampStart)
       .setZone(trip.timeZone)
       .minus({ days: 2 })
       .startOf('day');
-    return now >= tripStartTwoDaysBefore;
+    const tripEnd = DateTime.fromMillis(trip.timestampEnd)
+      .setZone(trip.timeZone)
+      .endOf('day');
+    return now >= tripStartTwoDaysBefore && now <= tripEnd;
   }, [trip]);
 
   // Today and tomorrow activities
@@ -56,8 +59,8 @@ export function TripHomeActivities() {
       .sort((a, b) => (a.timestampStart || 0) - (b.timestampStart || 0));
   }, [activities, trip]);
 
-  // Only show section if trip is starting soon, current, or past
-  if (!isTripStartingOrCurrentOrPast) {
+  // Only show section if trip is starting soon or current
+  if (!isTripStartingOrCurrent) {
     return null;
   }
 
