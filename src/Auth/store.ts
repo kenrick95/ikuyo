@@ -106,6 +106,7 @@ export const createUserSlice: StateCreator<
                   email: userEmail || undefined,
                   activated: true,
                   defaultUserNamespaceId: authResult.user.id,
+                  lastLoginAt: Date.now(),
                 });
                 const user = (
                   await db.queryOnce({
@@ -164,6 +165,7 @@ export const createUserSlice: StateCreator<
                     handle: user.handle,
                     activated: true,
                     defaultUserNamespaceId: authResult.user.id,
+                    lastLoginAt: Date.now(),
                   });
                   set(() => ({
                     currentUser: { ...user, email: userEmail },
@@ -223,6 +225,7 @@ export const createUserSlice: StateCreator<
                       email: userEmail,
                       activated: true,
                       defaultUserNamespaceId: authResult.user.id,
+                      lastLoginAt: Date.now(),
                     })
                   : await dbCreateUser({
                       handle: defaultHandle,

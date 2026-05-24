@@ -54,6 +54,7 @@ export function PageAccount(_props: RouteComponentProps) {
           handle,
           activated: currentUser.activated,
           defaultUserNamespaceId: authUser.id,
+          lastLoginAt: currentUser.lastLoginAt,
         });
         publishToast({
           root: {},
