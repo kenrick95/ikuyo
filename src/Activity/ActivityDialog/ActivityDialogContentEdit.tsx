@@ -1,6 +1,6 @@
 import { Box, Dialog, RadioCards, Spinner, Text } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
-import { useCallback, useId, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import type { DialogContentProps } from '../../Dialog/DialogRoute';
 import { useTrip } from '../../Trip/store/hooks';
 import type { TripSliceActivity } from '../../Trip/store/types';
@@ -56,6 +56,15 @@ export function ActivityDialogContentEdit({
     getActivityType(activity?.flags),
   );
 
+  // Sync activityType once activity data loads (activity may be undefined on
+  // the first render, causing the state to default to Activity incorrectly).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Re-sync only when the identity of the activity changes, not on every mutation
+  useEffect(() => {
+    if (activity?.flags != null) {
+      setActivityType(getActivityType(activity.flags));
+    }
+  }, [activity?.id]);
+
   // Reflect the chosen type in the flags so the form saves correctly
   const effectiveFlags = applyActivityType(activity?.flags, activityType);
 
@@ -94,30 +103,32 @@ export function ActivityDialogContentEdit({
           : 'Fill in your edited activity details...'}
       </Dialog.Description>
       <Box height="16px" />
-      <Text as="label" htmlFor={idActivityType} size="2">
-        Type
-      </Text>
-      <RadioCards.Root
-        columns="2"
-        size="1"
-        id={idActivityType}
-        value={activityType}
-        onValueChange={(v) => setActivityType(v as ActivityTypeType)}
-        mb="3"
-      >
-        {(Object.values(ActivityType) as ActivityTypeType[]).map((type) => (
-          <RadioCards.Item key={type} value={type}>
-            {ActivityTypeLabel[type]}
-          </RadioCards.Item>
-        ))}
-      </RadioCards.Root>
-      <Box height="16px" />
       {activity && trip ? (
-        activityType === ActivityType.Flight ? (
-          <FlightForm {...commonFormProps} />
-        ) : (
-          <ActivityForm {...commonFormProps} />
-        )
+        <>
+          <Text as="label" htmlFor={idActivityType} size="2">
+            Type
+          </Text>
+          <RadioCards.Root
+            columns="2"
+            size="1"
+            id={idActivityType}
+            value={activityType}
+            onValueChange={(v) => setActivityType(v as ActivityTypeType)}
+            mb="3"
+          >
+            {(Object.values(ActivityType) as ActivityTypeType[]).map((type) => (
+              <RadioCards.Item key={type} value={type}>
+                {ActivityTypeLabel[type]}
+              </RadioCards.Item>
+            ))}
+          </RadioCards.Root>
+          <Box height="16px" />
+          {activityType === ActivityType.Flight ? (
+            <FlightForm {...commonFormProps} />
+          ) : (
+            <ActivityForm {...commonFormProps} />
+          )}
+        </>
       ) : (
         <Spinner />
       )}
