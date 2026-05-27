@@ -62,8 +62,15 @@ const aroundNav: AroundNavHandler = (navigate, to, options) => {
 
   // Skip transition if one is already in progress
   if (pendingTransition) {
-    pendingTransition.skipTransition();
-    pendingTransition = null;
+    try {
+      pendingTransition.skipTransition();
+      pendingTransition = null;
+    } catch (error) {
+      // Silently ignore AbortError from skipTransition()
+      if ((error as Error)?.name !== 'AbortError') {
+        throw error;
+      }
+    }
   }
 
   try {
