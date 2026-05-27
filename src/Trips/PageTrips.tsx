@@ -18,7 +18,7 @@ import { useBoundStore, useDeepBoundStore } from '../data/store';
 import type { DbUser } from '../data/types';
 import { DocTitle } from '../Nav/DocTitle';
 import { Navbar } from '../Nav/Navbar';
-import { RouteAccountUpgrade } from '../Routes/routes';
+import { RouteAccountUpgrade, RouteTripsPublic } from '../Routes/routes';
 import { TripNewDialog } from '../Trip/TripDialog/TripNewDialog';
 import { TripGroup, type TripGroupType } from '../Trip/TripGroup';
 import { useTripsGrouped } from './hooks';
@@ -103,7 +103,6 @@ export function PageTrips(_props: RouteComponentProps) {
             isLoading={tripsLoading}
           />
         </Flex>
-
         {tripsHasMore ? (
           <Button
             variant="outline"
@@ -114,12 +113,15 @@ export function PageTrips(_props: RouteComponentProps) {
               }
             }}
             mx="2"
-            mb="4"
+            my="4"
             loading={!!tripsLoadingMore}
           >
             Load more
           </Button>
         ) : null}
+        <Button mx="2" my="4" size="2" color="gray" variant="outline" asChild>
+          <Link to={RouteTripsPublic.asRootRoute()}>Explore Public Trips</Link>
+        </Button>
       </Container>
     </>
   );

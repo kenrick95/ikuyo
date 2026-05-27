@@ -2,11 +2,11 @@ import {
   ArrowRightIcon,
   CalendarIcon,
   CheckIcon,
-  ClockIcon,
   GlobeIcon,
   HomeIcon,
   ListBulletIcon,
   MixIcon,
+  QuoteIcon,
   Share2Icon,
 } from '@radix-ui/react-icons';
 import {
@@ -25,7 +25,7 @@ import { Link } from 'wouter';
 import { useCurrentUser } from '../Auth/hooks';
 import imgUrl from '../logo/ikuyo.svg';
 import { DocTitle } from '../Nav/DocTitle';
-import { RouteLogin, RouteTrips } from '../Routes/routes';
+import { RouteLogin, RouteTrips, RouteTripsPublic } from '../Routes/routes';
 import ScreenshotTripCommentAvif from './assets/ScreenshotTripComment_resized.avif';
 import ScreenshotTripComment from './assets/ScreenshotTripComment_resized.png';
 import ScreenshotTripCommentWebp from './assets/ScreenshotTripComment_resized.webp';
@@ -88,11 +88,18 @@ export function PageLanding() {
             <Flex gap="3" wrap="wrap" justify="center">
               {currentUser ? (
                 // Already logged in
-                <Button size="4" asChild>
-                  <Link to={RouteTrips.asRootRoute()}>
-                    View My Trips <ArrowRightIcon />
-                  </Link>
-                </Button>
+                <>
+                  <Button size="4" asChild>
+                    <Link to={RouteTrips.asRootRoute()}>
+                      View My Trips <ArrowRightIcon />
+                    </Link>
+                  </Button>
+                  <Button size="4" variant="outline" asChild>
+                    <Link to={RouteTripsPublic.asRootRoute()}>
+                      Explore Public Trips
+                    </Link>
+                  </Button>
+                </>
               ) : (
                 <>
                   <Button size="4" asChild>
@@ -301,10 +308,15 @@ export function PageLanding() {
                 />
               </Flex>
             </Grid>
-            <Flex justify="center">
+            <Flex justify="center" gap="4">
               <Button size="3" variant="outline" asChild>
                 <Link to={`~/trip/${EXAMPLE_TRIP_ID}/home`}>
                   View Example Trip
+                </Link>
+              </Button>
+              <Button size="3" variant="outline" asChild>
+                <Link to={RouteTripsPublic.asRootRoute()}>
+                  Explore Public Trips
                 </Link>
               </Button>
             </Flex>
@@ -389,16 +401,22 @@ export function PageLanding() {
             <Card size="4" className={s.benefitsCard}>
               <Flex direction="column" gap="4" p="6">
                 <Box className={s.benefitsCardIcon}>
-                  <ClockIcon width="48" height="48" />
+                  <QuoteIcon width="48" height="48" />
                 </Box>
-                <Heading size="5">Save hours of planning time</Heading>
-                <Text size="3" color="gray">
-                  Our intuitive interface and smart scheduling features help you
-                  organize complex itineraries quickly and efficiently.
-                </Text>
+                <Heading size="5">Testimonial</Heading>
                 <Text size="3" className={s.benefitsCardQuote}>
-                  "Ikuyo turned my chaotic trip planning into a smooth,
-                  organized experience. Highly recommended!" &mdash; me
+                  "I put Ikuyo to the test for two trips... It is web-based,
+                  which is much better than a typical app—I can use a full-sized
+                  keyboard and screen, but still access it on mobile. It isn’t
+                  pushing deals or disguised as social media; it is just clean,
+                  simple, and without the clutter." &mdash;{' '}
+                  <a
+                    href="https://blog.kenrick95.org/2025/06/ikuyo-plan-your-next-trip/#comment-491"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Luigi
+                  </a>
                 </Text>
               </Flex>
             </Card>
