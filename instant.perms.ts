@@ -9,7 +9,7 @@ export default {
   trip: {
     bind: [
       'isTripPublic',
-      'data.sharingLevel == 2',
+      'data.sharingLevel >= 2',
       'isTripEditor',
       "'editor' in data.ref('tripUser.role') && auth.id in data.ref('tripUser.user.$users.id')",
       'isTripOwner',
@@ -46,7 +46,7 @@ export default {
   activity: {
     bind: [
       'isTripPublic',
-      "2 in data.ref('trip.sharingLevel')",
+      "2 in data.ref('trip.sharingLevel') || 3 in data.ref('trip.sharingLevel')",
       'isTripEditor',
       "'editor' in data.ref('trip.tripUser.role') && auth.id in data.ref('trip.tripUser.user.$users.id')",
       'isTripOwner',
@@ -64,7 +64,7 @@ export default {
   macroplan: {
     bind: [
       'isTripPublic',
-      "2 in data.ref('trip.sharingLevel')",
+      "2 in data.ref('trip.sharingLevel') || 3 in data.ref('trip.sharingLevel')",
       'isTripEditor',
       "'editor' in data.ref('trip.tripUser.role') && auth.id in data.ref('trip.tripUser.user.$users.id')",
       'isTripOwner',
@@ -100,7 +100,7 @@ export default {
   expense: {
     bind: [
       'isTripPublic',
-      "2 in data.ref('trip.sharingLevel')",
+      "2 in data.ref('trip.sharingLevel') || 3 in data.ref('trip.sharingLevel')",
       'isTripEditor',
       "'editor' in data.ref('trip.tripUser.role') && auth.id in data.ref('trip.tripUser.user.$users.id')",
       'isTripOwner',
@@ -118,7 +118,7 @@ export default {
   taskList: {
     bind: [
       'isTripPublic',
-      "2 in data.ref('trip.sharingLevel')",
+      "2 in data.ref('trip.sharingLevel') || 3 in data.ref('trip.sharingLevel')",
       'isTripEditor',
       "'editor' in data.ref('trip.tripUser.role') && auth.id in data.ref('trip.tripUser.user.$users.id')",
       'isTripOwner',
@@ -154,7 +154,7 @@ export default {
   commentGroup: {
     bind: [
       'isTripPublic',
-      "2 in data.ref('trip.sharingLevel')",
+      "2 in data.ref('trip.sharingLevel') || 3 in data.ref('trip.sharingLevel')",
       'isTripEditor',
       "'editor' in data.ref('trip.tripUser.role') && auth.id in data.ref('trip.tripUser.user.$users.id')",
       'isTripOwner',
@@ -190,7 +190,7 @@ export default {
   tripUser: {
     bind: [
       'isTripPublic',
-      "2 in data.ref('trip.sharingLevel')",
+      "2 in data.ref('trip.sharingLevel') || 3 in data.ref('trip.sharingLevel')",
       'isTripEditor',
       "'editor' in data.ref('trip.tripUser.role') && auth.id in data.ref('trip.tripUser.user.$users.id')",
       'isTripOwner',

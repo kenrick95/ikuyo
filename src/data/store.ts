@@ -7,6 +7,10 @@ import { createToastSlice, type ToastSlice } from '../Toast/hooks';
 import { createTripSlice } from '../Trip/store/store';
 import type { TripSlice, TripSliceTrip } from '../Trip/store/types';
 import { createTripsSlice, type TripsSlice } from '../Trips/store';
+import {
+  createTripsPublicSlice,
+  type TripsPublicSlice,
+} from '../TripsPublic/store';
 import { createThemeSlice, type ThemeSlice } from '../theme/store';
 
 export type BoundStoreType = ToastSlice &
@@ -14,6 +18,7 @@ export type BoundStoreType = ToastSlice &
   DialogSlice &
   TripSlice &
   TripsSlice &
+  TripsPublicSlice &
   ThemeSlice;
 
 export const useBoundStore = create<BoundStoreType>()(
@@ -24,6 +29,7 @@ export const useBoundStore = create<BoundStoreType>()(
       ...createDialogSlice(...args),
       ...createTripSlice(...args),
       ...createTripsSlice(...args),
+      ...createTripsPublicSlice(...args),
       ...createThemeSlice(...args),
     }),
     {

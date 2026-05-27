@@ -1,6 +1,11 @@
-import { PlusIcon, TrashIcon } from '@radix-ui/react-icons';
+import {
+  ExclamationTriangleIcon,
+  PlusIcon,
+  TrashIcon,
+} from '@radix-ui/react-icons';
 import {
   Button,
+  Callout,
   Dialog,
   Flex,
   Inset,
@@ -181,12 +186,40 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
                   <Select.Item value={String(TripSharingLevel.Private)}>
                     Private
                   </Select.Item>
-                  <Select.Item value={String(TripSharingLevel.Public)}>
+                  <Select.Item value={String(TripSharingLevel.PublicUnlisted)}>
+                    Unlisted
+                  </Select.Item>
+                  <Select.Item value={String(TripSharingLevel.PublicListed)}>
                     Public
                   </Select.Item>
                 </Select.Content>
               </Select.Root>
             </Flex>
+            {tripSharingLevel === TripSharingLevel.PublicUnlisted ? (
+              <Callout.Root color={dangerToken} size="1">
+                <Callout.Icon>
+                  <ExclamationTriangleIcon />
+                </Callout.Icon>
+                <Callout.Text>
+                  Anyone with the link can view this trip.
+                  <br />
+                  <strong>Only share the link with people you trust</strong> and
+                  avoid including sensitive personal info.
+                </Callout.Text>
+              </Callout.Root>
+            ) : tripSharingLevel === TripSharingLevel.PublicListed ? (
+              <Callout.Root color={dangerToken} size="1">
+                <Callout.Icon>
+                  <ExclamationTriangleIcon />
+                </Callout.Icon>
+                <Callout.Text>
+                  Visible to everyone in the public directory
+                  <br />
+                  <strong>Do not include sensitive personal info</strong> such
+                  as home addresses or passport details.
+                </Callout.Text>
+              </Callout.Root>
+            ) : null}
           </Flex>
         ) : null}
         {currentUserIsOwner ? (
