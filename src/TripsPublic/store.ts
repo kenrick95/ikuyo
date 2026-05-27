@@ -32,7 +32,7 @@ export const createTripsPublicSlice: StateCreator<
   [],
   [],
   TripsPublicSlice
-> = (set) => {
+> = (set, get) => {
   return {
     tripsPublic: [],
     tripsPublicLoading: true,
@@ -94,6 +94,10 @@ export const createTripsPublicSlice: StateCreator<
 
       set(() => ({
         tripsPublicLoadMore: () => {
+          const tripsPublicHasMore = get().tripsPublicHasMore;
+          if (!tripsPublicHasMore) return; // No more pages to load
+          const tripsPublicLoadingMore = get().tripsPublicLoadingMore;
+          if (tripsPublicLoadingMore) return; // Prevent multiple simultaneous loadMore
           set(() => ({ tripsPublicLoadingMore: true }));
           query.loadNextPage();
         },

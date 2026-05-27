@@ -31,7 +31,7 @@ export function TripPublicCard({
   const dayCount = getTripDayCount(trip);
 
   return (
-    <li className={clsx(className)} key={trip.id}>
+    <li className={clsx(className)}>
       <Card asChild>
         <Link to={RouteTrip.asRouteTarget(trip.id)} className={s.tripCardLink}>
           <Text as="div" weight="bold">
