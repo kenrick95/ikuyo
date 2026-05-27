@@ -29,6 +29,7 @@ import {
   RouteTerms,
   RouteTrip,
   RouteTrips,
+  RouteTripsPublic,
 } from './Routes/routes';
 import { ImperativeToastRoot } from './Toast/ImperativeToast';
 import { ThemeAppearance } from './theme/constants';
@@ -41,6 +42,9 @@ const PageTerms = withLoading()(React.lazy(() => import('./Docs/Terms')));
 const PagePrivacy = withLoading()(React.lazy(() => import('./Docs/Privacy')));
 const PageLogin = withLoading()(React.lazy(() => import('./Auth/Auth')));
 const PageTrips = withLoading()(React.lazy(() => import('./Trips/PageTrips')));
+const PageTripsPublic = withLoading()(
+  React.lazy(() => import('./TripsPublic/PageTripsPublic')),
+);
 const PageTrip = withLoading()(React.lazy(() => import('./Trip/PageTrip')));
 const PageAccount = withLoading()(
   React.lazy(() => import('./Account/PageAccount')),
@@ -120,6 +124,10 @@ function App() {
             ) : null}
             <Route path={RouteLogin.routePath} component={PageLogin} />
             <Route path={RouteTrips.routePath} component={PageTrips} />
+            <Route
+              path={RouteTripsPublic.routePath}
+              component={PageTripsPublic}
+            />
             <Route path={RouteTrip.routePath} component={PageTrip} nest />
             <Route path={RouteAccount.routePath} component={PageAccount} />
             <Route
