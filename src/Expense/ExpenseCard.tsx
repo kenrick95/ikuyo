@@ -17,13 +17,14 @@ import {
   Tooltip,
 } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { CommentGroupWithForm } from '../Comment/CommentGroupWithForm';
 import { COMMENT_GROUP_OBJECT_TYPE } from '../Comment/db';
 import { dangerToken } from '../common/ui';
 import { useBoundStore, useDeepBoundStore } from '../data/store';
 import { useTrip } from '../Trip/store/hooks';
 import type { TripSliceExpense } from '../Trip/store/types';
+import { TripUserRole } from '../User/TripUserRole';
 import { dbDeleteExpense } from './db';
 import s from './ExpenseCard.module.css';
 import { ExpenseInlineCardForm } from './ExpenseInlineCardForm';
@@ -128,6 +129,13 @@ function ExpenseCardView({
       });
   }, [expense.id, expense.title, publishToast]);
 
+  const userCanEditOrDelete = useMemo(() => {
+    return (
+      trip?.currentUserRole === TripUserRole.Owner ||
+      trip?.currentUserRole === TripUserRole.Editor
+    );
+  }, [trip?.currentUserRole]);
+
   return (
     <Inset className={s.cardContent}>
       {/* Collapsed Header - Always Visible */}
@@ -172,42 +180,44 @@ function ExpenseCardView({
       {isExpanded && (
         <div className={s.expandedContent}>
           {/* Actions */}
-          <div className={s.actionsSection}>
-            <Button variant="outline" size="2" onClick={handleEditExpense}>
-              <Pencil1Icon />
-              Edit
-            </Button>
-            <Popover.Root>
-              <Popover.Trigger>
-                <Button variant="outline" size="2" color="red">
-                  <TrashIcon />
-                  Delete
-                </Button>
-              </Popover.Trigger>
-              <Popover.Content>
-                <Text as="p" size="2">
-                  Delete expense "{expense.title}"?
-                </Text>
-                <Text as="p" size="2" color={dangerToken}>
-                  This action is irreversible!
-                </Text>
-                <Flex gap="3" mt="4" justify="end">
-                  <Popover.Close>
-                    <Button variant="soft" color="gray">
-                      Cancel
-                    </Button>
-                  </Popover.Close>
-                  <Button
-                    variant="solid"
-                    color={dangerToken}
-                    onClick={handleDeleteExpense}
-                  >
+          {userCanEditOrDelete ? (
+            <div className={s.actionsSection}>
+              <Button variant="outline" size="2" onClick={handleEditExpense}>
+                <Pencil1Icon />
+                Edit
+              </Button>
+              <Popover.Root>
+                <Popover.Trigger>
+                  <Button variant="outline" size="2" color="red">
+                    <TrashIcon />
                     Delete
                   </Button>
-                </Flex>
-              </Popover.Content>
-            </Popover.Root>
-          </div>
+                </Popover.Trigger>
+                <Popover.Content>
+                  <Text as="p" size="2">
+                    Delete expense "{expense.title}"?
+                  </Text>
+                  <Text as="p" size="2" color={dangerToken}>
+                    This action is irreversible!
+                  </Text>
+                  <Flex gap="3" mt="4" justify="end">
+                    <Popover.Close>
+                      <Button variant="soft" color="gray">
+                        Cancel
+                      </Button>
+                    </Popover.Close>
+                    <Button
+                      variant="solid"
+                      color={dangerToken}
+                      onClick={handleDeleteExpense}
+                    >
+                      Delete
+                    </Button>
+                  </Flex>
+                </Popover.Content>
+              </Popover.Root>
+            </div>
+          ) : null}
 
           {/* Description */}
           {expense.description ? (
