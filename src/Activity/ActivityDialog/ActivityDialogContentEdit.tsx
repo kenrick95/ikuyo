@@ -1,11 +1,19 @@
-import { Box, Dialog, Spinner } from '@radix-ui/themes';
+import { Box, Dialog, RadioCards, Spinner, Text } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
-import { useCallback } from 'react';
+import { useCallback, useId, useState } from 'react';
 import type { DialogContentProps } from '../../Dialog/DialogRoute';
 import { useTrip } from '../../Trip/store/hooks';
 import type { TripSliceActivity } from '../../Trip/store/types';
 import { ActivityForm } from '../ActivityForm/ActivityForm';
 import { ActivityFormMode } from '../ActivityForm/ActivityFormMode';
+import {
+  ActivityType,
+  ActivityTypeLabel,
+  type ActivityTypeType,
+  applyActivityType,
+  getActivityType,
+} from '../activityType';
+import { FlightForm } from '../FlightForm/FlightForm';
 import { ActivityDialogMode } from './ActivityDialogMode';
 
 export function ActivityDialogContentEdit({
@@ -44,38 +52,72 @@ export function ActivityDialogContentEdit({
 
   console.debug('ActivityDialogContentEdit', { activity, trip });
 
+  const [activityType, setActivityType] = useState<ActivityTypeType>(() =>
+    getActivityType(activity?.flags),
+  );
+
+  // Reflect the chosen type in the flags so the form saves correctly
+  const effectiveFlags = applyActivityType(activity?.flags, activityType);
+
+  const commonFormProps = {
+    activityId: activity?.id,
+    mode: ActivityFormMode.Edit,
+    tripStartDateTime,
+    tripEndDateTime,
+    tripTimeZone: trip?.timeZone ?? '',
+    tripRegion: trip?.region ?? '',
+    activityTitle: activity?.title ?? '',
+    activityIcon: activity?.icon,
+    activityStartDateTime,
+    activityEndDateTime,
+    activityLocationLat: activity?.locationLat,
+    activityLocationLng: activity?.locationLng,
+    activityLocationZoom: activity?.locationZoom,
+    activityLocation: activity?.location ?? '',
+    activityDescription: activity?.description ?? '',
+    activityLocationDestination: activity?.locationDestination,
+    activityLocationDestinationLat: activity?.locationDestinationLat,
+    activityLocationDestinationLng: activity?.locationDestinationLng,
+    activityLocationDestinationZoom: activity?.locationDestinationZoom,
+    activityFlags: effectiveFlags,
+    onFormCancel: backToViewMode,
+    onFormSuccess: backToViewMode,
+  };
+  const idActivityType = useId();
+
   return (
     <Dialog.Content {...dialogContentProps}>
-      <DialogTitleSection title="Edit Activity" />
+      <DialogTitleSection title={`Edit ${ActivityTypeLabel[activityType]}`} />
       <Dialog.Description size="2">
-        Fill in your edited activity details...
+        {activityType === ActivityType.Flight
+          ? 'Fill in your edited flight details...'
+          : 'Fill in your edited activity details...'}
       </Dialog.Description>
       <Box height="16px" />
+      <Text as="label" htmlFor={idActivityType} size="2">
+        Type
+      </Text>
+      <RadioCards.Root
+        columns="2"
+        size="1"
+        id={idActivityType}
+        value={activityType}
+        onValueChange={(v) => setActivityType(v as ActivityTypeType)}
+        mb="3"
+      >
+        {(Object.values(ActivityType) as ActivityTypeType[]).map((type) => (
+          <RadioCards.Item key={type} value={type}>
+            {ActivityTypeLabel[type]}
+          </RadioCards.Item>
+        ))}
+      </RadioCards.Root>
+      <Box height="16px" />
       {activity && trip ? (
-        <ActivityForm
-          activityId={activity.id}
-          mode={ActivityFormMode.Edit}
-          tripStartDateTime={tripStartDateTime}
-          tripEndDateTime={tripEndDateTime}
-          tripTimeZone={trip.timeZone}
-          tripRegion={trip.region}
-          activityTitle={activity.title}
-          activityIcon={activity.icon}
-          activityStartDateTime={activityStartDateTime}
-          activityEndDateTime={activityEndDateTime}
-          activityLocationLat={activity.locationLat}
-          activityLocationLng={activity.locationLng}
-          activityLocationZoom={activity.locationZoom}
-          activityLocation={activity.location}
-          activityDescription={activity.description}
-          activityLocationDestination={activity.locationDestination}
-          activityLocationDestinationLat={activity.locationDestinationLat}
-          activityLocationDestinationLng={activity.locationDestinationLng}
-          activityLocationDestinationZoom={activity.locationDestinationZoom}
-          activityFlags={activity.flags}
-          onFormCancel={backToViewMode}
-          onFormSuccess={backToViewMode}
-        />
+        activityType === ActivityType.Flight ? (
+          <FlightForm {...commonFormProps} />
+        ) : (
+          <ActivityForm {...commonFormProps} />
+        )
       ) : (
         <Spinner />
       )}

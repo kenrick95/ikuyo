@@ -4,6 +4,7 @@ import { useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
 import { AccommodationNewDialog } from '../../Accommodation/AccommodationNewDialog';
 import { ActivityNewDialog } from '../../Activity/ActivityNewDialog';
+import { FlightNewDialog } from '../../Activity/FlightNewDialog';
 import { activitiesToIcs, downloadIcs } from '../../Activity/icsExport';
 import { useCurrentUser } from '../../Auth/hooks';
 import { UserAvatarMenu } from '../../Auth/UserAvatarMenu';
@@ -76,6 +77,20 @@ export function TripMenu() {
             }
           >
             New activity
+          </DropdownMenu.Item>
+          <DropdownMenu.Item
+            disabled={!userCanModifyTrip}
+            onClick={
+              userCanModifyTrip
+                ? () => {
+                    if (trip) {
+                      pushDialog(FlightNewDialog, { trip });
+                    }
+                  }
+                : undefined
+            }
+          >
+            New flight
           </DropdownMenu.Item>
 
           <DropdownMenu.Separator />

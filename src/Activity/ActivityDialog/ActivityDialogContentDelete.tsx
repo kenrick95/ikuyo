@@ -6,6 +6,11 @@ import { type DialogContentProps, DialogMode } from '../../Dialog/DialogRoute';
 import { useBoundStore } from '../../data/store';
 import type { TripSliceActivity } from '../../Trip/store/types';
 import { getActivityDisplayTitle } from '../activityTitle';
+import {
+  ActivityType,
+  ActivityTypeLabel,
+  getActivityType,
+} from '../activityType';
 import { dbDeleteActivity } from '../db';
 
 export function ActivityDialogContentDelete({
@@ -20,6 +25,9 @@ export function ActivityDialogContentDelete({
     ? getActivityDisplayTitle(activity)
     : undefined;
   const activityTitleRaw = activity?.title;
+  const activityType = getActivityType(activity?.flags);
+  const isFlight = activityType === ActivityType.Flight;
+  const typeLabel = ActivityTypeLabel[activityType];
   const deleteActivity = useCallback(() => {
     if (!activity) {
       console.error('Activity is undefined');
@@ -29,7 +37,7 @@ export function ActivityDialogContentDelete({
       .then(() => {
         publishToast({
           root: {},
-          title: { children: `Activity "${activityTitleRaw}" deleted` },
+          title: { children: `${typeLabel} "${activityTitleRaw}" deleted` },
           close: {},
         });
         setLocation('');
@@ -42,14 +50,14 @@ export function ActivityDialogContentDelete({
           close: {},
         });
       });
-  }, [publishToast, activity, activityTitleRaw, setLocation]);
+  }, [publishToast, activity, activityTitleRaw, setLocation, typeLabel]);
 
   return (
     <Dialog.Content {...dialogContentProps}>
-      <DialogTitleSection title="Delete Activity" />
+      <DialogTitleSection title={`Delete ${typeLabel}`} />
       <Dialog.Description size="2">
-        Are you sure to delete activity "
-        {activityTitle ?? <Skeleton>Activity name</Skeleton>}"?
+        Are you sure to delete {isFlight ? 'flight' : 'activity'} &ldquo;
+        {activityTitle ?? <Skeleton>Activity name</Skeleton>}&rdquo;?
       </Dialog.Description>
 
       <Flex gap="3" mt="4" justify="end">

@@ -2,6 +2,7 @@ import { ContextMenu } from '@radix-ui/themes';
 import React, { type MouseEvent, memo, useCallback, useMemo } from 'react';
 import { AccommodationNewDialog } from '../../Accommodation/AccommodationNewDialog';
 import { ActivityNewDialog } from '../../Activity/ActivityNewDialog';
+import { FlightNewDialog } from '../../Activity/FlightNewDialog';
 import { useBoundStore } from '../../data/store';
 import { MacroplanNewDialog } from '../../Macroplan/MacroplanNewDialog';
 import { TripUserRole } from '../../User/TripUserRole';
@@ -49,6 +50,25 @@ function TimetableGridInner({ days }: TimetableGridProps) {
           : undefined;
 
       pushDialog(ActivityNewDialog, { trip, prefillData });
+    },
+    [pushDialog, trip],
+  );
+  const openFlightNewDialog = useCallback(
+    (e: MouseEvent<HTMLDivElement>) => {
+      if (!trip) return;
+      const el = e.currentTarget;
+      const dayOfTrip = el.dataset.day;
+      const timeStart = el.dataset.timeStart;
+
+      const prefillData =
+        dayOfTrip && timeStart
+          ? {
+              dayOfTrip: parseInt(dayOfTrip, 10),
+              timeStart: timeStart,
+            }
+          : undefined;
+
+      pushDialog(FlightNewDialog, { trip, prefillData });
     },
     [pushDialog, trip],
   );
@@ -123,6 +143,17 @@ function TimetableGridInner({ days }: TimetableGridProps) {
                         data-day={day}
                       >
                         New activity
+                      </ContextMenu.Item>
+
+                      <ContextMenu.Item
+                        onClick={
+                          userCanModifyTrip ? openFlightNewDialog : undefined
+                        }
+                        disabled={!userCanModifyTrip}
+                        data-time-start={timeStr}
+                        data-day={day}
+                      >
+                        New flight
                       </ContextMenu.Item>
 
                       <ContextMenu.Item
