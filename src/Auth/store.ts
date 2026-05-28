@@ -185,6 +185,14 @@ export const createUserSlice: StateCreator<
                     currentUser: user,
                     authUserLoading: false,
                   }));
+                  await dbUpdateUser({
+                    id: user.id,
+                    email: user.email,
+                    handle: user.handle,
+                    activated: true,
+                    defaultUserNamespaceId: authResult.user.id,
+                    lastLoginAt: Date.now(),
+                  });
                   state.publishToast({
                     root: {},
                     title: {
