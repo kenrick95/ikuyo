@@ -87,7 +87,6 @@ export function FlightForm({
   tripStartDateTime,
   tripEndDateTime,
   tripTimeZone,
-  tripRegion,
   activityTitle,
   activityIcon,
   activityStartDateTime,

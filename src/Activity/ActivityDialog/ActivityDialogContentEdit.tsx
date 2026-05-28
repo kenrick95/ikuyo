@@ -60,7 +60,7 @@ export function ActivityDialogContentEdit({
   // the first render, causing the state to default to Activity incorrectly).
   // biome-ignore lint/correctness/useExhaustiveDependencies: Re-sync only when the identity of the activity changes, not on every mutation
   useEffect(() => {
-    if (activity?.flags != null) {
+    if (activity) {
       setActivityType(getActivityType(activity.flags));
     }
   }, [activity?.id]);
