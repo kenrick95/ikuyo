@@ -96,7 +96,7 @@ const _schema = i.schema({
       email: i.string().unique().indexed().optional(),
       handle: i.string().unique().indexed(),
       lastUpdatedAt: i.number(),
-      lastLoginAt: i.number().optional(),
+      lastLoginAt: i.date().optional(),
     }),
     commentGroup: i.entity({
       status: i.number(),
