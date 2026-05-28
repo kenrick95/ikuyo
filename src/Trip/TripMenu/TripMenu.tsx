@@ -13,24 +13,16 @@ import { useBoundStore } from '../../data/store';
 import { MacroplanNewDialog } from '../../Macroplan/MacroplanNewDialog';
 import { RouteAccount, RouteLogin, RouteTrips } from '../../Routes/routes';
 import { TripUserRole } from '../../User/TripUserRole';
-import { useCurrentTrip, useTripActivities } from '../store/hooks';
+import { useCurrentTrip } from '../store/hooks';
 import { TripDeleteDialog } from '../TripDialog/TripDeleteDialog';
 import { TripEditDialog } from '../TripDialog/TripEditDialog';
 import { TripSharingDialog } from '../TripDialog/TripSharingDialog';
+import { printTrip, tripToHtml } from './print';
 import s from './TripMenu.module.css';
 
 export function TripMenu() {
   const [, setLocation] = useLocation();
   const { trip } = useCurrentTrip();
-  const activities = useTripActivities(trip?.activityIds ?? []);
-  const hasExportableActivities = useMemo(
-    () =>
-      activities?.some(
-        (activity) =>
-          activity.timestampStart != null && activity.timestampEnd != null,
-      ) ?? false,
-    [activities],
-  );
   const user = useCurrentUser();
   const userIsOwner = useMemo(() => {
     return trip?.currentUserRole === TripUserRole.Owner;
@@ -43,15 +35,42 @@ export function TripMenu() {
   }, [trip?.currentUserRole]);
   const pushDialog = useBoundStore((state) => state.pushDialog);
 
-  const handleExportToIcs = useCallback(() => {
-    if (!trip || !activities || activities.length === 0) return;
+  const handlePrintTrip = useCallback(
+    () => {
+      const state = useBoundStore.getState();
+      const currentTripId = state.currentTripId;
+      if (!currentTripId) return;
+      const trip = state.trip[currentTripId];
+      if (!trip) return;
+      const activities = state.getActivities(trip.activityIds);
+      const accommodations = state.getAccommodations(trip.accommodationIds);
+      const macroplans = state.getMacroplans(trip.macroplanIds);
+      const html = tripToHtml(trip, activities, accommodations, macroplans);
+      printTrip(html);
+    },
+    [
+      // Instead of depending on 'trip' and 'activites' etc as a dependency, we read the latest activities directly from the store when the handler is invoked. This reduce need for component re-render
+    ],
+  );
 
-    const icsContent = activitiesToIcs(activities, trip.timeZone, trip.title);
-    if (!icsContent) return;
+  const handleExportToIcs = useCallback(
+    () => {
+      const state = useBoundStore.getState();
+      const currentTripId = state.currentTripId;
+      if (!currentTripId) return;
+      const trip = state.trip[currentTripId];
+      if (!trip) return;
+      const activities = state.getActivities(trip.activityIds);
+      const icsContent = activitiesToIcs(activities, trip.timeZone, trip.title);
+      if (!icsContent) return;
 
-    const filename = `${trip.title.replace(/[^a-z0-9]/gi, '_')}_activities_${new Date().toISOString().split('T')[0]}.ics`;
-    downloadIcs(icsContent, filename);
-  }, [trip, activities]);
+      const filename = `${trip.title.replace(/[^a-z0-9]/gi, '_')}_activities_${new Date().toISOString().split('T')[0]}.ics`;
+      downloadIcs(icsContent, filename);
+    },
+    [
+      // Similar to handlePrintTrip, we read the latest activities directly from the store when the handler is invoked, to avoid unnecessary re-renders
+    ],
+  );
   return (
     <Flex className={s.tripMenu} align="center">
       <DropdownMenu.Root>
@@ -156,11 +175,13 @@ export function TripMenu() {
             Share trip
           </DropdownMenu.Item>
 
-          {hasExportableActivities && (
-            <DropdownMenu.Item onClick={handleExportToIcs}>
-              Export activities to ICS
-            </DropdownMenu.Item>
-          )}
+          <DropdownMenu.Item onClick={handleExportToIcs}>
+            Export activities to ICS
+          </DropdownMenu.Item>
+
+          <DropdownMenu.Item onClick={handlePrintTrip}>
+            Print trip
+          </DropdownMenu.Item>
 
           <DropdownMenu.Item
             disabled={!userCanModifyTrip}
