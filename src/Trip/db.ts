@@ -9,6 +9,7 @@ import type { DbCommentGroup, DbCommentGroupObjectType } from '../Comment/db';
 import { db } from '../data/db';
 import type { DbUser } from '../data/types';
 import type { DbMacroplan, DbMacroplanWithTrip } from '../Macroplan/db';
+import { generateUniqueHandle } from '../User/handle';
 import { TripUserRole } from '../User/TripUserRole';
 import type { TripSliceTrip } from './store/types';
 import type { TripSharingLevelType } from './tripSharingLevel';
@@ -246,7 +247,7 @@ export async function dbAddUserToTrip({
   if (!userId) {
     // New user
     userId = id();
-    const defaultHandle = userEmail.toLowerCase().replace(/[@.]/g, '_');
+    const defaultHandle = await generateUniqueHandle();
     transactions.push(
       db.tx.user[userId].update({
         handle: defaultHandle,

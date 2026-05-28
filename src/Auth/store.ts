@@ -5,6 +5,7 @@ import { db } from '../data/db';
 import type { BoundStoreType } from '../data/store';
 import { type DbUser, dbCreateUser, dbUpdateUser } from '../User/db';
 import { isEmailTakenByOtherUser } from '../User/emailCheck';
+import { generateUniqueHandle } from '../User/handle';
 
 export interface UserSlice {
   subscribeUser: () => () => void;
@@ -97,7 +98,7 @@ export const createUserSlice: StateCreator<
               if (!existingUser.activated) {
                 // User exists but not activated — activate
                 const defaultHandle = userEmail
-                  ? userEmail.toLowerCase().replace(/[@.]/g, '_')
+                  ? await generateUniqueHandle()
                   : existingUser.handle ||
                     `guest_${authResult.user.id.slice(0, 12)}`;
                 const userId = existingUser.id;
@@ -222,9 +223,7 @@ export const createUserSlice: StateCreator<
                   userDataUsingEmail,
                 );
 
-                const defaultHandle = userEmail
-                  .toLowerCase()
-                  .replace(/[@.]/g, '_');
+                const defaultHandle = await generateUniqueHandle();
 
                 const { id: newUserId } = userDataUsingEmail.user?.[0]?.id
                   ? await dbUpdateUser({
