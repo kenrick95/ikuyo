@@ -531,7 +531,7 @@ export function FlightForm({
               lng: locationFieldsState.lng[0] ?? 0,
               lat: locationFieldsState.lat[0] ?? 0,
               zoom: locationFieldsState.zoom[0] ?? 9,
-              region: tripRegion,
+              // Don't use 'region' to allow free choosing of airport around the world
             }}
             marker={
               locationFieldsState.lng[0] != null &&
@@ -575,7 +575,7 @@ export function FlightForm({
               lng: locationFieldsState.lng[1] ?? 0,
               lat: locationFieldsState.lat[1] ?? 0,
               zoom: locationFieldsState.zoom[1] ?? 9,
-              region: tripRegion,
+              // Don't use 'region' to allow free choosing of airport around the world
             }}
             marker={
               locationFieldsState.lng[1] != null &&
