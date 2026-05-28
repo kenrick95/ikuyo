@@ -18,6 +18,7 @@ import type { TripSliceActivity } from '../../Trip/store/types';
 import { TripUserRole } from '../../User/TripUserRole';
 import { ActivityFlag, hasActivityFlag } from '../activityFlag';
 import { getActivityDisplayTitle } from '../activityTitle';
+import { ActivityType, getActivityType } from '../activityType';
 import s from './ActivityDialog.module.css';
 import { ActivityMap } from './ActivityDialogMap';
 import { ActivityDialogMode } from './ActivityDialogMode';
@@ -125,6 +126,12 @@ export function ActivityDialogContentView({
     return hasActivityFlag(activity?.flags, ActivityFlag.IsIdea);
   }, [activity?.flags]);
 
+  const activityType = useMemo(() => {
+    return getActivityType(activity?.flags);
+  }, [activity?.flags]);
+
+  const isFlight = activityType === ActivityType.Flight;
+
   const activityTitle = useMemo(() => {
     if (!activity) {
       return undefined;
@@ -132,13 +139,14 @@ export function ActivityDialogContentView({
     return getActivityDisplayTitle(activity);
   }, [activity]);
 
+  const typeLabel = isFlight ? 'Flight' : isIdea ? 'Activity Idea' : 'Activity';
+
   return (
     <Dialog.Content {...dialogContentProps}>
       <DialogTitleSection
         title={
           <>
-            Activity{isIdea ? ' Idea' : ''}:{' '}
-            {activityTitle ?? <Skeleton>Activity Title</Skeleton>}
+            {typeLabel}: {activityTitle ?? <Skeleton>Activity Title</Skeleton>}
           </>
         }
       />
@@ -175,7 +183,9 @@ export function ActivityDialogContentView({
               Delete
             </Button>
           </Flex>
-          <Dialog.Description size="2">Activity details</Dialog.Description>
+          <Dialog.Description size="2">
+            {isFlight ? 'Flight details' : 'Activity details'}
+          </Dialog.Description>
           <Heading as="h2" size="4">
             Title
           </Heading>
@@ -197,7 +207,11 @@ export function ActivityDialogContentView({
           {activity?.location ? (
             <>
               <Heading as="h2" size="4">
-                {activity?.locationDestination ? 'Origin' : 'Location'}
+                {isFlight
+                  ? 'From'
+                  : activity?.locationDestination
+                    ? 'Origin'
+                    : 'Location'}
               </Heading>
               <Text>{activity.location}</Text>
             </>
@@ -205,7 +219,7 @@ export function ActivityDialogContentView({
           {activity?.locationDestination ? (
             <>
               <Heading as="h2" size="4">
-                Destination
+                {isFlight ? 'To' : 'Destination'}
               </Heading>
               <Text>{activity.locationDestination}</Text>
             </>
@@ -213,7 +227,7 @@ export function ActivityDialogContentView({
           {activity?.description ? (
             <>
               <Heading as="h2" size="4">
-                Description
+                {isFlight ? 'Notes' : 'Description'}
               </Heading>
               <Text className={s.description}>{descriptions}</Text>
             </>

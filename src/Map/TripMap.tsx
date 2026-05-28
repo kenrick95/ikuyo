@@ -33,6 +33,7 @@ import type {
 } from '../Trip/store/types';
 import { ThemeAppearance } from '../theme/constants';
 import { useTheme } from '../theme/hooks';
+import { filterOutliersForBounds } from './boundsUtils';
 import { LocationType, type MarkerLocation } from './constants';
 import { createGeoJsonData } from './geometry';
 import { createMarkerElement } from './marker';
@@ -220,10 +221,12 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
       return undefined;
     }
 
-    const latMin = Math.min(...allLocations.map((point) => point.lat));
-    const latMax = Math.max(...allLocations.map((point) => point.lat));
-    const lngMin = Math.min(...allLocations.map((point) => point.lng));
-    const lngMax = Math.max(...allLocations.map((point) => point.lng));
+    const boundsLocations = filterOutliersForBounds(allLocations);
+
+    const latMin = Math.min(...boundsLocations.map((point) => point.lat));
+    const latMax = Math.max(...boundsLocations.map((point) => point.lat));
+    const lngMin = Math.min(...boundsLocations.map((point) => point.lng));
+    const lngMax = Math.max(...boundsLocations.map((point) => point.lng));
     const latDiff = latMax - latMin;
     const lngDiff = lngMax - lngMin;
     const latBuffer = latDiff * 0.1;
