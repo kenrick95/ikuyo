@@ -20,6 +20,8 @@ export type TripSliceTrip = Omit<
   taskListIds: string[];
 
   currentUserRole: TripUserRole;
+  /** true when the current user has a tripUser record (is an invited member) */
+  isCurrentUserTripMember: boolean;
 };
 export type TripSliceTripMeta = {
   loading: boolean;
@@ -144,6 +146,12 @@ export type DbTripQueryReturnType = {
   originCurrency: string;
   timeZone: string;
   sharingLevel: number;
+  publicShowExpenses?: boolean | null;
+  publicShowTasks?: boolean | null;
+  publicShowComments?: boolean | null;
+  viewerShowExpenses?: boolean | null;
+  viewerShowTasks?: boolean | null;
+  viewerShowComments?: boolean | null;
   accommodation: {
     id: string;
     createdAt: number;
