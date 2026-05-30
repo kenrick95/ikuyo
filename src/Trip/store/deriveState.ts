@@ -66,6 +66,7 @@ export function deriveNewTripState(
         (currentUserTripUser?.role as TripUserRole | undefined) ??
         TripUserRole.Viewer,
       isCurrentUserTripMember: currentUserTripUser !== undefined,
+      // null → undefined: InstantDB returns null for unset optional fields
       publicShowExpenses: trip.publicShowExpenses ?? undefined,
       publicShowTasks: trip.publicShowTasks ?? undefined,
       publicShowComments: trip.publicShowComments ?? undefined,
