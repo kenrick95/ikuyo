@@ -1,6 +1,8 @@
-import { Spinner, Text } from '@radix-ui/themes';
+import { LockClosedIcon } from '@radix-ui/react-icons';
+import { Flex, Spinner, Text } from '@radix-ui/themes';
 import { useMemo } from 'react';
 import type { DbUser } from '../data/types';
+import { getSectionVisibility } from '../Trip/sectionVisibility';
 import { useTrip, useTripCommentGroup } from '../Trip/store/hooks';
 import { TripUserRole } from '../User/TripUserRole';
 import { CommentForm } from './CommentForm';
@@ -36,6 +38,7 @@ export function CommentGroupWithForm({
       trip?.currentUserRole === TripUserRole.Editor
     );
   }, [trip?.currentUserRole]);
+  const sectionVisibility = trip ? getSectionVisibility(trip) : null;
 
   return (
     <>
@@ -56,6 +59,11 @@ export function CommentGroupWithForm({
         <Spinner />
       ) : error ? (
         <Text>Error loading comments: {error.message}</Text>
+      ) : sectionVisibility?.comments === false ? (
+        <Flex align="center" justify="center" gap="2" py="2">
+          <LockClosedIcon />
+          <Text color="gray">Comments are hidden for this trip.</Text>
+        </Flex>
       ) : (
         <CommentGroup
           commentGroup={commentGroup}
