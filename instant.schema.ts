@@ -84,6 +84,12 @@ const _schema = i.schema({
       timeZone: i.string(),
       title: i.string(),
       sharingLevel: i.number(),
+      publicShowExpenses: i.boolean().optional(),
+      publicShowTasks: i.boolean().optional(),
+      publicShowComments: i.boolean().optional(),
+      viewerShowExpenses: i.boolean().optional(),
+      viewerShowTasks: i.boolean().optional(),
+      viewerShowComments: i.boolean().optional(),
     }),
     tripUser: i.entity({
       createdAt: i.number(),
