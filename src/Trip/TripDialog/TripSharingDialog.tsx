@@ -10,6 +10,7 @@ import {
   Flex,
   Inset,
   Select,
+  Switch,
   Table,
   Text,
   TextField,
@@ -23,6 +24,7 @@ import { TripUserRole } from '../../User/TripUserRole';
 import {
   dbAddUserToTrip,
   dbRemoveUserFromTrip,
+  dbUpdateTripSectionVisibility,
   dbUpdateTripSharingLevel,
 } from '../db';
 import { useTrip, useTripUserIds } from '../store/hooks';
@@ -219,6 +221,73 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
                   as home addresses or passport details.
                 </Callout.Text>
               </Callout.Root>
+            ) : null}
+            {tripSharingLevel !== TripSharingLevel.Private ? (
+              <Flex direction="column" gap="3" mt="2">
+                <Text size="2" weight="medium">
+                  Section visibility
+                </Text>
+                <Flex direction="column" gap="1">
+                  <Text size="1" color="gray" weight="medium">
+                    Public visitors
+                  </Text>
+                  {(
+                    [
+                      ['publicShowExpenses', 'Expenses'],
+                      ['publicShowTasks', 'Tasks'],
+                      ['publicShowComments', 'Comments'],
+                    ] as const
+                  ).map(([field, label]) => (
+                    <Flex key={field} align="center" gap="2">
+                      <Switch
+                        id={field}
+                        size="1"
+                        checked={trip?.[field] !== false}
+                        disabled={isLoading || !trip}
+                        onCheckedChange={(checked) => {
+                          if (!trip) return;
+                          void dbUpdateTripSectionVisibility(trip.id, {
+                            [field]: checked,
+                          });
+                        }}
+                      />
+                      <Text as="label" htmlFor={field} size="2">
+                        {label}
+                      </Text>
+                    </Flex>
+                  ))}
+                </Flex>
+                <Flex direction="column" gap="1">
+                  <Text size="1" color="gray" weight="medium">
+                    Invited viewers (Viewer role)
+                  </Text>
+                  {(
+                    [
+                      ['viewerShowExpenses', 'Expenses'],
+                      ['viewerShowTasks', 'Tasks'],
+                      ['viewerShowComments', 'Comments'],
+                    ] as const
+                  ).map(([field, label]) => (
+                    <Flex key={field} align="center" gap="2">
+                      <Switch
+                        id={field}
+                        size="1"
+                        checked={trip?.[field] !== false}
+                        disabled={isLoading || !trip}
+                        onCheckedChange={(checked) => {
+                          if (!trip) return;
+                          void dbUpdateTripSectionVisibility(trip.id, {
+                            [field]: checked,
+                          });
+                        }}
+                      />
+                      <Text as="label" htmlFor={field} size="2">
+                        {label}
+                      </Text>
+                    </Flex>
+                  ))}
+                </Flex>
+              </Flex>
             ) : null}
           </Flex>
         ) : null}
