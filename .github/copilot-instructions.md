@@ -92,6 +92,8 @@ Key conventions:
 
 This project uses **InstantDB** (`@instantdb/core`) — a real-time, client-side database with no REST/GraphQL API layer. All data access happens via InstantDB's real-time sync.
 
+For latest InstantDB docs, see https://www.instantdb.com/llms-full.txt 
+
 ### Singleton DB Instance
 
 Defined in `src/data/db.ts`:
