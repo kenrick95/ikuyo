@@ -31,8 +31,8 @@ export default {
       // Anyone can create a new user, e.g. from sharing to a new email
       create: 'true',
       delete: 'false',
-      // TODO: Linking to an existing user requires "update" permission; probably should specify what fields can be updated
-      update: 'true',
+      // Allow self to update any field; allow others only for link/unlink operations (no fields modified)
+      update: "isSelf || 'tripUser' in request.modifiedFields",
     },
   },
   $users: {
