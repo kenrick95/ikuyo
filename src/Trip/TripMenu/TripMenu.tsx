@@ -172,7 +172,7 @@ export function TripMenu() {
                 : undefined
             }
           >
-            Share trip
+            Sharing & privacy
           </DropdownMenu.Item>
 
           <DropdownMenu.Item onClick={handleExportToIcs}>
