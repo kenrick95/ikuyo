@@ -50,7 +50,7 @@ export type DbTrip = {
   /** origin's default currency */
   originCurrency: string;
 
-  /** 0: private; 1: group; 2: public */
+  /** 0: private; 1: group (removed, no longer in use); 2: public but unlisted; 3: public listed in public directory */
   sharingLevel: TripSharingLevelType;
   /** undefined = visible; false = hidden for public visitors */
   publicShowExpenses?: boolean;
