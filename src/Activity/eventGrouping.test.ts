@@ -28,6 +28,7 @@ describe('Trip', () => {
     taskListIds: [],
     currentUserRole: TripUserRole.Owner,
     sharingLevel: TripSharingLevel.Private,
+    isCurrentUserTripMember: false,
   } satisfies TripSliceTrip;
   function createActivity(
     activity: Partial<TripSliceActivity>,
