@@ -166,7 +166,7 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
           }
         }}
       >
-        <Dialog.Title>Share Trip</Dialog.Title>
+        <Dialog.Title>Sharing & Privacy for Trip</Dialog.Title>
         <Dialog.Description size="2">
           Share this trip with other people!
         </Dialog.Description>
