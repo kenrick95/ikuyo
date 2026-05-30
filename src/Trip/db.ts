@@ -388,5 +388,7 @@ export async function dbUpdateTripSectionVisibility(
     >
   >,
 ): Promise<void> {
-  await db.transact(db.tx.trip[tripId].merge(fields));
+  await db.transact(
+    db.tx.trip[tripId].merge({ ...fields, lastUpdatedAt: Date.now() }),
+  );
 }
