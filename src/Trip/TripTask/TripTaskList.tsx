@@ -16,7 +16,7 @@ import {
   horizontalListSortingStrategy,
   SortableContext,
 } from '@dnd-kit/sortable';
-import { PlusIcon } from '@radix-ui/react-icons';
+import { LockClosedIcon, PlusIcon } from '@radix-ui/react-icons';
 import { Box, Button, Container, Flex, Heading, Text } from '@radix-ui/themes';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Route, Switch } from 'wouter';
@@ -28,6 +28,7 @@ import {
   dbUpdateTaskListIndexes,
 } from '../../Task/db';
 import { TripUserRole } from '../../User/TripUserRole';
+import { getSectionVisibility } from '../sectionVisibility';
 import {
   useCurrentTrip,
   useTripAllTaskLists,
@@ -45,6 +46,7 @@ const containerPb = { initial: '9', sm: '5' };
 
 export function TripTaskList() {
   const { trip } = useCurrentTrip();
+  const sectionVisibility = trip ? getSectionVisibility(trip) : null;
   const [showInlineForm, setShowInlineForm] = useState(false);
   const [activeTask, setActiveTask] = useState<TripSliceTask | null>(null);
   const [activeTaskList, setActiveTaskList] = useState<string | null>(null);
@@ -378,78 +380,87 @@ export function TripTaskList() {
         </Flex>
       </Container>
 
-      {showInlineForm && trip && (
-        <TaskListInlineForm
-          tripId={trip.id}
-          onFormSuccess={handleFormSuccess}
-          onFormCancel={handleFormCancel}
-        />
-      )}
-
-      {trip?.taskListIds.length === 0 || !trip?.taskListIds ? (
-        <div className={style.emptyTaskBoard}>
-          <Heading as="h3" size="4" color="gray">
-            No task lists yet
-          </Heading>
-          <Text color="gray">
-            Organize your trip tasks by creating task lists. You can have
-            separate lists for planning, packing, booking, or any other category
-            you need.
-          </Text>
-          {userCanCreate && !showInlineForm && (
-            <Button
-              size="3"
-              style={{ marginTop: '16px' }}
-              onClick={handleCreateTaskList}
-            >
-              Create Your First Task List
-            </Button>
-          )}
-        </div>
+      {sectionVisibility?.tasks === false ? (
+        <Flex align="center" justify="center" gap="2" py="9">
+          <LockClosedIcon />
+          <Text color="gray">Tasks are hidden for this trip.</Text>
+        </Flex>
       ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={rectIntersection}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={trip.taskListIds}
-            strategy={horizontalListSortingStrategy}
-          >
-            {/** biome-ignore lint/a11y/noStaticElementInteractions: to support scroll by dragging horizontally */}
-            <div
-              className={style.taskBoard}
-              ref={taskBoardRef}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseLeave}
-              style={{ cursor: isDragScrolling ? 'grabbing' : 'grab' }}
-            >
-              {trip.taskListIds.map((taskListId) => (
-                <TaskList
-                  key={taskListId}
-                  id={taskListId}
-                  isActiveDropZone={activeDropZone === taskListId}
-                />
-              ))}
+        <>
+          {showInlineForm && trip && (
+            <TaskListInlineForm
+              tripId={trip.id}
+              onFormSuccess={handleFormSuccess}
+              onFormCancel={handleFormCancel}
+            />
+          )}
+
+          {trip?.taskListIds.length === 0 || !trip?.taskListIds ? (
+            <div className={style.emptyTaskBoard}>
+              <Heading as="h3" size="4" color="gray">
+                No task lists yet
+              </Heading>
+              <Text color="gray">
+                Organize your trip tasks by creating task lists. You can have
+                separate lists for planning, packing, booking, or any other
+                category you need.
+              </Text>
+              {userCanCreate && !showInlineForm && (
+                <Button
+                  size="3"
+                  style={{ marginTop: '16px' }}
+                  onClick={handleCreateTaskList}
+                >
+                  Create Your First Task List
+                </Button>
+              )}
             </div>
-          </SortableContext>
-          <DragOverlay dropAnimation={{ duration: 200 }}>
-            {activeTask ? (
-              <TaskCard
-                task={activeTask}
-                userCanEditOrDelete={userCanCreate}
-                useCase={TaskCardUseCase.TripTaskList}
-                tripTimeZone={trip?.timeZone}
-              />
-            ) : activeTaskList ? (
-              <TaskList id={activeTaskList} />
-            ) : null}
-          </DragOverlay>
-        </DndContext>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={rectIntersection}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={trip.taskListIds}
+                strategy={horizontalListSortingStrategy}
+              >
+                {/** biome-ignore lint/a11y/noStaticElementInteractions: to support scroll by dragging horizontally */}
+                <div
+                  className={style.taskBoard}
+                  ref={taskBoardRef}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseLeave}
+                  style={{ cursor: isDragScrolling ? 'grabbing' : 'grab' }}
+                >
+                  {trip.taskListIds.map((taskListId) => (
+                    <TaskList
+                      key={taskListId}
+                      id={taskListId}
+                      isActiveDropZone={activeDropZone === taskListId}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+              <DragOverlay dropAnimation={{ duration: 200 }}>
+                {activeTask ? (
+                  <TaskCard
+                    task={activeTask}
+                    userCanEditOrDelete={userCanCreate}
+                    useCase={TaskCardUseCase.TripTaskList}
+                    tripTimeZone={trip?.timeZone}
+                  />
+                ) : activeTaskList ? (
+                  <TaskList id={activeTaskList} />
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+          )}
+        </>
       )}
 
       <Switch>
