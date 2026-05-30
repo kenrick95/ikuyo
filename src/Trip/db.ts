@@ -52,6 +52,18 @@ export type DbTrip = {
 
   /** 0: private; 1: group; 2: public */
   sharingLevel: TripSharingLevelType;
+  /** undefined = visible; false = hidden for public visitors */
+  publicShowExpenses?: boolean;
+  /** undefined = visible; false = hidden for public visitors */
+  publicShowTasks?: boolean;
+  /** undefined = visible; false = hidden for public visitors */
+  publicShowComments?: boolean;
+  /** undefined = visible; false = hidden for invited Viewers */
+  viewerShowExpenses?: boolean;
+  /** undefined = visible; false = hidden for invited Viewers */
+  viewerShowTasks?: boolean;
+  /** undefined = visible; false = hidden for invited Viewers */
+  viewerShowComments?: boolean;
 
   activity: DbActivity[] | undefined;
   accommodation: DbAccommodation[] | undefined;
@@ -361,4 +373,20 @@ export async function dbUpdateUserFromTrip({
 }
 export async function dbRemoveUserFromTrip(tripUserId: string) {
   return db.transact([db.tx.tripUser[tripUserId].delete()]);
+}
+export async function dbUpdateTripSectionVisibility(
+  tripId: string,
+  fields: Partial<
+    Pick<
+      DbTrip,
+      | 'publicShowExpenses'
+      | 'publicShowTasks'
+      | 'publicShowComments'
+      | 'viewerShowExpenses'
+      | 'viewerShowTasks'
+      | 'viewerShowComments'
+    >
+  >,
+): Promise<void> {
+  await db.transact(db.tx.trip[tripId].merge(fields));
 }
