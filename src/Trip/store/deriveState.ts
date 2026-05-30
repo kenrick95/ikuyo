@@ -65,6 +65,13 @@ export function deriveNewTripState(
       currentUserRole:
         (currentUserTripUser?.role as TripUserRole | undefined) ??
         TripUserRole.Viewer,
+      isCurrentUserTripMember: currentUserTripUser !== undefined,
+      publicShowExpenses: trip.publicShowExpenses ?? undefined,
+      publicShowTasks: trip.publicShowTasks ?? undefined,
+      publicShowComments: trip.publicShowComments ?? undefined,
+      viewerShowExpenses: trip.viewerShowExpenses ?? undefined,
+      viewerShowTasks: trip.viewerShowTasks ?? undefined,
+      viewerShowComments: trip.viewerShowComments ?? undefined,
     } satisfies TripSliceTrip,
   };
   return newTripState;
