@@ -281,11 +281,30 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
 
   const theme = useTheme();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: This hook should only run once during the component mount and unmount! so we don't get flashes of map initialization
+  // Refs to capture latest values for use in the init effect without triggering re-init
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
+  const tripRef = useRef(trip);
+  tripRef.current = trip;
+  const mapOptionsRef = useRef(mapOptions);
+  mapOptionsRef.current = mapOptions;
+  const allLocationsRef = useRef(allLocations);
+  allLocationsRef.current = allLocations;
+  const allLinesRef = useRef(allLines);
+  allLinesRef.current = allLines;
+  const getRegionCenterRef = useRef(getRegionCenter);
+  getRegionCenterRef.current = getRegionCenter;
+
+  //  This hook should only run once during the component mount and unmount! so we don't get flashes of map initialization
   useEffect(() => {
     if (map.current) return;
     if (!mapContainer.current) return;
     if (currentTripLoading) return;
+    const theme = themeRef.current;
+    const trip = tripRef.current;
+    const mapOptions = mapOptionsRef.current;
+    const allLocations = allLocationsRef.current;
+    const allLines = allLinesRef.current;
     console.log('TripMap init', { mapOptions });
 
     const initializeMap = async () => {
@@ -312,7 +331,7 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
 
       // If no locations are available but trip has a region, center on region
       if (!mapOptions && trip?.region && allLocations.length === 0) {
-        const regionResult = await getRegionCenter(trip.region);
+        const regionResult = await getRegionCenterRef.current(trip.region);
         if (regionResult) {
           const [lng, lat, zoom] = regionResult;
           mapConfig.center = [lng, lat];
@@ -415,15 +434,7 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
         map.current = null;
       }
     };
-  }, [
-    currentTripLoading,
-    theme,
-    trip,
-    allLocations,
-    mapOptions,
-    allLines,
-    getRegionCenter,
-  ]);
+  }, [currentTripLoading, useCase]);
   useEffect(() => {
     if (!map.current) return;
     if (theme === ThemeAppearance.Dark) {
