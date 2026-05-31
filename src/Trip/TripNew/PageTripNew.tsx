@@ -7,8 +7,10 @@ import {
   TextField,
 } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
-import { useCallback, useMemo, useReducer } from 'react';
+import { useCallback, useMemo, useReducer, useState } from 'react';
 import { useLocation } from 'wouter';
+import { ActivityFlag } from '../../Activity/activityFlag';
+import { dbAddActivity } from '../../Activity/db';
 import { CurrencySelect } from '../../common/CurrencySelect/CurrencySelect';
 import { DateTimePicker } from '../../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../../common/DatePicker2/DateTimePickerMode';
@@ -22,9 +24,16 @@ import {
   ALL_TIMEZONES,
   getDefaultTimezoneForRegion,
 } from '../../data/intl/timezones';
-import { RouteTrips } from '../../Routes/routes';
+import { useBoundStore } from '../../data/store';
+import { RouteTrip, RouteTrips } from '../../Routes/routes';
+import { dbAddTrip } from '../db';
+import { TripSharingLevel } from '../tripSharingLevel';
 import s from './PageTripNew.module.css';
-import { createInitialWizardState, wizardReducer } from './wizardReducer';
+import {
+  createInitialWizardState,
+  type FlightCapture,
+  wizardReducer,
+} from './wizardReducer';
 
 function getOriginCurrencyFromLocale(): string {
   try {
@@ -60,6 +69,10 @@ export default function PageTripNew() {
       getOriginCurrencyFromLocale(),
     ),
   );
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const publishToast = useBoundStore((store) => store.publishToast);
+  const currentUser = useBoundStore((store) => store.currentUser);
 
   const handleRegionChange = useCallback(
     (region: string) => {
@@ -101,6 +114,123 @@ export default function PageTripNew() {
     ),
     [state.region, handleRegionChange],
   );
+
+  const handleCreateTrip = useCallback(async () => {
+    const {
+      startDate,
+      endDate,
+      title,
+      region,
+      currency,
+      originCurrency,
+      timeZone,
+    } = state;
+    if (
+      !startDate ||
+      !endDate ||
+      !title ||
+      !region ||
+      !currency ||
+      !originCurrency ||
+      !timeZone ||
+      !currentUser
+    ) {
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const { id: newTripId } = await dbAddTrip(
+        {
+          title,
+          timeZone,
+          timestampStart: startDate.toMillis(),
+          timestampEnd: endDate.plus({ days: 1 }).toMillis(),
+          region,
+          currency,
+          originCurrency,
+          sharingLevel: TripSharingLevel.Private,
+        },
+        { userId: currentUser.id },
+      );
+      const flightPromises: Promise<unknown>[] = [];
+      if (
+        state.outboundFlight?.flightNumber &&
+        state.outboundFlight?.departureDateTime &&
+        state.outboundFlight?.arrivalDateTime
+      ) {
+        flightPromises.push(
+          dbAddActivity(
+            {
+              title: state.outboundFlight.flightNumber,
+              location: '',
+              locationLat: undefined,
+              locationLng: undefined,
+              locationZoom: undefined,
+              locationDestination: undefined,
+              locationDestinationLat: undefined,
+              locationDestinationLng: undefined,
+              locationDestinationZoom: undefined,
+              description: '',
+              timestampStart: state.outboundFlight.departureDateTime.toMillis(),
+              timestampEnd: state.outboundFlight.arrivalDateTime.toMillis(),
+              timeZoneStart:
+                state.outboundFlight.departureDateTime.zoneName ?? timeZone,
+              timeZoneEnd:
+                state.outboundFlight.arrivalDateTime.zoneName ?? timeZone,
+              flags: ActivityFlag.IsFlight,
+              icon: '✈️',
+            },
+            { tripId: newTripId },
+          ),
+        );
+      }
+      if (
+        state.returnFlight?.flightNumber &&
+        state.returnFlight?.departureDateTime &&
+        state.returnFlight?.arrivalDateTime
+      ) {
+        flightPromises.push(
+          dbAddActivity(
+            {
+              title: state.returnFlight.flightNumber,
+              location: '',
+              locationLat: undefined,
+              locationLng: undefined,
+              locationZoom: undefined,
+              locationDestination: undefined,
+              locationDestinationLat: undefined,
+              locationDestinationLng: undefined,
+              locationDestinationZoom: undefined,
+              description: '',
+              timestampStart: state.returnFlight.departureDateTime.toMillis(),
+              timestampEnd: state.returnFlight.arrivalDateTime.toMillis(),
+              timeZoneStart:
+                state.returnFlight.departureDateTime.zoneName ?? timeZone,
+              timeZoneEnd:
+                state.returnFlight.arrivalDateTime.zoneName ?? timeZone,
+              flags: ActivityFlag.IsFlight,
+              icon: '✈️',
+            },
+            { tripId: newTripId },
+          ),
+        );
+      }
+      await Promise.all(flightPromises);
+      publishToast({
+        root: {},
+        title: { children: 'Trip created!' },
+        close: {},
+      });
+      setLocation(RouteTrip.asRouteTarget(newTripId));
+    } catch {
+      publishToast({
+        root: {},
+        title: { children: 'Failed to create trip. Please try again.' },
+        close: {},
+      });
+      setIsSubmitting(false);
+    }
+  }, [state, currentUser, publishToast, setLocation]);
 
   const step1Valid =
     state.title.trim() !== '' &&
@@ -301,14 +431,72 @@ export default function PageTripNew() {
     );
   }
 
-  // Step 3 placeholder — will be replaced in Task 5
+  const localTimeZone = DateTime.local().zoneName ?? 'UTC';
+
   return (
     <div className={s.page}>
       <ProgressDots step={3} />
       <Heading size="5" mb="4">
         How are you getting there?
       </Heading>
-      <Flex justify="start" mt="5">
+
+      <div className={s.travelModeCards}>
+        <button
+          type="button"
+          className={`${s.travelModeCard}${state.travelMode === 'flight' ? ` ${s.travelModeCardSelected}` : ''}`}
+          onClick={() =>
+            dispatch({
+              type: 'SET_TRAVEL_MODE',
+              travelMode: state.travelMode === 'flight' ? null : 'flight',
+            })
+          }
+        >
+          <span>✈️</span>
+          <Text size="2" weight="medium">
+            Flying
+          </Text>
+        </button>
+        <button
+          type="button"
+          className={`${s.travelModeCard} ${s.travelModeCardDisabled}`}
+          disabled
+        >
+          <span>🚌</span>
+          <Text size="2" weight="medium">
+            Other
+          </Text>
+          <Text size="1" color="gray">
+            Coming soon
+          </Text>
+        </button>
+      </div>
+
+      {state.travelMode === 'flight' && (
+        <>
+          <FlightSubform
+            label="Outbound flight"
+            value={state.outboundFlight}
+            originTimeZone={localTimeZone}
+            destinationTimeZone={state.timeZone}
+            isOutbound={true}
+            onChange={(flight) =>
+              dispatch({ type: 'SET_OUTBOUND_FLIGHT', flight })
+            }
+          />
+          <FlightSubform
+            label="Return flight"
+            value={state.returnFlight}
+            originTimeZone={localTimeZone}
+            destinationTimeZone={state.timeZone}
+            isOutbound={false}
+            onChange={(flight) =>
+              dispatch({ type: 'SET_RETURN_FLIGHT', flight })
+            }
+          />
+        </>
+      )}
+
+      <Flex justify="between" mt="5">
         <Button
           variant="ghost"
           color="gray"
@@ -316,6 +504,99 @@ export default function PageTripNew() {
         >
           ← Back
         </Button>
+        {state.travelMode !== 'flight' ? (
+          <Flex gap="2">
+            <Button
+              variant="ghost"
+              loading={isSubmitting}
+              onClick={handleCreateTrip}
+            >
+              Skip — I'll add flights later
+            </Button>
+            <Button loading={isSubmitting} onClick={handleCreateTrip}>
+              Create Trip
+            </Button>
+          </Flex>
+        ) : (
+          <Button loading={isSubmitting} onClick={handleCreateTrip}>
+            Create Trip
+          </Button>
+        )}
+      </Flex>
+    </div>
+  );
+}
+
+type FlightSubformProps = {
+  label: string;
+  value: FlightCapture | null;
+  originTimeZone: string;
+  destinationTimeZone: string;
+  isOutbound: boolean;
+  onChange: (flight: FlightCapture | null) => void;
+};
+
+function FlightSubform({
+  label,
+  value,
+  originTimeZone,
+  destinationTimeZone,
+  isOutbound,
+  onChange,
+}: FlightSubformProps) {
+  const emptyFlight: FlightCapture = {
+    flightNumber: '',
+    departureDateTime: undefined,
+    arrivalDateTime: undefined,
+  };
+  const current = value ?? emptyFlight;
+  const departureTimeZone = isOutbound ? originTimeZone : destinationTimeZone;
+  const arrivalTimeZone = isOutbound ? destinationTimeZone : originTimeZone;
+
+  return (
+    <div className={s.flightSubform}>
+      <Flex justify="between" align="center" mb="2">
+        <Text size="2" weight="medium">
+          {label}
+        </Text>
+        {value !== null && (
+          <Button variant="ghost" size="1" onClick={() => onChange(null)}>
+            Skip this flight
+          </Button>
+        )}
+      </Flex>
+
+      <Flex direction="column" gap="2">
+        <Flex direction="column" gap="1">
+          <Text size="2">Flight number</Text>
+          <TextField.Root
+            placeholder="e.g. SQ321"
+            value={current.flightNumber}
+            onChange={(e) =>
+              onChange({ ...current, flightNumber: e.target.value })
+            }
+          />
+        </Flex>
+
+        <Flex direction="column" gap="1">
+          <Text size="2">Departure ({departureTimeZone})</Text>
+          <DateTimePicker
+            value={current.departureDateTime}
+            onChange={(date) =>
+              onChange({ ...current, departureDateTime: date })
+            }
+            mode={DateTimePickerMode.DateTime}
+          />
+        </Flex>
+
+        <Flex direction="column" gap="1">
+          <Text size="2">Arrival ({arrivalTimeZone})</Text>
+          <DateTimePicker
+            value={current.arrivalDateTime}
+            onChange={(date) => onChange({ ...current, arrivalDateTime: date })}
+            mode={DateTimePickerMode.DateTime}
+          />
+        </Flex>
       </Flex>
     </div>
   );
