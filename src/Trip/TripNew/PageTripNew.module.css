@@ -1,0 +1,67 @@
+.page {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: var(--space-4);
+}
+
+.progressDots {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: center;
+  margin-bottom: var(--space-5);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gray-5);
+}
+
+.dotActive {
+  background: var(--accent-9);
+}
+
+.travelModeCards {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.travelModeCard {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 2px solid var(--gray-5);
+  border-radius: var(--radius-3);
+  cursor: pointer;
+  background: var(--color-panel-solid);
+  font-size: var(--font-size-4);
+}
+
+.travelModeCardSelected {
+  border-color: var(--accent-9);
+  background: var(--accent-2);
+}
+
+.travelModeCardDisabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.flightSubform {
+  border: 1px solid var(--gray-5);
+  border-radius: var(--radius-3);
+  padding: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.summaryCard {
+  background: var(--gray-2);
+  border-radius: var(--radius-3);
+  padding: var(--space-3);
+  margin-bottom: var(--space-4);
+}
