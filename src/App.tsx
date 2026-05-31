@@ -28,6 +28,7 @@ import {
   RoutePrivacy,
   RouteTerms,
   RouteTrip,
+  RouteTripNew,
   RouteTrips,
   RouteTripsPublic,
 } from './Routes/routes';
@@ -44,6 +45,9 @@ const PageLogin = withLoading()(React.lazy(() => import('./Auth/Auth')));
 const PageTrips = withLoading()(React.lazy(() => import('./Trips/PageTrips')));
 const PageTripsPublic = withLoading()(
   React.lazy(() => import('./TripsPublic/PageTripsPublic')),
+);
+const PageTripNew = withLoading()(
+  React.lazy(() => import('./Trip/TripNew/PageTripNew')),
 );
 const PageTrip = withLoading()(React.lazy(() => import('./Trip/PageTrip')));
 const PageAccount = withLoading()(
@@ -128,6 +132,7 @@ function App() {
               path={RouteTripsPublic.routePath}
               component={PageTripsPublic}
             />
+            <Route path={RouteTripNew.routePath} component={PageTripNew} />
             <Route path={RouteTrip.routePath} component={PageTrip} nest />
             <Route path={RouteAccount.routePath} component={PageAccount} />
             <Route
