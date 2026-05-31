@@ -197,14 +197,10 @@ export const DateTimePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
         if (state.selectedDate) {
           props.onChange?.(state.selectedDate);
         }
-      } else if (
-        state.selectedDate &&
-        state.selectedHour !== undefined &&
-        state.selectedMinute !== undefined
-      ) {
+      } else if (state.selectedDate) {
         const date = state.selectedDate.set({
-          hour: state.selectedHour,
-          minute: state.selectedMinute,
+          hour: state.selectedHour ?? 0,
+          minute: state.selectedMinute ?? 0,
           second: 0,
           millisecond: 0,
         });
@@ -261,7 +257,12 @@ export const DateTimePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
                 variant="outline"
                 color="gray"
                 className={s.triggerButton}
-                aria-label={props['aria-label'] || 'Select date'}
+                aria-label={
+                  props['aria-label'] ||
+                  (props.mode === DateTimePickerMode.DateTime
+                    ? 'Select date & time'
+                    : 'Select date')
+                }
                 aria-describedby={props['aria-describedby']}
                 aria-invalid={props['aria-invalid']}
                 disabled={props.disabled}
@@ -271,7 +272,10 @@ export const DateTimePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
                     ? 'd LLLL yyyy HH:mm'
                     : 'd LLLL yyyy',
                 ) ??
-                  (props.placeholder || 'Select date')}
+                  (props.placeholder ||
+                    (props.mode === DateTimePickerMode.DateTime
+                      ? 'Select date & time'
+                      : 'Select date'))}
                 {state.isOpen ? (
                   <ChevronUpIcon aria-hidden="true" />
                 ) : (
