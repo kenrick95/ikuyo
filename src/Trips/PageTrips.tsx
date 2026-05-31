@@ -11,15 +11,17 @@ import {
 } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { useEffect, useState } from 'react';
-import { Link, type RouteComponentProps } from 'wouter';
+import { Link, type RouteComponentProps, useLocation } from 'wouter';
 import { useCurrentUser } from '../Auth/hooks';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
 import { useBoundStore, useDeepBoundStore } from '../data/store';
-import type { DbUser } from '../data/types';
 import { DocTitle } from '../Nav/DocTitle';
 import { Navbar } from '../Nav/Navbar';
-import { RouteAccountUpgrade, RouteTripsPublic } from '../Routes/routes';
-import { TripNewDialog } from '../Trip/TripDialog/TripNewDialog';
+import {
+  RouteAccountUpgrade,
+  RouteTripNew,
+  RouteTripsPublic,
+} from '../Routes/routes';
 import { TripGroup, type TripGroupType } from '../Trip/TripGroup';
 import { useTripsGrouped } from './hooks';
 import s from './PageTrips.module.css';
@@ -85,21 +87,18 @@ export function PageTrips(_props: RouteComponentProps) {
             type={TripGroup.Ongoing}
             groupTitle="Ongoing Trips"
             trips={tripGroups[TripGroup.Ongoing]}
-            user={currentUser}
             isLoading={tripsLoading}
           />
           <Trips
             type={TripGroup.Upcoming}
             groupTitle="Upcoming Trips"
             trips={tripGroups[TripGroup.Upcoming]}
-            user={currentUser}
             isLoading={tripsLoading}
           />
           <Trips
             type={TripGroup.Past}
             groupTitle="Past Trips"
             trips={tripGroups[TripGroup.Past]}
-            user={currentUser}
             isLoading={tripsLoading}
           />
         </Flex>
@@ -133,16 +132,14 @@ function Trips({
   type,
   groupTitle,
   trips,
-  user,
   isLoading,
 }: {
   type: TripGroupType;
   groupTitle: string;
   trips: TripsSliceTrip[];
-  user: DbUser | undefined;
   isLoading: boolean;
 }) {
-  const pushDialog = useBoundStore((state) => state.pushDialog);
+  const [, setLocation] = useLocation();
 
   return (
     <Box>
@@ -154,11 +151,7 @@ function Trips({
         {type === TripGroup.Upcoming && !isLoading ? (
           <Button
             variant="outline"
-            onClick={() => {
-              if (user) {
-                pushDialog(TripNewDialog, { user });
-              }
-            }}
+            onClick={() => setLocation(RouteTripNew.asRouteTarget())}
             mx="3"
           >
             <PlusIcon /> New trip
