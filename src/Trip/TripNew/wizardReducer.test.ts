@@ -127,8 +127,18 @@ describe('wizardReducer', () => {
   test('SET_OUTBOUND_FLIGHT updates outboundFlight', () => {
     const flight = {
       flightNumber: 'SQ321',
+      departureAirport: 'SYD',
+      arrivalAirport: 'NRT',
       departureDateTime: DateTime.fromISO('2026-10-01T08:00'),
       arrivalDateTime: DateTime.fromISO('2026-10-01T16:00'),
+      departureTimeZone: 'America/New_York',
+      arrivalTimeZone: 'Asia/Tokyo',
+      departureLat: undefined,
+      departureLng: undefined,
+      departureZoom: undefined,
+      arrivalLat: undefined,
+      arrivalLng: undefined,
+      arrivalZoom: undefined,
     };
     const next = wizardReducer(BASE, { type: 'SET_OUTBOUND_FLIGHT', flight });
     expect(next.outboundFlight).toBe(flight);
@@ -139,8 +149,18 @@ describe('wizardReducer', () => {
       type: 'SET_OUTBOUND_FLIGHT',
       flight: {
         flightNumber: 'SQ321',
+        departureAirport: '',
+        arrivalAirport: '',
         departureDateTime: undefined,
         arrivalDateTime: undefined,
+        departureTimeZone: 'America/New_York',
+        arrivalTimeZone: 'Asia/Tokyo',
+        departureLat: undefined,
+        departureLng: undefined,
+        departureZoom: undefined,
+        arrivalLat: undefined,
+        arrivalLng: undefined,
+        arrivalZoom: undefined,
       },
     });
     const next = wizardReducer(withFlight, {
@@ -153,8 +173,18 @@ describe('wizardReducer', () => {
   test('SET_RETURN_FLIGHT updates returnFlight', () => {
     const flight = {
       flightNumber: 'SQ322',
+      departureAirport: 'NRT',
+      arrivalAirport: 'SYD',
       departureDateTime: DateTime.fromISO('2026-10-10T18:00'),
       arrivalDateTime: DateTime.fromISO('2026-10-11T02:00'),
+      departureTimeZone: 'Asia/Tokyo',
+      arrivalTimeZone: 'America/New_York',
+      departureLat: undefined,
+      departureLng: undefined,
+      departureZoom: undefined,
+      arrivalLat: undefined,
+      arrivalLng: undefined,
+      arrivalZoom: undefined,
     };
     const next = wizardReducer(BASE, { type: 'SET_RETURN_FLIGHT', flight });
     expect(next.returnFlight).toBe(flight);

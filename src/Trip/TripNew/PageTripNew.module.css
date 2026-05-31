@@ -22,36 +22,6 @@
   background: var(--accent-9);
 }
 
-.travelModeCards {
-  display: flex;
-  gap: var(--space-3);
-  margin-top: var(--space-2);
-}
-
-.travelModeCard {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-4);
-  border: 2px solid var(--gray-5);
-  border-radius: var(--radius-3);
-  cursor: pointer;
-  background: var(--color-panel-solid);
-  font-size: var(--font-size-4);
-}
-
-.travelModeCardSelected {
-  border-color: var(--accent-9);
-  background: var(--accent-2);
-}
-
-.travelModeCardDisabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
 .flightSubform {
   border: 1px solid var(--gray-5);
   border-radius: var(--radius-3);
@@ -64,4 +34,14 @@
   border-radius: var(--radius-3);
   padding: var(--space-3);
   margin-bottom: var(--space-4);
+}
+
+.tzBadge {
+  font-size: var(--font-size-1);
+  color: var(--accent-11);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline dotted;
 }

@@ -3,8 +3,18 @@ import type { DateTime } from 'luxon';
 
 export type FlightCapture = {
   flightNumber: string;
+  departureAirport: string;
+  arrivalAirport: string;
   departureDateTime: DateTime | undefined;
   arrivalDateTime: DateTime | undefined;
+  departureTimeZone: string;
+  arrivalTimeZone: string;
+  departureLat: number | undefined;
+  departureLng: number | undefined;
+  departureZoom: number | undefined;
+  arrivalLat: number | undefined;
+  arrivalLng: number | undefined;
+  arrivalZoom: number | undefined;
 };
 
 export type WizardState = {

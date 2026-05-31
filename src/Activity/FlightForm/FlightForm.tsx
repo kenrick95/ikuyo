@@ -351,15 +351,21 @@ export function FlightForm({
       if (
         tripStartDateTime &&
         startDateTime &&
-        startDateTime < tripStartDateTime
+        startDateTime < tripStartDateTime.minus({ days: 1 })
       ) {
         setErrorMessage(
-          'Departure time cannot be earlier than trip start time',
+          'Departure time cannot be earlier than 1 day before trip start',
         );
         return;
       }
-      if (tripEndDateTime && endDateTime && endDateTime > tripEndDateTime) {
-        setErrorMessage('Arrival time cannot be later than trip end time');
+      if (
+        tripEndDateTime &&
+        endDateTime &&
+        endDateTime > tripEndDateTime.plus({ days: 1 })
+      ) {
+        setErrorMessage(
+          'Arrival time cannot be later than 1 day after trip end',
+        );
         return;
       }
 

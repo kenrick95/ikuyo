@@ -369,7 +369,9 @@ export function TimeSelector({
               })}
               data-hour={hour}
               onClick={handleClickHour}
-              tabIndex={isFocused ? 0 : -1}
+              tabIndex={
+                isFocused || (focusedHour === undefined && hour === 0) ? 0 : -1
+              }
               onFocus={handleFocusHour}
               onKeyDown={handleKeyDownHour}
               onBlur={handleBlurHour}
@@ -409,9 +411,12 @@ export function TimeSelector({
               onFocus={handleFocusMinute}
               onKeyDown={handleKeyDownMinute}
               onBlur={handleBlurMinute}
-              tabIndex={isFocused ? 0 : -1}
+              tabIndex={
+                isFocused || (focusedMinute === undefined && minute === 0)
+                  ? 0
+                  : -1
+              }
               role="option"
-              aria-selected={isSelected}
               aria-label={`${minute} minutes`}
               id={`minute-${minute}`}
             >
