@@ -8,11 +8,10 @@ import {
   TextField,
 } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
-import { useCallback, useMemo, useReducer, useRef, useState } from 'react';
+import { useCallback, useMemo, useReducer, useState } from 'react';
 import { useLocation } from 'wouter';
 import { ActivityFlag } from '../../Activity/activityFlag';
 import { dbAddActivity } from '../../Activity/db';
-import { airportGeocodingRequest } from '../../Activity/FlightForm/FlightFormGeocoding';
 import { CurrencySelect } from '../../common/CurrencySelect/CurrencySelect';
 import { DateTimePicker } from '../../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../../common/DatePicker2/DateTimePickerMode';
@@ -30,59 +29,11 @@ import { useBoundStore } from '../../data/store';
 import { RouteTrip, RouteTrips } from '../../Routes/routes';
 import { dbAddTrip } from '../db';
 import { TripSharingLevel } from '../tripSharingLevel';
+import { FlightSubform } from './FlightSubform';
 import s from './PageTripNew.module.css';
-import {
-  createInitialWizardState,
-  type FlightCapture,
-  wizardReducer,
-} from './wizardReducer';
-
-function getFlightTimeError(
-  flight: FlightCapture | null,
-  tripStartDate: DateTime | undefined,
-  tripEndDate: DateTime | undefined,
-): string | undefined {
-  if (!flight?.departureDateTime && !flight?.arrivalDateTime) return undefined;
-  const dep = flight.departureDateTime?.setZone(flight.departureTimeZone, {
-    keepLocalTime: true,
-  });
-  const arr = flight.arrivalDateTime?.setZone(flight.arrivalTimeZone, {
-    keepLocalTime: true,
-  });
-  if (dep && arr && arr <= dep) return 'Arrival must be after departure';
-  const minBound = tripStartDate?.minus({ days: 1 });
-  const maxBound = tripEndDate?.plus({ days: 1 });
-  if (dep && minBound && dep < minBound)
-    return 'Departure cannot be more than 1 day before trip start';
-  if (arr && maxBound && arr > maxBound)
-    return 'Arrival cannot be more than 1 day after trip end';
-  return undefined;
-}
-
-function getOriginCurrencyFromLocale(): string {
-  try {
-    const locale = new Intl.NumberFormat().resolvedOptions().locale;
-    const region = new Intl.Locale(locale).region ?? '';
-    return getDefaultCurrencyForRegion(region) ?? 'USD';
-  } catch {
-    return 'USD';
-  }
-}
-
-function ProgressDots({ step }: { step: 1 | 2 | 3 }) {
-  return (
-    <Flex direction="column" align="center" gap="2" mb="5">
-      <Text size="1" color="gray">
-        Step {step} of 3
-      </Text>
-      <div className={s.progressDots}>
-        <div className={`${s.dot}${step >= 1 ? ` ${s.dotActive}` : ''}`} />
-        <div className={`${s.dot}${step >= 2 ? ` ${s.dotActive}` : ''}`} />
-        <div className={`${s.dot}${step >= 3 ? ` ${s.dotActive}` : ''}`} />
-      </div>
-    </Flex>
-  );
-}
+import { WizardProgressDots } from './WizardProgressDots';
+import { createInitialWizardState, wizardReducer } from './wizardReducer';
+import { getFlightTimeError, getOriginCurrencyFromLocale } from './wizardUtils';
 
 export default function PageTripNew() {
   const [, setLocation] = useLocation();
@@ -312,7 +263,7 @@ export default function PageTripNew() {
   if (state.step === 1) {
     return (
       <div className={s.page}>
-        <ProgressDots step={1} />
+        <WizardProgressDots step={1} />
         <Heading size="5" mb="4">
           Plan a new trip
         </Heading>
@@ -399,7 +350,7 @@ export default function PageTripNew() {
   if (state.step === 2) {
     return (
       <div className={s.page}>
-        <ProgressDots step={2} />
+        <WizardProgressDots step={2} />
         <Heading size="5" mb="4">
           Trip details
         </Heading>
@@ -495,7 +446,7 @@ export default function PageTripNew() {
 
   return (
     <div className={s.page}>
-      <ProgressDots step={3} />
+      <WizardProgressDots step={3} />
       <Heading size="5" mb="4">
         How are you getting there?
       </Heading>
@@ -596,238 +547,6 @@ export default function PageTripNew() {
             Create Trip
           </Button>
         )}
-      </Flex>
-    </div>
-  );
-}
-
-type FlightSubformProps = {
-  label: string;
-  value: FlightCapture | null;
-  originTimeZone: string;
-  destinationTimeZone: string;
-  isOutbound: boolean;
-  error?: string;
-  tripStartDate: DateTime | undefined;
-  tripEndDate: DateTime | undefined;
-  onChange: (flight: FlightCapture | null) => void;
-};
-
-function FlightSubform({
-  label,
-  value,
-  originTimeZone,
-  destinationTimeZone,
-  isOutbound,
-  error,
-  tripStartDate,
-  tripEndDate,
-  onChange,
-}: FlightSubformProps) {
-  const defaultDepartureTz = isOutbound ? originTimeZone : destinationTimeZone;
-  const defaultArrivalTz = isOutbound ? destinationTimeZone : originTimeZone;
-  const emptyFlight: FlightCapture = {
-    flightNumber: '',
-    departureAirport: '',
-    arrivalAirport: '',
-    departureDateTime: undefined,
-    arrivalDateTime: undefined,
-    departureTimeZone: defaultDepartureTz,
-    arrivalTimeZone: defaultArrivalTz,
-    departureLat: undefined,
-    departureLng: undefined,
-    departureZoom: undefined,
-    arrivalLat: undefined,
-    arrivalLng: undefined,
-    arrivalZoom: undefined,
-  };
-  const current = value ?? emptyFlight;
-  const [editingDepartureTz, setEditingDepartureTz] = useState(false);
-  const [editingArrivalTz, setEditingArrivalTz] = useState(false);
-  const departureBadgeRef = useRef<HTMLButtonElement>(null);
-  const arrivalBadgeRef = useRef<HTMLButtonElement>(null);
-
-  return (
-    <div className={s.flightSubform}>
-      <Flex justify="between" align="center" mb="2">
-        <Text size="2" weight="medium">
-          {label}
-        </Text>
-        <Text size="1" color="gray">
-          optional
-        </Text>
-      </Flex>
-
-      <Flex direction="column" gap="2">
-        <Flex direction="column" gap="1">
-          <Text size="2">Flight number</Text>
-          <TextField.Root
-            placeholder="e.g. SQ321"
-            value={current.flightNumber}
-            onChange={(e) =>
-              onChange({ ...current, flightNumber: e.target.value })
-            }
-          />
-        </Flex>
-
-        <Flex direction="column" gap="1">
-          <Text size="2">Departure airport</Text>
-          <TextField.Root
-            placeholder="e.g. SYD or Sydney Airport"
-            value={current.departureAirport}
-            onChange={(e) =>
-              onChange({
-                ...current,
-                departureAirport: e.target.value,
-                departureLat: undefined,
-                departureLng: undefined,
-                departureZoom: undefined,
-              })
-            }
-            onBlur={async (e) => {
-              const query = e.target.value.trim();
-              if (!query) return;
-              const [lng, lat, zoom] = await airportGeocodingRequest(query);
-              onChange({
-                ...current,
-                departureAirport: query,
-                departureLat: lat,
-                departureLng: lng,
-                departureZoom: zoom,
-              });
-            }}
-          />
-        </Flex>
-
-        <Flex direction="column" gap="1">
-          <Text size="2">Arrival airport</Text>
-          <TextField.Root
-            placeholder="e.g. LHR or London Heathrow"
-            value={current.arrivalAirport}
-            onChange={(e) =>
-              onChange({
-                ...current,
-                arrivalAirport: e.target.value,
-                arrivalLat: undefined,
-                arrivalLng: undefined,
-                arrivalZoom: undefined,
-              })
-            }
-            onBlur={async (e) => {
-              const query = e.target.value.trim();
-              if (!query) return;
-              const [lng, lat, zoom] = await airportGeocodingRequest(query);
-              onChange({
-                ...current,
-                arrivalAirport: query,
-                arrivalLat: lat,
-                arrivalLng: lng,
-                arrivalZoom: zoom,
-              });
-            }}
-          />
-        </Flex>
-
-        <Flex direction="column" gap="1">
-          <Flex justify="between" align="baseline">
-            <Text size="2">Departure</Text>
-            {editingDepartureTz ? (
-              <Select.Root
-                defaultOpen
-                value={current.departureTimeZone}
-                onValueChange={(tz) =>
-                  onChange({ ...current, departureTimeZone: tz })
-                }
-                onOpenChange={(open) => {
-                  if (!open) {
-                    setEditingDepartureTz(false);
-                    setTimeout(() => departureBadgeRef.current?.focus(), 0);
-                  }
-                }}
-              >
-                <Select.Trigger />
-                <Select.Content>
-                  {ALL_TIMEZONES.map((tz) => (
-                    <Select.Item key={tz} value={tz}>
-                      {tz}
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select.Root>
-            ) : (
-              <button
-                ref={departureBadgeRef}
-                type="button"
-                className={s.tzBadge}
-                onClick={() => setEditingDepartureTz(true)}
-              >
-                {current.departureTimeZone}
-              </button>
-            )}
-          </Flex>
-          <DateTimePicker
-            value={current.departureDateTime}
-            onChange={(date) =>
-              onChange({ ...current, departureDateTime: date })
-            }
-            mode={DateTimePickerMode.DateTime}
-            placeholder="Pick date & time"
-            min={tripStartDate?.minus({ days: 1 })}
-            max={tripEndDate?.plus({ days: 1 })}
-          />
-        </Flex>
-
-        <Flex direction="column" gap="1">
-          <Flex justify="between" align="baseline">
-            <Text size="2">Arrival</Text>
-            {editingArrivalTz ? (
-              <Select.Root
-                defaultOpen
-                value={current.arrivalTimeZone}
-                onValueChange={(tz) =>
-                  onChange({ ...current, arrivalTimeZone: tz })
-                }
-                onOpenChange={(open) => {
-                  if (!open) {
-                    setEditingArrivalTz(false);
-                    setTimeout(() => arrivalBadgeRef.current?.focus(), 0);
-                  }
-                }}
-              >
-                <Select.Trigger />
-                <Select.Content>
-                  {ALL_TIMEZONES.map((tz) => (
-                    <Select.Item key={tz} value={tz}>
-                      {tz}
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select.Root>
-            ) : (
-              <button
-                ref={arrivalBadgeRef}
-                type="button"
-                className={s.tzBadge}
-                onClick={() => setEditingArrivalTz(true)}
-              >
-                {current.arrivalTimeZone}
-              </button>
-            )}
-          </Flex>
-          <DateTimePicker
-            value={current.arrivalDateTime}
-            onChange={(date) => onChange({ ...current, arrivalDateTime: date })}
-            mode={DateTimePickerMode.DateTime}
-            placeholder="Pick date & time"
-            min={tripStartDate?.minus({ days: 1 })}
-            max={tripEndDate?.plus({ days: 1 })}
-          />
-          {error !== undefined && (
-            <Text size="1" color="red">
-              {error}
-            </Text>
-          )}
-        </Flex>
       </Flex>
     </div>
   );
