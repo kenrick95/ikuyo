@@ -417,6 +417,7 @@ export function TimeSelector({
                   : -1
               }
               role="option"
+              aria-selected={isSelected}
               aria-label={`${minute} minutes`}
               id={`minute-${minute}`}
             >
