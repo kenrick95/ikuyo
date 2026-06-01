@@ -5,7 +5,9 @@ export type FlightCapture = {
   flightNumber: string;
   departureAirport: string;
   arrivalAirport: string;
+  /** "wall clock" state, when turn to ms, need to set zone + keep local times */
   departureDateTime: DateTime | undefined;
+  /** "wall clock" state, when turn to ms, need to set zone + keep local times */
   arrivalDateTime: DateTime | undefined;
   departureTimeZone: string;
   arrivalTimeZone: string;
@@ -79,6 +81,8 @@ export function wizardReducer(
       return { ...state, outboundFlight: action.flight };
     case 'SET_RETURN_FLIGHT':
       return { ...state, returnFlight: action.flight };
+    default:
+      return state;
   }
 }
 

@@ -195,8 +195,16 @@ export default function PageTripNew() {
               locationDestinationLng: state.outboundFlight.arrivalLng,
               locationDestinationZoom: state.outboundFlight.arrivalZoom,
               description: '',
-              timestampStart: state.outboundFlight.departureDateTime.toMillis(),
-              timestampEnd: state.outboundFlight.arrivalDateTime.toMillis(),
+              timestampStart: state.outboundFlight.departureDateTime
+                .setZone(state.outboundFlight.departureTimeZone, {
+                  keepLocalTime: true,
+                })
+                .toMillis(),
+              timestampEnd: state.outboundFlight.arrivalDateTime
+                .setZone(state.outboundFlight.arrivalTimeZone, {
+                  keepLocalTime: true,
+                })
+                .toMillis(),
               timeZoneStart: state.outboundFlight.departureTimeZone,
               timeZoneEnd: state.outboundFlight.arrivalTimeZone,
               flags: ActivityFlag.IsFlight,
@@ -224,8 +232,16 @@ export default function PageTripNew() {
               locationDestinationLng: state.returnFlight.arrivalLng,
               locationDestinationZoom: state.returnFlight.arrivalZoom,
               description: '',
-              timestampStart: state.returnFlight.departureDateTime.toMillis(),
-              timestampEnd: state.returnFlight.arrivalDateTime.toMillis(),
+              timestampStart: state.returnFlight.departureDateTime
+                .setZone(state.returnFlight.departureTimeZone, {
+                  keepLocalTime: true,
+                })
+                .toMillis(),
+              timestampEnd: state.returnFlight.arrivalDateTime
+                .setZone(state.returnFlight.arrivalTimeZone, {
+                  keepLocalTime: true,
+                })
+                .toMillis(),
               timeZoneStart: state.returnFlight.departureTimeZone,
               timeZoneEnd: state.returnFlight.arrivalTimeZone,
               flags: ActivityFlag.IsFlight,
