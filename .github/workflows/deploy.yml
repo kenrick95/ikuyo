@@ -46,3 +46,4 @@ jobs:
           PORT: ${{ vars.DEPLOY_PORT }}
           USER: ${{ vars.DEPLOY_USER }}
           ARGS: -avz --exclude-from=.gitignore --exclude=/.git/ --exclude=/.github/ --delay-updates
+          SSH_ARGS: "-vvv -p ${{ vars.DEPLOY_PORT }} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
