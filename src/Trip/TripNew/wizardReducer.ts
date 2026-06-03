@@ -58,19 +58,42 @@ export function wizardReducer(
       return { ...state, step: action.step };
     case 'SET_TITLE':
       return { ...state, title: action.title };
-    case 'SET_REGION':
+    case 'SET_REGION': {
+      const nextTimeZone = action.timeZone;
       return {
         ...state,
         region: action.region,
-        timeZone: action.timeZone,
+        timeZone: nextTimeZone,
         currency: action.currency,
+        startDate: state.startDate?.setZone(nextTimeZone, {
+          keepLocalTime: true,
+        }),
+        endDate: state.endDate?.setZone(nextTimeZone, { keepLocalTime: true }),
       };
+    }
     case 'SET_START_DATE':
-      return { ...state, startDate: action.date };
+      return {
+        ...state,
+        startDate: action.date?.setZone(state.timeZone, {
+          keepLocalTime: true,
+        }),
+      };
     case 'SET_END_DATE':
-      return { ...state, endDate: action.date };
-    case 'SET_TIMEZONE':
-      return { ...state, timeZone: action.timeZone };
+      return {
+        ...state,
+        endDate: action.date?.setZone(state.timeZone, { keepLocalTime: true }),
+      };
+    case 'SET_TIMEZONE': {
+      const nextTimeZone = action.timeZone;
+      return {
+        ...state,
+        timeZone: nextTimeZone,
+        startDate: state.startDate?.setZone(nextTimeZone, {
+          keepLocalTime: true,
+        }),
+        endDate: state.endDate?.setZone(nextTimeZone, { keepLocalTime: true }),
+      };
+    }
     case 'SET_CURRENCY':
       return { ...state, currency: action.currency };
     case 'SET_ORIGIN_CURRENCY':
