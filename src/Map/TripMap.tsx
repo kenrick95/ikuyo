@@ -496,7 +496,11 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
   return (
     <div className={s.mapWrapper}>
       {currentTripLoading ? <Spinner size="3" m="3" /> : null}
-      <div ref={mapContainer} className={s.map} />
+      <div
+        ref={mapContainer}
+        className={s.map}
+        style={{ viewTransitionName: `trip-map-${trip?.id}` }}
+      />
       {Object.values(popupPortals).map((popupPortal) => {
         switch (popupPortal.type) {
           case LocationType.Accommodation:
