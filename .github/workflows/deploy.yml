@@ -34,6 +34,23 @@ jobs:
         with:
           name: build-artifact
           path: dist/
+      - name: Test SSH port
+        run: |
+          nc -vz "${{ vars.DEPLOY_HOST }}" "${{ vars.DEPLOY_PORT }}"
+
+      - name: Test SSH connection
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          ssh -vvv \
+            -p "${{ vars.DEPLOY_PORT }}" \
+            -o UserKnownHostsFile=/dev/null \
+            -o StrictHostKeyChecking=no \
+            -i ~/.ssh/deploy_key \
+            "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
+            "echo SSH connection successful"
       - name: Upload dist folder
         uses: up9cloud/action-rsync@e032bd158d5e7d4b3e46fd3263178276fe0126d5 # v1.4
         env:
