@@ -71,16 +71,18 @@ describe('wizardReducer', () => {
     expect(next.title).toBe('My Trip');
   });
 
-  test('SET_START_DATE updates startDate', () => {
-    const date = DateTime.fromISO('2026-10-01');
+  test('SET_START_DATE updates startDate (normalized to wizard timeZone)', () => {
+    const date = DateTime.fromISO('2026-10-01', { zone: 'UTC' });
     const next = wizardReducer(BASE, { type: 'SET_START_DATE', date });
-    expect(next.startDate).toBe(date);
+    const expected = date.setZone('Asia/Tokyo', { keepLocalTime: true });
+    expect(next.startDate?.toISO()).toBe(expected.toISO());
   });
 
-  test('SET_END_DATE updates endDate', () => {
-    const date = DateTime.fromISO('2026-10-10');
+  test('SET_END_DATE updates endDate (normalized to wizard timeZone)', () => {
+    const date = DateTime.fromISO('2026-10-10', { zone: 'UTC' });
     const next = wizardReducer(BASE, { type: 'SET_END_DATE', date });
-    expect(next.endDate).toBe(date);
+    const expected = date.setZone('Asia/Tokyo', { keepLocalTime: true });
+    expect(next.endDate?.toISO()).toBe(expected.toISO());
   });
 
   test('SET_TIMEZONE updates timeZone', () => {

@@ -202,12 +202,23 @@ export default function PageTripNew() {
           ),
         );
       }
-      await Promise.all(flightPromises);
-      publishToast({
-        root: {},
-        title: { children: 'Trip created!' },
-        close: {},
-      });
+      try {
+        await Promise.all(flightPromises);
+        publishToast({
+          root: {},
+          title: { children: 'Trip created!' },
+          close: {},
+        });
+      } catch {
+        publishToast({
+          root: {},
+          title: {
+            children:
+              'Trip created, but we could not add your flights. You can add them later.',
+          },
+          close: {},
+        });
+      }
       setLocation(RouteTrip.asRouteTarget(newTripId));
     } catch {
       publishToast({
