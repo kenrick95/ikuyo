@@ -16,6 +16,7 @@
 
 .controlContainer {
   background-color: var(--color-panel-solid);
+  view-transition-name: trip-menu-floating-container;
 }
 
 .controlIcon {
@@ -27,6 +28,24 @@
 }
 .control :global(.rt-SegmentedControlIndicator)::before {
   box-shadow: none;
+}
+
+.control :global(.rt-SegmentedControlIndicator) {
+  view-transition-name: trip-menu-floating-indicator;
+}
+
+::view-transition-group(trip-menu-floating-indicator) {
+  animation-duration: 0.25s;
+  animation-timing-function: ease;
+}
+
+::view-transition-group(trip-menu-floating-container) {
+  animation-duration: 0s;
+}
+
+::view-transition-old(trip-menu-floating-container),
+::view-transition-new(trip-menu-floating-container) {
+  animation: none;
 }
 
 /* For small screen */
@@ -43,9 +62,11 @@
   width: 100%;
   background-color: transparent;
 }
+
 .controlText {
   display: none;
 }
+
 /* For large screen */
 @media (min-width: 520px) {
   .nav {
