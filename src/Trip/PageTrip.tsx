@@ -72,10 +72,12 @@ import {
   RouteTripTaskList,
   RouteTripTimetableView,
 } from '../Routes/routes';
+import s from './PageTrip.module.css';
 import { useTrip } from './store/hooks';
 import type { TripSliceTrip } from './store/types';
 import { TripMenuFloating } from './TripMenu/TripMenuFloating';
 import { TripNavbar } from './TripNavbar/TripNavbar';
+import { getTripCardViewTransitionName } from './viewTransition';
 
 export default PageTrip;
 export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
@@ -93,7 +95,18 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   }, [tripId, subscribeTrip]);
   const { trip, loading, error } = useTrip(tripId);
 
-  return <PageTripInner trip={trip} loading={loading} error={error} />;
+  return (
+    // TODO: not working yet
+    <div
+      className={s.page}
+      style={{
+        viewTransitionName: getTripCardViewTransitionName(tripId),
+        viewTransitionClass: 'vt-trip-card',
+      }}
+    >
+      <PageTripInner trip={trip} loading={loading} error={error} />
+    </div>
+  );
 }
 
 function PageTripInner({

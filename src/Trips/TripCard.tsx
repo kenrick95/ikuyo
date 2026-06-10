@@ -2,9 +2,10 @@ import { Card, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { DateTime } from 'luxon';
 import { Link } from 'wouter';
-import { RouteTrip } from '../Routes/routes';
+import { RouteTrip, RouteTripHome } from '../Routes/routes';
 import { TripStatusBadge } from '../Trip/TripStatusBadge';
 import { formatTripDateRange } from '../Trip/time';
+import { getTripCardViewTransitionName } from '../Trip/viewTransition';
 import type { TripsSliceTrip } from './store';
 import s from './TripCard.module.css';
 
@@ -22,9 +23,19 @@ export function TripCard({
     ? DateTime.fromMillis(trip.timestampEnd).setZone(trip.timeZone)
     : undefined;
   return (
-    <li className={clsx(s.tripCard, className)} key={trip.id}>
+    <li
+      className={clsx(s.tripCard, className)}
+      key={trip.id}
+      style={{
+        viewTransitionName: getTripCardViewTransitionName(trip.id),
+        viewTransitionClass: 'vt-trip-card',
+      }}
+    >
       <Card asChild>
-        <Link to={RouteTrip.asRouteTarget(trip.id)} className={s.tripCardLink}>
+        <Link
+          to={`${RouteTrip.asRouteTarget(trip.id)}${RouteTripHome.asRouteTarget()}`}
+          className={s.tripCardLink}
+        >
           <Text as="div" weight="bold">
             {trip.title}
           </Text>
