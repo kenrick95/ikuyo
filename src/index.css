@@ -122,3 +122,47 @@ label {
 :target {
   scroll-margin-block: 5ex;
 }
+
+::view-transition-group(.vt-trip-card) {
+  animation-duration: 0.28s;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::view-transition-old(.vt-trip-card) {
+  transform-origin: 50% 20%;
+  animation: 0.14s cubic-bezier(0.4, 0, 1, 1) both trip-card-exit;
+}
+
+::view-transition-new(.vt-trip-card) {
+  transform-origin: 50% 20%;
+  animation: 0.28s cubic-bezier(0.22, 1, 0.36, 1) both trip-card-enter;
+}
+
+@keyframes trip-card-exit {
+  0% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0.28;
+    filter: blur(1px);
+    transform: translateY(-8px) scale(0.97);
+  }
+}
+
+@keyframes trip-card-enter {
+  0% {
+    opacity: 0;
+    filter: blur(1.8px);
+    transform: translateY(10px) scale(1.02);
+  }
+  55% {
+    opacity: 0.92;
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+}
