@@ -42,6 +42,11 @@ function TripMenuFloatingInner() {
     if (availableTabs.includes(location)) {
       return location;
     }
+    for (const tab of availableTabs) {
+      if (location.startsWith(tab)) {
+        return tab;
+      }
+    }
     return RouteOthers;
   }, [location]);
   const handleRouteClick = useCallback(
