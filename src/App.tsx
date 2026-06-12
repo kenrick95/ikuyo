@@ -62,14 +62,17 @@ const PageDemo = withLoading()(React.lazy(() => import('./PageDemo')));
 let pendingTransition: ViewTransition | null = null;
 
 const aroundNav: AroundNavHandler = (navigate, to, options) => {
+  console.log('!! Navigating to', to, 'with options', options);
   if (!document.startViewTransition || document.visibilityState === 'hidden') {
     // check if supported and document is visible
+    console.log('!! No VT');
     navigate(to, options);
     return;
   }
 
   // Skip transition if one is already in progress
   if (pendingTransition) {
+    console.log('!! VT in progress');
     try {
       pendingTransition.skipTransition();
       pendingTransition = null;
@@ -82,6 +85,7 @@ const aroundNav: AroundNavHandler = (navigate, to, options) => {
   }
 
   try {
+    console.log('!! VT starting');
     pendingTransition = document.startViewTransition(() => {
       flushSync(() => {
         navigate(to, options);
@@ -96,9 +100,11 @@ const aroundNav: AroundNavHandler = (navigate, to, options) => {
         }
       })
       .finally(() => {
+        console.log('!! VT done');
         pendingTransition = null;
       });
   } catch {
+    console.log('!! VT error');
     // Fallback to regular navigation if transition fails
     pendingTransition = null;
     navigate(to, options);

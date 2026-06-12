@@ -16,6 +16,7 @@ import { useDeepBoundStore } from '../../data/store';
 import { useTrip } from '../../Trip/store/hooks';
 import type { TripSliceAccommodation } from '../../Trip/store/types';
 import { TripUserRole } from '../../User/TripUserRole';
+import { getAccommodationCardViewTransitionName } from '../viewTransition';
 import s from './AccommodationDialog.module.css';
 import { AccommodationMap } from './AccommodationDialogMap';
 import { AccommodationDialogMode } from './AccommodationDialogMode';
@@ -64,7 +65,15 @@ export function AccommodationDialogContentView({
     setDialogClosable(false);
   }, [setDialogClosable]);
   return (
-    <Dialog.Content {...dialogContentProps}>
+    <Dialog.Content
+      {...dialogContentProps}
+      style={{
+        viewTransitionName: getAccommodationCardViewTransitionName(
+          accommodation?.id ?? '',
+        ),
+        viewTransitionClass: 'vt-entity-dialog',
+      }}
+    >
       <DialogTitleSection
         title={
           <>

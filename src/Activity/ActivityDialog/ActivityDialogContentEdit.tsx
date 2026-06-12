@@ -14,6 +14,7 @@ import {
   getActivityType,
 } from '../activityType';
 import { FlightForm } from '../FlightForm/FlightForm';
+import { getActivityCardViewTransitionName } from '../viewTransition';
 import { ActivityDialogMode } from './ActivityDialogMode';
 
 export function ActivityDialogContentEdit({
@@ -95,7 +96,15 @@ export function ActivityDialogContentEdit({
   const idActivityType = useId();
 
   return (
-    <Dialog.Content {...dialogContentProps}>
+    <Dialog.Content
+      {...dialogContentProps}
+      style={{
+        viewTransitionName: getActivityCardViewTransitionName(
+          activity?.id ?? '',
+        ),
+        viewTransitionClass: 'vt-entity-dialog',
+      }}
+    >
       <DialogTitleSection title={`Edit ${ActivityTypeLabel[activityType]}`} />
       <Dialog.Description size="2">
         {activityType === ActivityType.Flight
