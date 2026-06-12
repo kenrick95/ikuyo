@@ -1,12 +1,14 @@
 import { InfoCircledIcon, SewingPinIcon } from '@radix-ui/react-icons';
 import { Box, ContextMenu, Flex, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useLocation } from 'wouter';
 import { useTripTimetableDragging } from '../../Trip/store/hooks';
 import type { TripSliceActivity } from '../../Trip/store/types';
 import { TripViewMode, type TripViewModeType } from '../../Trip/TripViewMode';
 import { useActivityDialogHooks } from '../ActivityDialog/activityDialogHooks';
 import { getActivityDisplayTitle } from '../activityTitle';
+import { getActivityCardViewTransitionName } from '../viewTransition';
 import s from './ActivityIdea.module.css';
 
 interface ActivityIdeaProps {
@@ -15,6 +17,7 @@ interface ActivityIdeaProps {
   tripViewMode: TripViewModeType;
   className?: string;
   isDragDisabled?: boolean;
+  disableViewTransition?: boolean;
 }
 
 export function ActivityIdea({
@@ -23,6 +26,7 @@ export function ActivityIdea({
   className,
   tripViewMode,
   isDragDisabled = false,
+  disableViewTransition = false,
 }: ActivityIdeaProps) {
   const {
     openActivityViewDialog,
@@ -31,6 +35,15 @@ export function ActivityIdea({
   } = useActivityDialogHooks(tripViewMode, activity.id);
   const { timetableDragging, setTimetableDragging } =
     useTripTimetableDragging();
+  const [location] = useLocation();
+  const isDialogOpen = location.includes(activity.id);
+  const boxStyle = useMemo(() => {
+    if (disableViewTransition || isDialogOpen) return undefined;
+    return {
+      viewTransitionName: getActivityCardViewTransitionName(activity.id),
+      viewTransitionClass: 'vt-entity-dialog',
+    };
+  }, [disableViewTransition, isDialogOpen, activity.id]);
   const handleDragStart = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
       if (tripViewMode !== TripViewMode.Timetable || isDragDisabled) {
@@ -109,6 +122,7 @@ export function ActivityIdea({
           onKeyDown={handleKeyDown}
           tabIndex={0}
           aria-label={`Activity Idea: ${activityTitle}${activity.location ? `, at ${activity.location}` : ''}`}
+          style={boxStyle}
         >
           <Flex direction="column" gap="1">
             <Text size="2" weight="medium" className={s.activityTitle}>

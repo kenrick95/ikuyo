@@ -6,6 +6,7 @@ import { useTrip } from '../../Trip/store/hooks';
 import type { TripSliceMacroplan } from '../../Trip/store/types';
 import { MacroplanForm } from '../MacroplanForm';
 import { MacroplanFormMode } from '../MacroplanFormMode';
+import { getMacroplanCardViewTransitionName } from '../viewTransition';
 import { MacroplanDialogMode } from './MacroplanDialogMode';
 
 export function MacroplanDialogContentEdit({
@@ -44,7 +45,15 @@ export function MacroplanDialogContentEdit({
   }, [setMode]);
 
   return (
-    <Dialog.Content {...dialogContentProps}>
+    <Dialog.Content
+      {...dialogContentProps}
+      style={{
+        viewTransitionName: getMacroplanCardViewTransitionName(
+          macroplan?.id ?? '',
+        ),
+        viewTransitionClass: 'vt-entity-dialog',
+      }}
+    >
       <DialogTitleSection title="Edit Day Plan" />
       <Dialog.Description size="2">
         Fill in the edited day plan details for this trip...

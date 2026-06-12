@@ -8,6 +8,7 @@ import type { TripSliceMacroplan } from '../Trip/store/types';
 import { TripViewMode, type TripViewModeType } from '../Trip/TripViewMode';
 import s from './Macroplan.module.css';
 import { useMacroplanDialogHooks } from './MacroplanDialog/macroplanDialogHooks';
+import { getMacroplanCardViewTransitionName } from './viewTransition';
 
 const responsiveTextSize = { initial: '1' as const };
 
@@ -19,6 +20,7 @@ function MacroplanInner({
   tripViewMode,
   userCanEditOrDelete,
   index,
+  disableViewTransition = false,
 }: {
   className?: string;
   macroplan: TripSliceMacroplan;
@@ -27,6 +29,7 @@ function MacroplanInner({
   tripViewMode: TripViewModeType;
   userCanEditOrDelete: boolean;
   index: number;
+  disableViewTransition?: boolean;
 }) {
   const macroplanRef = useRef<HTMLDivElement>(null);
   const [location] = useLocation();
@@ -47,12 +50,25 @@ function MacroplanInner({
       shouldRestoreFocus.current = false;
     }
   }, [location]);
+  const isDialogOpen = location.includes(macroplan.id);
   const style = useMemo(() => {
     return {
       gridColumnStart: gridColumnStart,
       gridColumnEnd: gridColumnEnd,
+      viewTransitionName:
+        disableViewTransition || isDialogOpen
+          ? undefined
+          : getMacroplanCardViewTransitionName(macroplan.id),
+      viewTransitionClass:
+        disableViewTransition || isDialogOpen ? undefined : 'vt-entity-dialog',
     };
-  }, [gridColumnStart, gridColumnEnd]);
+  }, [
+    gridColumnStart,
+    gridColumnEnd,
+    macroplan.id,
+    disableViewTransition,
+    isDialogOpen,
+  ]);
   // Handle keyboard navigation for accessibility
   // Use onKeyDown for Enter to open the dialog
   // Use onKeyUp for Space to open the dialog

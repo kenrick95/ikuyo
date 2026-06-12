@@ -71,7 +71,47 @@ export function TripListView() {
     });
   }, [trip, activities, tripAccommodations, tripMacroplans]);
 
-  /** Current day number (1-based) */
+  // Compute IDs that appear more than once in the rendered list
+  // Activities: idea activities with timestamps appear in both ideas + days; multi-day activities appear per-day
+  // Accommodations: multi-day stays appear in check-in, intermediate, and check-out days
+  // Macroplans: multi-day plans appear in each day they span
+  const {
+    duplicatedActivityIds,
+    duplicatedAccommodationIds,
+    duplicatedMacroplanIds,
+  } = useMemo(() => {
+    const seenActivities = new Set<string>();
+    const dupeActivities = new Set<string>();
+    const seenAccommodations = new Set<string>();
+    const dupeAccommodations = new Set<string>();
+    const seenMacroplans = new Set<string>();
+    const dupeMacroplans = new Set<string>();
+
+    for (const activity of dayGroups.ideas.activities) {
+      if (seenActivities.has(activity.id)) dupeActivities.add(activity.id);
+      else seenActivities.add(activity.id);
+    }
+    for (const dayGroup of dayGroups.inTrip) {
+      for (const activity of dayGroup.activities) {
+        if (seenActivities.has(activity.id)) dupeActivities.add(activity.id);
+        else seenActivities.add(activity.id);
+      }
+      for (const accommodation of dayGroup.accommodations) {
+        if (seenAccommodations.has(accommodation.id))
+          dupeAccommodations.add(accommodation.id);
+        else seenAccommodations.add(accommodation.id);
+      }
+      for (const macroplan of dayGroup.macroplans) {
+        if (seenMacroplans.has(macroplan.id)) dupeMacroplans.add(macroplan.id);
+        else seenMacroplans.add(macroplan.id);
+      }
+    }
+    return {
+      duplicatedActivityIds: dupeActivities,
+      duplicatedAccommodationIds: dupeAccommodations,
+      duplicatedMacroplanIds: dupeMacroplans,
+    };
+  }, [dayGroups]);
   const currentDayIndex = useMemo(() => {
     if (!trip?.timeZone || !trip?.timestampStart || !trip?.timestampEnd) {
       return null;
@@ -212,6 +252,9 @@ export function TripListView() {
                         activity={activity}
                         userCanEditOrDelete={userCanEditOrDelete}
                         tripViewMode={TripViewMode.List}
+                        disableViewTransition={duplicatedActivityIds.has(
+                          activity.id,
+                        )}
                       />
                     );
                   })}
@@ -255,6 +298,9 @@ export function TripListView() {
                         tripViewMode={TripViewMode.List}
                         userCanEditOrDelete={userCanEditOrDelete}
                         index={i}
+                        disableViewTransition={duplicatedMacroplanIds.has(
+                          macroplan.id,
+                        )}
                       />
                     );
                   }),
@@ -270,6 +316,9 @@ export function TripListView() {
                         className={s.listItem}
                         timeZone={trip?.timeZone ?? ''}
                         userCanEditOrDelete={userCanEditOrDelete}
+                        disableViewTransition={duplicatedAccommodationIds.has(
+                          accommodation.id,
+                        )}
                         {...props}
                       />
                     );
@@ -289,6 +338,9 @@ export function TripListView() {
                         tripTimeZone={trip?.timeZone ?? ''}
                         tripTimestampStart={trip?.timestampStart ?? 0}
                         userCanEditOrDelete={userCanEditOrDelete}
+                        disableViewTransition={duplicatedActivityIds.has(
+                          activity.id,
+                        )}
                       />
                     );
                   }),

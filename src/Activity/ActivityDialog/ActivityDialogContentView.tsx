@@ -19,6 +19,7 @@ import { TripUserRole } from '../../User/TripUserRole';
 import { ActivityFlag, hasActivityFlag } from '../activityFlag';
 import { getActivityDisplayTitle } from '../activityTitle';
 import { ActivityType, getActivityType } from '../activityType';
+import { getActivityCardViewTransitionName } from '../viewTransition';
 import s from './ActivityDialog.module.css';
 import { ActivityMap } from './ActivityDialogMap';
 import { ActivityDialogMode } from './ActivityDialogMode';
@@ -142,7 +143,15 @@ export function ActivityDialogContentView({
   const typeLabel = isFlight ? 'Flight' : isIdea ? 'Activity Idea' : 'Activity';
 
   return (
-    <Dialog.Content {...dialogContentProps}>
+    <Dialog.Content
+      {...dialogContentProps}
+      style={{
+        viewTransitionName: getActivityCardViewTransitionName(
+          activity?.id ?? '',
+        ),
+        viewTransitionClass: 'vt-entity-dialog',
+      }}
+    >
       <DialogTitleSection
         title={
           <>
