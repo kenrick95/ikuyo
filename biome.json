@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.0/schema.json",
   "files": {
     "includes": ["**", "!**/node_modules", "!**/dist", "!**/build"],
     "ignoreUnknown": true
@@ -35,9 +35,9 @@
       "react": "recommended"
     },
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "correctness": {
-        "recommended": true,
+        "preset": "recommended",
         "noUnusedImports": "error",
         "noUnusedVariables": "error",
         "noUndeclaredDependencies": "error",
@@ -45,7 +45,7 @@
         "useHookAtTopLevel": "error"
       },
       "style": {
-        "recommended": true
+        "preset": "recommended"
       }
     }
   }
