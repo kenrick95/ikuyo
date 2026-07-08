@@ -80,15 +80,22 @@ export function TripForm({
   // Handler for start date changes
   const handleStartDateChange = useCallback(
     (dateTime: DateTime | undefined) => {
-      setCurrentStartDate(dateTime);
+      setCurrentStartDate(
+        dateTime?.setZone(currentTimeZone, { keepLocalTime: true }),
+      );
     },
-    [],
+    [currentTimeZone],
   );
 
   // Handler for end date changes
-  const handleEndDateChange = useCallback((dateTime: DateTime | undefined) => {
-    setCurrentEndDate(dateTime);
-  }, []);
+  const handleEndDateChange = useCallback(
+    (dateTime: DateTime | undefined) => {
+      setCurrentEndDate(
+        dateTime?.setZone(currentTimeZone, { keepLocalTime: true }),
+      );
+    },
+    [currentTimeZone],
+  );
 
   // Helper to update timezone on DateTime objects
   const updateDateTimeZone = useCallback(
