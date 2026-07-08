@@ -29,7 +29,7 @@ export function ExpenseInlineCardForm({
   );
   const setTripLocalState = useBoundStore((state) => state.setTripLocalState);
 
-  const dateTimeIncurred = useMemo(
+  const dateTimeIncurred: DateTime<boolean> = useMemo(
     () =>
       DateTime.fromMillis(
         expenseMode === ExpenseMode.Edit && expense
