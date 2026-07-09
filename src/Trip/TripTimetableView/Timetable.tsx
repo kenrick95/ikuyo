@@ -415,7 +415,6 @@ export function Timetable() {
     return history.state?.dialog as TimetableDialogState | undefined;
   }, []);
   useEffect(() => {
-    // TODO: this part fights with App.tsx's clearDialogs on route change, which clears the dialog state after this effect has run...
     if (!trip) return;
     console.log('Dialog state changed:', dialogState);
     if (dialogState === TimetableDialogState.ActivityNew) {

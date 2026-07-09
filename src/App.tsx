@@ -2,16 +2,9 @@ import '@radix-ui/themes/styles.css';
 import './accent.css';
 
 import { Portal, Theme } from '@radix-ui/themes';
-import React, { useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { flushSync } from 'react-dom';
-import {
-  type AroundNavHandler,
-  Redirect,
-  Route,
-  Router,
-  Switch,
-  useLocation,
-} from 'wouter';
+import { type AroundNavHandler, Redirect, Route, Router, Switch } from 'wouter';
 import s from './App.module.css';
 import {
   useRedirectUnauthenticatedRoutes,
@@ -61,56 +54,6 @@ const PageDemo = withLoading()(React.lazy(() => import('./PageDemo')));
 // Handle view transitions for route changes
 let pendingTransition: ViewTransition | null = null;
 
-const aroundNav: AroundNavHandler = (navigate, to, options) => {
-  console.log('!! Navigating to', to, 'with options', options);
-  if (!document.startViewTransition || document.visibilityState === 'hidden') {
-    // check if supported and document is visible
-    console.log('!! No VT');
-    navigate(to, options);
-    return;
-  }
-
-  // Skip transition if one is already in progress
-  if (pendingTransition) {
-    console.log('!! VT in progress');
-    try {
-      pendingTransition.skipTransition();
-      pendingTransition = null;
-    } catch (error) {
-      // Silently ignore AbortError from skipTransition()
-      if ((error as Error)?.name !== 'AbortError') {
-        throw error;
-      }
-    }
-  }
-
-  try {
-    console.log('!! VT starting');
-    pendingTransition = document.startViewTransition(() => {
-      flushSync(() => {
-        navigate(to, options);
-      });
-    });
-
-    pendingTransition.finished
-      .catch((error) => {
-        // Silently ignore AbortError from skipTransition()
-        if (error.name !== 'AbortError') {
-          throw error;
-        }
-      })
-      .finally(() => {
-        console.log('!! VT done');
-        pendingTransition = null;
-      });
-  } catch {
-    console.log('!! VT error');
-    // Fallback to regular navigation if transition fails
-    pendingTransition = null;
-    navigate(to, options);
-  }
-};
-
 function App() {
   useSubscribeTheme();
   const theme = useTheme();
@@ -118,11 +61,68 @@ function App() {
   useRedirectUnauthenticatedRoutes();
 
   const clearDialogs = useBoundStore((state) => state.clearDialogs);
-  const [location] = useLocation();
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Clear all dialogs on route change to prevent showing stale dialogs after navigation
-  useEffect(() => {
-    clearDialogs();
-  }, [location]);
+  const aroundNav: AroundNavHandler = useCallback(
+    // aroundNav also clear all dialogs before navigating to a new route, to avoid leaving dialogs open when the route changes.
+    (navigate, to, options) => {
+      // Skip transition if not supported, or hidden document, or prefer-reduced-motion is enabled
+      if (
+        !document.startViewTransition ||
+        document.visibilityState === 'hidden' ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ) {
+        // check if supported and document is visible
+        console.log('[VT] View transition skipped');
+        clearDialogs();
+        navigate(to, options);
+        return;
+      }
+
+      // Skip transition if one is already in progress
+      if (pendingTransition) {
+        console.log('[VT] View transition skipped due to pending transition');
+        try {
+          pendingTransition.skipTransition();
+          pendingTransition = null;
+        } catch (error) {
+          // Silently ignore AbortError from skipTransition()
+          if ((error as Error)?.name !== 'AbortError') {
+            throw error;
+          }
+        }
+      }
+
+      try {
+        console.log('[VT] View transition starting');
+        pendingTransition = document.startViewTransition(() => {
+          flushSync(() => {
+            clearDialogs();
+            navigate(to, options);
+          });
+        });
+
+        pendingTransition.finished
+          .catch((error) => {
+            // Silently ignore AbortError from skipTransition()
+            if (error.name !== 'AbortError') {
+              throw error;
+            }
+          })
+          .finally(() => {
+            console.log('[VT] View transition done');
+            pendingTransition = null;
+          });
+      } catch {
+        console.log(
+          '[VT] View transition failed, falling back to regular navigation',
+        );
+        // Fallback to regular navigation if transition fails
+        pendingTransition = null;
+        clearDialogs();
+        navigate(to, options);
+      }
+    },
+    [clearDialogs],
+  );
 
   return (
     <>
