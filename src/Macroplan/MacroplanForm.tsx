@@ -127,7 +127,12 @@ export function MacroplanForm({
         return;
       }
       // end date cannot be later than trip end date
-      if (tripEndDateTime && dateEndDateTime > tripEndDateTime) {
+      // in db, the convention for 'end date' date-level entities are that they stored as start of next day
+      // however, tripEndDateTime prop has been adjusted to be the last minute of the trip
+      if (
+        tripEndDateTime &&
+        dateEndDateTime > tripEndDateTime.plus({ minute: 1 })
+      ) {
         setErrorMessage('End date cannot be later than trip end date');
         return;
       }
