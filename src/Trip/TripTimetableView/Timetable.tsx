@@ -13,8 +13,10 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Route, Switch } from 'wouter';
 import { Accommodation } from '../../Accommodation/Accommodation';
 import { AccommodationDialog } from '../../Accommodation/AccommodationDialog/AccommodationDialog';
+import { AccommodationNewDialog } from '../../Accommodation/AccommodationNewDialog';
 import { Activity } from '../../Activity/Activity';
 import { ActivityDialog } from '../../Activity/ActivityDialog/ActivityDialog';
+import { ActivityNewDialog } from '../../Activity/ActivityNewDialog';
 import { dbUpdateActivityDragEnd } from '../../Activity/db';
 import { calculateNewTimestamps } from '../../Activity/dragUtils';
 import {
@@ -24,6 +26,7 @@ import {
 import { useBoundStore } from '../../data/store';
 import { Macroplan } from '../../Macroplan/Macroplan';
 import { MacroplanDialog } from '../../Macroplan/MacroplanDialog/MacroplanDialog';
+import { MacroplanNewDialog } from '../../Macroplan/MacroplanNewDialog';
 import { DocTitle } from '../../Nav/DocTitle';
 import {
   RouteTripTimetableViewAccommodation,
@@ -49,6 +52,7 @@ import {
   getMacroplanIndexes,
 } from './macroplan';
 import s from './Timetable.module.scss';
+import { TimetableDialogState } from './TimetableDialogState';
 import { TimetableGrid } from './TimetableGrid';
 import { pad2 } from './time';
 
@@ -405,6 +409,23 @@ export function Timetable() {
   const toggleSidebar = useCallback(() => {
     setSidebarVisible(!isSidebarVisible);
   }, [isSidebarVisible]);
+
+  const pushDialog = useBoundStore((state) => state.pushDialog);
+  const dialogState = useMemo(() => {
+    return history.state?.dialog as TimetableDialogState | undefined;
+  }, []);
+  useEffect(() => {
+    // TODO: this part fights with App.tsx's clearDialogs on route change, which clears the dialog state after this effect has run...
+    if (!trip) return;
+    console.log('Dialog state changed:', dialogState);
+    if (dialogState === TimetableDialogState.ActivityNew) {
+      pushDialog(ActivityNewDialog, { trip });
+    } else if (dialogState === TimetableDialogState.AccommodationNew) {
+      pushDialog(AccommodationNewDialog, { trip });
+    } else if (dialogState === TimetableDialogState.MacroplanNew) {
+      pushDialog(MacroplanNewDialog, { trip });
+    }
+  }, [pushDialog, trip, dialogState]);
 
   return (
     <Section py="0">

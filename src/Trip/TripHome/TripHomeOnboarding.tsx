@@ -2,10 +2,6 @@ import { Button, Flex } from '@radix-ui/themes';
 import { DateTime } from 'luxon';
 import { useCallback, useMemo } from 'react';
 import { useLocation } from 'wouter';
-import { AccommodationNewDialog } from '../../Accommodation/AccommodationNewDialog';
-import { ActivityNewDialog } from '../../Activity/ActivityNewDialog';
-import { useBoundStore } from '../../data/store';
-import { MacroplanNewDialog } from '../../Macroplan/MacroplanNewDialog';
 import { RouteTripTimetableView } from '../../Routes/routes';
 import { TripUserRole } from '../../User/TripUserRole';
 import {
@@ -14,6 +10,7 @@ import {
   useTripActivities,
   useTripMacroplans,
 } from '../store/hooks';
+import { TimetableDialogState } from '../TripTimetableView/TimetableDialogState';
 
 export function TripHomeOnboarding() {
   const { trip } = useCurrentTrip();
@@ -38,23 +35,25 @@ export function TripHomeOnboarding() {
     );
   }, [trip?.currentUserRole]);
 
-  const pushDialog = useBoundStore((state) => state.pushDialog);
   const [, setLocation] = useLocation();
   const openActivityNewDialog = useCallback(() => {
     if (!trip) return;
-    setLocation(RouteTripTimetableView.asRouteTarget());
-    pushDialog(ActivityNewDialog, { trip });
-  }, [pushDialog, trip, setLocation]);
+    setLocation(RouteTripTimetableView.asRouteTarget(), {
+      state: { dialog: TimetableDialogState.ActivityNew },
+    });
+  }, [trip, setLocation]);
   const openAccommodationNewDialog = useCallback(() => {
     if (!trip) return;
-    setLocation(RouteTripTimetableView.asRouteTarget());
-    pushDialog(AccommodationNewDialog, { trip });
-  }, [pushDialog, trip, setLocation]);
+    setLocation(RouteTripTimetableView.asRouteTarget(), {
+      state: { dialog: TimetableDialogState.AccommodationNew },
+    });
+  }, [trip, setLocation]);
   const openMacroplanNewDialog = useCallback(() => {
     if (!trip) return;
-    setLocation(RouteTripTimetableView.asRouteTarget());
-    pushDialog(MacroplanNewDialog, { trip });
-  }, [pushDialog, trip, setLocation]);
+    setLocation(RouteTripTimetableView.asRouteTarget(), {
+      state: { dialog: TimetableDialogState.MacroplanNew },
+    });
+  }, [trip, setLocation]);
 
   if (
     !trip ||
