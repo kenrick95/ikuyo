@@ -96,7 +96,6 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   const { trip, loading, error } = useTrip(tripId);
 
   return (
-    // TODO: not working yet
     <div
       className={s.page}
       style={{
