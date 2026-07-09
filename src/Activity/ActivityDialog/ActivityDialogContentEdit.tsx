@@ -19,6 +19,7 @@ import { ActivityDialogMode } from './ActivityDialogMode';
 
 export function ActivityDialogContentEdit({
   data: activity,
+  mode,
   setMode,
   dialogContentProps,
   DialogTitleSection,
@@ -71,7 +72,11 @@ export function ActivityDialogContentEdit({
 
   const commonFormProps = {
     activityId: activity?.id,
-    mode: ActivityFormMode.Edit,
+    mode:
+      mode === ActivityDialogMode.Duplicate
+        ? ActivityFormMode.New
+        : ActivityFormMode.Edit,
+    tripId: activity?.tripId,
     tripStartDateTime,
     tripEndDateTime,
     tripTimeZone: trip?.timeZone ?? '',
@@ -105,7 +110,9 @@ export function ActivityDialogContentEdit({
         viewTransitionClass: 'vt-entity-dialog',
       }}
     >
-      <DialogTitleSection title={`Edit ${ActivityTypeLabel[activityType]}`} />
+      <DialogTitleSection
+        title={`${mode === ActivityDialogMode.Duplicate ? 'Duplicate' : 'Edit'} ${ActivityTypeLabel[activityType]}`}
+      />
       <Dialog.Description size="2">
         {activityType === ActivityType.Flight
           ? 'Fill in your edited flight details...'

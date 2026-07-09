@@ -116,6 +116,9 @@ export function ActivityDialogContentView({
   const goToEditMode = useCallback(() => {
     setMode(ActivityDialogMode.Edit);
   }, [setMode]);
+  const goToDuplicateMode = useCallback(() => {
+    setMode(ActivityDialogMode.Duplicate);
+  }, [setMode]);
   const goToDeleteMode = useCallback(() => {
     setMode(ActivityDialogMode.Delete);
   }, [setMode]);
@@ -180,6 +183,16 @@ export function ActivityDialogContentView({
               disabled={!userCanEditOrDelete}
             >
               Edit
+            </Button>
+            <Button
+              type="button"
+              size="2"
+              variant="soft"
+              color="gray"
+              onClick={userCanEditOrDelete ? goToDuplicateMode : undefined}
+              disabled={!userCanEditOrDelete}
+            >
+              Duplicate
             </Button>
             <Button
               type="button"

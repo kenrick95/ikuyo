@@ -144,6 +144,7 @@ function ActivityInner({
     openActivityViewDialog,
     openActivityDeleteDialog,
     openActivityEditDialog,
+    openActivityDuplicateDialog,
   } = useActivityDialogHooks(tripViewMode, activity.id);
 
   // Track if we should restore focus after dialog closes
@@ -250,6 +251,11 @@ function ActivityInner({
     shouldRestoreFocus.current = true;
     openActivityEditDialog();
   }, [openActivityEditDialog]);
+
+  const handleContextMenuDuplicate = useCallback(() => {
+    shouldRestoreFocus.current = true;
+    openActivityDuplicateDialog();
+  }, [openActivityDuplicateDialog]);
 
   const handleContextMenuDelete = useCallback(() => {
     shouldRestoreFocus.current = true;
@@ -385,6 +391,12 @@ function ActivityInner({
           disabled={!userCanEditOrDelete}
         >
           Edit
+        </ContextMenu.Item>
+        <ContextMenu.Item
+          onClick={userCanEditOrDelete ? handleContextMenuDuplicate : undefined}
+          disabled={!userCanEditOrDelete}
+        >
+          Duplicate
         </ContextMenu.Item>
         <ContextMenu.Separator />
         <ContextMenu.Item

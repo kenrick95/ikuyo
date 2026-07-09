@@ -43,6 +43,9 @@ export function useActivityDialogHooks(
   const openActivityEditDialog = useCallback(() => {
     openActivityDialog(ActivityDialogMode.Edit);
   }, [openActivityDialog]);
+  const openActivityDuplicateDialog = useCallback(() => {
+    openActivityDialog(ActivityDialogMode.Duplicate);
+  }, [openActivityDialog]);
   const openActivityDeleteDialog = useCallback(() => {
     openActivityDialog(ActivityDialogMode.Delete);
   }, [openActivityDialog]);
@@ -50,6 +53,7 @@ export function useActivityDialogHooks(
   return {
     openActivityViewDialog,
     openActivityEditDialog,
+    openActivityDuplicateDialog,
     openActivityDeleteDialog,
   };
 }

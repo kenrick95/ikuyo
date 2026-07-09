@@ -9,6 +9,7 @@ export const DialogMode = {
   View: 'view',
   Edit: 'edit',
   Delete: 'delete',
+  Duplicate: 'duplicate',
 } as const;
 export type DialogModeType = (typeof DialogMode)[keyof typeof DialogMode];
 
@@ -33,6 +34,7 @@ export type DialogContentProps<DataType> = {
   loading: boolean;
   error: string | undefined;
 
+  mode: DialogModeType;
   setMode: (mode: DialogModeType) => void;
   dialogContentProps: Dialog.ContentProps;
   setDialogClosable: (closable: boolean) => void;
@@ -133,16 +135,18 @@ export function createDialogRoute<DataType>({
             data={data}
             loading={loading}
             error={error}
+            mode={mode}
             setMode={setMode}
             dialogContentProps={dialogContentProps}
             setDialogClosable={setDialogClosable}
             DialogTitleSection={DialogTitleSection}
           />
-        ) : mode === DialogMode.Edit ? (
+        ) : mode === DialogMode.Edit || mode === DialogMode.Duplicate ? (
           <DialogContentEdit
             data={data}
             loading={loading}
             error={error}
+            mode={mode}
             setMode={setMode}
             dialogContentProps={dialogContentProps}
             setDialogClosable={setDialogClosable}
@@ -153,6 +157,7 @@ export function createDialogRoute<DataType>({
             data={data}
             loading={loading}
             error={error}
+            mode={mode}
             setMode={setMode}
             dialogContentProps={dialogContentProps}
             setDialogClosable={setDialogClosable}
