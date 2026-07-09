@@ -411,12 +411,11 @@ export function Timetable() {
   }, [isSidebarVisible]);
 
   const pushDialog = useBoundStore((state) => state.pushDialog);
-  const dialogState = useMemo(() => {
-    return history.state?.dialog as TimetableDialogState | undefined;
-  }, []);
   useEffect(() => {
     if (!trip) return;
-    console.log('Dialog state changed:', dialogState);
+    const dialogState = history.state?.dialog as
+      | TimetableDialogState
+      | undefined;
     if (dialogState === TimetableDialogState.ActivityNew) {
       pushDialog(ActivityNewDialog, { trip });
     } else if (dialogState === TimetableDialogState.AccommodationNew) {
@@ -424,7 +423,13 @@ export function Timetable() {
     } else if (dialogState === TimetableDialogState.MacroplanNew) {
       pushDialog(MacroplanNewDialog, { trip });
     }
-  }, [pushDialog, trip, dialogState]);
+    // Immediately clear the dialog state from history to prevent it from unable to close dialog
+    history.replaceState(
+      { ...history.state, dialog: undefined },
+      '',
+      window.location.href,
+    );
+  }, [pushDialog, trip]);
 
   return (
     <Section py="0">
