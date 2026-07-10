@@ -1,3 +1,4 @@
+import './polyfills/temporal';
 import './index.css';
 import { reactErrorHandler, init as sentryInit } from '@sentry/react';
 // import { StrictMode } from 'react';
