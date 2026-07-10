@@ -4,7 +4,6 @@ import {
   Cross1Icon,
 } from '@radix-ui/react-icons';
 import { Button, Popover } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
 import {
   forwardRef,
   useCallback,
@@ -14,7 +13,10 @@ import {
 } from 'react';
 import { CalendarMonth } from './CalendarMonth';
 import s from './DateTimePicker.module.css';
-import { DateTimePickerMode } from './DateTimePickerMode';
+import {
+  DateTimePickerMode,
+  type DateTimePickerModeType,
+} from './DateTimePickerMode';
 import { LiveRegion } from './LiveRegion';
 import { TimeSelector } from './TimeSelector';
 import type {
@@ -23,10 +25,10 @@ import type {
   DatePickerState,
 } from './types';
 
-function datePickerReducer(
-  state: DatePickerState,
-  action: DatePickerAction,
-): DatePickerState {
+function datePickerReducer<TMode extends DateTimePickerModeType>(
+  state: DatePickerState<TMode>,
+  action: DatePickerAction<TMode>,
+): DatePickerState<TMode> {
   // console.log(
   //   '!! datePickerReducer',
   //   action,
@@ -109,252 +111,267 @@ function datePickerReducer(
   }
 }
 
-export const DateTimePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
-  (props, ref) => {
-    const [state, dispatch] = useReducer(datePickerReducer, {
-      isOpen: false,
-      // We need at least focusedDate to decide which month to show, else we can't show anything
-      focusedDate: props.value?.startOf('day') ?? DateTime.now().startOf('day'),
-      selectedDate: props.value?.startOf('day') ?? undefined,
-      selectedDateTime: props.value,
-      hoveredDate: undefined,
-      focusedHour: props.value?.hour,
-      focusedMinute: props.value?.minute,
-      selectedHour: props.value?.hour,
-      selectedMinute: props.value?.minute,
-      min: props.min?.startOf('day') ?? undefined,
-      max: props.max?.startOf('day') ?? undefined,
-    });
+function DateTimePickerInner<TMode extends DateTimePickerModeType>(
+  props: DatePickerProps<TMode>,
+  ref: React.ForwardedRef<HTMLButtonElement>,
+) {
+  // TODO: change all internal state to temporal
+  // TODO: then change usage to read from temporal instead of luxon DateTime
+  const [state, dispatch] = useReducer(datePickerReducer<TMode>, {
+    isOpen: false,
+    // We need at least focusedDate to decide which month to show, else we can't show anything
+    focusedDate:
+      props.value ??
+      (props.mode === DateTimePickerMode.Date
+        ? Temporal.Now.plainDateISO()
+        : Temporal.Now.plainDateTimeISO()),
+    selectedDate: props.value,
+    selectedDateTime: props.value,
+    hoveredDate: undefined,
+    focusedHour: props.mode === 'datetime' ? props.value?.hour : undefined,
+    focusedMinute: props.mode === 'datetime' ? props.value?.minute : undefined,
+    selectedHour: props.mode === 'datetime' ? props.value?.hour : undefined,
+    selectedMinute: props.mode === 'datetime' ? props.value?.minute : undefined,
+    min: props.min,
+    max: props.max,
+  } as DatePickerState<TMode>);
 
-    // Handle props.value change from outside
-    useEffect(() => {
-      if (props.value) {
-        dispatch({ type: 'setSelectedDate', date: props.value.startOf('day') });
-        if (props.mode === DateTimePickerMode.DateTime) {
-          dispatch({ type: 'setSelectedHour', hour: props.value.hour });
-          dispatch({ type: 'setSelectedMinute', minute: props.value.minute });
-        }
-      } else {
-        dispatch({ type: 'clear' });
+  // Handle props.value change from outside
+  useEffect(() => {
+    if (props.value) {
+      dispatch({ type: 'setSelectedDate', date: props.value.startOf('day') });
+      if (props.mode === DateTimePickerMode.DateTime) {
+        dispatch({ type: 'setSelectedHour', hour: props.value.hour });
+        dispatch({ type: 'setSelectedMinute', minute: props.value.minute });
       }
-    }, [props.value, props.mode]);
-
-    const [liveMessage, setLiveMessage] = useState('');
-    const handleFocusDay = useCallback((date: DateTime) => {
-      dispatch({ type: 'setFocusedDate', date });
-      setLiveMessage(`${date.toFormat('cccc, MMMM d, yyyy')}`);
-    }, []);
-
-    const handleSelectDay = useCallback((date: DateTime) => {
-      dispatch({ type: 'setSelectedDate', date });
-      setLiveMessage(`Selected ${date.toFormat('cccc, MMMM d, yyyy')}`);
-    }, []);
-
-    const handleSelectHour = useCallback((hour: number) => {
-      dispatch({ type: 'setSelectedHour', hour });
-      setLiveMessage(`Hour ${hour}`);
-    }, []);
-
-    const handleSelectMinute = useCallback((minute: number) => {
-      dispatch({ type: 'setSelectedMinute', minute });
-      setLiveMessage(`Minute ${minute}`);
-    }, []);
-    const handleFocusHour = useCallback((hour: number) => {
-      dispatch({ type: 'setFocusedHour', hour });
-    }, []);
-    const handleFocusMinute = useCallback((minute: number) => {
-      dispatch({ type: 'setFocusedMinute', minute });
-    }, []);
-
-    const handleHoverDay = useCallback((date: DateTime) => {
-      dispatch({ type: 'setHoveredDate', date });
-    }, []);
-    const handleClearButtonClicked = useCallback(() => {
-      if (!props.clearable) return;
+    } else {
       dispatch({ type: 'clear' });
-      dispatch({ type: 'close' });
-      props.onChange(undefined);
-    }, [props.onChange, props.clearable]);
-    const handleCancelButtonClicked = useCallback(() => {
-      // Change selected to previous value (original value in props)
-      const originalDate = props.value;
-      if (originalDate) {
-        dispatch({
-          type: 'setSelectedDate',
-          date: originalDate.startOf('day'),
-        });
-        if (props.mode === DateTimePickerMode.DateTime) {
-          dispatch({ type: 'setSelectedHour', hour: originalDate.hour });
-          dispatch({ type: 'setSelectedMinute', minute: originalDate.minute });
-        }
+    }
+  }, [props.value, props.mode]);
+
+  const [liveMessage, setLiveMessage] = useState('');
+  const handleFocusDay = useCallback((date: DateTime) => {
+    dispatch({ type: 'setFocusedDate', date });
+    setLiveMessage(`${date.toFormat('cccc, MMMM d, yyyy')}`);
+  }, []);
+
+  const handleSelectDay = useCallback((date: DateTime) => {
+    dispatch({ type: 'setSelectedDate', date });
+    setLiveMessage(`Selected ${date.toFormat('cccc, MMMM d, yyyy')}`);
+  }, []);
+
+  const handleSelectHour = useCallback((hour: number) => {
+    dispatch({ type: 'setSelectedHour', hour });
+    setLiveMessage(`Hour ${hour}`);
+  }, []);
+
+  const handleSelectMinute = useCallback((minute: number) => {
+    dispatch({ type: 'setSelectedMinute', minute });
+    setLiveMessage(`Minute ${minute}`);
+  }, []);
+  const handleFocusHour = useCallback((hour: number) => {
+    dispatch({ type: 'setFocusedHour', hour });
+  }, []);
+  const handleFocusMinute = useCallback((minute: number) => {
+    dispatch({ type: 'setFocusedMinute', minute });
+  }, []);
+
+  const handleHoverDay = useCallback((date: DateTime) => {
+    dispatch({ type: 'setHoveredDate', date });
+  }, []);
+  const handleClearButtonClicked = useCallback(() => {
+    if (!props.clearable) return;
+    dispatch({ type: 'clear' });
+    dispatch({ type: 'close' });
+    props.onChange(undefined);
+  }, [props.onChange, props.clearable]);
+  const handleCancelButtonClicked = useCallback(() => {
+    // Change selected to previous value (original value in props)
+    const originalDate = props.value;
+    if (originalDate) {
+      dispatch({
+        type: 'setSelectedDate',
+        date: originalDate.startOf('day'),
+      });
+      if (props.mode === DateTimePickerMode.DateTime) {
+        dispatch({ type: 'setSelectedHour', hour: originalDate.hour });
+        dispatch({ type: 'setSelectedMinute', minute: originalDate.minute });
       }
+    }
 
-      dispatch({ type: 'close' });
-    }, [props.value, props.mode]);
+    dispatch({ type: 'close' });
+  }, [props.value, props.mode]);
 
-    const handleSubmit = useCallback(() => {
-      if (props.mode === DateTimePickerMode.Date) {
-        if (state.selectedDate) {
-          props.onChange?.(state.selectedDate);
-        }
-      } else if (state.selectedDate) {
-        const date = state.selectedDate.set({
-          hour: state.selectedHour ?? 0,
-          minute: state.selectedMinute ?? 0,
-          second: 0,
-          millisecond: 0,
-        });
-        props.onChange?.(date);
+  const handleSubmit = useCallback(() => {
+    if (props.mode === DateTimePickerMode.Date) {
+      if (state.selectedDate) {
+        props.onChange?.(state.selectedDate);
       }
+    } else if (state.selectedDate) {
+      const date = state.selectedDate.set({
+        hour: state.selectedHour ?? 0,
+        minute: state.selectedMinute ?? 0,
+        second: 0,
+        millisecond: 0,
+      });
+      props.onChange?.(date);
+    }
+    dispatch({ type: 'close' });
+  }, [
+    props.onChange,
+    props.mode,
+    state.selectedDate,
+    state.selectedHour,
+    state.selectedMinute,
+  ]);
+
+  const handleOkButtonClicked = useCallback(() => {
+    handleSubmit();
+  }, [handleSubmit]);
+
+  const closePopoverContent = useCallback(() => {
+    dispatch({ type: 'close' });
+  }, []);
+
+  const handleOpenChange = useCallback((open: boolean) => {
+    if (open) {
+      dispatch({ type: 'open' });
+    } else {
       dispatch({ type: 'close' });
-    }, [
-      props.onChange,
-      props.mode,
-      state.selectedDate,
-      state.selectedHour,
-      state.selectedMinute,
-    ]);
+    }
+  }, []);
 
-    const handleOkButtonClicked = useCallback(() => {
-      handleSubmit();
-    }, [handleSubmit]);
+  const formattedValue = props.value?.toISO() || '';
 
-    const closePopoverContent = useCallback(() => {
-      dispatch({ type: 'close' });
-    }, []);
+  return (
+    <>
+      {/* A11Y: Live region for screen reader announcements */}
+      <LiveRegion message={liveMessage} />
 
-    const handleOpenChange = useCallback((open: boolean) => {
-      if (open) {
-        dispatch({ type: 'open' });
-      } else {
-        dispatch({ type: 'close' });
-      }
-    }, []);
+      {/* A11Y: Hidden input for form integration */}
+      {props.name && (
+        <input
+          type="hidden"
+          name={props.name}
+          value={formattedValue}
+          required={props.required}
+          aria-hidden="true"
+        />
+      )}
 
-    const formattedValue = props.value?.toISO() || '';
-
-    return (
-      <>
-        {/* A11Y: Live region for screen reader announcements */}
-        <LiveRegion message={liveMessage} />
-
-        {/* A11Y: Hidden input for form integration */}
-        {props.name && (
-          <input
-            type="hidden"
-            name={props.name}
-            value={formattedValue}
-            required={props.required}
-            aria-hidden="true"
-          />
-        )}
-
-        <div className={s.datePicker}>
-          <Popover.Root open={state.isOpen} onOpenChange={handleOpenChange}>
-            <Popover.Trigger>
-              <Button
-                ref={ref}
-                variant="outline"
-                color="gray"
-                className={s.triggerButton}
-                aria-label={
-                  props['aria-label'] ||
+      <div className={s.datePicker}>
+        <Popover.Root open={state.isOpen} onOpenChange={handleOpenChange}>
+          <Popover.Trigger>
+            <Button
+              ref={ref}
+              variant="outline"
+              color="gray"
+              className={s.triggerButton}
+              aria-label={
+                props['aria-label'] ||
+                (props.mode === DateTimePickerMode.DateTime
+                  ? 'Select date & time'
+                  : 'Select date')
+              }
+              aria-describedby={props['aria-describedby']}
+              aria-invalid={props['aria-invalid']}
+              disabled={props.disabled}
+            >
+              {props.value?.toFormat(
+                props.mode === DateTimePickerMode.DateTime
+                  ? 'd LLLL yyyy HH:mm'
+                  : 'd LLLL yyyy',
+              ) ??
+                (props.placeholder ||
                   (props.mode === DateTimePickerMode.DateTime
                     ? 'Select date & time'
-                    : 'Select date')
-                }
-                aria-describedby={props['aria-describedby']}
-                aria-invalid={props['aria-invalid']}
-                disabled={props.disabled}
-              >
-                {props.value?.toFormat(
-                  props.mode === DateTimePickerMode.DateTime
-                    ? 'd LLLL yyyy HH:mm'
-                    : 'd LLLL yyyy',
-                ) ??
-                  (props.placeholder ||
-                    (props.mode === DateTimePickerMode.DateTime
-                      ? 'Select date & time'
-                      : 'Select date'))}
-                {state.isOpen ? (
-                  <ChevronUpIcon aria-hidden="true" />
-                ) : (
-                  <ChevronDownIcon aria-hidden="true" />
-                )}
-              </Button>
-            </Popover.Trigger>
+                    : 'Select date'))}
+              {state.isOpen ? (
+                <ChevronUpIcon aria-hidden="true" />
+              ) : (
+                <ChevronDownIcon aria-hidden="true" />
+              )}
+            </Button>
+          </Popover.Trigger>
 
-            {props.clearable && (
-              <Button
-                variant="outline"
-                color="gray"
-                className={s.clearButton}
-                onClick={handleClearButtonClicked}
-                aria-label="Clear date"
-                disabled={props.disabled || !props.value}
-              >
-                <Cross1Icon aria-hidden="true" />
-              </Button>
-            )}
-
-            <Popover.Content
-              className={s.pickerDialog}
-              align="start"
-              onEscapeKeyDown={closePopoverContent}
-              minWidth="330px"
-              maxWidth="min(480px, 95vw)"
-              avoidCollisions={true}
+          {props.clearable && (
+            <Button
+              variant="outline"
+              color="gray"
+              className={s.clearButton}
+              onClick={handleClearButtonClicked}
+              aria-label="Clear date"
+              disabled={props.disabled || !props.value}
             >
-              <div className={s.calendarAndTime}>
-                <CalendarMonth
-                  yearMonth={state.focusedDate}
-                  focusedDate={state.focusedDate}
-                  selectedDate={state.selectedDate}
-                  onFocusDay={handleFocusDay}
-                  onSelectDay={handleSelectDay}
-                  onHoverDay={handleHoverDay}
-                  max={state.max}
-                  min={state.min}
-                  disabled={props.disabled}
-                  onLiveAnnouncement={setLiveMessage}
-                />
-                {props.mode === DateTimePickerMode.DateTime && (
-                  <TimeSelector
-                    disabled={props.disabled}
-                    focusedHour={state.focusedHour}
-                    focusedMinute={state.focusedMinute}
-                    selectedHour={state.selectedHour}
-                    selectedMinute={state.selectedMinute}
-                    onSelectHour={handleSelectHour}
-                    onSelectMinute={handleSelectMinute}
-                    onFocusHour={handleFocusHour}
-                    onFocusMinute={handleFocusMinute}
-                  />
-                )}
-              </div>
+              <Cross1Icon aria-hidden="true" />
+            </Button>
+          )}
 
-              <div className={s.dialogButtons}>
-                <Button
-                  type="reset"
-                  variant="outline"
+          <Popover.Content
+            className={s.pickerDialog}
+            align="start"
+            onEscapeKeyDown={closePopoverContent}
+            minWidth="330px"
+            maxWidth="min(480px, 95vw)"
+            avoidCollisions={true}
+          >
+            <div className={s.calendarAndTime}>
+              <CalendarMonth
+                yearMonth={state.focusedDate}
+                focusedDate={state.focusedDate}
+                selectedDate={state.selectedDate}
+                onFocusDay={handleFocusDay}
+                onSelectDay={handleSelectDay}
+                onHoverDay={handleHoverDay}
+                max={state.max}
+                min={state.min}
+                disabled={props.disabled}
+                onLiveAnnouncement={setLiveMessage}
+              />
+              {props.mode === DateTimePickerMode.DateTime && (
+                <TimeSelector
                   disabled={props.disabled}
-                  onClick={handleCancelButtonClicked}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  disabled={props.disabled}
-                  variant="solid"
-                  onClick={handleOkButtonClicked}
-                >
-                  OK
-                </Button>
-              </div>
-            </Popover.Content>
-          </Popover.Root>
-        </div>
-      </>
-    );
+                  focusedHour={state.focusedHour}
+                  focusedMinute={state.focusedMinute}
+                  selectedHour={state.selectedHour}
+                  selectedMinute={state.selectedMinute}
+                  onSelectHour={handleSelectHour}
+                  onSelectMinute={handleSelectMinute}
+                  onFocusHour={handleFocusHour}
+                  onFocusMinute={handleFocusMinute}
+                />
+              )}
+            </div>
+
+            <div className={s.dialogButtons}>
+              <Button
+                type="reset"
+                variant="outline"
+                disabled={props.disabled}
+                onClick={handleCancelButtonClicked}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={props.disabled}
+                variant="solid"
+                onClick={handleOkButtonClicked}
+              >
+                OK
+              </Button>
+            </div>
+          </Popover.Content>
+        </Popover.Root>
+      </div>
+    </>
+  );
+}
+
+export const DateTimePicker = forwardRef(DateTimePickerInner) as <
+  mode extends DateTimePickerModeType,
+>(
+  props: DatePickerProps<mode> & {
+    ref?: React.ForwardedRef<HTMLButtonElement>;
   },
-);
+) => ReturnType<typeof DateTimePickerInner>;
