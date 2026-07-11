@@ -60,9 +60,9 @@ export function CalendarMonth({
     return Array.from({ length: 7 })
       .fill(0)
       .map((_, i) => {
-        // "Mon"-"Sun"
+        // "Mon"-"Sun" at calendar headers
         const dateTime = startOfMonth.add({
-          days: i - startOfMonth.dayOfWeek - 1,
+          days: i - startOfMonth.dayOfWeek + 1,
         });
         return {
           abbr: formatterAbbr.format(dateTime),
@@ -84,6 +84,7 @@ export function CalendarMonth({
 
   const focusDayButton = useCallback(
     (date: Temporal.PlainDate) => {
+      console.log('focusDayButton', date.toString());
       setIsDayButtonFocused(true);
       onFocusDay(date);
     },
@@ -311,13 +312,19 @@ function isDateInRange(
   start?: Temporal.PlainDate,
   end?: Temporal.PlainDate,
 ) {
-  // console.log('isDateInRange', { date, start, end });
   if (start != null && end != null) {
-    return date >= start && date <= end;
+    // date >= start && date <= end
+    const isDateOnOrAfterStart = Temporal.PlainDate.compare(date, start) >= 0;
+    const isDateOnOrBeforeEnd = Temporal.PlainDate.compare(date, end) <= 0;
+    return isDateOnOrAfterStart && isDateOnOrBeforeEnd;
   } else if (start != null) {
-    return date >= start;
+    // date >= start
+    const isDateOnOrAfterStart = Temporal.PlainDate.compare(date, start) >= 0;
+    return isDateOnOrAfterStart;
   } else if (end != null) {
-    return date <= end;
+    // date <= end
+    const isDateOnOrBeforeEnd = Temporal.PlainDate.compare(date, end) <= 0;
+    return isDateOnOrBeforeEnd;
   }
   return true;
 }
@@ -326,11 +333,19 @@ function getDateInRange(
   start?: Temporal.PlainDate,
   end?: Temporal.PlainDate,
 ) {
-  if (start != null && date < start) {
-    return start;
+  if (start != null) {
+    // i.e. date < start
+    const isDateBeforeStart = Temporal.PlainDate.compare(date, start) < 0;
+    if (isDateBeforeStart) {
+      return start;
+    }
   }
-  if (end != null && date > end) {
-    return end;
+  if (end != null) {
+    // i.e. date > end
+    const isDateAfterEnd = Temporal.PlainDate.compare(date, end) > 0;
+    if (isDateAfterEnd) {
+      return end;
+    }
   }
   return date;
 }

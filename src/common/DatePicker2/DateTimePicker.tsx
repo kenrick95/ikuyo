@@ -121,6 +121,7 @@ function DateTimePickerInner(
   props: DatePickerProps,
   ref: React.ForwardedRef<HTMLButtonElement>,
 ) {
+  // TODO: Need to have guard where mode === 'datetime' then value passed must be Temporal.PlainDateTime and NOT Temporal.PlainDate, and vice versa. Otherwise, it will cause runtime error when trying to access hour/minute of Temporal.PlainDate which doesn't have hour/minute; and vice versa, if mode === 'date' then value passed must be Temporal.PlainDate and NOT Temporal.PlainDateTime. Otherwise, it will cause runtime error when trying to access hour/minute of Temporal.PlainDate which doesn't have hour/minute.
   // TODO: change all internal state to temporal
   // TODO: then change usage to read from temporal instead of luxon DateTime
   const [state, dispatch] = useReducer(datePickerReducer, props, (props) => {
@@ -143,15 +144,16 @@ function DateTimePickerInner(
             selectedHour: undefined,
             selectedMinute: undefined,
           };
+
+    const valueDate =
+      props.value instanceof Temporal.PlainDateTime
+        ? props.value.toPlainDate()
+        : (props.value as Temporal.PlainDate | undefined);
     return {
       isOpen: false,
       // We need at least focusedDate to decide which month to show, else we can't show anything
-      focusedDate:
-        props.value ??
-        (props.mode === DateTimePickerMode.Date
-          ? Temporal.Now.plainDateISO()
-          : Temporal.Now.plainDateTimeISO()),
-      selectedDate: props.value,
+      focusedDate: valueDate ?? Temporal.Now.plainDateISO(),
+      selectedDate: valueDate,
       hoveredDate: undefined,
       ...ret,
       min: props.min,
@@ -162,13 +164,20 @@ function DateTimePickerInner(
   // Handle props.value change from outside
   useEffect(() => {
     if (props.value) {
-      dispatch({
-        type: 'setSelectedDate',
-        date: props.value,
-      });
       if (props.mode === DateTimePickerMode.DateTime) {
-        dispatch({ type: 'setSelectedHour', hour: props.value.hour });
-        dispatch({ type: 'setSelectedMinute', minute: props.value.minute });
+        const dateTime = props.value as Temporal.PlainDateTime;
+        dispatch({
+          type: 'setSelectedDate',
+          date: dateTime.toPlainDate(),
+        });
+        dispatch({ type: 'setSelectedHour', hour: dateTime.hour });
+        dispatch({ type: 'setSelectedMinute', minute: dateTime.minute });
+      } else {
+        const date = props.value as Temporal.PlainDate;
+        dispatch({
+          type: 'setSelectedDate',
+          date: date,
+        });
       }
     } else {
       dispatch({ type: 'clear' });
@@ -213,22 +222,28 @@ function DateTimePickerInner(
   }, [props.onChange, props.clearable]);
   const handleCancelButtonClicked = useCallback(() => {
     // Change selected to previous value (original value in props)
-    const originalDate = props.value;
-    if (originalDate) {
-      dispatch({
-        type: 'setSelectedDate',
-        date: originalDate,
-      });
+    const value = props.value;
+    if (value) {
       if (props.mode === DateTimePickerMode.DateTime) {
         // Because props.mode === 'datetime', originalDate must be Temporal.PlainDateTime
-        const originalDateTime = originalDate as Temporal.PlainDateTime;
+        const dateTime = value as Temporal.PlainDateTime;
+        dispatch({
+          type: 'setSelectedDate',
+          date: dateTime.toPlainDate(),
+        });
         dispatch({
           type: 'setSelectedHour',
-          hour: originalDateTime.hour,
+          hour: dateTime.hour,
         });
         dispatch({
           type: 'setSelectedMinute',
-          minute: originalDateTime.minute,
+          minute: dateTime.minute,
+        });
+      } else {
+        const date = value as Temporal.PlainDate;
+        dispatch({
+          type: 'setSelectedDate',
+          date,
         });
       }
     }
@@ -237,18 +252,19 @@ function DateTimePickerInner(
   }, [props.value, props.mode]);
 
   const handleSubmit = useCallback(() => {
-    if (props.mode === DateTimePickerMode.Date) {
-      if (state.selectedDate) {
-        props.onChange?.(state.selectedDate);
+    if (state.selectedDate && props.onChange) {
+      if (props.mode === DateTimePickerMode.DateTime) {
+        props.onChange(
+          Temporal.PlainDateTime.from(state.selectedDate).withPlainTime({
+            hour: state.selectedHour ?? 0,
+            minute: state.selectedMinute ?? 0,
+            second: 0,
+            millisecond: 0,
+          }),
+        );
+      } else {
+        props.onChange(state.selectedDate);
       }
-    } else if (state.selectedDate) {
-      const date = state.selectedDate.set({
-        hour: state.selectedHour ?? 0,
-        minute: state.selectedMinute ?? 0,
-        second: 0,
-        millisecond: 0,
-      });
-      props.onChange?.(date);
     }
     dispatch({ type: 'close' });
   }, [
@@ -350,21 +366,9 @@ function DateTimePickerInner(
           >
             <div className={s.calendarAndTime}>
               <CalendarMonth
-                yearMonth={
-                  state.focusedDate instanceof Temporal.PlainDateTime
-                    ? state.focusedDate.toPlainDate()
-                    : state.focusedDate
-                }
-                focusedDate={
-                  state.focusedDate instanceof Temporal.PlainDateTime
-                    ? state.focusedDate.toPlainDate()
-                    : state.focusedDate
-                }
-                selectedDate={
-                  state.selectedDate instanceof Temporal.PlainDateTime
-                    ? state.selectedDate.toPlainDate()
-                    : state.selectedDate
-                }
+                yearMonth={state.focusedDate}
+                focusedDate={state.focusedDate}
+                selectedDate={state.selectedDate}
                 onFocusDay={handleFocusDay}
                 onSelectDay={handleSelectDay}
                 onHoverDay={handleHoverDay}

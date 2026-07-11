@@ -1,16 +1,24 @@
-import { DateTime } from 'luxon';
 import { useState } from 'react';
 import { DateTimePicker } from './common/DatePicker2/DateTimePicker';
 
-const today = DateTime.fromISO('2025-06-07T09:10:00Z');
-const min = today.plus({ months: -1 });
-const max = today.plus({ months: 1 });
+const todayDate = Temporal.PlainDate.from('2025-06-07T09:10:00');
+const todayDateTime = Temporal.PlainDateTime.from('2025-06-07T09:10:00');
+const min = todayDate.add({ months: -1 });
+const max = todayDate.add({ months: 1 });
 
 export default function PageDemo() {
-  const [value, setValue] = useState<DateTime | undefined>(today);
-  const [value2, setValue2] = useState<DateTime | undefined>(today);
-  const [value3, setValue3] = useState<DateTime | undefined>(today);
-  const [value4, setValue4] = useState<DateTime | undefined>(today);
+  const [value, setValue] = useState<
+    Temporal.PlainDate | Temporal.PlainDateTime | undefined
+  >(todayDate);
+  const [value2, setValue2] = useState<
+    Temporal.PlainDate | Temporal.PlainDateTime | undefined
+  >(todayDate);
+  const [value3, setValue3] = useState<
+    Temporal.PlainDate | Temporal.PlainDateTime | undefined
+  >(todayDateTime);
+  const [value4, setValue4] = useState<
+    Temporal.PlainDate | Temporal.PlainDateTime | undefined
+  >(todayDateTime);
   return (
     <div>
       <div>

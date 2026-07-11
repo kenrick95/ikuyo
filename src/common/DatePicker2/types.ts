@@ -11,21 +11,23 @@ export type DatePickerProps = {
   placeholder?: string; // Custom placeholder text
 
   mode: DateTimePickerModeType;
+  /** value will be PlainDate if mode is 'date'; value will be PlainDateTime if mode is 'datetime'; value will be undefined if it is cleared */
   value: Temporal.PlainDate | Temporal.PlainDateTime | undefined;
-  min?: Temporal.PlainDate | Temporal.PlainDateTime | undefined;
-  max?: Temporal.PlainDate | Temporal.PlainDateTime | undefined;
+  min?: Temporal.PlainDate | undefined;
+  max?: Temporal.PlainDate | undefined;
   onChange: (
+    /** value will be PlainDate if mode is 'date'; value will be PlainDateTime if mode is 'datetime'; value will be undefined if it is cleared */
     value: Temporal.PlainDate | Temporal.PlainDateTime | undefined,
   ) => void;
 };
 
 export type DatePickerState = {
   isOpen: boolean;
-  focusedDate: Temporal.PlainDate | Temporal.PlainDateTime;
-  selectedDate: Temporal.PlainDate | Temporal.PlainDateTime | undefined;
-  hoveredDate: Temporal.PlainDate | Temporal.PlainDateTime | undefined;
-  min: Temporal.PlainDate | Temporal.PlainDateTime | undefined;
-  max: Temporal.PlainDate | Temporal.PlainDateTime | undefined;
+  focusedDate: Temporal.PlainDate;
+  selectedDate: Temporal.PlainDate | undefined;
+  hoveredDate: Temporal.PlainDate | undefined;
+  min: Temporal.PlainDate | undefined;
+  max: Temporal.PlainDate | undefined;
   focusedHour: number | undefined;
   focusedMinute: number | undefined;
   selectedHour: number | undefined;
@@ -34,15 +36,15 @@ export type DatePickerState = {
 export type DatePickerAction =
   | {
       type: 'setFocusedDate';
-      date: Temporal.PlainDate | Temporal.PlainDateTime | undefined;
+      date: Temporal.PlainDate;
     }
   | {
       type: 'setSelectedDate';
-      date: Temporal.PlainDate | Temporal.PlainDateTime | undefined;
+      date: Temporal.PlainDate;
     }
   | {
       type: 'setHoveredDate';
-      date: Temporal.PlainDate | Temporal.PlainDateTime | undefined;
+      date: Temporal.PlainDate;
     }
   | { type: 'setSelectedHour'; hour: number }
   | { type: 'setSelectedMinute'; minute: number }
