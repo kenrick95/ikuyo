@@ -1,5 +1,4 @@
 import { Box, Dialog } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
 import { CommonLargeDialogMaxWidth } from '../../Dialog/ui';
 import { useBoundStore } from '../../data/store';
 import type { TripSliceTrip } from '../store/types';
@@ -7,12 +6,17 @@ import { TripForm } from '../TripForm';
 import { TripFormMode } from '../TripFormMode';
 
 export function TripEditDialog({ trip }: { trip: TripSliceTrip }) {
-  const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
-    trip.timeZone,
-  );
-  const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd)
-    .setZone(trip.timeZone)
-    .minus({ days: 1 });
+  const tripStartDateTime = Temporal.Instant.fromEpochMilliseconds(
+    trip.timestampStart,
+  )
+    .toZonedDateTimeISO(trip.timeZone)
+    .toPlainDate();
+  const tripEndDateTime = Temporal.Instant.fromEpochMilliseconds(
+    trip.timestampEnd,
+  )
+    .toZonedDateTimeISO(trip.timeZone)
+    .toPlainDate()
+    .subtract({ days: 1 });
   const popDialog = useBoundStore((state) => state.popDialog);
 
   return (

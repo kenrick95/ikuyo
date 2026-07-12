@@ -1,22 +1,19 @@
 // src/Trip/TripNew/wizardReducer.ts
-import type { DateTime } from 'luxon';
 
 export type FlightCapture = {
-  flightNumber: string;
-  departureAirport: string;
-  arrivalAirport: string;
-  /** "wall clock" state, when turn to ms, need to set zone + keep local times */
-  departureDateTime: DateTime | undefined;
-  /** "wall clock" state, when turn to ms, need to set zone + keep local times */
-  arrivalDateTime: DateTime | undefined;
-  departureTimeZone: string;
-  arrivalTimeZone: string;
-  departureLat: number | undefined;
-  departureLng: number | undefined;
-  departureZoom: number | undefined;
-  arrivalLat: number | undefined;
-  arrivalLng: number | undefined;
-  arrivalZoom: number | undefined;
+  flightNumber?: string | undefined;
+  departureAirport?: string | undefined;
+  arrivalAirport?: string | undefined;
+  departureDateTime?: Temporal.PlainDateTime | undefined;
+  arrivalDateTime?: Temporal.PlainDateTime | undefined;
+  departureTimeZone?: string | undefined;
+  arrivalTimeZone?: string | undefined;
+  departureLat?: number | undefined;
+  departureLng?: number | undefined;
+  departureZoom?: number | undefined;
+  arrivalLat?: number | undefined;
+  arrivalLng?: number | undefined;
+  arrivalZoom?: number | undefined;
 };
 
 export type WizardState = {
@@ -24,8 +21,8 @@ export type WizardState = {
   // Step 1
   title: string;
   region: string;
-  startDate: DateTime | undefined;
-  endDate: DateTime | undefined;
+  startDate: Temporal.PlainDate | undefined;
+  endDate: Temporal.PlainDate | undefined;
   // Step 2 (pre-filled from region)
   timeZone: string;
   currency: string;
@@ -40,8 +37,8 @@ export type WizardAction =
   | { type: 'SET_STEP'; step: 1 | 2 | 3 }
   | { type: 'SET_TITLE'; title: string }
   | { type: 'SET_REGION'; region: string; timeZone: string; currency: string }
-  | { type: 'SET_START_DATE'; date: DateTime | undefined }
-  | { type: 'SET_END_DATE'; date: DateTime | undefined }
+  | { type: 'SET_START_DATE'; date: Temporal.PlainDate | undefined }
+  | { type: 'SET_END_DATE'; date: Temporal.PlainDate | undefined }
   | { type: 'SET_TIMEZONE'; timeZone: string }
   | { type: 'SET_CURRENCY'; currency: string }
   | { type: 'SET_ORIGIN_CURRENCY'; originCurrency: string }
@@ -65,33 +62,27 @@ export function wizardReducer(
         region: action.region,
         timeZone: nextTimeZone,
         currency: action.currency,
-        startDate: state.startDate?.setZone(nextTimeZone, {
-          keepLocalTime: true,
-        }),
-        endDate: state.endDate?.setZone(nextTimeZone, { keepLocalTime: true }),
+        startDate: state.startDate,
+        endDate: state.endDate,
       };
     }
     case 'SET_START_DATE':
       return {
         ...state,
-        startDate: action.date?.setZone(state.timeZone, {
-          keepLocalTime: true,
-        }),
+        startDate: action.date,
       };
     case 'SET_END_DATE':
       return {
         ...state,
-        endDate: action.date?.setZone(state.timeZone, { keepLocalTime: true }),
+        endDate: action.date,
       };
     case 'SET_TIMEZONE': {
       const nextTimeZone = action.timeZone;
       return {
         ...state,
         timeZone: nextTimeZone,
-        startDate: state.startDate?.setZone(nextTimeZone, {
-          keepLocalTime: true,
-        }),
-        endDate: state.endDate?.setZone(nextTimeZone, { keepLocalTime: true }),
+        startDate: state.startDate,
+        endDate: state.endDate,
       };
     }
     case 'SET_CURRENCY':
@@ -101,9 +92,15 @@ export function wizardReducer(
     case 'SET_TRAVEL_MODE':
       return { ...state, travelMode: action.travelMode };
     case 'SET_OUTBOUND_FLIGHT':
-      return { ...state, outboundFlight: action.flight };
+      return {
+        ...state,
+        outboundFlight: { ...(state.outboundFlight || {}), ...action.flight },
+      };
     case 'SET_RETURN_FLIGHT':
-      return { ...state, returnFlight: action.flight };
+      return {
+        ...state,
+        returnFlight: { ...(state.returnFlight || {}), ...action.flight },
+      };
     default:
       return state;
   }

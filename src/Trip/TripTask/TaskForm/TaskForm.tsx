@@ -6,7 +6,7 @@ import {
   TextArea,
   TextField,
 } from '@radix-ui/themes';
-import type { DateTime } from 'luxon';
+import { DateTime } from 'luxon';
 import { useCallback, useId, useState } from 'react';
 import { DateTimePicker } from '../../../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../../../common/DatePicker2/DateTimePickerMode';
@@ -53,6 +53,22 @@ export function TaskForm({
   // State for DateTime picker
   const [dueAtDateTime, setDueAtDateTime] = useState<DateTime | undefined>(
     taskDueAtDateTime || undefined,
+  );
+  const handleDueAtChange = useCallback(
+    (value: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
+      if (value instanceof Temporal.PlainDateTime) {
+        setDueAtDateTime(DateTime.fromISO(value.toString()));
+      } else if (value instanceof Temporal.PlainDate) {
+        // If only a date is selected, set the time to 00:00 in the trip's time zone
+        const dateTimeInTripTZ = DateTime.fromISO(value.toString(), {
+          zone: tripTimeZone,
+        }).startOf('day');
+        setDueAtDateTime(dateTimeInTripTZ);
+      } else {
+        setDueAtDateTime(undefined);
+      }
+    },
+    [tripTimeZone],
   );
 
   const handleSubmit = useCallback(
@@ -187,8 +203,8 @@ export function TaskForm({
         <DateTimePicker
           name="dueAt"
           mode={DateTimePickerMode.DateTime}
-          value={dueAtDateTime}
-          onChange={setDueAtDateTime}
+          value={Temporal.PlainDate.from(dueAtDateTime?.toISO() || '')}
+          onChange={handleDueAtChange}
           clearable
         />
 

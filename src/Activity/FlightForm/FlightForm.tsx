@@ -28,6 +28,10 @@ import {
 } from '../activityFlag';
 import { dbAddActivity, dbUpdateActivity } from '../db';
 import { airportGeocodingRequest } from './FlightFormGeocoding';
+import {
+  temporalToLuxonDate,
+  temporalToLuxonDateTime,
+} from '../../common/dateTime/luxonTemporalConverter';
 
 interface LocationCoordinateState {
   enabled: [boolean, boolean];
@@ -107,8 +111,8 @@ export function FlightForm({
   mode: ActivityFormModeType;
   activityId?: string;
   tripId?: string;
-  tripStartDateTime: DateTime | undefined;
-  tripEndDateTime: DateTime | undefined;
+  tripStartDateTime: Temporal.PlainDate | undefined;
+  tripEndDateTime: Temporal.PlainDate | undefined;
   tripTimeZone: string;
   tripRegion: string;
   activityTitle: string;
@@ -351,7 +355,11 @@ export function FlightForm({
       if (
         tripStartDateTime &&
         startDateTime &&
-        startDateTime < tripStartDateTime.minus({ days: 1 })
+        startDateTime <
+          temporalToLuxonDate(
+            tripStartDateTime.subtract({ days: 1 }),
+            tripTimeZone,
+          )
       ) {
         setErrorMessage(
           'Departure time cannot be earlier than 1 day before trip start',
@@ -361,7 +369,11 @@ export function FlightForm({
       if (
         tripEndDateTime &&
         endDateTime &&
-        endDateTime > tripEndDateTime.plus({ days: 1 })
+        endDateTime >
+          temporalToLuxonDate(
+            tripEndDateTime.add({ days: 1 }),
+            tripTimeZone,
+          )
       ) {
         setErrorMessage(
           'Arrival time cannot be later than 1 day after trip end',
@@ -618,7 +630,7 @@ export function FlightForm({
         <DateTimePicker
           name="startTime"
           mode={DateTimePickerMode.DateTime}
-          min={tripStartDateTime?.minus({ days: 1 })}
+          min={tripStartDateTime?.subtract({ days: 1 })}
           max={tripEndDateTime?.plus({ days: 1 })}
           value={startDateTime}
           onChange={handleStartDateTimeChange}
@@ -647,8 +659,8 @@ export function FlightForm({
         <DateTimePicker
           name="endTime"
           mode={DateTimePickerMode.DateTime}
-          min={tripStartDateTime?.minus({ days: 1 })}
-          max={tripEndDateTime?.plus({ days: 1 })}
+          min={tripStartDateTime?.subtract({ days: 1 })}
+          max={tripEndDateTime?.add({ days: 1 })}
           value={endDateTime}
           onChange={handleEndDateTimeChange}
           clearable={true}

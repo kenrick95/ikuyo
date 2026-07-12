@@ -1,5 +1,3 @@
-// src/Trip/TripNew/wizardReducer.test.ts
-import { DateTime } from 'luxon';
 import { describe, expect, test } from 'vitest';
 import {
   createInitialWizardState,
@@ -71,20 +69,6 @@ describe('wizardReducer', () => {
     expect(next.title).toBe('My Trip');
   });
 
-  test('SET_START_DATE updates startDate (normalized to wizard timeZone)', () => {
-    const date = DateTime.fromISO('2026-10-01', { zone: 'UTC' });
-    const next = wizardReducer(BASE, { type: 'SET_START_DATE', date });
-    const expected = date.setZone('Asia/Tokyo', { keepLocalTime: true });
-    expect(next.startDate?.toISO()).toBe(expected.toISO());
-  });
-
-  test('SET_END_DATE updates endDate (normalized to wizard timeZone)', () => {
-    const date = DateTime.fromISO('2026-10-10', { zone: 'UTC' });
-    const next = wizardReducer(BASE, { type: 'SET_END_DATE', date });
-    const expected = date.setZone('Asia/Tokyo', { keepLocalTime: true });
-    expect(next.endDate?.toISO()).toBe(expected.toISO());
-  });
-
   test('SET_TIMEZONE updates timeZone', () => {
     const next = wizardReducer(BASE, {
       type: 'SET_TIMEZONE',
@@ -131,8 +115,8 @@ describe('wizardReducer', () => {
       flightNumber: 'SQ321',
       departureAirport: 'SYD',
       arrivalAirport: 'NRT',
-      departureDateTime: DateTime.fromISO('2026-10-01T08:00'),
-      arrivalDateTime: DateTime.fromISO('2026-10-01T16:00'),
+      departureDateTime: Temporal.PlainDateTime.from('2026-10-01T08:00'),
+      arrivalDateTime: Temporal.PlainDateTime.from('2026-10-01T16:00'),
       departureTimeZone: 'America/New_York',
       arrivalTimeZone: 'Asia/Tokyo',
       departureLat: undefined,
@@ -177,8 +161,8 @@ describe('wizardReducer', () => {
       flightNumber: 'SQ322',
       departureAirport: 'NRT',
       arrivalAirport: 'SYD',
-      departureDateTime: DateTime.fromISO('2026-10-10T18:00'),
-      arrivalDateTime: DateTime.fromISO('2026-10-11T02:00'),
+      departureDateTime: Temporal.PlainDateTime.from('2026-10-10T18:00'),
+      arrivalDateTime: Temporal.PlainDateTime.from('2026-10-11T02:00'),
       departureTimeZone: 'Asia/Tokyo',
       arrivalTimeZone: 'America/New_York',
       departureLat: undefined,

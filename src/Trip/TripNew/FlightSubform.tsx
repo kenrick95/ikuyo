@@ -1,5 +1,4 @@
 import { Flex, Select, Text, TextField } from '@radix-ui/themes';
-import type { DateTime } from 'luxon';
 import {
   type ChangeEvent,
   type FocusEvent,
@@ -22,8 +21,8 @@ export type FlightSubformProps = {
   destinationTimeZone: string;
   isOutbound: boolean;
   error?: string;
-  tripStartDate: DateTime | undefined;
-  tripEndDate: DateTime | undefined;
+  tripStartDate: Temporal.PlainDate | undefined;
+  tripEndDate: Temporal.PlainDate | undefined;
   onChange: (flight: FlightCapture | null) => void;
 };
 
@@ -63,6 +62,22 @@ export function FlightSubform({
   const [editingArrivalTz, setEditingArrivalTz] = useState(false);
   const departureBadgeRef = useRef<HTMLButtonElement>(null);
   const arrivalBadgeRef = useRef<HTMLButtonElement>(null);
+  const minDepartureDate: Temporal.PlainDate | undefined = useMemo(() => {
+    if (!tripStartDate) return undefined;
+    return tripStartDate.subtract({ days: 1 });
+  }, [tripStartDate]);
+  const maxDepartureDate: Temporal.PlainDate | undefined = useMemo(() => {
+    if (!tripEndDate) return undefined;
+    return tripEndDate.add({ days: 1 });
+  }, [tripEndDate]);
+  const minArrivalDate: Temporal.PlainDate | undefined = useMemo(() => {
+    if (!tripStartDate) return undefined;
+    return tripStartDate.subtract({ days: 1 });
+  }, [tripStartDate]);
+  const maxArrivalDate: Temporal.PlainDate | undefined = useMemo(() => {
+    if (!tripEndDate) return undefined;
+    return tripEndDate.add({ days: 1 });
+  }, [tripEndDate]);
 
   const handleFlightNumberChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) =>
@@ -150,13 +165,37 @@ export function FlightSubform({
     [],
   );
   const handleDepartureDateChange = useCallback(
-    (date: DateTime | undefined) =>
-      onChange({ ...current, departureDateTime: date }),
+    (date: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
+      return onChange({
+        ...current,
+        departureDateTime:
+          date instanceof Temporal.PlainDate
+            ? Temporal.PlainDateTime.from(date).with({
+                hour: 0,
+                minute: 0,
+                second: 0,
+                millisecond: 0,
+              })
+            : date,
+      });
+    },
     [current, onChange],
   );
   const handleArrivalDateChange = useCallback(
-    (date: DateTime | undefined) =>
-      onChange({ ...current, arrivalDateTime: date }),
+    (date: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
+      return onChange({
+        ...current,
+        arrivalDateTime:
+          date instanceof Temporal.PlainDate
+            ? Temporal.PlainDateTime.from(date).with({
+                hour: 0,
+                minute: 0,
+                second: 0,
+                millisecond: 0,
+              })
+            : date,
+      });
+    },
     [current, onChange],
   );
 
@@ -236,8 +275,8 @@ export function FlightSubform({
             onChange={handleDepartureDateChange}
             mode={DateTimePickerMode.DateTime}
             placeholder="Pick date & time"
-            min={tripStartDate?.minus({ days: 1 })}
-            max={tripEndDate?.plus({ days: 1 })}
+            min={minDepartureDate}
+            max={maxDepartureDate}
           />
         </Flex>
 
@@ -276,8 +315,8 @@ export function FlightSubform({
             onChange={handleArrivalDateChange}
             mode={DateTimePickerMode.DateTime}
             placeholder="Pick date & time"
-            min={tripStartDate?.minus({ days: 1 })}
-            max={tripEndDate?.plus({ days: 1 })}
+            min={minArrivalDate}
+            max={maxArrivalDate}
           />
           {error !== undefined && (
             <Text size="1" color="red">

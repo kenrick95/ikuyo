@@ -22,35 +22,7 @@ import type {
   DatePickerProps,
   DatePickerState,
 } from './types';
-
-function formatLiveMessage(date: Temporal.PlainDate | Temporal.PlainDateTime) {
-  return date.toLocaleString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-function formatDate(plainDate: Temporal.PlainDate) {
-  // TODO: customize format to match Luxon's "d LLLL yyyy"
-  return plainDate.toLocaleString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-function formatDateTime(plainDateTime: Temporal.PlainDateTime) {
-  // TODO: customize format to match Luxon's "d LLLL yyyy HH:mm"
-  return plainDateTime.toLocaleString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: 'numeric',
-  });
-}
+import { toFormat } from '../dateTime/temporalFormatter';
 
 function datePickerReducer(
   state: DatePickerState,
@@ -187,12 +159,12 @@ function DateTimePickerInner(
   const [liveMessage, setLiveMessage] = useState('');
   const handleFocusDay = useCallback((date: Temporal.PlainDate) => {
     dispatch({ type: 'setFocusedDate', date });
-    setLiveMessage(`${formatLiveMessage(date)}`);
+    setLiveMessage(`${toFormat('cccc, MMMM d, yyyy', date)}`);
   }, []);
 
   const handleSelectDay = useCallback((date: Temporal.PlainDate) => {
     dispatch({ type: 'setSelectedDate', date });
-    setLiveMessage(`Selected ${formatLiveMessage(date)}`);
+    setLiveMessage(`Selected ${toFormat('cccc, MMMM d, yyyy', date)}`);
   }, []);
 
   const handleSelectHour = useCallback((hour: number) => {
@@ -329,8 +301,11 @@ function DateTimePickerInner(
             >
               {props.value
                 ? props.mode === DateTimePickerMode.DateTime
-                  ? formatDateTime(props.value as Temporal.PlainDateTime)
-                  : formatDate(props.value as Temporal.PlainDate)
+                  ? toFormat(
+                      'd LLLL yyyy HH:mm',
+                      props.value as Temporal.PlainDateTime,
+                    )
+                  : toFormat('d LLLL yyyy', props.value as Temporal.PlainDate)
                 : props.placeholder ||
                   (props.mode === DateTimePickerMode.DateTime
                     ? 'Select date & time'

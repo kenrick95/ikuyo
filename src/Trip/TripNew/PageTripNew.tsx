@@ -32,8 +32,13 @@ import { TripSharingLevel } from '../tripSharingLevel';
 import { FlightSubform } from './FlightSubform';
 import s from './PageTripNew.module.css';
 import { WizardProgressDots } from './WizardProgressDots';
-import { createInitialWizardState, wizardReducer } from './wizardReducer';
+import {
+  createInitialWizardState,
+  wizardReducer,
+  type FlightCapture,
+} from './wizardReducer';
 import { getFlightTimeError, getOriginCurrencyFromLocale } from './wizardUtils';
+import { toFormat } from '../../common/dateTime/temporalFormatter';
 
 export default function PageTripNew() {
   const [, setLocation] = useLocation();
@@ -90,6 +95,111 @@ export default function PageTripNew() {
     [state.region, handleRegionChange],
   );
 
+  const handleChangeStartDate = useCallback(
+    (date: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
+      if (date instanceof Temporal.PlainDate) {
+        dispatch({ type: 'SET_START_DATE', date });
+      } else if (date instanceof Temporal.PlainDateTime) {
+        dispatch({ type: 'SET_START_DATE', date: date.toPlainDate() });
+      } else {
+        dispatch({ type: 'SET_START_DATE', date: undefined });
+      }
+
+      // If the end date has not been set, set it to the same as the start date
+      if (date instanceof Temporal.PlainDate && !state.endDate) {
+        dispatch({ type: 'SET_END_DATE', date });
+      }
+
+      // If user has not set outbound flight departure date, set it to the start date
+      if (
+        date instanceof Temporal.PlainDate &&
+        !state.outboundFlight?.departureDateTime
+      ) {
+        const newOutboundFlight = {
+          departureDateTime: Temporal.PlainDateTime.from({
+            year: date.year,
+            month: date.month,
+            day: date.day,
+            hour: 12, // Default to noon
+            minute: 0,
+          }),
+        };
+        dispatch({ type: 'SET_OUTBOUND_FLIGHT', flight: newOutboundFlight });
+      }
+
+      // If user has not set outbound flight arrival date, set it to the start date
+      if (
+        date instanceof Temporal.PlainDate &&
+        !state.outboundFlight?.arrivalDateTime
+      ) {
+        const newOutboundFlight = {
+          arrivalDateTime: Temporal.PlainDateTime.from({
+            year: date.year,
+            month: date.month,
+            day: date.day,
+            hour: 13,
+            minute: 0,
+          }),
+        };
+        dispatch({ type: 'SET_OUTBOUND_FLIGHT', flight: newOutboundFlight });
+      }
+    },
+    [
+      state.endDate,
+      state.outboundFlight?.arrivalDateTime,
+      state.outboundFlight?.departureDateTime,
+    ],
+  );
+  const handleChangeEndDate = useCallback(
+    (date: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
+      if (date instanceof Temporal.PlainDate) {
+        dispatch({ type: 'SET_END_DATE', date });
+      } else if (date instanceof Temporal.PlainDateTime) {
+        dispatch({ type: 'SET_END_DATE', date: date.toPlainDate() });
+      } else {
+        dispatch({ type: 'SET_END_DATE', date: undefined });
+      }
+
+      // If user has not set return flight departure date, set it to the start date
+      if (
+        date instanceof Temporal.PlainDate &&
+        !state.returnFlight?.departureDateTime
+      ) {
+        const newReturnFlight = {
+          departureDateTime: Temporal.PlainDateTime.from({
+            year: date.year,
+            month: date.month,
+            day: date.day,
+            hour: 12, // Default to noon
+            minute: 0,
+          }),
+        };
+        dispatch({ type: 'SET_RETURN_FLIGHT', flight: newReturnFlight });
+      }
+
+      // If user has not set return flight arrival date, set it to the start date
+      if (
+        date instanceof Temporal.PlainDate &&
+        !state.returnFlight?.arrivalDateTime
+      ) {
+        const newReturnFlight = {
+          arrivalDateTime: Temporal.PlainDateTime.from({
+            year: date.year,
+            month: date.month,
+            day: date.day,
+            hour: 13,
+            minute: 0,
+          }),
+        };
+        dispatch({ type: 'SET_RETURN_FLIGHT', flight: newReturnFlight });
+      }
+    },
+    [
+      state.returnFlight?.departureDateTime,
+      state.returnFlight?.arrivalDateTime,
+    ],
+  );
+
   const handleCreateTrip = useCallback(async () => {
     const {
       startDate,
@@ -114,12 +224,19 @@ export default function PageTripNew() {
     }
     setIsSubmitting(true);
     try {
+      const timestampStart = startDate
+        .toZonedDateTime(timeZone)
+        .toInstant().epochMilliseconds;
+      const timestampEnd = endDate
+        .add({ days: 1 })
+        .toZonedDateTime(timeZone)
+        .toInstant().epochMilliseconds;
       const { id: newTripId } = await dbAddTrip(
         {
           title,
           timeZone,
-          timestampStart: startDate.toMillis(),
-          timestampEnd: endDate.plus({ days: 1 }).toMillis(),
+          timestampStart,
+          timestampEnd,
           region,
           currency,
           originCurrency,
@@ -129,15 +246,23 @@ export default function PageTripNew() {
       );
       const flightPromises: Promise<unknown>[] = [];
       if (
+        state.travelMode === 'flight' &&
         state.outboundFlight?.flightNumber &&
         state.outboundFlight?.departureDateTime &&
         state.outboundFlight?.arrivalDateTime
       ) {
+        const timestampStart = state.outboundFlight.departureDateTime
+          .toZonedDateTime(state.outboundFlight.departureTimeZone || timeZone)
+          .toInstant().epochMilliseconds;
+        const timestampEnd = state.outboundFlight.arrivalDateTime
+          .toZonedDateTime(state.outboundFlight.arrivalTimeZone || timeZone)
+          .toInstant().epochMilliseconds;
+
         flightPromises.push(
           dbAddActivity(
             {
               title: state.outboundFlight.flightNumber,
-              location: state.outboundFlight.departureAirport,
+              location: state.outboundFlight.departureAirport || '',
               locationLat: state.outboundFlight.departureLat,
               locationLng: state.outboundFlight.departureLng,
               locationZoom: state.outboundFlight.departureZoom,
@@ -146,16 +271,8 @@ export default function PageTripNew() {
               locationDestinationLng: state.outboundFlight.arrivalLng,
               locationDestinationZoom: state.outboundFlight.arrivalZoom,
               description: '',
-              timestampStart: state.outboundFlight.departureDateTime
-                .setZone(state.outboundFlight.departureTimeZone, {
-                  keepLocalTime: true,
-                })
-                .toMillis(),
-              timestampEnd: state.outboundFlight.arrivalDateTime
-                .setZone(state.outboundFlight.arrivalTimeZone, {
-                  keepLocalTime: true,
-                })
-                .toMillis(),
+              timestampStart,
+              timestampEnd,
               timeZoneStart: state.outboundFlight.departureTimeZone,
               timeZoneEnd: state.outboundFlight.arrivalTimeZone,
               flags: ActivityFlag.IsFlight,
@@ -166,15 +283,22 @@ export default function PageTripNew() {
         );
       }
       if (
+        state.travelMode === 'flight' &&
         state.returnFlight?.flightNumber &&
         state.returnFlight?.departureDateTime &&
         state.returnFlight?.arrivalDateTime
       ) {
+        const timestampStart = state.returnFlight.departureDateTime
+          .toZonedDateTime(state.returnFlight.departureTimeZone || timeZone)
+          .toInstant().epochMilliseconds;
+        const timestampEnd = state.returnFlight.arrivalDateTime
+          .toZonedDateTime(state.returnFlight.arrivalTimeZone || timeZone)
+          .toInstant().epochMilliseconds;
         flightPromises.push(
           dbAddActivity(
             {
               title: state.returnFlight.flightNumber,
-              location: state.returnFlight.departureAirport,
+              location: state.returnFlight.departureAirport || '',
               locationLat: state.returnFlight.departureLat,
               locationLng: state.returnFlight.departureLng,
               locationZoom: state.returnFlight.departureZoom,
@@ -183,16 +307,8 @@ export default function PageTripNew() {
               locationDestinationLng: state.returnFlight.arrivalLng,
               locationDestinationZoom: state.returnFlight.arrivalZoom,
               description: '',
-              timestampStart: state.returnFlight.departureDateTime
-                .setZone(state.returnFlight.departureTimeZone, {
-                  keepLocalTime: true,
-                })
-                .toMillis(),
-              timestampEnd: state.returnFlight.arrivalDateTime
-                .setZone(state.returnFlight.arrivalTimeZone, {
-                  keepLocalTime: true,
-                })
-                .toMillis(),
+              timestampStart,
+              timestampEnd,
               timeZoneStart: state.returnFlight.departureTimeZone,
               timeZoneEnd: state.returnFlight.arrivalTimeZone,
               flags: ActivityFlag.IsFlight,
@@ -233,7 +349,7 @@ export default function PageTripNew() {
   const dateError =
     state.startDate !== undefined &&
     state.endDate !== undefined &&
-    state.endDate < state.startDate
+    Temporal.PlainDate.compare(state.startDate, state.endDate) > 0
       ? 'End date must be on or after the start date'
       : undefined;
 
@@ -253,11 +369,13 @@ export default function PageTripNew() {
     state.outboundFlight,
     state.startDate,
     state.endDate,
+    state.timeZone,
   );
   const returnFlightError = getFlightTimeError(
     state.returnFlight,
     state.startDate,
     state.endDate,
+    state.timeZone,
   );
 
   const regionDisplayName = useMemo(() => {
@@ -268,8 +386,29 @@ export default function PageTripNew() {
 
   const dateRangeLabel = useMemo(() => {
     if (!state.startDate || !state.endDate) return '';
-    return `${state.startDate.toFormat('MMM d, yyyy')} – ${state.endDate.toFormat('MMM d, yyyy')}`;
+    return `${toFormat('d MMM yyyy', state.startDate)} – ${toFormat('d MMM yyyy', state.endDate)}`;
   }, [state.startDate, state.endDate]);
+  const handleOutboundFlightChange = useCallback(
+    (flightCapture: FlightCapture | null) => {
+      const flight = flightCapture;
+      // If user has set departure date, but has not set arrival date, set arrival date to same as departure date
+      if (flight?.departureDateTime && !flight.arrivalDateTime) {
+        flight.arrivalDateTime = flight.departureDateTime;
+      }
+      dispatch({ type: 'SET_OUTBOUND_FLIGHT', flight });
+    },
+    [],
+  );
+  const handleReturnFlightChange = useCallback(
+    (flight: FlightCapture | null) => {
+      // If use has set departure date, but has not set arrival date, set arrival date to same as departure date
+      if (flight?.departureDateTime && !flight.arrivalDateTime) {
+        flight.arrivalDateTime = flight.departureDateTime;
+      }
+      dispatch({ type: 'SET_RETURN_FLIGHT', flight });
+    },
+    [],
+  );
 
   if (state.step === 1) {
     return (
@@ -310,7 +449,7 @@ export default function PageTripNew() {
             </Text>
             <DateTimePicker
               value={state.startDate}
-              onChange={(date) => dispatch({ type: 'SET_START_DATE', date })}
+              onChange={handleChangeStartDate}
               mode={DateTimePickerMode.Date}
               name="startDate"
               required
@@ -324,7 +463,7 @@ export default function PageTripNew() {
             </Text>
             <DateTimePicker
               value={state.endDate}
-              onChange={(date) => dispatch({ type: 'SET_END_DATE', date })}
+              onChange={handleChangeEndDate}
               mode={DateTimePickerMode.Date}
               name="endDate"
               required
@@ -505,9 +644,7 @@ export default function PageTripNew() {
             error={outboundFlightError}
             tripStartDate={state.startDate}
             tripEndDate={state.endDate}
-            onChange={(flight) =>
-              dispatch({ type: 'SET_OUTBOUND_FLIGHT', flight })
-            }
+            onChange={handleOutboundFlightChange}
           />
           <FlightSubform
             label="Return flight"
@@ -518,9 +655,7 @@ export default function PageTripNew() {
             error={returnFlightError}
             tripStartDate={state.startDate}
             tripEndDate={state.endDate}
-            onChange={(flight) =>
-              dispatch({ type: 'SET_RETURN_FLIGHT', flight })
-            }
+            onChange={handleReturnFlightChange}
           />
         </>
       )}
