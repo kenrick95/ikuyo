@@ -1,5 +1,4 @@
 import { Badge, Box, Card, Heading, Text } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
 import { useMemo } from 'react';
 import { getTripStatus } from '../Trip/getTripStatus';
 import { useCurrentTrip, useTripExpenses } from '../Trip/store/hooks';
@@ -24,12 +23,12 @@ export function ExpenseHeaderCard() {
   const dailyExpenseSummary = useMemo(() => {
     if (!trip || !expenses || expenses.length === 0) return null;
 
-    const tripStart = DateTime.fromMillis(trip.timestampStart).setZone(
-      trip.timeZone,
-    );
-    const tripEnd = DateTime.fromMillis(trip.timestampEnd).setZone(
-      trip.timeZone,
-    );
+    const tripStart = Temporal.Instant.fromEpochMilliseconds(
+      trip.timestampStart,
+    ).toZonedDateTimeISO(trip.timeZone);
+    const tripEnd = Temporal.Instant.fromEpochMilliseconds(
+      trip.timestampEnd,
+    ).toZonedDateTimeISO(trip.timeZone);
     const tripStatus = getTripStatus(tripStart, tripEnd);
 
     // Future trip - don't show this item
@@ -37,26 +36,27 @@ export function ExpenseHeaderCard() {
       return null;
     }
 
-    let targetDate: DateTime;
+    let targetDate: Temporal.ZonedDateTime;
     let label: string;
 
     // Current trip - show today's total
     if (tripStatus.status === 'current') {
-      targetDate = DateTime.now().setZone(trip.timeZone).startOf('day');
+      targetDate = Temporal.Now.zonedDateTimeISO(trip.timeZone).startOfDay();
       label = 'Today';
     }
     // Past trip - show final day's expense
     else {
       // Final day is one day before timestampEnd
-      targetDate = tripEnd.minus({ days: 1 }).startOf('day');
+      targetDate = tripEnd.subtract({ days: 1 }).startOfDay();
       label = 'Final Day';
     }
 
     const targetExpenses = expenses.filter((expense) => {
-      const expenseDate = DateTime.fromMillis(
+      const expenseDate = Temporal.Instant.fromEpochMilliseconds(
         expense.timestampIncurred,
-      ).setZone(trip.timeZone);
-      return expenseDate.hasSame(targetDate, 'day');
+      ).toZonedDateTimeISO(trip.timeZone);
+      // Check if expenseDate is the same day as targetDate
+      return Temporal.ZonedDateTime.compare(expenseDate.startOfDay(), targetDate) === 0;
     });
 
     let total = 0;

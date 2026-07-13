@@ -100,8 +100,43 @@ function formatTimeParts(
  * @param tripEnd DateTime of day _after_ of trip end. This means the final full day of trip is one day before `timestampEnd`
  * @returns
  */
-export function getTripStatus(tripStart?: DateTime, tripEnd?: DateTime) {
-  if (!tripStart || !tripEnd) return null;
+export function getTripStatus(
+  tripStartMaybe?: DateTime | Temporal.ZonedDateTime,
+  tripEndMaybe?: DateTime | Temporal.ZonedDateTime,
+) {
+  if (!tripStartMaybe || !tripEndMaybe) return null;
+  // TODO: Convert everything to Temporal in the future; for now reuse Luxon DateTime logic
+  const tripStart =
+    tripStartMaybe instanceof Temporal.ZonedDateTime
+      ? DateTime.fromObject(
+          {
+            year: tripStartMaybe.year,
+            month: tripStartMaybe.month,
+            day: tripStartMaybe.day,
+            hour: tripStartMaybe.hour,
+            minute: tripStartMaybe.minute,
+            second: tripStartMaybe.second,
+            millisecond: tripStartMaybe.millisecond,
+          },
+          { zone: tripStartMaybe.timeZoneId },
+        )
+      : tripStartMaybe;
+  const tripEnd =
+    tripEndMaybe instanceof Temporal.ZonedDateTime
+      ? DateTime.fromObject(
+          {
+            year: tripEndMaybe.year,
+            month: tripEndMaybe.month,
+            day: tripEndMaybe.day,
+            hour: tripEndMaybe.hour,
+            minute: tripEndMaybe.minute,
+            second: tripEndMaybe.second,
+            millisecond: tripEndMaybe.millisecond,
+          },
+          { zone: tripEndMaybe.timeZoneId },
+        )
+      : tripEndMaybe;
+
   const now = DateTime.now();
 
   if (now < tripStart) {
