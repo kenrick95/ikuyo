@@ -1,5 +1,4 @@
 import { Box, Dialog, Spinner } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
 import { useCallback } from 'react';
 import type { DialogContentProps } from '../../Dialog/DialogRoute';
 import { useTrip } from '../../Trip/store/hooks';
@@ -19,27 +18,31 @@ export function MacroplanDialogContentEdit({
 
   const tripStartDateTime =
     macroplan && trip
-      ? DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone)
+      ? Temporal.Instant.fromEpochMilliseconds(trip.timestampStart)
+          .toZonedDateTimeISO(trip.timeZone)
+          .toPlainDate()
       : undefined;
   const tripEndDateTime =
     macroplan && trip
-      ? DateTime.fromMillis(trip.timestampEnd)
-          .setZone(trip.timeZone)
-          .minus({ minute: 1 })
+      ? Temporal.Instant.fromEpochMilliseconds(trip.timestampEnd)
+          .toZonedDateTimeISO(trip.timeZone)
+          .toPlainDate()
+          .subtract({ days: 1 })
       : undefined;
 
-  const macroplanDateStartDateTime =
-    macroplan && trip
-      ? DateTime.fromMillis(macroplan.timestampStart).setZone(
-          macroplan.timeZoneStart ?? trip.timeZone,
-        )
+  const macroplanStartDate =
+    macroplan && trip && macroplan.timestampStart != null
+      ? Temporal.Instant.fromEpochMilliseconds(macroplan.timestampStart)
+          .toZonedDateTimeISO(macroplan.timeZoneStart ?? trip.timeZone)
+          .toPlainDate()
       : undefined;
-  const macroplanDateEndDateTime =
-    macroplan && trip
-      ? DateTime.fromMillis(macroplan.timestampEnd)
-          .setZone(macroplan.timeZoneEnd ?? trip.timeZone)
-          .minus({ minute: 1 })
+  const macroplanEndDate =
+    macroplan && trip && macroplan.timestampEnd != null
+      ? Temporal.Instant.fromEpochMilliseconds(macroplan.timestampEnd)
+          .toZonedDateTimeISO(macroplan.timeZoneEnd ?? trip.timeZone)
+          .toPlainDate()
       : undefined;
+
   const backToViewMode = useCallback(() => {
     setMode(MacroplanDialogMode.View);
   }, [setMode]);
@@ -65,11 +68,13 @@ export function MacroplanDialogContentEdit({
           tripId={macroplan.tripId}
           macroplanId={macroplan.id}
           tripTimeZone={trip.timeZone}
-          tripStartDateTime={tripStartDateTime}
-          tripEndDateTime={tripEndDateTime}
+          tripStartDate={tripStartDateTime}
+          tripEndDate={tripEndDateTime}
           macroplanName={macroplan.name}
-          macroplanDateStartDateTime={macroplanDateStartDateTime}
-          macroplanDateEndDateTime={macroplanDateEndDateTime}
+          macroplanStartDate={macroplanStartDate}
+          macroplanEndDate={macroplanEndDate}
+          macroplanStartTimeZone={macroplan.timeZoneStart || trip.timeZone}
+          macroplanEndTimeZone={macroplan.timeZoneEnd || trip.timeZone}
           macroplanNotes={macroplan.notes}
           onFormCancel={backToViewMode}
           onFormSuccess={backToViewMode}

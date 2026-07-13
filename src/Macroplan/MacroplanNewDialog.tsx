@@ -1,5 +1,4 @@
 import { Dialog, Text } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
 import { useMemo } from 'react';
 import { CommonLargeDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
@@ -17,44 +16,60 @@ export function MacroplanNewDialog({
   };
 }) {
   const popDialog = useBoundStore((state) => state.popDialog);
-  const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
-    trip.timeZone,
-  );
-  const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd)
-    .setZone(trip.timeZone)
-    .minus({ minute: 1 });
 
-  const [macroplanCheckInDateTime, macroplanCheckOutDateTime] = useMemo(() => {
+  const tripStartDateTime = Temporal.Instant.fromEpochMilliseconds(
+    trip.timestampStart,
+  )
+    .toZonedDateTimeISO(trip.timeZone)
+    .toPlainDate();
+  const tripEndDateTime = Temporal.Instant.fromEpochMilliseconds(
+    trip.timestampEnd,
+  )
+    .toZonedDateTimeISO(trip.timeZone)
+    .toPlainDate()
+    .subtract({ days: 1 });
+
+  const [
+    macroplanStartDate,
+    macroplanEndDate,
+    macroplanStartTimeZone,
+    macroplanEndTimeZone,
+  ] = useMemo(() => {
     if (prefillData) {
       // Calculate the start of the selected day
-      const tripStart = DateTime.fromMillis(trip.timestampStart).setZone(
-        trip.timeZone,
-      );
+      const tripStart = Temporal.Instant.fromEpochMilliseconds(
+        trip.timestampStart,
+      ).toZonedDateTimeISO(trip.timeZone);
       const selectedDay = tripStart
-        .plus({ days: prefillData.dayOfTrip - 1 })
-        .startOf('day');
+        .add({ days: prefillData.dayOfTrip - 1 })
+        .startOfDay();
 
       // Set start date to the selected day
       const startDate = selectedDay;
       // Set end date to the same day (single day plan by default)
       const endDate = selectedDay;
 
-      return [startDate, endDate];
+      return [
+        startDate.toPlainDate(),
+        endDate.toPlainDate(),
+        trip.timeZone,
+        trip.timeZone,
+      ];
     }
 
     // Default behavior when no prefillData
     return [
-      DateTime.fromMillis(trip.timestampStart)
-        .setZone(trip.timeZone)
-        // Usually check-in is 3pm of the first day
-        .plus({ hour: 15 }),
-      DateTime.fromMillis(trip.timestampEnd)
-        .setZone(trip.timeZone)
-        .minus({
-          day: 1,
+      Temporal.Instant.fromEpochMilliseconds(trip.timestampStart)
+        .toZonedDateTimeISO(trip.timeZone)
+        .toPlainDate(),
+      Temporal.Instant.fromEpochMilliseconds(trip.timestampEnd)
+        .toZonedDateTimeISO(trip.timeZone)
+        .subtract({
+          days: 1,
         })
-        // Usually check-out is 11am of the last day
-        .plus({ hour: 11 }),
+        .toPlainDate(),
+      trip.timeZone,
+      trip.timeZone,
     ];
   }, [trip, prefillData]);
 
@@ -84,11 +99,13 @@ export function MacroplanNewDialog({
           mode={MacroplanFormMode.New}
           tripId={trip.id}
           tripTimeZone={trip.timeZone}
-          tripStartDateTime={tripStartDateTime}
-          tripEndDateTime={tripEndDateTime}
+          tripStartDate={tripStartDateTime}
+          tripEndDate={tripEndDateTime}
           macroplanName=""
-          macroplanDateStartDateTime={macroplanCheckInDateTime}
-          macroplanDateEndDateTime={macroplanCheckOutDateTime}
+          macroplanStartDate={macroplanStartDate}
+          macroplanEndDate={macroplanEndDate}
+          macroplanStartTimeZone={macroplanStartTimeZone}
+          macroplanEndTimeZone={macroplanEndTimeZone}
           macroplanNotes=""
           onFormCancel={popDialog}
           onFormSuccess={popDialog}
