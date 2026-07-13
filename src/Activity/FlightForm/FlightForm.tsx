@@ -6,7 +6,6 @@ import {
   TextArea,
   TextField,
 } from '@radix-ui/themes';
-import type { DateTime } from 'luxon';
 import type { SubmitEvent } from 'react';
 import { useCallback, useId, useReducer, useState } from 'react';
 import { DateTimePicker } from '../../common/DatePicker2/DateTimePicker';
@@ -28,10 +27,6 @@ import {
 } from '../activityFlag';
 import { dbAddActivity, dbUpdateActivity } from '../db';
 import { airportGeocodingRequest } from './FlightFormGeocoding';
-import {
-  temporalToLuxonDate,
-  temporalToLuxonDateTime,
-} from '../../common/dateTime/luxonTemporalConverter';
 
 interface LocationCoordinateState {
   enabled: [boolean, boolean];
@@ -95,6 +90,8 @@ export function FlightForm({
   activityIcon,
   activityStartDateTime,
   activityEndDateTime,
+  activityStartTimeZone,
+  activityEndTimeZone,
   activityLocation,
   activityLocationLng,
   activityLocationLat,
@@ -117,8 +114,10 @@ export function FlightForm({
   tripRegion: string;
   activityTitle: string;
   activityIcon?: string | null | undefined;
-  activityStartDateTime: DateTime | undefined;
-  activityEndDateTime: DateTime | undefined;
+  activityStartDateTime: Temporal.PlainDateTime | undefined;
+  activityEndDateTime: Temporal.PlainDateTime | undefined;
+  activityStartTimeZone: string | undefined;
+  activityEndTimeZone: string | undefined;
   activityLocation: string;
   activityLocationLat: number | null | undefined;
   activityLocationLng: number | null | undefined;
@@ -151,17 +150,17 @@ export function FlightForm({
     hasActivityFlag(activityFlags, ActivityFlag.IsIdea),
   );
 
-  const [startDateTime, setStartDateTime] = useState<DateTime | undefined>(
-    activityStartDateTime,
-  );
-  const [endDateTime, setEndDateTime] = useState<DateTime | undefined>(
-    activityEndDateTime,
-  );
+  const [startDateTime, setStartDateTime] = useState<
+    Temporal.PlainDateTime | undefined
+  >(activityStartDateTime);
+  const [endDateTime, setEndDateTime] = useState<
+    Temporal.PlainDateTime | undefined
+  >(activityEndDateTime);
   const [startTimeZone, setStartTimeZone] = useState<string>(
-    activityStartDateTime?.zoneName ?? tripTimeZone,
+    activityStartTimeZone ?? tripTimeZone,
   );
   const [endTimeZone, setEndTimeZone] = useState<string>(
-    activityEndDateTime?.zoneName ?? tripTimeZone,
+    activityEndTimeZone ?? tripTimeZone,
   );
 
   const [locationFieldsState, dispatchLocationFieldsState] = useReducer(
@@ -279,47 +278,35 @@ export function FlightForm({
     dispatchLocationFieldsState({ type: 'setMapZoom', index: 1, zoom });
   }, []);
 
-  const handleTimeZoneStartChange = useCallback(
-    (newTimeZone: string) => {
-      setStartTimeZone(newTimeZone);
-      if (startDateTime) {
-        setStartDateTime(
-          startDateTime.setZone(newTimeZone, { keepLocalTime: true }),
-        );
-      }
-    },
-    [startDateTime],
-  );
-  const handleTimeZoneEndChange = useCallback(
-    (newTimeZone: string) => {
-      setEndTimeZone(newTimeZone);
-      if (endDateTime) {
-        setEndDateTime(
-          endDateTime.setZone(newTimeZone, { keepLocalTime: true }),
-        );
-      }
-    },
-    [endDateTime],
-  );
+  const handleTimeZoneStartChange = useCallback((newTimeZone: string) => {
+    setStartTimeZone(newTimeZone);
+  }, []);
+  const handleTimeZoneEndChange = useCallback((newTimeZone: string) => {
+    setEndTimeZone(newTimeZone);
+  }, []);
   const handleStartDateTimeChange = useCallback(
-    (newDateTime: DateTime | undefined) => {
-      setStartDateTime(
-        newDateTime
-          ? newDateTime.setZone(startTimeZone, { keepLocalTime: true })
-          : undefined,
-      );
+    (newDateTime: Temporal.PlainDateTime | Temporal.PlainDate | undefined) => {
+      if (newDateTime instanceof Temporal.PlainDateTime) {
+        setStartDateTime(newDateTime);
+      } else if (newDateTime instanceof Temporal.PlainDate) {
+        setStartDateTime(newDateTime.toPlainDateTime({ hour: 0, minute: 0 }));
+      } else {
+        setStartDateTime(undefined);
+      }
     },
-    [startTimeZone],
+    [],
   );
   const handleEndDateTimeChange = useCallback(
-    (newDateTime: DateTime | undefined) => {
-      setEndDateTime(
-        newDateTime
-          ? newDateTime.setZone(endTimeZone, { keepLocalTime: true })
-          : undefined,
-      );
+    (newDateTime: Temporal.PlainDateTime | Temporal.PlainDate | undefined) => {
+      if (newDateTime instanceof Temporal.PlainDateTime) {
+        setEndDateTime(newDateTime);
+      } else if (newDateTime instanceof Temporal.PlainDate) {
+        setEndDateTime(newDateTime.toPlainDateTime({ hour: 0, minute: 0 }));
+      } else {
+        setEndDateTime(undefined);
+      }
     },
-    [endTimeZone],
+    [],
   );
 
   const handleSubmit = useCallback(() => {
@@ -334,6 +321,8 @@ export function FlightForm({
       const description = (formData.get('description') as string | null) ?? '';
       const from = (formData.get('from') as string | null) ?? '';
       const to = (formData.get('to') as string | null) ?? '';
+      const startZonedDateTime = startDateTime?.toZonedDateTime(startTimeZone);
+      const endZonedDateTime = endDateTime?.toZonedDateTime(endTimeZone);
 
       if (!title) return;
       if (!from) {
@@ -345,21 +334,20 @@ export function FlightForm({
         return;
       }
       if (
-        endDateTime &&
-        startDateTime &&
-        endDateTime.diff(startDateTime).as('minute') < 0
+        startZonedDateTime &&
+        endZonedDateTime &&
+        Temporal.ZonedDateTime.compare(startZonedDateTime, endZonedDateTime) > 0
       ) {
         setErrorMessage('Arrival time must be after departure time');
         return;
       }
       if (
         tripStartDateTime &&
-        startDateTime &&
-        startDateTime <
-          temporalToLuxonDate(
-            tripStartDateTime.subtract({ days: 1 }),
-            tripTimeZone,
-          )
+        startZonedDateTime &&
+        Temporal.ZonedDateTime.compare(
+          tripStartDateTime.subtract({ days: 1 }).toZonedDateTime(tripTimeZone),
+          startZonedDateTime,
+        ) > 0
       ) {
         setErrorMessage(
           'Departure time cannot be earlier than 1 day before trip start',
@@ -368,12 +356,11 @@ export function FlightForm({
       }
       if (
         tripEndDateTime &&
-        endDateTime &&
-        endDateTime >
-          temporalToLuxonDate(
-            tripEndDateTime.add({ days: 1 }),
-            tripTimeZone,
-          )
+        endZonedDateTime &&
+        Temporal.ZonedDateTime.compare(
+          endZonedDateTime,
+          tripEndDateTime.add({ days: 1 }).toZonedDateTime(tripTimeZone),
+        ) > 0
       ) {
         setErrorMessage(
           'Arrival time cannot be later than 1 day after trip end',
@@ -411,10 +398,16 @@ export function FlightForm({
           locationDestinationZoom: locationFieldsState.enabled[1]
             ? locationFieldsState.zoom[1]
             : null,
-          timestampStart: startDateTime ? startDateTime.toMillis() : null,
-          timestampEnd: endDateTime ? endDateTime.toMillis() : null,
-          timeZoneStart: startDateTime ? startDateTime.zoneName : null,
-          timeZoneEnd: endDateTime ? endDateTime.zoneName : null,
+          timestampStart: startZonedDateTime
+            ? startZonedDateTime.epochMilliseconds
+            : null,
+          timestampEnd: endZonedDateTime
+            ? endZonedDateTime.epochMilliseconds
+            : null,
+          timeZoneStart: startZonedDateTime
+            ? startZonedDateTime.timeZoneId
+            : null,
+          timeZoneEnd: endZonedDateTime ? endZonedDateTime.timeZoneId : null,
           flags,
         });
         publishToast({
@@ -423,9 +416,9 @@ export function FlightForm({
           close: {},
         });
       } else if (mode === ActivityFormMode.New && tripId) {
-        if (endDateTime) {
+        if (endZonedDateTime) {
           setTripLocalState(tripId, {
-            activityTimestampStart: endDateTime.toMillis(),
+            activityTimestampStart: endZonedDateTime.epochMilliseconds,
           });
         }
         await dbAddActivity(
@@ -453,10 +446,17 @@ export function FlightForm({
             locationDestinationZoom: locationFieldsState.enabled[1]
               ? locationFieldsState.zoom[1]
               : null,
-            timestampStart: startDateTime ? startDateTime.toMillis() : null,
-            timestampEnd: endDateTime ? endDateTime.toMillis() : null,
-            timeZoneStart: startDateTime ? startDateTime.zoneName : null,
-            timeZoneEnd: endDateTime ? endDateTime.zoneName : null,
+            timestampStart: startZonedDateTime
+              ? startZonedDateTime.epochMilliseconds
+              : null,
+            timestampEnd: endZonedDateTime
+              ? endZonedDateTime.epochMilliseconds
+              : null,
+            timeZoneStart: startZonedDateTime
+              ? startZonedDateTime.timeZoneId
+              : null,
+            timeZoneEnd: endZonedDateTime ? endZonedDateTime.timeZoneId : null,
+
             flags,
           },
           { tripId },
@@ -474,17 +474,20 @@ export function FlightForm({
   }, [
     activityFlags,
     activityId,
+    startDateTime,
     endDateTime,
+    startTimeZone,
+    endTimeZone,
     isIdea,
     locationFieldsState,
     mode,
     onFormSuccess,
     publishToast,
     setTripLocalState,
-    startDateTime,
-    tripEndDateTime,
-    tripId,
     tripStartDateTime,
+    tripEndDateTime,
+    tripTimeZone,
+    tripId,
   ]);
 
   const onFormInput = useCallback(() => {
@@ -631,7 +634,7 @@ export function FlightForm({
           name="startTime"
           mode={DateTimePickerMode.DateTime}
           min={tripStartDateTime?.subtract({ days: 1 })}
-          max={tripEndDateTime?.plus({ days: 1 })}
+          max={tripEndDateTime?.add({ days: 1 })}
           value={startDateTime}
           onChange={handleStartDateTimeChange}
           clearable={true}

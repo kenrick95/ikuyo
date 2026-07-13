@@ -1,7 +1,6 @@
 import { Theme } from '@radix-ui/themes';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { DateTime } from 'luxon';
 import type { ReactElement, ReactNode } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { ActivityFlag } from '../activityFlag';
@@ -43,13 +42,15 @@ describe('ActivityForm - TimeZone and DateTimePicker Integration', () => {
   const baseProps = {
     mode: ActivityFormMode.New,
     tripId: 'trip-1',
-    tripStartDateTime: DateTime.fromISO('2024-09-23T00:00:00Z'),
-    tripEndDateTime: DateTime.fromISO('2024-09-25T23:59:59Z'),
+    tripStartDateTime: Temporal.PlainDate.from('2024-09-23T00:00:00'),
+    tripEndDateTime: Temporal.PlainDate.from('2024-09-25T23:59:59'),
     tripTimeZone: 'UTC',
     tripRegion: 'US',
     activityTitle: '',
     activityStartDateTime: undefined,
     activityEndDateTime: undefined,
+    activityStartTimeZone: 'UTC',
+    activityEndTimeZone: 'UTC',
     activityLocation: '',
     activityLocationLat: null,
     activityLocationLng: null,
@@ -66,9 +67,7 @@ describe('ActivityForm - TimeZone and DateTimePicker Integration', () => {
 
   test('changing start time zone preserves local time', async () => {
     const user = userEvent.setup();
-    const initialDateTime = DateTime.fromISO('2024-09-23T14:30:00', {
-      zone: 'UTC',
-    });
+    const initialDateTime = Temporal.PlainDateTime.from('2024-09-23T14:30:00');
 
     renderWithTheme(
       <ActivityForm {...baseProps} activityStartDateTime={initialDateTime} />,
@@ -100,12 +99,12 @@ describe('ActivityForm - TimeZone and DateTimePicker Integration', () => {
 
   test('changing end time zone preserves local time', async () => {
     const user = userEvent.setup();
-    const initialStartDateTime = DateTime.fromISO('2024-09-23T14:30:00', {
-      zone: 'UTC',
-    });
-    const initialEndDateTime = DateTime.fromISO('2024-09-23T16:30:00', {
-      zone: 'UTC',
-    });
+    const initialStartDateTime = Temporal.PlainDateTime.from(
+      '2024-09-23T14:30:00',
+    );
+    const initialEndDateTime = Temporal.PlainDateTime.from(
+      '2024-09-23T16:30:00',
+    );
 
     renderWithTheme(
       <ActivityForm
@@ -136,9 +135,7 @@ describe('ActivityForm - TimeZone and DateTimePicker Integration', () => {
 
   test('clearing datetime works after timezone change', async () => {
     const user = userEvent.setup();
-    const initialDateTime = DateTime.fromISO('2024-09-23T14:30:00', {
-      zone: 'UTC',
-    });
+    const initialDateTime = Temporal.PlainDateTime.from('2024-09-23T14:30:00');
 
     renderWithTheme(
       <ActivityForm {...baseProps} activityStartDateTime={initialDateTime} />,
@@ -179,12 +176,12 @@ describe('ActivityForm - TimeZone and DateTimePicker Integration', () => {
 
   test('timezone changes work independently for start and end times', async () => {
     const user = userEvent.setup();
-    const initialStartDateTime = DateTime.fromISO('2024-09-23T10:00:00', {
-      zone: 'UTC',
-    });
-    const initialEndDateTime = DateTime.fromISO('2024-09-23T18:00:00', {
-      zone: 'UTC',
-    });
+    const initialStartDateTime = Temporal.PlainDateTime.from(
+      '2024-09-23T10:00:00',
+    );
+    const initialEndDateTime = Temporal.PlainDateTime.from(
+      '2024-09-23T18:00:00',
+    );
 
     renderWithTheme(
       <ActivityForm
@@ -257,18 +254,20 @@ describe('ActivityForm - TimeZone and DateTimePicker Integration', () => {
   });
 
   test('clearing start datetime does not affect end datetime timezone', async () => {
-    const initialStartDateTime = DateTime.fromISO('2024-09-23T10:00:00', {
-      zone: 'America/New_York',
-    });
-    const initialEndDateTime = DateTime.fromISO('2024-09-23T18:00:00', {
-      zone: 'America/Los_Angeles',
-    });
+    const initialStartDateTime = Temporal.PlainDateTime.from(
+      '2024-09-23T10:00:00',
+    );
+    const initialEndDateTime = Temporal.PlainDateTime.from(
+      '2024-09-23T18:00:00',
+    );
 
     renderWithTheme(
       <ActivityForm
         {...baseProps}
         activityStartDateTime={initialStartDateTime}
+        activityStartTimeZone="America/New_York"
         activityEndDateTime={initialEndDateTime}
+        activityEndTimeZone="America/Los_Angeles"
       />,
     );
 
@@ -302,8 +301,8 @@ describe('ActivityForm - TimeZone and DateTimePicker Integration', () => {
   });
 
   test('datetime picker respects trip date boundaries with timezone offset', async () => {
-    const tripStart = DateTime.fromISO('2024-09-23T00:00:00Z');
-    const tripEnd = DateTime.fromISO('2024-09-25T23:59:59Z');
+    const tripStart = Temporal.PlainDate.from('2024-09-23T00:00:00');
+    const tripEnd = Temporal.PlainDate.from('2024-09-25T23:59:59');
 
     renderWithTheme(
       <ActivityForm
@@ -324,9 +323,7 @@ describe('ActivityForm - TimeZone and DateTimePicker Integration', () => {
   test('changing timezone does not trigger unnecessary re-renders', async () => {
     const user = userEvent.setup();
     const onFormSuccess = vi.fn();
-    const initialDateTime = DateTime.fromISO('2024-09-23T14:30:00', {
-      zone: 'UTC',
-    });
+    const initialDateTime = Temporal.PlainDateTime.from('2024-09-23T14:30:00');
 
     renderWithTheme(
       <ActivityForm
@@ -401,13 +398,15 @@ describe('ActivityForm - Activity Idea and Time Interaction', () => {
   const baseProps = {
     mode: ActivityFormMode.New,
     tripId: 'trip-1',
-    tripStartDateTime: DateTime.fromISO('2024-09-23T00:00:00Z'),
-    tripEndDateTime: DateTime.fromISO('2024-09-25T23:59:59Z'),
+    tripStartDateTime: Temporal.PlainDate.from('2024-09-23T00:00:00'),
+    tripEndDateTime: Temporal.PlainDate.from('2024-09-25T23:59:59'),
     tripTimeZone: 'UTC',
     tripRegion: 'US',
     activityTitle: '',
     activityStartDateTime: undefined,
     activityEndDateTime: undefined,
+    activityStartTimeZone: 'UTC',
+    activityEndTimeZone: 'UTC',
     activityLocation: '',
     activityLocationLat: null,
     activityLocationLng: null,
@@ -445,12 +444,8 @@ describe('ActivityForm - Activity Idea and Time Interaction', () => {
 
   test('toggling isIdea on preserves existing start/end times', async () => {
     const user = userEvent.setup();
-    const startDateTime = DateTime.fromISO('2024-09-23T10:00:00', {
-      zone: 'UTC',
-    });
-    const endDateTime = DateTime.fromISO('2024-09-23T12:00:00', {
-      zone: 'UTC',
-    });
+    const startDateTime = Temporal.PlainDateTime.from('2024-09-23T10:00:00');
+    const endDateTime = Temporal.PlainDateTime.from('2024-09-23T12:00:00');
 
     renderWithTheme(
       <ActivityForm
@@ -480,12 +475,8 @@ describe('ActivityForm - Activity Idea and Time Interaction', () => {
 
   test('toggling isIdea off preserves existing start/end times', async () => {
     const user = userEvent.setup();
-    const startDateTime = DateTime.fromISO('2024-09-23T14:00:00', {
-      zone: 'UTC',
-    });
-    const endDateTime = DateTime.fromISO('2024-09-23T16:00:00', {
-      zone: 'UTC',
-    });
+    const startDateTime = Temporal.PlainDateTime.from('2024-09-23T14:00:00');
+    const endDateTime = Temporal.PlainDateTime.from('2024-09-23T16:00:00');
 
     renderWithTheme(
       <ActivityForm
@@ -535,12 +526,8 @@ describe('ActivityForm - Activity Idea and Time Interaction', () => {
   });
 
   test('idea activity can have both start and end times set', () => {
-    const startDateTime = DateTime.fromISO('2024-09-23T09:00:00', {
-      zone: 'UTC',
-    });
-    const endDateTime = DateTime.fromISO('2024-09-23T11:00:00', {
-      zone: 'UTC',
-    });
+    const startDateTime = Temporal.PlainDateTime.from('2024-09-23T09:00:00');
+    const endDateTime = Temporal.PlainDateTime.from('2024-09-23T11:00:00');
 
     renderWithTheme(
       <ActivityForm
@@ -562,18 +549,16 @@ describe('ActivityForm - Activity Idea and Time Interaction', () => {
 
   test('toggling isIdea preserves timezone selections', async () => {
     const user = userEvent.setup();
-    const startDateTime = DateTime.fromISO('2024-09-23T10:00:00', {
-      zone: 'America/New_York',
-    });
-    const endDateTime = DateTime.fromISO('2024-09-23T14:00:00', {
-      zone: 'America/Los_Angeles',
-    });
+    const startDateTime = Temporal.PlainDateTime.from('2024-09-23T10:00:00');
+    const endDateTime = Temporal.PlainDateTime.from('2024-09-23T14:00:00');
 
     renderWithTheme(
       <ActivityForm
         {...baseProps}
         activityStartDateTime={startDateTime}
         activityEndDateTime={endDateTime}
+        activityStartTimeZone="America/New_York"
+        activityEndTimeZone="America/Los_Angeles"
         activityFlags={0}
       />,
     );
@@ -606,9 +591,7 @@ describe('ActivityForm - Activity Idea and Time Interaction', () => {
 
   test('changing timezone works when isIdea is checked', async () => {
     const user = userEvent.setup();
-    const startDateTime = DateTime.fromISO('2024-09-23T10:00:00', {
-      zone: 'UTC',
-    });
+    const startDateTime = Temporal.PlainDateTime.from('2024-09-23T10:00:00');
 
     renderWithTheme(
       <ActivityForm
@@ -673,12 +656,8 @@ describe('ActivityForm - Activity Idea and Time Interaction', () => {
   });
 
   test('editing existing idea with times shows correct initial state', () => {
-    const startDateTime = DateTime.fromISO('2024-09-23T08:00:00', {
-      zone: 'Europe/London',
-    });
-    const endDateTime = DateTime.fromISO('2024-09-23T10:00:00', {
-      zone: 'Europe/London',
-    });
+    const startDateTime = Temporal.PlainDateTime.from('2024-09-23T08:00:00');
+    const endDateTime = Temporal.PlainDateTime.from('2024-09-23T10:00:00');
 
     renderWithTheme(
       <ActivityForm
@@ -688,6 +667,8 @@ describe('ActivityForm - Activity Idea and Time Interaction', () => {
         activityTitle="Museum Visit"
         activityStartDateTime={startDateTime}
         activityEndDateTime={endDateTime}
+        activityStartTimeZone="Europe/London"
+        activityEndTimeZone="Europe/London"
         activityFlags={IDEA_FLAG}
       />,
     );
@@ -730,12 +711,8 @@ describe('ActivityForm - Activity Idea and Time Interaction', () => {
 
   test('multiple toggle of isIdea does not affect times', async () => {
     const user = userEvent.setup();
-    const startDateTime = DateTime.fromISO('2024-09-23T15:00:00', {
-      zone: 'UTC',
-    });
-    const endDateTime = DateTime.fromISO('2024-09-23T17:00:00', {
-      zone: 'UTC',
-    });
+    const startDateTime = Temporal.PlainDateTime.from('2024-09-23T15:00:00');
+    const endDateTime = Temporal.PlainDateTime.from('2024-09-23T17:00:00');
 
     renderWithTheme(
       <ActivityForm
