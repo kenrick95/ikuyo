@@ -15,6 +15,7 @@ import { dbAddActivity } from '../../Activity/db';
 import { CurrencySelect } from '../../common/CurrencySelect/CurrencySelect';
 import { DateTimePicker } from '../../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../../common/DatePicker2/DateTimePickerMode';
+import { toFormat } from '../../common/dateTime/temporalFormatter';
 import { TimeZoneSelect } from '../../common/TimeZoneSelect/TimeZoneSelect';
 import {
   ALL_CURRENCIES,
@@ -34,11 +35,10 @@ import s from './PageTripNew.module.css';
 import { WizardProgressDots } from './WizardProgressDots';
 import {
   createInitialWizardState,
-  wizardReducer,
   type FlightCapture,
+  wizardReducer,
 } from './wizardReducer';
 import { getFlightTimeError, getOriginCurrencyFromLocale } from './wizardUtils';
-import { toFormat } from '../../common/dateTime/temporalFormatter';
 
 export default function PageTripNew() {
   const [, setLocation] = useLocation();

@@ -56,7 +56,10 @@ export function ExpenseHeaderCard() {
         expense.timestampIncurred,
       ).toZonedDateTimeISO(trip.timeZone);
       // Check if expenseDate is the same day as targetDate
-      return Temporal.ZonedDateTime.compare(expenseDate.startOfDay(), targetDate) === 0;
+      return (
+        Temporal.ZonedDateTime.compare(expenseDate.startOfDay(), targetDate) ===
+        0
+      );
     });
 
     let total = 0;

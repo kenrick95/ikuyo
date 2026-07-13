@@ -171,12 +171,13 @@ export function MacroplanForm({
         const { id, result } = await dbAddMacroplan(
           {
             name,
-          timestampStart:
-            dateStartDateTime.toZonedDateTime(timeZoneStart).epochMilliseconds,
-          timestampEnd:
-            dateEndDateTime.toZonedDateTime(timeZoneStart).epochMilliseconds,
-          timeZoneStart: timeZoneStart,
-          timeZoneEnd: timeZoneEnd,
+            timestampStart:
+              dateStartDateTime.toZonedDateTime(timeZoneStart)
+                .epochMilliseconds,
+            timestampEnd:
+              dateEndDateTime.toZonedDateTime(timeZoneStart).epochMilliseconds,
+            timeZoneStart: timeZoneStart,
+            timeZoneEnd: timeZoneEnd,
             notes,
           },
           {

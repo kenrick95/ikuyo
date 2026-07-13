@@ -3,6 +3,7 @@
 // https://moment.github.io/luxon/#/formatting
 // https://github.com/moment/luxon/blob/b6b9d03709085008287ed7f4ce5067f0f4be53f2/src/impl/tokenParser.js#L432
 // Idea: Use Int.DateTimeFormat
+// TODO: I don't like this... we should do something like toFormat([TOKEN.YEAR_FULL, ' ', TOKEN.MONTH_SHORT, ' ', TOKEN.DAY_OF_MONTH_2_DIGIT], temporal) instead of parsing a string format. This would be more type-safe and avoid parsing errors. But for now, this is good enough.
 type SupportedTemporal = Temporal.PlainDate | Temporal.PlainDateTime;
 
 const TOKENS = [

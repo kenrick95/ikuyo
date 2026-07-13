@@ -12,6 +12,7 @@ import {
   useReducer,
   useState,
 } from 'react';
+import { toFormat } from '../dateTime/temporalFormatter';
 import { CalendarMonth } from './CalendarMonth';
 import s from './DateTimePicker.module.css';
 import { DateTimePickerMode } from './DateTimePickerMode';
@@ -22,7 +23,6 @@ import type {
   DatePickerProps,
   DatePickerState,
 } from './types';
-import { toFormat } from '../dateTime/temporalFormatter';
 
 function datePickerReducer(
   state: DatePickerState,
