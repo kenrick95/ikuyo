@@ -92,11 +92,19 @@ export function wizardReducer(
     case 'SET_TRAVEL_MODE':
       return { ...state, travelMode: action.travelMode };
     case 'SET_OUTBOUND_FLIGHT':
+      // Clear the outbound flight if the action specifies null; else merge it
+      if (action.flight === null) {
+        return { ...state, outboundFlight: null };
+      }
       return {
         ...state,
         outboundFlight: { ...(state.outboundFlight || {}), ...action.flight },
       };
     case 'SET_RETURN_FLIGHT':
+      // Clear the return flight if the action specifies null; else merge it
+      if (action.flight === null) {
+        return { ...state, returnFlight: null };
+      }
       return {
         ...state,
         returnFlight: { ...(state.returnFlight || {}), ...action.flight },

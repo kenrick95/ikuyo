@@ -127,7 +127,7 @@ describe('wizardReducer', () => {
       arrivalZoom: undefined,
     };
     const next = wizardReducer(BASE, { type: 'SET_OUTBOUND_FLIGHT', flight });
-    expect(next.outboundFlight).toBe(flight);
+    expect(next.outboundFlight).toStrictEqual(flight);
   });
 
   test('SET_OUTBOUND_FLIGHT can be cleared to null', () => {
@@ -173,7 +173,7 @@ describe('wizardReducer', () => {
       arrivalZoom: undefined,
     };
     const next = wizardReducer(BASE, { type: 'SET_RETURN_FLIGHT', flight });
-    expect(next.returnFlight).toBe(flight);
+    expect(next.returnFlight).toStrictEqual(flight);
   });
 
   test('reducer is pure — does not mutate state', () => {
