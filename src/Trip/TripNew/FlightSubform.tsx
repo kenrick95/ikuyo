@@ -39,25 +39,8 @@ export function FlightSubform({
 }: FlightSubformProps) {
   const defaultDepartureTz = isOutbound ? originTimeZone : destinationTimeZone;
   const defaultArrivalTz = isOutbound ? destinationTimeZone : originTimeZone;
-  const emptyFlight = useMemo<FlightCapture>(
-    () => ({
-      flightNumber: '',
-      departureAirport: '',
-      arrivalAirport: '',
-      departureDateTime: undefined,
-      arrivalDateTime: undefined,
-      departureTimeZone: defaultDepartureTz,
-      arrivalTimeZone: defaultArrivalTz,
-      departureLat: undefined,
-      departureLng: undefined,
-      departureZoom: undefined,
-      arrivalLat: undefined,
-      arrivalLng: undefined,
-      arrivalZoom: undefined,
-    }),
-    [defaultDepartureTz, defaultArrivalTz],
-  );
-  const current = value ?? emptyFlight;
+
+  const current = value;
   const [editingDepartureTz, setEditingDepartureTz] = useState(false);
   const [editingArrivalTz, setEditingArrivalTz] = useState(false);
   const departureBadgeRef = useRef<HTMLButtonElement>(null);
@@ -215,7 +198,7 @@ export function FlightSubform({
           <Text size="2">Flight number</Text>
           <TextField.Root
             placeholder="e.g. SQ321"
-            value={current.flightNumber}
+            value={current?.flightNumber ?? ''}
             onChange={handleFlightNumberChange}
           />
         </Flex>
@@ -224,7 +207,7 @@ export function FlightSubform({
           <Text size="2">Departure airport</Text>
           <TextField.Root
             placeholder="e.g. SYD or Sydney Airport"
-            value={current.departureAirport}
+            value={current?.departureAirport ?? ''}
             onChange={handleDepartureAirportChange}
             onBlur={handleDepartureAirportBlur}
           />
@@ -234,7 +217,7 @@ export function FlightSubform({
           <Text size="2">Arrival airport</Text>
           <TextField.Root
             placeholder="e.g. LHR or London Heathrow"
-            value={current.arrivalAirport}
+            value={current?.arrivalAirport ?? ''}
             onChange={handleArrivalAirportChange}
             onBlur={handleArrivalAirportBlur}
           />
@@ -246,7 +229,7 @@ export function FlightSubform({
             {editingDepartureTz ? (
               <Select.Root
                 defaultOpen
-                value={current.departureTimeZone}
+                value={current?.departureTimeZone ?? defaultDepartureTz}
                 onValueChange={handleDepartureTzChange}
                 onOpenChange={handleDepartureTzOpenChange}
               >
@@ -266,12 +249,12 @@ export function FlightSubform({
                 className={s.tzBadge}
                 onClick={handleOpenDepartureTzEdit}
               >
-                {current.departureTimeZone}
+                {current?.departureTimeZone ?? defaultDepartureTz}
               </button>
             )}
           </Flex>
           <DateTimePicker
-            value={current.departureDateTime}
+            value={current?.departureDateTime}
             onChange={handleDepartureDateChange}
             mode={DateTimePickerMode.DateTime}
             placeholder="Pick date & time"
@@ -286,7 +269,7 @@ export function FlightSubform({
             {editingArrivalTz ? (
               <Select.Root
                 defaultOpen
-                value={current.arrivalTimeZone}
+                value={current?.arrivalTimeZone ?? defaultArrivalTz}
                 onValueChange={handleArrivalTzChange}
                 onOpenChange={handleArrivalTzOpenChange}
               >
@@ -306,12 +289,12 @@ export function FlightSubform({
                 className={s.tzBadge}
                 onClick={handleOpenArrivalTzEdit}
               >
-                {current.arrivalTimeZone}
+                {current?.arrivalTimeZone ?? defaultArrivalTz}
               </button>
             )}
           </Flex>
           <DateTimePicker
-            value={current.arrivalDateTime}
+            value={current?.arrivalDateTime}
             onChange={handleArrivalDateChange}
             mode={DateTimePickerMode.DateTime}
             placeholder="Pick date & time"

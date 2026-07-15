@@ -47,8 +47,6 @@ describe('wizardReducer', () => {
     const next = wizardReducer(BASE, {
       type: 'SET_REGION',
       region: 'JP',
-      timeZone: 'Asia/Tokyo',
-      currency: 'JPY',
     });
     expect(next.region).toBe('JP');
     expect(next.timeZone).toBe('Asia/Tokyo');
@@ -63,8 +61,6 @@ describe('wizardReducer', () => {
     const next = wizardReducer(withTitle, {
       type: 'SET_REGION',
       region: 'JP',
-      timeZone: 'Asia/Tokyo',
-      currency: 'JPY',
     });
     expect(next.title).toBe('My Trip');
   });

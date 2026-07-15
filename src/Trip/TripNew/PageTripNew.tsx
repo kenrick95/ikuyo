@@ -17,15 +17,7 @@ import { DateTimePicker } from '../../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../../common/DatePicker2/DateTimePickerMode';
 import { toFormat } from '../../common/dateTime/temporalFormatter';
 import { TimeZoneSelect } from '../../common/TimeZoneSelect/TimeZoneSelect';
-import {
-  ALL_CURRENCIES,
-  getDefaultCurrencyForRegion,
-} from '../../data/intl/currencies';
 import { REGIONS_LIST } from '../../data/intl/regions';
-import {
-  ALL_TIMEZONES,
-  getDefaultTimezoneForRegion,
-} from '../../data/intl/timezones';
 import { useBoundStore } from '../../data/store';
 import { RouteTrip, RouteTrips } from '../../Routes/routes';
 import { dbAddTrip } from '../db';
@@ -54,23 +46,12 @@ export default function PageTripNew() {
   const publishToast = useBoundStore((store) => store.publishToast);
   const currentUser = useBoundStore((store) => store.currentUser);
 
-  const handleRegionChange = useCallback(
-    (region: string) => {
-      const newTz = getDefaultTimezoneForRegion(region);
-      const newCurrency = getDefaultCurrencyForRegion(region);
-      dispatch({
-        type: 'SET_REGION',
-        region,
-        timeZone:
-          newTz && ALL_TIMEZONES.includes(newTz) ? newTz : state.timeZone,
-        currency:
-          newCurrency && ALL_CURRENCIES.includes(newCurrency)
-            ? newCurrency
-            : state.currency,
-      });
-    },
-    [state.timeZone, state.currency],
-  );
+  const handleRegionChange = useCallback((region: string) => {
+    dispatch({
+      type: 'SET_REGION',
+      region,
+    });
+  }, []);
 
   const idRegion = 'wizard-region';
 
@@ -104,51 +85,8 @@ export default function PageTripNew() {
       } else {
         dispatch({ type: 'SET_START_DATE', date: undefined });
       }
-
-      // If the end date has not been set, set it to the same as the start date
-      if (date instanceof Temporal.PlainDate && !state.endDate) {
-        dispatch({ type: 'SET_END_DATE', date });
-      }
-
-      // If user has not set outbound flight departure date, set it to the start date
-      if (
-        date instanceof Temporal.PlainDate &&
-        !state.outboundFlight?.departureDateTime
-      ) {
-        const newOutboundFlight = {
-          departureDateTime: Temporal.PlainDateTime.from({
-            year: date.year,
-            month: date.month,
-            day: date.day,
-            hour: 12, // Default to noon
-            minute: 0,
-          }),
-        };
-        dispatch({ type: 'SET_OUTBOUND_FLIGHT', flight: newOutboundFlight });
-      }
-
-      // If user has not set outbound flight arrival date, set it to the start date
-      if (
-        date instanceof Temporal.PlainDate &&
-        !state.outboundFlight?.arrivalDateTime
-      ) {
-        const newOutboundFlight = {
-          arrivalDateTime: Temporal.PlainDateTime.from({
-            year: date.year,
-            month: date.month,
-            day: date.day,
-            hour: 13,
-            minute: 0,
-          }),
-        };
-        dispatch({ type: 'SET_OUTBOUND_FLIGHT', flight: newOutboundFlight });
-      }
     },
-    [
-      state.endDate,
-      state.outboundFlight?.arrivalDateTime,
-      state.outboundFlight?.departureDateTime,
-    ],
+    [],
   );
   const handleChangeEndDate = useCallback(
     (date: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
@@ -159,45 +97,8 @@ export default function PageTripNew() {
       } else {
         dispatch({ type: 'SET_END_DATE', date: undefined });
       }
-
-      // If user has not set return flight departure date, set it to the start date
-      if (
-        date instanceof Temporal.PlainDate &&
-        !state.returnFlight?.departureDateTime
-      ) {
-        const newReturnFlight = {
-          departureDateTime: Temporal.PlainDateTime.from({
-            year: date.year,
-            month: date.month,
-            day: date.day,
-            hour: 12, // Default to noon
-            minute: 0,
-          }),
-        };
-        dispatch({ type: 'SET_RETURN_FLIGHT', flight: newReturnFlight });
-      }
-
-      // If user has not set return flight arrival date, set it to the start date
-      if (
-        date instanceof Temporal.PlainDate &&
-        !state.returnFlight?.arrivalDateTime
-      ) {
-        const newReturnFlight = {
-          arrivalDateTime: Temporal.PlainDateTime.from({
-            year: date.year,
-            month: date.month,
-            day: date.day,
-            hour: 13,
-            minute: 0,
-          }),
-        };
-        dispatch({ type: 'SET_RETURN_FLIGHT', flight: newReturnFlight });
-      }
     },
-    [
-      state.returnFlight?.departureDateTime,
-      state.returnFlight?.arrivalDateTime,
-    ],
+    [],
   );
 
   const handleCreateTrip = useCallback(async () => {

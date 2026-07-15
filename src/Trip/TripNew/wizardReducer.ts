@@ -1,4 +1,11 @@
-// src/Trip/TripNew/wizardReducer.ts
+import {
+  ALL_CURRENCIES,
+  getDefaultCurrencyForRegion,
+} from '../../data/intl/currencies';
+import {
+  ALL_TIMEZONES,
+  getDefaultTimezoneForRegion,
+} from '../../data/intl/timezones';
 
 export type FlightCapture = {
   flightNumber?: string | undefined;
@@ -36,7 +43,7 @@ export type WizardState = {
 export type WizardAction =
   | { type: 'SET_STEP'; step: 1 | 2 | 3 }
   | { type: 'SET_TITLE'; title: string }
-  | { type: 'SET_REGION'; region: string; timeZone: string; currency: string }
+  | { type: 'SET_REGION'; region: string }
   | { type: 'SET_START_DATE'; date: Temporal.PlainDate | undefined }
   | { type: 'SET_END_DATE'; date: Temporal.PlainDate | undefined }
   | { type: 'SET_TIMEZONE'; timeZone: string }
@@ -50,23 +57,73 @@ export function wizardReducer(
   state: WizardState,
   action: WizardAction,
 ): WizardState {
+  console.log('wizardReducer action:', action, 'prev state:', state);
   switch (action.type) {
     case 'SET_STEP':
+      if (state.step === 2 && action.step === 3) {
+        // When moving from step 2 to 3, pre-fill outbound flight and return flight with default values based on the trip's start and end dates
+        const currentTimeZone = Temporal.Now.timeZoneId();
+        const defaultOutboundFlight: FlightCapture = {
+          departureDateTime: state.startDate?.toPlainDateTime({
+            hour: 9,
+            minute: 0,
+          }),
+          arrivalDateTime: state.startDate?.toPlainDateTime({
+            hour: 12,
+            minute: 0,
+          }),
+          departureTimeZone: currentTimeZone,
+          arrivalTimeZone: state.timeZone,
+        };
+        const defaultReturnFlight: FlightCapture = {
+          departureDateTime: state.endDate?.toPlainDateTime({
+            hour: 15,
+            minute: 0,
+          }),
+          arrivalDateTime: state.endDate?.toPlainDateTime({
+            hour: 18,
+            minute: 0,
+          }),
+          departureTimeZone: state.timeZone,
+          arrivalTimeZone: currentTimeZone,
+        };
+        return {
+          ...state,
+          step: action.step,
+          outboundFlight: defaultOutboundFlight,
+          returnFlight: defaultReturnFlight,
+        };
+      }
+
       return { ...state, step: action.step };
     case 'SET_TITLE':
       return { ...state, title: action.title };
     case 'SET_REGION': {
-      const nextTimeZone = action.timeZone;
+      const newTz = getDefaultTimezoneForRegion(action.region);
+      const newCurrency = getDefaultCurrencyForRegion(action.region);
+
       return {
         ...state,
         region: action.region,
-        timeZone: nextTimeZone,
-        currency: action.currency,
+        timeZone:
+          newTz && ALL_TIMEZONES.includes(newTz) ? newTz : state.timeZone,
+        currency:
+          newCurrency && ALL_CURRENCIES.includes(newCurrency)
+            ? newCurrency
+            : state.currency,
         startDate: state.startDate,
         endDate: state.endDate,
       };
     }
     case 'SET_START_DATE':
+      // if user has not set the end date yet, we can auto-set it to the same day as the start date
+      if (!state.endDate) {
+        return {
+          ...state,
+          startDate: action.date,
+          endDate: action.date,
+        };
+      }
       return {
         ...state,
         startDate: action.date,
