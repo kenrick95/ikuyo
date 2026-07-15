@@ -264,9 +264,8 @@ export function MacroplanForm({
           required
           aria-label="Day plan start date"
           placeholder="Select start date"
-          // Buffer one day before and after trip start/end date to allow some flexibility
-          min={tripStartDate?.subtract({ days: 1 })}
-          max={tripEndDate?.add({ days: 1 })}
+          min={tripStartDate}
+          max={tripEndDate}
         />
 
         <Text as="label">
@@ -296,9 +295,8 @@ export function MacroplanForm({
           required
           aria-label="Day plan end date"
           placeholder="Select end date"
-          // Buffer one day before and after trip start/end date to allow some flexibility
-          min={tripStartDate?.subtract({ days: 1 })}
-          max={tripEndDate?.add({ days: 1 })}
+          min={tripStartDate}
+          max={tripEndDate}
         />
         <Text as="label" htmlFor={idNotes}>
           Notes

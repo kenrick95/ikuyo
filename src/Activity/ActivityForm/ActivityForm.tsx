@@ -428,25 +428,25 @@ export function ActivityForm({
         setErrorMessage('End time must be after start time');
         return;
       }
-      // start time cannot be earlier than trip start time
+      // start time cannot be earlier than trip start time - 1d
       if (
         tripStartDateTime &&
         timeStartDate &&
         Temporal.ZonedDateTime.compare(
           timeStartDate,
-          tripStartDateTime.toZonedDateTime(tripTimeZone),
+          tripStartDateTime.toZonedDateTime(tripTimeZone).subtract({ days: 1 }),
         ) < 0
       ) {
         setErrorMessage('Start time cannot be earlier than trip start time');
         return;
       }
-      // end time cannot be later than trip end time
+      // end time cannot be later than trip end time + 1d
       if (
         tripEndDateTime &&
         timeEndDate &&
         Temporal.ZonedDateTime.compare(
           timeEndDate,
-          tripEndDateTime.toZonedDateTime(tripTimeZone).add({ days: 1 }),
+          tripEndDateTime.toZonedDateTime(tripTimeZone).add({ days: 2 }),
         ) > 0
       ) {
         setErrorMessage('End time cannot be later than trip end time');

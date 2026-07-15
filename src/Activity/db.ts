@@ -29,9 +29,9 @@ export type DbActivity = {
   locationDestinationZoom: undefined | null | number;
 
   description: string;
-  /** ms */
+  /** ms; possible to be before trip.timestampStart + 1d */
   timestampStart: number | null | undefined;
-  /** ms */
+  /** ms; possible to be after trip.timestampEnd + 1d */
   timestampEnd: number | null | undefined;
 
   /** default: trip.timeZone */
