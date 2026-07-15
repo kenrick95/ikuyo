@@ -53,10 +53,6 @@ export function CalendarMonth({
     return yearMonth.with({ day: 1 });
   }, [yearMonth]);
   const dayOfWeekArray = useMemo(() => {
-    const formatterAbbr = new Intl.DateTimeFormat('en-US', {
-      weekday: 'short',
-    });
-    const formatterFull = new Intl.DateTimeFormat('en-US', { weekday: 'long' });
     return Array.from({ length: 7 })
       .fill(0)
       .map((_, i) => {
@@ -65,8 +61,8 @@ export function CalendarMonth({
           days: i - startOfMonth.dayOfWeek + 1,
         });
         return {
-          abbr: formatterAbbr.format(dateTime),
-          full: formatterFull.format(dateTime),
+          abbr: dateTime.toLocaleString('en-US', { weekday: 'short' }),
+          full: dateTime.toLocaleString('en-US', { weekday: 'long' }),
         };
       });
   }, [startOfMonth]);
