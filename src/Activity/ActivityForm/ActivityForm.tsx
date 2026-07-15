@@ -126,6 +126,7 @@ export function ActivityForm({
   activityId?: string;
   tripId?: string;
   tripStartDateTime: Temporal.PlainDate | undefined;
+  /** trip's final day */
   tripEndDateTime: Temporal.PlainDate | undefined;
   tripTimeZone: string;
   tripRegion: string;

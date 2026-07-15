@@ -41,6 +41,7 @@ export function MacroplanDialogContentEdit({
       ? Temporal.Instant.fromEpochMilliseconds(macroplan.timestampEnd)
           .toZonedDateTimeISO(macroplan.timeZoneEnd ?? trip.timeZone)
           .toPlainDate()
+          .subtract({ days: 1 })
       : undefined;
 
   const backToViewMode = useCallback(() => {

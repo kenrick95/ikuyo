@@ -38,10 +38,12 @@ export function MacroplanForm({
 
   tripTimeZone: string;
   tripStartDate: Temporal.PlainDate | undefined;
+  /** final day of the trip */
   tripEndDate: Temporal.PlainDate | undefined;
 
   macroplanName: string;
   macroplanStartDate: Temporal.PlainDate | undefined;
+  /** final day of the macroplan */
   macroplanEndDate: Temporal.PlainDate | undefined;
   macroplanStartTimeZone: string | undefined;
   macroplanEndTimeZone: string | undefined;
@@ -59,9 +61,11 @@ export function MacroplanForm({
   const [dateStart, setDateStart] = useState<Temporal.PlainDate | undefined>(
     macroplanStartDate,
   );
-  const [dateEnd, setDateEnd] = useState<Temporal.PlainDate | undefined>(
-    macroplanEndDate,
-  );
+  const [
+    /** Final date of the macroplan */
+    dateEnd,
+    setDateEnd,
+  ] = useState<Temporal.PlainDate | undefined>(macroplanEndDate);
   const [timeZoneStart, setTimeZoneStart] = useState<string>(
     macroplanStartTimeZone ?? tripTimeZone,
   );
@@ -113,40 +117,35 @@ export function MacroplanForm({
       const formData = new FormData(elForm);
       const name = (formData.get('name') as string | null) ?? '';
       const notes = (formData.get('notes') as string | null) ?? '';
-      const dateStartDateTime = dateStart;
-      const dateEndDateTime = dateEnd?.add({ days: 1 });
+      const dateStartForDb = dateStart;
+      /** in db, the convention is to store 'date end' as the day _after_ the selected end date */
+      const dateEndForDb = dateEnd?.add({ days: 1 });
       console.log('MacroplanForm', {
         mode,
         macroplanId,
         tripId,
         name,
         notes,
-        dateStartDateTime,
-        dateEndDateTime,
+        dateStartDateTime: dateStartForDb,
+        dateEndDateTime: dateEndForDb,
       });
-      if (!name || !dateStartDateTime || !dateEndDateTime) {
+      if (!name || !dateStart || !dateEnd || !dateStartForDb || !dateEndForDb) {
         return;
       }
-      if (Temporal.PlainDate.compare(dateStartDateTime, dateEndDateTime) > 0) {
+      if (Temporal.PlainDate.compare(dateStartForDb, dateEnd) > 0) {
         setErrorMessage('End date must not be before start date');
         return;
       }
       // start date cannot be earlier than trip start date
       if (
         tripStartDate &&
-        Temporal.PlainDate.compare(dateStartDateTime, tripStartDate) < 0
+        Temporal.PlainDate.compare(dateStartForDb, tripStartDate) < 0
       ) {
         setErrorMessage('Start date cannot be earlier than trip start date');
         return;
       }
       // end date cannot be later than trip end date
-      // in db, the convention for 'end date' date-level entities are that they stored as start of next day
-      // TODO: validate this assumption
-      // however, tripEndDateTime prop has been adjusted to be the last minute of the trip
-      if (
-        tripEndDate &&
-        Temporal.PlainDate.compare(dateEndDateTime, tripEndDate) > 0
-      ) {
+      if (tripEndDate && Temporal.PlainDate.compare(dateEnd, tripEndDate) > 0) {
         setErrorMessage('End date cannot be later than trip end date');
         return;
       }
@@ -155,9 +154,9 @@ export function MacroplanForm({
           id: macroplanId,
           name,
           timestampStart:
-            dateStartDateTime.toZonedDateTime(timeZoneStart).epochMilliseconds,
+            dateStartForDb.toZonedDateTime(timeZoneStart).epochMilliseconds,
           timestampEnd:
-            dateEndDateTime.toZonedDateTime(timeZoneStart).epochMilliseconds,
+            dateEndForDb.toZonedDateTime(timeZoneEnd).epochMilliseconds,
           timeZoneStart: timeZoneStart,
           timeZoneEnd: timeZoneEnd,
           notes,
@@ -172,10 +171,9 @@ export function MacroplanForm({
           {
             name,
             timestampStart:
-              dateStartDateTime.toZonedDateTime(timeZoneStart)
-                .epochMilliseconds,
+              dateStartForDb.toZonedDateTime(timeZoneStart).epochMilliseconds,
             timestampEnd:
-              dateEndDateTime.toZonedDateTime(timeZoneStart).epochMilliseconds,
+              dateEndForDb.toZonedDateTime(timeZoneEnd).epochMilliseconds,
             timeZoneStart: timeZoneStart,
             timeZoneEnd: timeZoneEnd,
             notes,

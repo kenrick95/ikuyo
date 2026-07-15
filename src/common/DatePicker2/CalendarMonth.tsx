@@ -136,11 +136,11 @@ export function CalendarMonth({
           break;
         case 'Home':
           // Move to the first day of the week (Monday: 1); dayOfWeek is 1-7 (Monday-Sunday)
-          date = focusedDate.subtract({ days: focusedDate.dayOfWeek + 1 });
+          date = focusedDate.subtract({ days: focusedDate.dayOfWeek - 1 });
           break;
         case 'End':
           // Move to the last day of the week (Sunday: 7); dayOfWeek is 1-7 (Monday-Sunday)
-          date = focusedDate.add({ days: 7 - focusedDate.dayOfWeek + 1 });
+          date = focusedDate.add({ days: 7 - focusedDate.dayOfWeek });
           break;
         case 'Enter':
         case ' ':
