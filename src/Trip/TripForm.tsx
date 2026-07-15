@@ -142,8 +142,8 @@ export function TripForm({
       }
       const formData = new FormData(elForm);
       const title = (formData.get('title') as string | null) ?? '';
-      const dateStartDateTime = currentStartDate;
-      const dateEndDateTime = currentEndDate?.add({ days: 1 });
+      const dateStartForDb = currentStartDate;
+      const dateEndForDb = currentEndDate?.add({ days: 1 });
       const timeZone = currentTimeZone;
       const region = currentRegion;
       const currency = currentCurrency;
@@ -158,13 +158,15 @@ export function TripForm({
         region,
         currency,
         originCurrency,
-        dateStartDateTime,
-        dateEndDateTime,
+        dateStartDateTime: dateStartForDb,
+        dateEndDateTime: dateEndForDb,
       });
       if (
         !title ||
-        !dateStartDateTime ||
-        !dateEndDateTime ||
+        !currentStartDate ||
+        !currentEndDate ||
+        !dateStartForDb ||
+        !dateEndForDb ||
         !timeZone ||
         !currency ||
         !originCurrency ||
@@ -174,7 +176,7 @@ export function TripForm({
         return;
       }
       // compare(date1, date2) returns 1 if date1 > date2, 0 if equal, -1 if date1 < date2
-      if (Temporal.PlainDate.compare(dateStartDateTime, dateEndDateTime) > 0) {
+      if (Temporal.PlainDate.compare(currentStartDate, currentEndDate) > 0) {
         setErrorMessage('Start date cannot be after end date');
         setIsFormLoading(false);
         return;
@@ -184,10 +186,9 @@ export function TripForm({
           id: tripId,
           title,
           timeZone,
-          timestampStart: dateStartDateTime
-            .toZonedDateTime(timeZone)
-            .toInstant().epochMilliseconds,
-          timestampEnd: dateEndDateTime.toZonedDateTime(timeZone).toInstant()
+          timestampStart: dateStartForDb.toZonedDateTime(timeZone).toInstant()
+            .epochMilliseconds,
+          timestampEnd: dateEndForDb.toZonedDateTime(timeZone).toInstant()
             .epochMilliseconds,
           region,
           currency,
@@ -207,10 +208,9 @@ export function TripForm({
           {
             title,
             timeZone,
-            timestampStart: dateStartDateTime
-              .toZonedDateTime(timeZone)
-              .toInstant().epochMilliseconds,
-            timestampEnd: dateEndDateTime.toZonedDateTime(timeZone).toInstant()
+            timestampStart: dateStartForDb.toZonedDateTime(timeZone).toInstant()
+              .epochMilliseconds,
+            timestampEnd: dateEndForDb.toZonedDateTime(timeZone).toInstant()
               .epochMilliseconds,
             region,
             currency,

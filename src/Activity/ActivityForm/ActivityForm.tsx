@@ -446,7 +446,7 @@ export function ActivityForm({
         timeEndDate &&
         Temporal.ZonedDateTime.compare(
           timeEndDate,
-          tripEndDateTime.toZonedDateTime(tripTimeZone),
+          tripEndDateTime.toZonedDateTime(tripTimeZone).add({ days: 1 }),
         ) > 0
       ) {
         setErrorMessage('End time cannot be later than trip end time');

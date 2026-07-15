@@ -104,6 +104,7 @@ export function AccommodationForm({
 
   tripTimeZone: string;
   tripStartDateTime: Temporal.PlainDate | undefined;
+  /** Trip's final day */
   tripEndDateTime: Temporal.PlainDate | undefined;
   tripRegion: string;
 
@@ -284,7 +285,10 @@ export function AccommodationForm({
         return;
       }
       if (
-        Temporal.PlainDateTime.compare(timeCheckOutDate, timeCheckInDate) < 0
+        Temporal.PlainDateTime.compare(
+          zonedCheckOutDateTime,
+          zonedCheckInDateTime,
+        ) < 0
       ) {
         setErrorMessage('Check out time must be after check in time');
         return;
@@ -305,7 +309,7 @@ export function AccommodationForm({
         tripEndDateTime &&
         Temporal.ZonedDateTime.compare(
           zonedCheckOutDateTime,
-          tripEndDateTime.toZonedDateTime(tripTimeZone),
+          tripEndDateTime.toZonedDateTime(tripTimeZone).add({ days: 1 }),
         ) > 0
       ) {
         setErrorMessage('Check out time cannot be later than trip end time');

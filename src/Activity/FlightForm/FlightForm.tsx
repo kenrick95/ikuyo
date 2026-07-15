@@ -109,6 +109,7 @@ export function FlightForm({
   activityId?: string;
   tripId?: string;
   tripStartDateTime: Temporal.PlainDate | undefined;
+  /** Trip's final day */
   tripEndDateTime: Temporal.PlainDate | undefined;
   tripTimeZone: string;
   tripRegion: string;
@@ -359,7 +360,7 @@ export function FlightForm({
         endZonedDateTime &&
         Temporal.ZonedDateTime.compare(
           endZonedDateTime,
-          tripEndDateTime.add({ days: 1 }).toZonedDateTime(tripTimeZone),
+          tripEndDateTime.add({ days: 2 }).toZonedDateTime(tripTimeZone),
         ) > 0
       ) {
         setErrorMessage(

@@ -21,7 +21,7 @@ export function getFlightTimeError(
     ?.subtract({ days: 1 })
     .toZonedDateTime(tripTimeZone ?? Temporal.Now.timeZoneId());
   const maxBound = tripEndDate
-    ?.add({ days: 1 })
+    ?.add({ days: 2 })
     .toZonedDateTime(tripTimeZone ?? Temporal.Now.timeZoneId());
   if (dep && minBound && Temporal.ZonedDateTime.compare(dep, minBound) < 0)
     return 'Departure cannot be more than 1 day before trip start';

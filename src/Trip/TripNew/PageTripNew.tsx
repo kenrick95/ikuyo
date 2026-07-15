@@ -393,7 +393,7 @@ export default function PageTripNew() {
       const flight = flightCapture;
       // If user has set departure date, but has not set arrival date, set arrival date to same as departure date
       if (flight?.departureDateTime && !flight.arrivalDateTime) {
-        flight.arrivalDateTime = flight.departureDateTime;
+        flight.arrivalDateTime = flight.departureDateTime.add({ hours: 2 });
       }
       dispatch({ type: 'SET_OUTBOUND_FLIGHT', flight });
     },
@@ -403,7 +403,7 @@ export default function PageTripNew() {
     (flight: FlightCapture | null) => {
       // If use has set departure date, but has not set arrival date, set arrival date to same as departure date
       if (flight?.departureDateTime && !flight.arrivalDateTime) {
-        flight.arrivalDateTime = flight.departureDateTime;
+        flight.arrivalDateTime = flight.departureDateTime.add({ hours: 2 });
       }
       dispatch({ type: 'SET_RETURN_FLIGHT', flight });
     },
