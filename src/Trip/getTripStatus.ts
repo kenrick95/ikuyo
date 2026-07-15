@@ -108,33 +108,15 @@ export function getTripStatus(
   // TODO: Convert everything to Temporal in the future; for now reuse Luxon DateTime logic
   const tripStart =
     tripStartMaybe instanceof Temporal.ZonedDateTime
-      ? DateTime.fromObject(
-          {
-            year: tripStartMaybe.year,
-            month: tripStartMaybe.month,
-            day: tripStartMaybe.day,
-            hour: tripStartMaybe.hour,
-            minute: tripStartMaybe.minute,
-            second: tripStartMaybe.second,
-            millisecond: tripStartMaybe.millisecond,
-          },
-          { zone: tripStartMaybe.timeZoneId },
-        )
+      ? DateTime.fromMillis(tripStartMaybe.epochMilliseconds, {
+          zone: tripStartMaybe.timeZoneId,
+        })
       : tripStartMaybe;
   const tripEnd =
     tripEndMaybe instanceof Temporal.ZonedDateTime
-      ? DateTime.fromObject(
-          {
-            year: tripEndMaybe.year,
-            month: tripEndMaybe.month,
-            day: tripEndMaybe.day,
-            hour: tripEndMaybe.hour,
-            minute: tripEndMaybe.minute,
-            second: tripEndMaybe.second,
-            millisecond: tripEndMaybe.millisecond,
-          },
-          { zone: tripEndMaybe.timeZoneId },
-        )
+      ? DateTime.fromMillis(tripEndMaybe.epochMilliseconds, {
+          zone: tripEndMaybe.timeZoneId,
+        })
       : tripEndMaybe;
 
   const now = DateTime.now();

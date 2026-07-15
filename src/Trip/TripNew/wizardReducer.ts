@@ -61,38 +61,54 @@ export function wizardReducer(
   switch (action.type) {
     case 'SET_STEP':
       if (state.step === 2 && action.step === 3) {
-        // When moving from step 2 to 3, pre-fill outbound flight and return flight with default values based on the trip's start and end dates
+        // When moving from step 2 to 3, pre-fill outbound flight and return flight with default values based on the trip's start and end dates only if it has not been set yet
         const currentTimeZone = Temporal.Now.timeZoneId();
-        const defaultOutboundFlight: FlightCapture = {
-          departureDateTime: state.startDate?.toPlainDateTime({
-            hour: 9,
-            minute: 0,
-          }),
-          arrivalDateTime: state.startDate?.toPlainDateTime({
-            hour: 12,
-            minute: 0,
-          }),
-          departureTimeZone: currentTimeZone,
-          arrivalTimeZone: state.timeZone,
-        };
-        const defaultReturnFlight: FlightCapture = {
-          departureDateTime: state.endDate?.toPlainDateTime({
-            hour: 15,
-            minute: 0,
-          }),
-          arrivalDateTime: state.endDate?.toPlainDateTime({
-            hour: 18,
-            minute: 0,
-          }),
-          departureTimeZone: state.timeZone,
-          arrivalTimeZone: currentTimeZone,
-        };
-        return {
-          ...state,
-          step: action.step,
-          outboundFlight: defaultOutboundFlight,
-          returnFlight: defaultReturnFlight,
-        };
+        let newState = { ...state, step: action.step };
+        if (!state.outboundFlight && state.startDate) {
+          const zonedDepartureDateTime = state.startDate
+            .toPlainDateTime({
+              hour: 9,
+              minute: 0,
+            })
+            .toZonedDateTime(state.timeZone);
+          const zonedArrivalDateTime = zonedDepartureDateTime
+            .with({
+              hour: 12,
+              minute: 0,
+            })
+            .withTimeZone(currentTimeZone);
+
+          const defaultOutboundFlight: FlightCapture = {
+            departureDateTime: zonedDepartureDateTime.toPlainDateTime(),
+            arrivalDateTime: zonedArrivalDateTime.toPlainDateTime(),
+            departureTimeZone: currentTimeZone,
+            arrivalTimeZone: state.timeZone,
+          };
+          newState = { ...newState, outboundFlight: defaultOutboundFlight };
+        }
+        if (!state.returnFlight && state.endDate) {
+          const zonedDepartureDateTime = state.endDate
+            .toPlainDateTime({
+              hour: 15,
+              minute: 0,
+            })
+            .toZonedDateTime(state.timeZone);
+          const zonedArrivalDateTime = zonedDepartureDateTime
+            .with({
+              hour: 18,
+              minute: 0,
+            })
+            .withTimeZone(currentTimeZone);
+
+          const defaultReturnFlight: FlightCapture = {
+            departureDateTime: zonedDepartureDateTime.toPlainDateTime(),
+            arrivalDateTime: zonedArrivalDateTime.toPlainDateTime(),
+            departureTimeZone: state.timeZone,
+            arrivalTimeZone: currentTimeZone,
+          };
+          newState = { ...newState, returnFlight: defaultReturnFlight };
+        }
+        return newState;
       }
 
       return { ...state, step: action.step };

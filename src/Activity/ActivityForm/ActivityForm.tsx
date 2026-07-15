@@ -452,7 +452,9 @@ export function ActivityForm({
           tripStartDateTime.toZonedDateTime(tripTimeZone).subtract({ days: 1 }),
         ) < 0
       ) {
-        setErrorMessage('Start time cannot be earlier than trip start time');
+        setErrorMessage(
+          'Start time cannot be earlier than 1 day before trip start',
+        );
         return;
       }
       // end time cannot be later than trip end time + 1d
@@ -464,7 +466,9 @@ export function ActivityForm({
           tripEndDateTime.toZonedDateTime(tripTimeZone).add({ days: 2 }),
         ) > 0
       ) {
-        setErrorMessage('End time cannot be later than trip end time');
+        setErrorMessage(
+          'End time cannot be later than 1 day after trip end time',
+        );
         return;
       }
       if (mode === ActivityFormMode.Edit && activityId) {

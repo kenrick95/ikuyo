@@ -285,7 +285,7 @@ export function AccommodationForm({
         return;
       }
       if (
-        Temporal.PlainDateTime.compare(
+        Temporal.ZonedDateTime.compare(
           zonedCheckOutDateTime,
           zonedCheckInDateTime,
         ) < 0
