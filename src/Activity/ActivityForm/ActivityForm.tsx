@@ -352,16 +352,31 @@ export function ActivityForm({
   }, []);
 
   const handleStartDateTimeChange = useCallback(
-    (newDateTime: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
-      if (newDateTime instanceof Temporal.PlainDateTime) {
-        setStartDateTime(newDateTime);
-      } else if (newDateTime instanceof Temporal.PlainDate) {
-        setStartDateTime(newDateTime.toPlainDateTime({ hour: 0, minute: 0 }));
-      } else {
-        setStartDateTime(undefined);
+    (
+      newDateTimeMaybe: Temporal.PlainDate | Temporal.PlainDateTime | undefined,
+    ) => {
+      const newDateTime =
+        newDateTimeMaybe instanceof Temporal.PlainDateTime
+          ? newDateTimeMaybe
+          : newDateTimeMaybe instanceof Temporal.PlainDate
+            ? newDateTimeMaybe.toPlainDateTime({ hour: 0, minute: 0 })
+            : undefined;
+      setStartDateTime(newDateTime);
+
+      // If start time is changed, should try to preserve the duration of activity by adjusting the end time accordingly, if end time is set. If end time is before new start time, clear the end time
+      if (startDateTime && endDateTime && newDateTime) {
+        const duration = startDateTime.until(endDateTime, {
+          largestUnit: 'seconds',
+        });
+        const newEndDateTime = newDateTime.add(duration);
+        if (Temporal.PlainDateTime.compare(newEndDateTime, newDateTime) > 0) {
+          setEndDateTime(newEndDateTime);
+        } else {
+          setEndDateTime(undefined);
+        }
       }
     },
-    [],
+    [startDateTime, endDateTime],
   );
 
   const handleEndDateTimeChange = useCallback(
