@@ -27,7 +27,10 @@ export async function airportGeocodingRequest(
   let zoom: number | undefined;
 
   try {
+    // TODO: BUG? "HND" goes to "Henderson Executive Airport" (which has FAA code HND) instead of "Tokyo Haneda Airport" (which has IATA code HND)
+    console.log('Airport geocoding request:', query, geocodingOptions);
     const res = await geocoding.forward(query, geocodingOptions);
+    console.log('Airport geocoding response:', res);
     const feature = res?.features[0];
     if (feature) {
       [lng, lat] = feature.center ?? [];
