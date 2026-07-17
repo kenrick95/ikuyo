@@ -1,13 +1,14 @@
-import { DateTime } from 'luxon';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { getTripStatus } from './getTripStatus';
 
 describe('getTripStatus', () => {
-  const defaultMockNow = DateTime.fromISO('2025-06-18T12:00:00Z');
+  const defaultMockNow = Temporal.ZonedDateTime.from(
+    '2025-06-18T12:00:00[UTC]',
+  );
 
   beforeEach(() => {
     vi.useFakeTimers();
-    vi.setSystemTime(defaultMockNow.toJSDate());
+    vi.setSystemTime(defaultMockNow.epochMilliseconds);
   });
 
   afterEach(() => {
@@ -16,12 +17,12 @@ describe('getTripStatus', () => {
 
   describe('edge cases', () => {
     test('returns null when tripStart is undefined', () => {
-      const tripEnd = defaultMockNow.plus({ days: 1 }).startOf('day');
+      const tripEnd = defaultMockNow.add({ days: 1 }).startOfDay();
       expect(getTripStatus(undefined, tripEnd)).toBeNull();
     });
 
     test('returns null when tripEnd is undefined', () => {
-      const tripStart = defaultMockNow.plus({ days: 1 }).startOf('day');
+      const tripStart = defaultMockNow.add({ days: 1 }).startOfDay();
       expect(getTripStatus(tripStart, undefined)).toBeNull();
     });
 
@@ -32,10 +33,10 @@ describe('getTripStatus', () => {
 
   describe('upcoming trips', () => {
     test('trip starting in minutes shows minutes', () => {
-      const tripStart = defaultMockNow.startOf('day');
-      const tripEnd = tripStart.plus({ days: 3 });
-      const mockNow = tripStart.minus({ minutes: 30 });
-      vi.setSystemTime(mockNow.toJSDate());
+      const tripStart = defaultMockNow.startOfDay();
+      const tripEnd = tripStart.add({ days: 3 });
+      const mockNow = tripStart.subtract({ minutes: 30 });
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -47,10 +48,10 @@ describe('getTripStatus', () => {
     });
 
     test('trip starting very soon shows "Starting soon"', () => {
-      const tripStart = defaultMockNow.startOf('day');
-      const tripEnd = tripStart.plus({ days: 3 });
-      const mockNow = tripStart.minus({ seconds: 30 });
-      vi.setSystemTime(mockNow.toJSDate());
+      const tripStart = defaultMockNow.startOfDay();
+      const tripEnd = tripStart.add({ days: 3 });
+      const mockNow = tripStart.subtract({ seconds: 30 });
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -62,10 +63,14 @@ describe('getTripStatus', () => {
     });
 
     test('trip starting in hours and minutes shows both', () => {
-      const tripStart = defaultMockNow.startOf('day');
-      const tripEnd = tripStart.plus({ days: 3 });
-      const mockNow = tripStart.minus({ hours: 5, minutes: 45, seconds: 30 });
-      vi.setSystemTime(mockNow.toJSDate());
+      const tripStart = defaultMockNow.startOfDay();
+      const tripEnd = tripStart.add({ days: 3 });
+      const mockNow = tripStart.subtract({
+        hours: 5,
+        minutes: 45,
+        seconds: 30,
+      });
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -77,15 +82,15 @@ describe('getTripStatus', () => {
     });
 
     test('trip starting in days and hours shows both', () => {
-      const tripStart = defaultMockNow.startOf('day');
-      const tripEnd = tripStart.plus({ days: 3 });
-      const mockNow = tripStart.minus({
+      const tripStart = defaultMockNow.startOfDay();
+      const tripEnd = tripStart.add({ days: 3 });
+      const mockNow = tripStart.subtract({
         days: 3,
         hours: 8,
         minutes: 45,
         seconds: 30,
       });
-      vi.setSystemTime(mockNow.toJSDate());
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -97,15 +102,15 @@ describe('getTripStatus', () => {
     });
 
     test('trip starting in weeks and days shows both', () => {
-      const tripStart = defaultMockNow.startOf('day');
-      const tripEnd = tripStart.plus({ days: 3 });
-      const mockNow = tripStart.minus({
+      const tripStart = defaultMockNow.startOfDay();
+      const tripEnd = tripStart.add({ days: 3 });
+      const mockNow = tripStart.subtract({
         weeks: 2,
         days: 3,
         minutes: 45,
         seconds: 30,
       });
-      vi.setSystemTime(mockNow.toJSDate());
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -117,15 +122,15 @@ describe('getTripStatus', () => {
     });
 
     test('trip starting in months and weeks shows both', () => {
-      const tripStart = defaultMockNow.startOf('day');
-      const tripEnd = tripStart.plus({ days: 3 });
-      const mockNow = tripStart.minus({
+      const tripStart = defaultMockNow.startOfDay();
+      const tripEnd = tripStart.add({ days: 3 });
+      const mockNow = tripStart.subtract({
         months: 2,
         weeks: 1,
         minutes: 45,
         seconds: 30,
       });
-      vi.setSystemTime(mockNow.toJSDate());
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -137,15 +142,15 @@ describe('getTripStatus', () => {
     });
 
     test('trip starting in years and months shows both', () => {
-      const tripStart = defaultMockNow.startOf('day');
-      const tripEnd = tripStart.plus({ days: 3 });
-      const mockNow = tripStart.minus({
+      const tripStart = defaultMockNow.startOfDay();
+      const tripEnd = tripStart.add({ days: 3 });
+      const mockNow = tripStart.subtract({
         years: 1,
         months: 6,
         minutes: 45,
         seconds: 30,
       });
-      vi.setSystemTime(mockNow.toJSDate());
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -157,15 +162,15 @@ describe('getTripStatus', () => {
     });
 
     test('trip starting in multiple years shows years and months', () => {
-      const tripStart = defaultMockNow.startOf('day');
-      const tripEnd = tripStart.plus({ days: 3 });
-      const mockNow = tripStart.minus({
+      const tripStart = defaultMockNow.startOfDay();
+      const tripEnd = tripStart.add({ days: 3 });
+      const mockNow = tripStart.subtract({
         years: 2,
         months: 3,
         minutes: 45,
         seconds: 30,
       });
-      vi.setSystemTime(mockNow.toJSDate());
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -177,9 +182,9 @@ describe('getTripStatus', () => {
     });
 
     test('handles singular units correctly', () => {
-      const tripStart = defaultMockNow.startOf('day');
-      const tripEnd = tripStart.plus({ days: 3 });
-      const mockNow = tripStart.minus({
+      const tripStart = defaultMockNow.startOfDay();
+      const tripEnd = tripStart.add({ days: 3 });
+      const mockNow = tripStart.subtract({
         years: 1,
         months: 1,
         weeks: 1,
@@ -187,7 +192,7 @@ describe('getTripStatus', () => {
         hours: 1,
         minutes: 1,
       });
-      vi.setSystemTime(mockNow.toJSDate());
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -198,14 +203,14 @@ describe('getTripStatus', () => {
       });
     });
     test('shows three significant units with "and"', () => {
-      const tripStart = defaultMockNow.startOf('day');
-      const tripEnd = tripStart.plus({ days: 3 });
-      const mockNow = tripStart.minus({
+      const tripStart = defaultMockNow.startOfDay();
+      const tripEnd = tripStart.add({ days: 3 });
+      const mockNow = tripStart.subtract({
         weeks: 3,
         days: 2,
         hours: 5,
       });
-      vi.setSystemTime(mockNow.toJSDate());
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -216,10 +221,10 @@ describe('getTripStatus', () => {
 
   describe('current trips', () => {
     test('trip happening now shows "Trip in progress"', () => {
-      const tripStart = defaultMockNow.startOf('day').minus({ days: 1 });
-      const tripEnd = tripStart.plus({ days: 3 });
+      const tripStart = defaultMockNow.startOfDay().subtract({ days: 1 });
+      const tripEnd = tripStart.add({ days: 3 });
       const mockNow = defaultMockNow;
-      vi.setSystemTime(mockNow.toJSDate());
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -230,10 +235,10 @@ describe('getTripStatus', () => {
       });
     });
     test('should return progress for a single-day trip', () => {
-      const tripStart = defaultMockNow.startOf('day');
-      const tripEnd = tripStart.plus({ days: 1 });
+      const tripStart = defaultMockNow.startOfDay();
+      const tripEnd = tripStart.add({ days: 1 });
       const mockNow = defaultMockNow;
-      vi.setSystemTime(mockNow.toJSDate());
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
       expect(result).toEqual({
@@ -243,10 +248,10 @@ describe('getTripStatus', () => {
       });
     });
     test('trip starting today shows "Trip in progress"', () => {
-      const tripStart = defaultMockNow.startOf('day');
-      const tripEnd = tripStart.plus({ days: 4 });
+      const tripStart = defaultMockNow.startOfDay();
+      const tripEnd = tripStart.add({ days: 4 });
       const mockNow = defaultMockNow;
-      vi.setSystemTime(mockNow.toJSDate());
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -257,10 +262,10 @@ describe('getTripStatus', () => {
       });
     });
     test('trip ending today shows "Trip in progress"', () => {
-      const tripStart = defaultMockNow.startOf('day').minus({ days: 2 });
-      const tripEnd = tripStart.plus({ days: 3 });
+      const tripStart = defaultMockNow.startOfDay().subtract({ days: 2 });
+      const tripEnd = tripStart.add({ days: 3 });
       const mockNow = defaultMockNow;
-      vi.setSystemTime(mockNow.toJSDate());
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -274,10 +279,10 @@ describe('getTripStatus', () => {
 
   describe('past trips', () => {
     test('trip ended minutes ago shows minutes', () => {
-      const tripStart = defaultMockNow.startOf('day').minus({ days: 7 });
-      const tripEnd = tripStart.plus({ days: 3 });
-      const mockNow = tripEnd.plus({ minutes: 45 });
-      vi.setSystemTime(mockNow.toJSDate());
+      const tripStart = defaultMockNow.startOfDay().subtract({ days: 7 });
+      const tripEnd = tripStart.add({ days: 3 });
+      const mockNow = tripEnd.add({ minutes: 45 });
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -289,10 +294,10 @@ describe('getTripStatus', () => {
     });
 
     test('trip ended very recently shows "Just ended"', () => {
-      const tripStart = defaultMockNow.startOf('day').minus({ days: 7 });
-      const tripEnd = tripStart.plus({ days: 3 });
-      const mockNow = tripEnd.plus({ seconds: 30 });
-      vi.setSystemTime(mockNow.toJSDate());
+      const tripStart = defaultMockNow.startOfDay().subtract({ days: 7 });
+      const tripEnd = tripStart.add({ days: 3 });
+      const mockNow = tripEnd.add({ seconds: 30 });
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -304,10 +309,10 @@ describe('getTripStatus', () => {
     });
 
     test('trip ended hours and minutes ago shows both', () => {
-      const tripStart = defaultMockNow.startOf('day').minus({ days: 7 });
-      const tripEnd = tripStart.plus({ days: 3 });
-      const mockNow = tripEnd.plus({ hours: 3, minutes: 20 });
-      vi.setSystemTime(mockNow.toJSDate());
+      const tripStart = defaultMockNow.startOfDay().subtract({ days: 7 });
+      const tripEnd = tripStart.add({ days: 3 });
+      const mockNow = tripEnd.add({ hours: 3, minutes: 20 });
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -319,10 +324,10 @@ describe('getTripStatus', () => {
     });
 
     test('trip ended days and hours ago shows both', () => {
-      const tripStart = defaultMockNow.startOf('day').minus({ days: 7 });
-      const tripEnd = tripStart.plus({ days: 3 });
-      const mockNow = tripEnd.plus({ days: 2, hours: 6 });
-      vi.setSystemTime(mockNow.toJSDate());
+      const tripStart = defaultMockNow.startOfDay().subtract({ days: 7 });
+      const tripEnd = tripStart.add({ days: 3 });
+      const mockNow = tripEnd.add({ days: 2, hours: 6 });
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -334,10 +339,10 @@ describe('getTripStatus', () => {
     });
 
     test('trip ended weeks and days ago shows both', () => {
-      const tripStart = defaultMockNow.startOf('day').minus({ days: 7 });
-      const tripEnd = tripStart.plus({ days: 3 });
-      const mockNow = tripEnd.plus({ weeks: 1, days: 4 });
-      vi.setSystemTime(mockNow.toJSDate());
+      const tripStart = defaultMockNow.startOfDay().subtract({ days: 7 });
+      const tripEnd = tripStart.add({ days: 3 });
+      const mockNow = tripEnd.add({ weeks: 1, days: 4 });
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -349,10 +354,10 @@ describe('getTripStatus', () => {
     });
 
     test('trip ended months and weeks ago shows both', () => {
-      const tripStart = defaultMockNow.startOf('day').minus({ days: 7 });
-      const tripEnd = tripStart.plus({ days: 3 });
-      const mockNow = tripEnd.plus({ months: 3, weeks: 2 });
-      vi.setSystemTime(mockNow.toJSDate());
+      const tripStart = defaultMockNow.startOfDay().subtract({ days: 7 });
+      const tripEnd = tripStart.add({ days: 3 });
+      const mockNow = tripEnd.add({ months: 3, weeks: 2 });
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -364,10 +369,10 @@ describe('getTripStatus', () => {
     });
 
     test('trip ended years and months ago shows both', () => {
-      const tripStart = defaultMockNow.startOf('day').minus({ days: 7 });
-      const tripEnd = tripStart.plus({ days: 3 });
-      const mockNow = tripEnd.plus({ years: 2, months: 4 });
-      vi.setSystemTime(mockNow.toJSDate());
+      const tripStart = defaultMockNow.startOfDay().subtract({ days: 7 });
+      const tripEnd = tripStart.add({ days: 3 });
+      const mockNow = tripEnd.add({ years: 2, months: 4 });
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -379,9 +384,9 @@ describe('getTripStatus', () => {
     });
 
     test('handles singular units correctly for past trips', () => {
-      const tripStart = defaultMockNow.startOf('day').minus({ days: 7 });
-      const tripEnd = tripStart.plus({ days: 3 });
-      const mockNow = tripEnd.plus({
+      const tripStart = defaultMockNow.startOfDay().subtract({ days: 7 });
+      const tripEnd = tripStart.add({ days: 3 });
+      const mockNow = tripEnd.add({
         years: 1,
         months: 1,
         weeks: 1,
@@ -389,7 +394,7 @@ describe('getTripStatus', () => {
         hours: 1,
         minutes: 1,
       });
-      vi.setSystemTime(mockNow.toJSDate());
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -400,14 +405,14 @@ describe('getTripStatus', () => {
       });
     });
     test('shows three significant units with "and" for past trips', () => {
-      const tripStart = defaultMockNow.startOf('day').minus({ days: 7 });
-      const tripEnd = tripStart.plus({ days: 3 });
-      const mockNow = tripEnd.plus({
+      const tripStart = defaultMockNow.startOfDay().subtract({ days: 7 });
+      const tripEnd = tripStart.add({ days: 3 });
+      const mockNow = tripEnd.add({
         weeks: 2,
         days: 3,
         hours: 4,
       });
-      vi.setSystemTime(mockNow.toJSDate());
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -421,12 +426,14 @@ describe('getTripStatus', () => {
     test('works with different timezones', () => {
       // Trip in Tokyo timezone starting tomorrow
       const tripStart = defaultMockNow
-        .setZone('Asia/Tokyo')
-        .startOf('day')
-        .plus({ days: 1 });
-      const tripEnd = tripStart.plus({ days: 3 });
-      const mockNow = tripStart.setZone('Europe/London').minus({ hours: 3 });
-      vi.setSystemTime(mockNow.toJSDate());
+        .withTimeZone('Asia/Tokyo')
+        .startOfDay()
+        .add({ days: 1 });
+      const tripEnd = tripStart.add({ days: 3 });
+      const mockNow = tripStart
+        .withTimeZone('Europe/London')
+        .subtract({ hours: 3 });
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -437,10 +444,10 @@ describe('getTripStatus', () => {
   });
   describe('edge cases with time boundaries', () => {
     test('trip starting exactly now', () => {
-      const tripStart = defaultMockNow.startOf('day').minus({ days: 7 });
-      const tripEnd = tripStart.plus({ days: 3 });
+      const tripStart = defaultMockNow.startOfDay().subtract({ days: 7 });
+      const tripEnd = tripStart.add({ days: 3 });
       const mockNow = tripStart;
-      vi.setSystemTime(mockNow.toJSDate());
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 
@@ -448,10 +455,10 @@ describe('getTripStatus', () => {
     });
 
     test('trip ending exactly now', () => {
-      const tripStart = defaultMockNow.startOf('day').minus({ days: 7 });
-      const tripEnd = tripStart.plus({ days: 3 });
+      const tripStart = defaultMockNow.startOfDay().subtract({ days: 7 });
+      const tripEnd = tripStart.add({ days: 3 });
       const mockNow = tripEnd;
-      vi.setSystemTime(mockNow.toJSDate());
+      vi.setSystemTime(mockNow.epochMilliseconds);
 
       const result = getTripStatus(tripStart, tripEnd);
 

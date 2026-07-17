@@ -14,9 +14,9 @@ Ikuyo is a collaborative trip/itinerary planning web application with real-time 
 | State Management   | Zustand 5 (slice pattern with `persist` middleware)        |
 | Database / Backend | InstantDB (`@instantdb/core` — real-time client-side DB)   |
 | Routing            | Wouter (lightweight React router)                          |
-| Date/Time          | Luxon (`DateTime`)                                         |
+| Date/Time          | Temporal                                                   |
 | Maps               | MapTiler SDK + Geocoding Control                           |
-| Drag & Drop        | `@dnd-kit/core` + `@dnd-kit/sortable`                     |
+| Drag & Drop        | `@dnd-kit/core` + `@dnd-kit/sortable`                      |
 | Error Monitoring   | Sentry (`@sentry/react`)                                   |
 | Linting/Formatting | Biome (replaces ESLint + Prettier)                         |
 | Testing            | Vitest + Testing Library (React) + jsdom                   |
@@ -358,7 +358,7 @@ pnpm typecheck        # TypeScript type checking (tsc --noEmit)
 
 - **`memo()`** for leaf components with complex props
 - **Accessibility:** include `role`, `tabIndex`, keyboard handlers (`onKeyDown`/`onKeyUp` for Enter/Space)
-- **Time handling:** Timestamps stored as milliseconds (`Date.now()`), timezone-aware display via Luxon `DateTime.setZone()`
+- **Time handling:** Timestamps stored as milliseconds (`Date.now()`), use Temporal API
 - **Bitmask flags:** `ActivityFlag` uses bitwise operations
 - **Environment variables:** Injected at build time via `process.env.*` (Rsbuild)
 - **Permissions:** Defined in `instant.perms.ts` (InstantDB permissions with CEL expressions)

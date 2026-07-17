@@ -9,7 +9,6 @@ import {
   Spinner,
   Text,
 } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
 import { useEffect } from 'react';
 import type { RouteComponentProps } from 'wouter';
 import { useCurrentUser } from '../Auth/hooks';
@@ -22,7 +21,7 @@ import { TripPublicCard } from './TripPublicCard';
 
 export default PageTripsPublic;
 
-const skeletonNow = DateTime.now().toMillis();
+const skeletonNow = Temporal.Now.instant().epochMilliseconds;
 
 export function PageTripsPublic(_props: RouteComponentProps) {
   const currentUser = useCurrentUser();

@@ -1,16 +1,4 @@
-import { DateTime } from 'luxon';
-
-export function formatToDateInput(date: DateTime) {
-  return date.toFormat('yyyy-LL-dd');
-}
-export function getDateTimeFromDateInput(
-  dateInputStr: string,
-  timeZone: string,
-): DateTime {
-  return DateTime.fromFormat(dateInputStr, 'yyyy-LL-dd', {
-    zone: timeZone,
-  });
-}
+import { toFormat } from '../common/dateTime/temporalFormatter';
 
 export function formatMacroplanDateRange({
   timestampStart,
@@ -20,45 +8,50 @@ export function formatMacroplanDateRange({
 }: {
   timestampStart: number | undefined;
   timestampEnd: number | undefined;
-  timeZoneStart: string | undefined;
-  timeZoneEnd: string | undefined;
+  timeZoneStart: string;
+  timeZoneEnd: string;
 }): string | null {
-  const dtStart = timestampStart
-    ? DateTime.fromMillis(timestampStart, {
-        zone: timeZoneStart,
-      })
+  const macroplanStartZonedDateTime = timestampStart
+    ? Temporal.Instant.fromEpochMilliseconds(timestampStart).toZonedDateTimeISO(
+        timeZoneStart,
+      )
     : undefined;
-  const dtEnd = timestampEnd
-    ? DateTime.fromMillis(timestampEnd, {
-        zone: timeZoneEnd,
-      }).minus({ minute: 1 })
+  const macroplanFinalDayZonedDateTime = timestampEnd
+    ? Temporal.Instant.fromEpochMilliseconds(timestampEnd)
+        .toZonedDateTimeISO(timeZoneEnd)
+        .subtract({ minutes: 1 })
     : undefined;
+  const macroplanFirstDay = macroplanStartZonedDateTime?.toPlainDate();
+  const macroplanFinalDay = macroplanFinalDayZonedDateTime?.toPlainDate();
 
-  if (dtStart && dtEnd) {
+  if (macroplanFirstDay && macroplanFinalDay) {
     if (timeZoneStart === timeZoneEnd) {
       const timeZone = timeZoneStart ?? 'local time';
-      if (dtStart.hasSame(dtEnd, 'day')) {
+      if (macroplanFirstDay.equals(macroplanFinalDay)) {
         // e.g. "1 January 2025"
-        return `${dtEnd.toFormat('d LLLL yyyy')} (${timeZone})`;
-      } else if (dtStart.hasSame(dtEnd, 'month')) {
+        return `${toFormat('d LLLL yyyy', macroplanFinalDay)} (${timeZone})`;
+      } else if (
+        macroplanFirstDay.month === macroplanFinalDay.month &&
+        macroplanFirstDay.year === macroplanFinalDay.year
+      ) {
         // e.g. "1-10 January 2025"
-        return `${dtStart.toFormat('d')}–${dtEnd.toFormat('d LLLL yyyy')} (${timeZone})`;
-      } else if (dtStart.hasSame(dtEnd, 'year')) {
+        return `${toFormat('d', macroplanFirstDay)}–${toFormat('d LLLL yyyy', macroplanFinalDay)} (${timeZone})`;
+      } else if (macroplanFirstDay.year === macroplanFinalDay.year) {
         // e.g. "1 January-10 May 2025"
-        return `${dtStart.toFormat('d LLLL')}–${dtEnd.toFormat('d LLLL yyyy')} (${timeZone})`;
+        return `${toFormat('d LLLL', macroplanFirstDay)}–${toFormat('d LLLL yyyy', macroplanFinalDay)} (${timeZone})`;
       }
       // e.g. "1 December 2025-15 February 2026"
-      return `${dtStart.toFormat('d LLLL yyyy')}–${dtEnd.toFormat('d LLLL yyyy')} (${timeZone})`;
+      return `${toFormat('d LLLL yyyy', macroplanFirstDay)}–${toFormat('d LLLL yyyy', macroplanFinalDay)} (${timeZone})`;
     } else {
       // e.g. "1 January 2025 (Asia/Tokyo)-31 January 2025 (America/New_York)"
-      return `${dtStart.toFormat('d LLLL yyyy')} (${timeZoneStart})–${dtEnd.toFormat('d LLLL yyyy')} (${timeZoneEnd})`;
+      return `${toFormat('d LLLL yyyy', macroplanFirstDay)} (${timeZoneStart})–${toFormat('d LLLL yyyy', macroplanFinalDay)} (${timeZoneEnd})`;
     }
-  } else if (dtStart) {
+  } else if (macroplanFirstDay) {
     // e.g. "1 January 2025-End date not set"
-    return `${dtStart.toFormat('d LLLL yyyy')}–End date not set (${timeZoneStart})`;
-  } else if (dtEnd) {
+    return `${toFormat('d LLLL yyyy', macroplanFirstDay)}–End date not set (${timeZoneStart})`;
+  } else if (macroplanFinalDay) {
     // e.g. "Start date not set-1 January 2025"
-    return `Start date not set–${dtEnd.toFormat('d LLLL yyyy')} (${timeZoneEnd})`;
+    return `Start date not set–${toFormat('d LLLL yyyy', macroplanFinalDay)} (${timeZoneEnd})`;
   }
   return null;
 }

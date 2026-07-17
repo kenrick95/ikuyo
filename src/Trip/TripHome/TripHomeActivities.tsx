@@ -1,5 +1,5 @@
 import { Button, Flex, Heading, Text } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
+
 import { useMemo } from 'react';
 import { Link } from 'wouter';
 import { Activity } from '../../Activity/Activity';
@@ -23,38 +23,47 @@ export function TripHomeActivities() {
   // Determine if trip is {stating soon, or current}
   const isTripStartingOrCurrent = useMemo(() => {
     if (!trip) return false;
-    const now = DateTime.now().setZone(trip.timeZone);
-    const tripStartTwoDaysBefore = DateTime.fromMillis(trip.timestampStart)
-      .setZone(trip.timeZone)
-      .minus({ days: 2 })
-      .startOf('day');
-    const tripEnd = DateTime.fromMillis(trip.timestampEnd)
-      .setZone(trip.timeZone)
-      .endOf('day');
-    return now >= tripStartTwoDaysBefore && now <= tripEnd;
+    const now = Temporal.Now.zonedDateTimeISO(trip.timeZone);
+    const tripStartTwoDaysBefore = Temporal.Instant.fromEpochMilliseconds(
+      trip.timestampStart,
+    )
+      .toZonedDateTimeISO(trip.timeZone)
+      .subtract({ days: 2 })
+      .startOfDay();
+    const tripEnd = Temporal.Instant.fromEpochMilliseconds(trip.timestampEnd)
+      .toZonedDateTimeISO(trip.timeZone)
+      .startOfDay()
+      .add({ days: 1 });
+    return (
+      Temporal.ZonedDateTime.compare(now, tripStartTwoDaysBefore) >= 0 &&
+      Temporal.ZonedDateTime.compare(now, tripEnd) <= 0
+    );
   }, [trip]);
 
   // Today and tomorrow activities
   const upcomingActivities = useMemo(() => {
     if (!activities || !trip) return [];
 
-    const now = DateTime.now().setZone(trip.timeZone);
-    const todayStart = now.startOf('day');
-    const tomorrowEnd = todayStart.plus({ days: 2 }).endOf('day');
+    const now = Temporal.Now.zonedDateTimeISO(trip.timeZone);
+    const todayStart = now.startOfDay();
+    const tomorrowEnd = todayStart.add({ days: 2 });
 
     return activities
       .filter((activity): activity is TripSliceActivityWithTime => {
         if (!activity.timestampStart || !activity.timestampEnd) return false;
-        const activityStart = DateTime.fromMillis(
+        const activityStart = Temporal.Instant.fromEpochMilliseconds(
           activity.timestampStart,
-        ).setZone(trip.timeZone);
-        const activityEnd = DateTime.fromMillis(activity.timestampEnd).setZone(
-          trip.timeZone,
-        );
+        ).toZonedDateTimeISO(trip.timeZone);
+        const activityEnd = Temporal.Instant.fromEpochMilliseconds(
+          activity.timestampEnd,
+        ).toZonedDateTimeISO(trip.timeZone);
 
         // Check if activity overlaps with the next 48 hours (today + tomorrow)
         // Activity overlaps if it starts before the end of the period AND ends after the start of the period
-        return activityStart <= tomorrowEnd && activityEnd >= todayStart;
+        return (
+          Temporal.ZonedDateTime.compare(activityStart, tomorrowEnd) <= 0 &&
+          Temporal.ZonedDateTime.compare(activityEnd, todayStart) >= 0
+        );
       })
       .sort((a, b) => (a.timestampStart || 0) - (b.timestampStart || 0));
   }, [activities, trip]);

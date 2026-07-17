@@ -7,7 +7,7 @@ import {
 } from '@radix-ui/react-icons';
 import { IconButton, Section, Text, Tooltip } from '@radix-ui/themes';
 import clsx from 'clsx';
-import { DateTime } from 'luxon';
+
 import type * as React from 'react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Route, Switch } from 'wouter';
@@ -23,6 +23,7 @@ import {
   type DayGroups,
   groupActivitiesByDays,
 } from '../../Activity/eventGrouping';
+import { toFormat } from '../../common/dateTime/temporalFormatter';
 import { useBoundStore } from '../../data/store';
 import { Macroplan } from '../../Macroplan/Macroplan';
 import { MacroplanDialog } from '../../Macroplan/MacroplanDialog/MacroplanDialog';
@@ -141,20 +142,28 @@ export function Timetable() {
       return null;
     }
 
-    const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
-      trip.timeZone,
-    );
-    const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd).setZone(
-      trip.timeZone,
-    );
-    const now = DateTime.now().setZone(trip.timeZone);
+    const tripStartDateTime = Temporal.Instant.fromEpochMilliseconds(
+      trip.timestampStart,
+    ).toZonedDateTimeISO(trip.timeZone);
+    const tripEndDateTime = Temporal.Instant.fromEpochMilliseconds(
+      trip.timestampEnd,
+    ).toZonedDateTimeISO(trip.timeZone);
+    const nowInTripTimeZone = Temporal.Now.zonedDateTimeISO(trip.timeZone);
 
-    if (now < tripStartDateTime || now > tripEndDateTime) {
+    if (
+      Temporal.ZonedDateTime.compare(nowInTripTimeZone, tripStartDateTime) <
+        0 ||
+      Temporal.ZonedDateTime.compare(nowInTripTimeZone, tripEndDateTime) > 0
+    ) {
       return null;
     }
 
     const currentDay =
-      Math.floor(now.diff(tripStartDateTime.startOf('day'), 'days').days) + 1;
+      Math.floor(
+        nowInTripTimeZone.since(tripStartDateTime.startOfDay(), {
+          largestUnit: 'days',
+        }).days,
+      ) + 1;
 
     // Ensure the current day is within the valid range (1-based index)
     const clampedDay = Math.max(
@@ -188,7 +197,7 @@ export function Timetable() {
       return;
     }
 
-    const now = DateTime.now().setZone(trip.timeZone);
+    const now = Temporal.Now.zonedDateTimeISO(trip.timeZone);
     const currentHour = now.hour;
 
     // Delay scroll to ensure elements are rendered
@@ -453,8 +462,8 @@ export function Timetable() {
           const isCurrentDay = currentDayIndex === dayNumber;
           return (
             <TimetableDayHeader
-              dateString={dayGroup.startDateTime.toFormat('ccc, d LLL yyyy')}
-              key={dayGroup.startDateTime.toISODate()}
+              dateString={toFormat('ccc, d LLL yyyy', dayGroup.startDateTime)}
+              key={dayGroup.startDateTime.toString()}
               gridColumnStart={`d${String(dayNumber)}`}
               gridColumnEnd={`de${String(dayNumber)}`}
               isActive={isCurrentDay}

@@ -1,6 +1,5 @@
 import { Card, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
-import { DateTime } from 'luxon';
 import { Link } from 'wouter';
 import { RouteTrip, RouteTripHome } from '../Routes/routes';
 import { TripStatusBadge } from '../Trip/TripStatusBadge';
@@ -17,10 +16,14 @@ export function TripCard({
   className: string;
 }) {
   const tripStartDateTime = trip
-    ? DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone)
+    ? Temporal.Instant.fromEpochMilliseconds(
+        trip.timestampStart,
+      ).toZonedDateTimeISO(trip.timeZone)
     : undefined;
   const tripEndDateTime = trip
-    ? DateTime.fromMillis(trip.timestampEnd).setZone(trip.timeZone)
+    ? Temporal.Instant.fromEpochMilliseconds(
+        trip.timestampEnd,
+      ).toZonedDateTimeISO(trip.timeZone)
     : undefined;
   return (
     <li

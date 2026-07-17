@@ -1,6 +1,5 @@
 import { Avatar, Card, Flex, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
-import { DateTime } from 'luxon';
 import { Link } from 'wouter';
 import { RouteTrip } from '../Routes/routes';
 import { formatTripDateRange } from '../Trip/time';
@@ -12,13 +11,16 @@ function getTripDayCount(trip: {
   timestampEnd: number;
   timeZone: string;
 }): number {
-  const start = DateTime.fromMillis(trip.timestampStart, {
-    zone: trip.timeZone,
-  }).startOf('day');
-  const end = DateTime.fromMillis(trip.timestampEnd, {
-    zone: trip.timeZone,
-  }).startOf('day');
-  return Math.max(1, Math.round(end.diff(start, 'days').days));
+  const start = Temporal.Instant.fromEpochMilliseconds(trip.timestampStart)
+    .toZonedDateTimeISO(trip.timeZone)
+    .startOfDay();
+  const end = Temporal.Instant.fromEpochMilliseconds(trip.timestampEnd)
+    .toZonedDateTimeISO(trip.timeZone)
+    .startOfDay();
+  return Math.max(
+    1,
+    Math.round(end.since(start, { largestUnit: 'days' }).days),
+  );
 }
 
 export function TripPublicCard({

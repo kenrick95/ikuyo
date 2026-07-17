@@ -1,4 +1,3 @@
-import { DateTime } from 'luxon';
 import type { DayGroups } from '../../Activity/eventGrouping';
 import type { TripSliceAccommodation, TripSliceTrip } from '../store/types';
 
@@ -18,32 +17,37 @@ export function getAccommodationIndexes({
       endColumn: number | undefined;
     };
   }> = [];
-  const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
-    trip.timeZone,
-  );
-  const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd).setZone(
-    trip.timeZone,
-  );
-  const tripEndDay = tripEndDateTime.diff(tripStartDateTime, 'days').days;
+  const tripStartDateTime = Temporal.Instant.fromEpochMilliseconds(
+    trip.timestampStart,
+  ).toZonedDateTimeISO(trip.timeZone);
+  const tripEndDateTime = Temporal.Instant.fromEpochMilliseconds(
+    trip.timestampEnd,
+  ).toZonedDateTimeISO(trip.timeZone);
+  const tripEndDay = tripEndDateTime.since(tripStartDateTime, {
+    largestUnit: 'days',
+  }).days;
 
   for (const accommodation of accommodations) {
-    const accommodationCheckInDateTime = DateTime.fromMillis(
-      accommodation.timestampCheckIn,
-    ).setZone(accommodation.timeZoneCheckIn ?? trip.timeZone);
+    // Even if accommodation check in and check out can have their own time zones, need to use trip time zone to calculate day indexes for accuracy
+    const accommodationCheckInDateTimeTripTimeZone =
+      Temporal.Instant.fromEpochMilliseconds(
+        accommodation.timestampCheckIn,
+      ).toZonedDateTimeISO(trip.timeZone);
     const accommodationCheckInDay =
       Math.floor(
-        accommodationCheckInDateTime
-          .startOf('day')
-          .diff(tripStartDateTime, 'days').days,
+        accommodationCheckInDateTimeTripTimeZone
+          .startOfDay()
+          .since(tripStartDateTime, { largestUnit: 'days' }).days,
       ) + 1;
-    const accommodationCheckOutDateTime = DateTime.fromMillis(
-      accommodation.timestampCheckOut,
-    ).setZone(accommodation.timeZoneCheckOut ?? trip.timeZone);
+    const accommodationCheckOutDateTimeTripTimeZone =
+      Temporal.Instant.fromEpochMilliseconds(
+        accommodation.timestampCheckOut,
+      ).toZonedDateTimeISO(trip.timeZone);
     const accommodationCheckOutDay =
       Math.floor(
-        accommodationCheckOutDateTime
-          .startOf('day')
-          .diff(tripStartDateTime, 'days').days,
+        accommodationCheckOutDateTimeTripTimeZone
+          .startOfDay()
+          .since(tripStartDateTime, { largestUnit: 'days' }).days,
       ) + 1;
 
     res.push({

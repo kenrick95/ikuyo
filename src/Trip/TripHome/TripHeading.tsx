@@ -1,6 +1,6 @@
 import { Pencil2Icon } from '@radix-ui/react-icons';
 import { Badge, Button, Flex, Heading } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
+
 import { useCallback, useMemo } from 'react';
 import { useBoundStore } from '../../data/store';
 import { TripUserRole } from '../../User/TripUserRole';
@@ -13,10 +13,10 @@ export function TripHeading() {
   const { trip } = useCurrentTrip();
 
   const tripStartDateTime = trip
-    ? DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone)
+    ? Temporal.Instant.fromEpochMilliseconds(trip.timestampStart).toZonedDateTimeISO(trip.timeZone)
     : undefined;
   const tripEndDateTime = trip
-    ? DateTime.fromMillis(trip.timestampEnd).setZone(trip.timeZone)
+    ? Temporal.Instant.fromEpochMilliseconds(trip.timestampEnd).toZonedDateTimeISO(trip.timeZone)
     : undefined;
   // Dialog handlers
   const pushDialog = useBoundStore((state) => state.pushDialog);

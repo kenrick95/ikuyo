@@ -31,7 +31,7 @@ function datePickerReducer(
   // console.log(
   //   '!! datePickerReducer',
   //   action,
-  //   'date' in action ? action.date?.toISO() : null,
+  //   'date' in action ? action.date?  : null,
   // );
   switch (action.type) {
     case 'setFocusedDate': {
@@ -93,9 +93,6 @@ function DateTimePickerInner(
   props: DatePickerProps,
   ref: React.ForwardedRef<HTMLButtonElement>,
 ) {
-  // TODO: Need to have guard where mode === 'datetime' then value passed must be Temporal.PlainDateTime and NOT Temporal.PlainDate, and vice versa. Otherwise, it will cause runtime error when trying to access hour/minute of Temporal.PlainDate which doesn't have hour/minute; and vice versa, if mode === 'date' then value passed must be Temporal.PlainDate and NOT Temporal.PlainDateTime. Otherwise, it will cause runtime error when trying to access hour/minute of Temporal.PlainDate which doesn't have hour/minute.
-  // TODO: change all internal state to temporal
-  // TODO: then change usage to read from temporal instead of luxon DateTime
   const [state, dispatch] = useReducer(datePickerReducer, props, (props) => {
     const mode = props.mode;
     const ret =

@@ -1,4 +1,4 @@
-import { DateTime } from 'luxon';
+import { toFormat } from '../common/dateTime/temporalFormatter';
 import type { DbActivity } from './db';
 
 type ActivityForExport = Pick<
@@ -25,11 +25,14 @@ function formatIcsDateTime(
   timeZone: string,
   isAllDay = false,
 ): string {
-  const dt = DateTime.fromMillis(timestamp, { zone: timeZone });
+  const dt =
+    Temporal.Instant.fromEpochMilliseconds(timestamp).toZonedDateTimeISO(
+      timeZone,
+    );
   if (isAllDay) {
-    return dt.toFormat('yyyyMMdd');
+    return toFormat('yyyyMMdd', dt);
   }
-  return dt.toFormat("yyyyMMdd'T'HHmmss");
+  return toFormat("yyyyMMdd'T'HHmmss", dt);
 }
 
 /**
@@ -99,7 +102,10 @@ export function activitiesToIcs(
   tripTimeZone: string,
   tripTitle?: string,
 ): string {
-  const now = DateTime.utc().toFormat("yyyyMMdd'T'HHmmss'Z'");
+  const now = toFormat(
+    "yyyyMMdd'T'HHmmss'Z'",
+    Temporal.Now.instant().toZonedDateTimeISO('UTC'),
+  );
 
   const events = activities
     .filter(
@@ -115,22 +121,27 @@ export function activitiesToIcs(
       const timeZoneEnd = activity.timeZoneEnd || tripTimeZone;
 
       // Check if it's an all-day event (no specific time set)
-      const startDt = DateTime.fromMillis(activity.timestampStart, {
-        zone: timeZoneStart,
-      });
-      const endDt = DateTime.fromMillis(activity.timestampEnd, {
-        zone: timeZoneEnd,
-      });
+      const startDt = Temporal.Instant.fromEpochMilliseconds(
+        activity.timestampStart,
+      ).toZonedDateTimeISO(timeZoneStart);
+
+      const endDt = Temporal.Instant.fromEpochMilliseconds(
+        activity.timestampEnd,
+      ).toZonedDateTimeISO(timeZoneEnd);
 
       const isStartAtMidnight =
         startDt.hour === 0 && startDt.minute === 0 && startDt.second === 0;
       const isSameDayInclusiveEnd =
-        endDt.hasSame(startDt, 'day') &&
+        // only make sense if time zones are same, otherwise the comparison may be invalid
+        endDt.timeZoneId === startDt.timeZoneId &&
+        endDt.toPlainDate().equals(startDt.toPlainDate()) &&
         endDt.hour === 23 &&
         endDt.minute === 59;
-      const nextDayStartDt = startDt.plus({ days: 1 });
+      const nextDayStartDt = startDt.add({ days: 1 });
       const isNextDayExclusiveEnd =
-        endDt.hasSame(nextDayStartDt, 'day') &&
+        // only make sense if time zones are same, otherwise the comparison may be invalid
+        endDt.timeZoneId === startDt.timeZoneId &&
+        endDt.toPlainDate().equals(nextDayStartDt.toPlainDate()) &&
         endDt.hour === 0 &&
         endDt.minute === 0 &&
         endDt.second === 0;
@@ -147,7 +158,7 @@ export function activitiesToIcs(
       // For all-day events, the end date is exclusive per ICS spec. Convert a same-day
       // inclusive 23:59 end to the next day, but preserve an already-exclusive next-day 00:00 end.
       const allDayEndTimestamp = isSameDayInclusiveEnd
-        ? endDt.plus({ days: 1 }).toMillis()
+        ? endDt.add({ days: 1 }).epochMilliseconds
         : activity.timestampEnd;
       const dtEnd = isAllDay
         ? `DTEND;VALUE=DATE:${formatIcsDateTime(allDayEndTimestamp, timeZoneEnd, true)}`

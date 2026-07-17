@@ -1,6 +1,6 @@
 import { ContextMenu, Flex, Heading } from '@radix-ui/themes';
 import clsx from 'clsx';
-import { DateTime } from 'luxon';
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Route, Switch } from 'wouter';
 import { Accommodation } from '../../Accommodation/Accommodation';
@@ -14,6 +14,7 @@ import {
   type DayGroups,
   groupActivitiesByDays,
 } from '../../Activity/eventGrouping';
+import { toFormat } from '../../common/dateTime/temporalFormatter';
 import { useBoundStore } from '../../data/store';
 import { Macroplan } from '../../Macroplan/Macroplan';
 import { MacroplanDialog } from '../../Macroplan/MacroplanDialog/MacroplanDialog';
@@ -117,20 +118,25 @@ export function TripListView() {
       return null;
     }
 
-    const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
-      trip.timeZone,
-    );
-    const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd).setZone(
-      trip.timeZone,
-    );
-    const now = DateTime.now().setZone(trip.timeZone);
+    const tripStartDateTime = Temporal.Instant.fromEpochMilliseconds(
+      trip.timestampStart,
+    ).toZonedDateTimeISO(trip.timeZone);
+    const tripEndDateTime = Temporal.Instant.fromEpochMilliseconds(
+      trip.timestampEnd,
+    ).toZonedDateTimeISO(trip.timeZone);
+    const now = Temporal.Now.zonedDateTimeISO(trip.timeZone);
 
-    if (now < tripStartDateTime || now > tripEndDateTime) {
+    if (
+      Temporal.ZonedDateTime.compare(now, tripStartDateTime) < 0 ||
+      Temporal.ZonedDateTime.compare(now, tripEndDateTime) > 0
+    ) {
       return null;
     }
 
     const currentDay =
-      Math.floor(now.diff(tripStartDateTime.startOf('day'), 'days').days) + 1;
+      Math.floor(
+        now.since(tripStartDateTime.startOfDay(), { largestUnit: 'days' }).days,
+      ) + 1;
 
     // Ensure the current day is within the valid range (1-based index)
     const clampedDay = Math.max(
@@ -164,8 +170,10 @@ export function TripListView() {
       if (!currentDayGroup) return;
 
       // Find the heading element using the data-date attribute
-      const formattedDate =
-        currentDayGroup.startDateTime.toFormat('yyyy-MM-dd');
+      const formattedDate = toFormat(
+        'yyyy-MM-dd',
+        currentDayGroup.startDateTime,
+      );
       const targetElement = listContainerRef.current.querySelector(
         `div[data-date="${formattedDate}"]`,
       ) as HTMLElement;
@@ -266,7 +274,7 @@ export function TripListView() {
                 const dayAccommodations = Object.values(
                   dayGroup.accommodations,
                 );
-                const date = dayGroup.startDateTime.toFormat('yyyy-MM-dd');
+                const date = toFormat('yyyy-MM-dd', dayGroup.startDateTime);
                 const dayNumber = i + 1;
                 const isCurrentDay = currentDayIndex === dayNumber;
 
@@ -287,7 +295,7 @@ export function TripListView() {
                       isCurrentDay && s.listSubheaderActive,
                     )}
                   >
-                    {dayGroup.startDateTime.toFormat('cccc, d LLLL yyyy')}
+                    {toFormat('cccc, d LLLL yyyy', dayGroup.startDateTime)}
                   </Heading>,
                   ...dayMacroplans.map((macroplan, i) => {
                     return (

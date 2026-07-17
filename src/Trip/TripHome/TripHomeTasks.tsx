@@ -1,5 +1,5 @@
 import { Button, Flex, Heading } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
+
 import { useMemo } from 'react';
 import { Link } from 'wouter';
 import { RouteTripTaskList } from '../../Routes/routes';
@@ -33,10 +33,10 @@ export function TripHomeTasks() {
   const priorityTasks = useMemo(() => {
     if (!allTasks.length || !trip) return [];
 
-    const now = DateTime.now().setZone(trip.timeZone);
-    const todayStart = now.startOf('day');
-    const todayEnd = now.endOf('day');
-    const tomorrowEnd = todayEnd.plus({ days: 1 });
+    const now = Temporal.Now.zonedDateTimeISO(trip.timeZone);
+    const todayStart = now.startOfDay();
+    const todayEnd = todayStart.add({ days: 1 });
+    const tomorrowEnd = todayEnd.add({ days: 1 });
 
     // First, get priority tasks (in progress, overdue, due today/tomorrow)
     const priorityFiltered = allTasks.filter((task) => {
@@ -45,13 +45,17 @@ export function TripHomeTasks() {
 
       // Show tasks with due dates
       if (task.dueAt) {
-        const dueDate = DateTime.fromMillis(task.dueAt).setZone(trip.timeZone);
+        const dueDate = Temporal.Instant.fromEpochMilliseconds(
+          task.dueAt,
+        ).toZonedDateTimeISO(trip.timeZone);
 
         // Show past due tasks
-        if (dueDate < todayStart) return true;
+        if (Temporal.ZonedDateTime.compare(dueDate, todayStart) < 0)
+          return true;
 
         // Show tasks due today or tomorrow
-        if (dueDate <= tomorrowEnd) return true;
+        if (Temporal.ZonedDateTime.compare(dueDate, tomorrowEnd) <= 0)
+          return true;
       }
 
       return false;

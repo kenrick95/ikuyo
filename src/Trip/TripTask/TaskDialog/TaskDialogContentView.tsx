@@ -7,10 +7,11 @@ import {
   Skeleton,
   Text,
 } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
+
 import { useCallback, useMemo } from 'react';
 import { CommentGroupWithForm } from '../../../Comment/CommentGroupWithForm';
 import { COMMENT_GROUP_OBJECT_TYPE } from '../../../Comment/db';
+import { toFormat } from '../../../common/dateTime/temporalFormatter';
 import { useParseTextIntoNodes } from '../../../common/text/parseTextIntoNodes';
 import type { DialogContentProps } from '../../../Dialog/DialogRoute';
 import { useDeepBoundStore } from '../../../data/store';
@@ -43,12 +44,14 @@ export function TaskDialogContentView({
 
   const taskDueDateTime =
     task && trip && task.dueAt != null
-      ? DateTime.fromMillis(task.dueAt).setZone(trip.timeZone)
+      ? Temporal.Instant.fromEpochMilliseconds(task.dueAt).toZonedDateTimeISO(
+          trip.timeZone,
+        )
       : undefined;
 
   const taskDueDateStr =
     taskDueDateTime && trip
-      ? `${taskDueDateTime.toFormat('d MMMM yyyy HH:mm')} (${trip.timeZone})`
+      ? `${toFormat('d MMMM yyyy HH:mm', taskDueDateTime)} (${trip.timeZone})`
       : undefined;
 
   const goToEditMode = useCallback(() => {

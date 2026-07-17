@@ -10,7 +10,6 @@ import {
 
 mapTilerConfig.session = false;
 
-import { DateTime } from 'luxon';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { calculateZoomFromFeature } from '../common/geocodingUtils';
 import { MapStyle } from '../theme/maptiler';
@@ -65,25 +64,28 @@ function isActivityToday(
 ): boolean {
   if (!trip || !activity.timestampStart || !activity.timestampEnd) return false;
 
-  const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
-    trip.timeZone,
-  );
-  const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd).setZone(
-    trip.timeZone,
-  );
+  const tripStartDateTime = Temporal.Instant.fromEpochMilliseconds(
+    trip.timestampStart,
+  ).toZonedDateTimeISO(trip.timeZone);
+  const tripEndDateTime = Temporal.Instant.fromEpochMilliseconds(
+    trip.timestampEnd,
+  ).toZonedDateTimeISO(trip.timeZone);
   const tripStatus = getTripStatus(tripStartDateTime, tripEndDateTime);
 
   // Only highlight for ongoing trips
   if (tripStatus?.status !== 'current') return false;
 
-  const now = DateTime.now().setZone(trip.timeZone);
-  const todayStart = now.startOf('day');
-  const todayEnd = now.endOf('day');
+  const now = Temporal.Now.zonedDateTimeISO(trip.timeZone);
+  const todayStart = now.startOfDay();
+  const todayEnd = now.add({ days: 1 });
 
-  const activityStart = DateTime.fromMillis(activity.timestampStart).setZone(
-    trip.timeZone,
+  const activityStart = Temporal.Instant.fromEpochMilliseconds(
+    activity.timestampStart,
+  ).toZonedDateTimeISO(trip.timeZone);
+  return (
+    Temporal.ZonedDateTime.compare(activityStart, todayStart) >= 0 &&
+    Temporal.ZonedDateTime.compare(activityStart, todayEnd) <= 0
   );
-  return activityStart >= todayStart && activityStart <= todayEnd;
 }
 
 function isAccommodationToday(
@@ -92,34 +94,40 @@ function isAccommodationToday(
 ): boolean {
   if (!trip) return false;
 
-  const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
-    trip.timeZone,
-  );
-  const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd).setZone(
-    trip.timeZone,
-  );
+  const tripStartDateTime = Temporal.Instant.fromEpochMilliseconds(
+    trip.timestampStart,
+  ).toZonedDateTimeISO(trip.timeZone);
+  const tripEndDateTime = Temporal.Instant.fromEpochMilliseconds(
+    trip.timestampEnd,
+  ).toZonedDateTimeISO(trip.timeZone);
   const tripStatus = getTripStatus(tripStartDateTime, tripEndDateTime);
 
   // Only highlight for ongoing trips
   if (tripStatus?.status !== 'current') return false;
 
-  const now = DateTime.now().setZone(trip.timeZone);
-  const todayStart = now.startOf('day');
-  const todayEnd = now.endOf('day');
+  const now = Temporal.Now.zonedDateTimeISO(trip.timeZone);
+  const todayStart = now.startOfDay();
+  const todayEnd = now.add({ days: 1 });
 
-  const checkInDateTime = DateTime.fromMillis(
+  const checkInDateTime = Temporal.Instant.fromEpochMilliseconds(
     accommodation.timestampCheckIn,
-  ).setZone(trip.timeZone);
-  const checkOutDateTime = DateTime.fromMillis(
+  ).toZonedDateTimeISO(trip.timeZone);
+  const checkOutDateTime = Temporal.Instant.fromEpochMilliseconds(
     accommodation.timestampCheckOut,
-  ).setZone(trip.timeZone);
+  ).toZonedDateTimeISO(trip.timeZone);
 
   // Check if today is during the stay (check-in is today or before, check-out is after today)
   // or if check-in/check-out happens today
   return (
-    (checkInDateTime >= todayStart && checkInDateTime <= todayEnd) || // Checking in today
-    (checkOutDateTime >= todayStart && checkOutDateTime <= todayEnd) || // Checking out today
-    (checkInDateTime <= todayStart && checkOutDateTime >= todayEnd) // Staying through today
+    // Checking in today
+    (Temporal.ZonedDateTime.compare(checkInDateTime, todayStart) >= 0 &&
+      Temporal.ZonedDateTime.compare(checkInDateTime, todayEnd) <= 0) ||
+    // Checking out today
+    (Temporal.ZonedDateTime.compare(checkOutDateTime, todayStart) >= 0 &&
+      Temporal.ZonedDateTime.compare(checkOutDateTime, todayEnd) <= 0) ||
+    // Staying through today
+    (Temporal.ZonedDateTime.compare(checkInDateTime, todayStart) <= 0 &&
+      Temporal.ZonedDateTime.compare(checkOutDateTime, todayEnd) >= 0)
   );
 }
 

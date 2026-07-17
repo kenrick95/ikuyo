@@ -1,7 +1,7 @@
-import { DateTime } from 'luxon';
 import { AccommodationDisplayTimeMode } from '../../Accommodation/AccommodationDisplayTimeMode';
 import { ActivityType, getActivityType } from '../../Activity/activityType';
 import { groupActivitiesByDays } from '../../Activity/eventGrouping';
+import { toFormat } from '../../common/dateTime/temporalFormatter';
 import type {
   TripSliceAccommodation,
   TripSliceActivity,
@@ -22,9 +22,12 @@ function esc(text: string | null | undefined): string {
 }
 
 function formatDate(timestamp: number, timeZone: string): string {
-  return DateTime.fromMillis(timestamp)
-    .setZone(timeZone)
-    .toFormat('d LLLL yyyy');
+  return toFormat(
+    'd LLLL yyyy',
+    Temporal.Instant.fromEpochMilliseconds(timestamp).toZonedDateTimeISO(
+      timeZone,
+    ),
+  );
 }
 
 function formatTime(
@@ -32,8 +35,11 @@ function formatTime(
   timeZone: string,
   tripTimeZone: string,
 ): string {
-  const dt = DateTime.fromMillis(timestamp).setZone(timeZone);
-  const time = dt.toFormat('HH:mm');
+  const dt =
+    Temporal.Instant.fromEpochMilliseconds(timestamp).toZonedDateTimeISO(
+      timeZone,
+    );
+  const time = toFormat('HH:mm', dt);
   if (timeZone !== tripTimeZone) {
     return `${time} (${timeZone})`;
   }
@@ -132,7 +138,7 @@ export function tripToHtml(
   const daysHtml = dayGroups.inTrip
     .map((dayGroup, i) => {
       const dayNumber = i + 1;
-      const dayLabel = dayGroup.startDateTime.toFormat('cccc, d LLLL yyyy');
+      const dayLabel = toFormat('cccc, d LLLL yyyy', dayGroup.startDateTime);
       const cards: string[] = [];
 
       for (const macroplan of dayGroup.macroplans) {
@@ -160,7 +166,7 @@ export function tripToHtml(
     })
     .join('');
 
-  const today = DateTime.now().toFormat('d LLLL yyyy');
+  const today = toFormat('d LLLL yyyy', Temporal.Now.plainDateISO());
 
   return `<!DOCTYPE html>
 <html lang="en">
