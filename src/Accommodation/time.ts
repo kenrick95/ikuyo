@@ -1,19 +1,12 @@
-import { DateTime } from 'luxon';
-
-export function formatToDatetimeLocalInput(date: DateTime) {
-  return date.toFormat(`yyyy-LL-dd'T'HH:mm`);
-}
-export function getDateTimeFromDatetimeLocalInput(
-  datetimeLocalInputString: string,
-  timeZone: string,
-): DateTime {
-  return DateTime.fromFormat(datetimeLocalInputString, `yyyy-LL-dd'T'HH:mm`, {
-    zone: timeZone,
-  });
-}
+import { toFormat } from '../common/dateTime/temporalFormatter';
 
 export function formatTime(timestamp: number, timeZone: string): string {
-  return DateTime.fromMillis(timestamp).setZone(timeZone).toFormat('HHmm');
+  return toFormat(
+    'HHmm',
+    Temporal.Instant.fromEpochMilliseconds(timestamp).toZonedDateTimeISO(
+      timeZone,
+    ),
+  );
 }
 
 export function formatAccommodationTimeRange({
@@ -24,38 +17,42 @@ export function formatAccommodationTimeRange({
 }: {
   timestampCheckIn: number | undefined;
   timestampCheckOut: number | undefined;
-  timeZoneCheckIn: string | undefined;
-  timeZoneCheckOut: string | undefined;
+  timeZoneCheckIn: string;
+  timeZoneCheckOut: string;
 }): string | null {
-  const dtStart = timestampCheckIn
-    ? DateTime.fromMillis(timestampCheckIn, {
-        zone: timeZoneCheckIn,
-      })
+  const checkInZonedDateTime = timestampCheckIn
+    ? Temporal.Instant.fromEpochMilliseconds(
+        timestampCheckIn,
+      ).toZonedDateTimeISO(timeZoneCheckIn)
     : undefined;
-  const dtEnd = timestampCheckOut
-    ? DateTime.fromMillis(timestampCheckOut, {
-        zone: timeZoneCheckOut,
-      })
+  const checkOutZonedDateTime = timestampCheckOut
+    ? Temporal.Instant.fromEpochMilliseconds(
+        timestampCheckOut,
+      ).toZonedDateTimeISO(timeZoneCheckOut)
     : undefined;
 
-  if (dtStart && dtEnd) {
+  if (checkInZonedDateTime && checkOutZonedDateTime) {
     if (timeZoneCheckIn === timeZoneCheckOut) {
-      if (dtStart.hasSame(dtEnd, 'day')) {
+      if (
+        checkInZonedDateTime
+          .toPlainDate()
+          .equals(checkOutZonedDateTime.toPlainDate())
+      ) {
         // e.g. "1 January 2025 15:00-22:00"
-        return `${dtStart.toFormat('d LLLL yyyy HH:mm')}–${dtEnd.toFormat('HH:mm')} (${timeZoneCheckIn})`;
+        return `${toFormat('d LLLL yyyy HH:mm', checkInZonedDateTime)}–${toFormat('HH:mm', checkOutZonedDateTime)} (${timeZoneCheckIn})`;
       }
       // e.g. "1 December 2025 15:00-15 February 2026 11:00"
-      return `${dtStart.toFormat('d LLLL yyyy HH:mm')}–${dtEnd.toFormat('d LLLL yyyy HH:mm')} (${timeZoneCheckIn})`;
+      return `${toFormat('d LLLL yyyy HH:mm', checkInZonedDateTime)}–${toFormat('d LLLL yyyy HH:mm', checkOutZonedDateTime)} (${timeZoneCheckIn})`;
     } else {
       // e.g. "1 January 2025 15:00 (Asia/Tokyo)-31 January 2025 11:00 (America/New_York)"
-      return `${dtStart.toFormat('d LLLL yyyy HH:mm')} (${timeZoneCheckIn})–${dtEnd.toFormat('d LLLL yyyy HH:mm')} (${timeZoneCheckOut})`;
+      return `${toFormat('d LLLL yyyy HH:mm', checkInZonedDateTime)} (${timeZoneCheckIn})–${toFormat('d LLLL yyyy HH:mm', checkOutZonedDateTime)} (${timeZoneCheckOut})`;
     }
-  } else if (dtStart) {
+  } else if (checkInZonedDateTime) {
     // e.g. "1 January 2025 15:00-Check out time not set"
-    return `${dtStart.toFormat('d LLLL yyyy HH:mm')}–Check out time not set`;
-  } else if (dtEnd) {
+    return `${toFormat('d LLLL yyyy HH:mm', checkInZonedDateTime)}–Check out time not set`;
+  } else if (checkOutZonedDateTime) {
     // e.g. "Check in time not set-1 January 2025 15:00"
-    return `Check in time not set–${dtEnd.toFormat('d LLLL yyyy HH:mm')}`;
+    return `Check in time not set–${toFormat('d LLLL yyyy HH:mm', checkOutZonedDateTime)}`;
   }
   return null;
 }

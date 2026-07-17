@@ -57,7 +57,7 @@ export function wizardReducer(
   state: WizardState,
   action: WizardAction,
 ): WizardState {
-  console.log('wizardReducer action:', action, 'prev state:', state);
+  // console.log('wizardReducer action:', action, 'prev state:', state);
   switch (action.type) {
     case 'SET_STEP':
       if (state.step === 2 && action.step === 3) {

@@ -6,10 +6,12 @@ In this section, assume time zone is UTC
 
 There are two type date/time precision:
 
-- Day. Applies to Trip, Macroplan. e.g. "1 January 2025"
-- Minute. Applies to Activity, Accommodation, Expense, Comment. e.g. "1 January 2025 00:15"
+- Day. Applies to Trip, Macroplan. e.g. "1 January 2025" --> PlainDate
+- Minute. Applies to Activity, Accommodation, Expense, Comment. e.g. "1 January 2025 00:15" --> PlainDateTime
 
-For Day-level precision,
+In database, the start/end are saved as timestamp in milliseconds for both scenarios
+
+For Day-level precision:
 - timestampStart --> saved as the midnight of the first day
 - timestampEnd --> saved as the midnight after the final day
 
@@ -17,15 +19,36 @@ So for example, a trip that happened 1 January 2025 to 10 January 2025
 - timestampStart: 1 Jan 2025 00:00:00
 - timestampEnd: 11 Jan 2025 00:00:00
 
-Note: in some form props, the convention is to minus 1 minute from timestampEnd, so be careful regarding form validation since we might have already transformed the time
+Note: in some components prop with Day-level precision, the 'end' is actually final day
 
 ## Time zone
 
 Time zone is saved as different field, each entity can control its own time zone, by convention fall back to trip's time zone.
 
-When user changes time zone, assume it's changing the time zone only and keep the 'wall clock' the same. That is, if my current time is 12:00 at UTC+8 and if I change my time zone to UTC+9, I expect my time to still be shown as 12:00 and not 11:00
+## Components
 
-This is usually source of bugs regarding activity/macroplan/accommodation not aligning properly in timetable/list view
+In FE component, it could take as props:
 
-The problem usually comes from interaction with date/time picker and time zone, since date/time picker may or may not return timestamp that has time zone information embedded in it (it's easy to make mistake here)... Ideally, date/time picker should return a 'wall clock' (i.e. time string that are not timestamp and not affected by time zone)
+- Temporal.PlainDate
+- Temporal.PlainDateTime
+- Temporal.ZonedDateTime
 
+Generally, pass it in as plain date/datetime and time zone as different field; and then construct a ZonedDateTime with those two information inside the component
+
+## ZonedDateTime
+
+### Comparison
+
+When doing precise calculations, prefer to convert everything to ZonedDateTime
+
+Temporal cannot do `<`, `<=`, `===`, `>`, `>=` operations, must use `Temporal.ZonedDateTime.compare(one, two)` which returns `-1`, `0`, or `1`
+
+Generally `one <op> two` is equivalent to `Temporal.ZonedDateTime.compare(one, two) <op> 0`
+
+Example `one < two` is equivalent to `Temporal.ZonedDateTime.compare(one, two) < 0`
+
+### Duration
+
+When doing duration calculation, `this.since(other)` or `this.until(other)`.
+
+Be careful about the time zones of `this` and `other`. Because the concept of 'calendar unit' where day/week/month/year have uneven lenghts, Temporal will throw RangeError if largestUnit is days or larger AND time zones of `this` and `other` are different.

@@ -1,4 +1,3 @@
-import { DateTime } from 'luxon';
 import { AccommodationDisplayTimeMode } from '../Accommodation/AccommodationDisplayTimeMode';
 import type {
   TripSliceAccommodation,
@@ -18,7 +17,7 @@ export type DayGroups = {
   };
   inTrip: Array<{
     /** DateTime in trip time zone */
-    startDateTime: DateTime;
+    startDateTime: Temporal.ZonedDateTime;
     columns: number;
     activities: TripSliceActivityWithTime[];
     /** activity id --> {start: column index (1-based), end: column index (1-based)} */
@@ -58,13 +57,15 @@ export function groupActivitiesByDays({
       macroplans: [],
     },
   };
-  const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
-    trip.timeZone,
-  );
-  const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd).setZone(
-    trip.timeZone,
-  );
-  const tripDuration = tripEndDateTime.diff(tripStartDateTime, 'days');
+  const tripStartDateTime = Temporal.Instant.fromEpochMilliseconds(
+    trip.timestampStart,
+  ).toZonedDateTimeISO(trip.timeZone);
+  const tripEndDateTime = Temporal.Instant.fromEpochMilliseconds(
+    trip.timestampEnd,
+  ).toZonedDateTimeISO(trip.timeZone);
+  const tripDuration = tripEndDateTime.since(tripStartDateTime, {
+    largestUnit: 'days',
+  });
   const activitiesWithTime: TripSliceActivityWithTime[] = [];
   const activityIdeas: TripSliceActivity[] = [];
   for (const activity of activities) {
@@ -90,8 +91,8 @@ export function groupActivitiesByDays({
   res.ideas.activities = activityIdeas;
 
   for (let d = 0; d < tripDuration.days; d++) {
-    const dayStartDateTime = tripStartDateTime.plus({ day: d });
-    const dayEndDateTime = tripStartDateTime.plus({ day: d + 1 });
+    const dayStartDateTime = tripStartDateTime.add({ days: d });
+    const dayEndDateTime = tripStartDateTime.add({ days: d + 1 });
     const dayActivities: TripSliceActivityWithTime[] = [];
     const dayAccommodations: TripSliceAccommodation[] = [];
     const dayMacroplans: TripSliceMacroplan[] = [];
@@ -104,33 +105,42 @@ export function groupActivitiesByDays({
       new Map();
     for (const activity of activitiesWithTime) {
       activityColumnIndexMap.set(activity.id, { start: 1, end: 1 });
-      const activityStartDateTime = DateTime.fromMillis(
+      // Must use trip time zone even though activity start/end may have their own time zones; for accuracy of calculations
+      const activityStartDateTime = Temporal.Instant.fromEpochMilliseconds(
         activity.timestampStart,
-      ).setZone(activity.timeZoneStart ?? trip.timeZone);
-      const activityEndDateTime = DateTime.fromMillis(
+      ).toZonedDateTimeISO(trip.timeZone);
+      const activityEndDateTime = Temporal.Instant.fromEpochMilliseconds(
         activity.timestampEnd,
-      ).setZone(activity.timeZoneEnd ?? trip.timeZone);
+      ).toZonedDateTimeISO(trip.timeZone);
 
       // Check if activity overlaps with this day
       if (
-        activityStartDateTime < dayEndDateTime &&
-        activityEndDateTime > dayStartDateTime
+        Temporal.ZonedDateTime.compare(activityStartDateTime, dayEndDateTime) <
+          0 &&
+        Temporal.ZonedDateTime.compare(activityEndDateTime, dayStartDateTime) >
+          0
       ) {
         // Clip the activity times to the day boundaries
-        const clippedStartDateTime = DateTime.max(
-          activityStartDateTime,
-          dayStartDateTime,
-        );
-        const clippedEndDateTime = DateTime.min(
-          activityEndDateTime,
-          dayEndDateTime,
-        );
+        const clippedStartDateTime =
+          // Take the latest of activityEndDateTime and dayEndDateTime
+          Temporal.ZonedDateTime.compare(
+            activityStartDateTime,
+            dayStartDateTime,
+          ) > 0
+            ? activityStartDateTime
+            : dayStartDateTime;
+        const clippedEndDateTime =
+          // Take the earliest of activityEndDateTime and dayEndDateTime
+          Temporal.ZonedDateTime.compare(activityEndDateTime, dayEndDateTime) <
+          0
+            ? activityEndDateTime
+            : dayEndDateTime;
 
         // Create a new activity object with clipped timestamps
         const clippedActivity: TripSliceActivityWithTime = {
           ...activity,
-          timestampStart: clippedStartDateTime.toMillis(),
-          timestampEnd: clippedEndDateTime.toMillis(),
+          timestampStart: clippedStartDateTime.epochMilliseconds,
+          timestampEnd: clippedEndDateTime.epochMilliseconds,
         };
 
         dayActivities.push(clippedActivity);
@@ -144,32 +154,46 @@ export function groupActivitiesByDays({
     });
 
     for (const macroplan of macroplans) {
-      const macroplanStartDateTime = DateTime.fromMillis(
+      // Must use trip time zone even though macroplan start/end may have their own time zones; for accuracy of calculations
+      const macroplanStartDateTime = Temporal.Instant.fromEpochMilliseconds(
         macroplan.timestampStart,
-      ).setZone(macroplan.timeZoneStart ?? trip.timeZone);
-      const macroplanEndDateTime = DateTime.fromMillis(
+      ).toZonedDateTimeISO(trip.timeZone);
+      const macroplanEndDateTime = Temporal.Instant.fromEpochMilliseconds(
         macroplan.timestampEnd,
-      ).setZone(macroplan.timeZoneEnd ?? trip.timeZone);
+      ).toZonedDateTimeISO(trip.timeZone);
       // if the macroplan involves this day, add it to the list
       if (
-        macroplanStartDateTime <= dayStartDateTime &&
-        dayEndDateTime <= macroplanEndDateTime
+        Temporal.ZonedDateTime.compare(
+          macroplanStartDateTime,
+          dayStartDateTime,
+        ) <= 0 &&
+        Temporal.ZonedDateTime.compare(dayEndDateTime, macroplanEndDateTime) <=
+          0
       ) {
         dayMacroplans.push(macroplan);
       }
     }
 
     for (const accommodation of accommodations) {
-      const accommodationCheckInDateTime = DateTime.fromMillis(
-        accommodation.timestampCheckIn,
-      ).setZone(accommodation.timeZoneCheckIn ?? trip.timeZone);
-      const accommodationCheckOutDateTime = DateTime.fromMillis(
-        accommodation.timestampCheckOut,
-      ).setZone(accommodation.timeZoneCheckOut ?? trip.timeZone);
+      // Must use trip time zone even though accommodation check in/check out may have their own time zones; for accuracy of calculations
+      const accommodationCheckInDateTime =
+        Temporal.Instant.fromEpochMilliseconds(
+          accommodation.timestampCheckIn,
+        ).toZonedDateTimeISO(trip.timeZone);
+      const accommodationCheckOutDateTime =
+        Temporal.Instant.fromEpochMilliseconds(
+          accommodation.timestampCheckOut,
+        ).toZonedDateTimeISO(trip.timeZone);
       if (
         // This day is the start of the stay: check in time is this day
-        dayStartDateTime <= accommodationCheckInDateTime &&
-        accommodationCheckInDateTime <= dayEndDateTime
+        Temporal.ZonedDateTime.compare(
+          dayStartDateTime,
+          accommodationCheckInDateTime,
+        ) <= 0 &&
+        Temporal.ZonedDateTime.compare(
+          accommodationCheckInDateTime,
+          dayEndDateTime,
+        ) <= 0
       ) {
         dayAccommodations.push(accommodation);
         accommodationProps.set(accommodation.id, {
@@ -177,10 +201,22 @@ export function groupActivitiesByDays({
         });
       } else if (
         // This day is during the stay: check in time is before this day, check out time is after this day
-        accommodationCheckInDateTime <= dayStartDateTime &&
-        accommodationCheckInDateTime <= dayEndDateTime &&
-        accommodationCheckOutDateTime >= dayStartDateTime &&
-        accommodationCheckOutDateTime >= dayEndDateTime
+        Temporal.ZonedDateTime.compare(
+          accommodationCheckInDateTime,
+          dayStartDateTime,
+        ) <= 0 &&
+        Temporal.ZonedDateTime.compare(
+          accommodationCheckInDateTime,
+          dayEndDateTime,
+        ) <= 0 &&
+        Temporal.ZonedDateTime.compare(
+          accommodationCheckOutDateTime,
+          dayStartDateTime,
+        ) >= 0 &&
+        Temporal.ZonedDateTime.compare(
+          accommodationCheckOutDateTime,
+          dayEndDateTime,
+        ) >= 0
       ) {
         dayAccommodations.push(accommodation);
         accommodationProps.set(accommodation.id, {
@@ -188,8 +224,14 @@ export function groupActivitiesByDays({
         });
       } else if (
         // This day is the end of the stay: check out time is this day
-        dayStartDateTime <= accommodationCheckOutDateTime &&
-        accommodationCheckOutDateTime <= dayEndDateTime
+        Temporal.ZonedDateTime.compare(
+          dayStartDateTime,
+          accommodationCheckOutDateTime,
+        ) <= 0 &&
+        Temporal.ZonedDateTime.compare(
+          accommodationCheckOutDateTime,
+          dayEndDateTime,
+        ) <= 0
       ) {
         dayAccommodations.push(accommodation);
         accommodationProps.set(accommodation.id, {

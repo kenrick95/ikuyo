@@ -1,4 +1,3 @@
-import { DateTime } from 'luxon';
 import type { DayGroups } from '../../Activity/eventGrouping';
 import type { TripSliceMacroplan, TripSliceTrip } from '../store/types';
 
@@ -18,26 +17,32 @@ export function getMacroplanIndexes({
       endColumn: number | undefined;
     };
   }> = [];
-  const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
-    trip.timeZone,
-  );
+  const tripStartDateTime = Temporal.Instant.fromEpochMilliseconds(
+    trip.timestampStart,
+  ).toZonedDateTimeISO(trip.timeZone);
   for (const macroplan of macroplans) {
-    const startDateTime = DateTime.fromMillis(macroplan.timestampStart).setZone(
-      trip.timeZone,
-    );
+    const startDateTime = Temporal.Instant.fromEpochMilliseconds(
+      macroplan.timestampStart,
+    ).toZonedDateTimeISO(trip.timeZone);
     /** Trip's first day: Day 1 */
     const startDay =
       Math.floor(
-        startDateTime.startOf('day').diff(tripStartDateTime, 'days').days,
+        startDateTime
+          .startOfDay()
+          .since(tripStartDateTime, { largestUnit: 'days' }).days,
       ) + 1;
-    const endDateTime = DateTime.fromMillis(macroplan.timestampEnd)
-      .setZone(trip.timeZone)
+    const endDateTime = Temporal.Instant.fromEpochMilliseconds(
+      macroplan.timestampEnd,
+    )
+      .toZonedDateTimeISO(trip.timeZone)
       // Because timestampEnd is the day after it ended, subtract 1 minute to make this this represent final day of the macroplan
-      .minus({ minute: 1 });
+      .subtract({ minutes: 1 });
     /** Trip's final day: Day N */
     const endDay =
       Math.floor(
-        endDateTime.startOf('day').diff(tripStartDateTime, 'days').days,
+        endDateTime
+          .startOfDay()
+          .since(tripStartDateTime, { largestUnit: 'days' }).days,
       ) + 1;
 
     res.push({

@@ -1,4 +1,4 @@
-import { DateTime } from 'luxon';
+import { toFormat } from '../common/dateTime/temporalFormatter';
 import type { TripSliceExpense } from '../Trip/store/types';
 
 /**
@@ -43,17 +43,24 @@ export function expensesToCsv(
 
   // Create CSV rows
   const rows = expenses.map((expense) => {
-    const dateIncurred = DateTime.fromMillis(expense.timestampIncurred, {
-      zone: expense.timeZoneIncurred || timeZone,
-    }).toISODate();
-
-    const createdAt = DateTime.fromMillis(expense.createdAt, {
-      zone: expense.timeZoneIncurred || timeZone,
-    }).toISO();
-
-    const lastUpdatedAt = DateTime.fromMillis(expense.lastUpdatedAt, {
-      zone: expense.timeZoneIncurred || timeZone,
-    }).toISO();
+    const dateIncurred = toFormat(
+      'YYYY-MM-DD',
+      Temporal.Instant.fromEpochMilliseconds(
+        expense.timestampIncurred,
+      ).toZonedDateTimeISO(expense.timeZoneIncurred ?? timeZone),
+    );
+    const createdAt = toFormat(
+      'YYYY-MM-DDTHH:mm:ssZ',
+      Temporal.Instant.fromEpochMilliseconds(
+        expense.createdAt,
+      ).toZonedDateTimeISO(expense.timeZoneIncurred ?? timeZone),
+    );
+    const lastUpdatedAt = toFormat(
+      'YYYY-MM-DDTHH:mm:ssZ',
+      Temporal.Instant.fromEpochMilliseconds(
+        expense.lastUpdatedAt,
+      ).toZonedDateTimeISO(expense.timeZoneIncurred ?? timeZone),
+    );
 
     return [
       escapeCsvField(expense.title),

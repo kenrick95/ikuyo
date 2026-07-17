@@ -7,7 +7,7 @@ import {
   Text,
   TextField,
 } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
+
 import { useCallback, useMemo, useReducer, useState } from 'react';
 import { useLocation } from 'wouter';
 import { ActivityFlag } from '../../Activity/activityFlag';
@@ -34,12 +34,10 @@ import { getFlightTimeError, getOriginCurrencyFromLocale } from './wizardUtils';
 
 export default function PageTripNew() {
   const [, setLocation] = useLocation();
+  const localTimeZone = Temporal.Now.timeZoneId();
 
   const [state, dispatch] = useReducer(wizardReducer, undefined, () =>
-    createInitialWizardState(
-      DateTime.local().zoneName ?? 'UTC',
-      getOriginCurrencyFromLocale(),
-    ),
+    createInitialWizardState(localTimeZone, getOriginCurrencyFromLocale()),
   );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -492,8 +490,6 @@ export default function PageTripNew() {
       </div>
     );
   }
-
-  const localTimeZone = DateTime.local().zoneName ?? 'UTC';
 
   return (
     <div className={s.page}>

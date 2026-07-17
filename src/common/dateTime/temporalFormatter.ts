@@ -4,7 +4,10 @@
 // https://github.com/moment/luxon/blob/b6b9d03709085008287ed7f4ce5067f0f4be53f2/src/impl/tokenParser.js#L432
 // Idea: Use Int.DateTimeFormat
 // TODO: I don't like this... we should do something like toFormat([TOKEN.YEAR_FULL, ' ', TOKEN.MONTH_SHORT, ' ', TOKEN.DAY_OF_MONTH_2_DIGIT], temporal) instead of parsing a string format. This would be more type-safe and avoid parsing errors. But for now, this is good enough.
-type SupportedTemporal = Temporal.PlainDate | Temporal.PlainDateTime;
+type SupportedTemporal =
+  | Temporal.PlainDate
+  | Temporal.PlainDateTime
+  | Temporal.ZonedDateTime;
 
 const TOKENS = [
   'yyyy',
@@ -20,6 +23,7 @@ const TOKENS = [
   'hh',
   'mm',
   'ss',
+  'ZZ',
   'd',
   'H',
   'h',
@@ -138,6 +142,12 @@ function formatToken(
 
     case 'dd':
       return formatNumber(temporal.day, 2, locales);
+
+    case 'ZZ':
+      if (temporal instanceof Temporal.ZonedDateTime) {
+        return temporal.timeZoneId;
+      }
+      throw new RangeError(`Token "${token}" requires Temporal.ZonedDateTime`);
 
     case 'd':
       return formatNumber(temporal.day, 1, locales);

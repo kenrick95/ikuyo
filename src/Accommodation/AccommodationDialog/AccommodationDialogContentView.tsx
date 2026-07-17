@@ -6,10 +6,11 @@ import {
   Skeleton,
   Text,
 } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
+
 import { useCallback, useMemo } from 'react';
 import { CommentGroupWithForm } from '../../Comment/CommentGroupWithForm';
 import { COMMENT_GROUP_OBJECT_TYPE } from '../../Comment/db';
+import { toFormat } from '../../common/dateTime/temporalFormatter';
 import { useParseTextIntoNodes } from '../../common/text/parseTextIntoNodes';
 import type { DialogContentProps } from '../../Dialog/DialogRoute';
 import { useDeepBoundStore } from '../../data/store';
@@ -32,19 +33,21 @@ export function AccommodationDialogContentView({
   const { trip } = useTrip(accommodation?.tripId);
   const accommodationCheckInStr =
     accommodation && trip
-      ? `${DateTime.fromMillis(accommodation.timestampCheckIn)
-          .setZone(accommodation.timeZoneCheckIn ?? trip.timeZone)
-          .toFormat(
-            'd LLLL yyyy HH:mm',
-          )} (${accommodation.timeZoneCheckIn ?? trip.timeZone})`
+      ? `${toFormat(
+          'd LLLL yyyy HH:mm',
+          Temporal.Instant.fromEpochMilliseconds(
+            accommodation.timestampCheckIn,
+          ).toZonedDateTimeISO(accommodation.timeZoneCheckIn ?? trip.timeZone),
+        )} (${accommodation.timeZoneCheckIn ?? trip.timeZone})`
       : undefined;
   const accommodationCheckOutStr =
     accommodation && trip
-      ? `${DateTime.fromMillis(accommodation.timestampCheckOut)
-          .setZone(accommodation.timeZoneCheckOut ?? trip.timeZone)
-          .toFormat(
-            'd LLLL yyyy HH:mm',
-          )} (${accommodation.timeZoneCheckOut ?? trip.timeZone})`
+      ? `${toFormat(
+          'd LLLL yyyy HH:mm',
+          Temporal.Instant.fromEpochMilliseconds(
+            accommodation.timestampCheckOut,
+          ).toZonedDateTimeISO(accommodation.timeZoneCheckOut ?? trip.timeZone),
+        )} (${accommodation.timeZoneCheckOut ?? trip.timeZone})`
       : undefined;
   const notes = useParseTextIntoNodes(accommodation?.notes);
   const currentUser = useDeepBoundStore((state) => state.currentUser);

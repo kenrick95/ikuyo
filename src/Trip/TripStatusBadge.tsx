@@ -1,5 +1,4 @@
 import { Badge } from '@radix-ui/themes';
-import type { DateTime } from 'luxon';
 import { useMemo } from 'react';
 import { getTripStatus } from './getTripStatus';
 
@@ -7,8 +6,8 @@ export function TripStatusBadge({
   tripStartDateTime,
   tripEndDateTime,
 }: {
-  tripStartDateTime: DateTime | undefined;
-  tripEndDateTime: DateTime | undefined;
+  tripStartDateTime: Temporal.ZonedDateTime | undefined;
+  tripEndDateTime: Temporal.ZonedDateTime | undefined;
 }) {
   const tripStatus = useMemo(
     () => getTripStatus(tripStartDateTime, tripEndDateTime),

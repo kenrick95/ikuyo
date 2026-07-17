@@ -7,10 +7,11 @@ import {
   Text,
   Tooltip,
 } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
+
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'wouter';
 import { UserAvatar } from '../Auth/UserAvatar';
+import { toFormat } from '../common/dateTime/temporalFormatter';
 import { useParseTextIntoNodes } from '../common/text/parseTextIntoNodes';
 import { dangerToken } from '../common/ui';
 import { useBoundStore, useDeepBoundStore } from '../data/store';
@@ -293,8 +294,10 @@ function CommentInner({
 }
 
 function formatTimestampToDateTimeString(timestamp: number): string {
-  const dateTime = DateTime.fromMillis(timestamp);
-  return dateTime.toFormat('d LLL yyyy, HH:mm ZZ');
+  const dateTime = Temporal.Instant.fromEpochMilliseconds(
+    timestamp,
+  ).toZonedDateTimeISO(Temporal.Now.timeZoneId());
+  return toFormat('d LLL yyyy, HH:mm ZZ', dateTime);
 }
 export const Comment = memo(CommentInner, (prevProps, nextProps) => {
   return (

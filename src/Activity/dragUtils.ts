@@ -1,4 +1,3 @@
-import { DateTime } from 'luxon';
 import type { TripSliceActivity } from '../Trip/store/types';
 
 /**
@@ -66,13 +65,15 @@ export function calculateNewTimestamps(
 
   // Calculate the start of `the day for the activity's new position
   const tripStart =
-    DateTime.fromMillis(tripTimestampStart).setZone(tripTimeZone);
-  const newDayStart = tripStart.plus({ days: newDayIndex }).startOf('day');
+    Temporal.Instant.fromEpochMilliseconds(
+      tripTimestampStart,
+    ).toZonedDateTimeISO(tripTimeZone);
+  const newDayStart = tripStart.add({ days: newDayIndex }).startOfDay();
 
   // Add the time offset to get the new start timestamp
-  const newStartTimestamp = newDayStart
-    .plus({ milliseconds: timeOffset })
-    .toMillis();
+  const newStartTimestamp = newDayStart.add({
+    milliseconds: timeOffset,
+  }).epochMilliseconds;
 
   // The end timestamp is the start timestamp plus the original duration
   const newEndTimestamp = newStartTimestamp + originalDuration;
@@ -81,12 +82,14 @@ export function calculateNewTimestamps(
     day: newDayIndex + 1,
     timeOffset: `${timeOffset / (60 * 60 * 1000)} hours`,
     originalDuration: `${originalDuration / (60 * 60 * 1000)} hours`,
-    newStartTimestamp: DateTime.fromMillis(newStartTimestamp)
-      .setZone(tripTimeZone)
-      .toISO(),
-    newEndTimestamp: DateTime.fromMillis(newEndTimestamp)
-      .setZone(tripTimeZone)
-      .toISO(),
+    newStartTimestamp:
+      Temporal.Instant.fromEpochMilliseconds(
+        newStartTimestamp,
+      ).toZonedDateTimeISO(tripTimeZone),
+    newEndTimestamp:
+      Temporal.Instant.fromEpochMilliseconds(
+        newEndTimestamp,
+      ).toZonedDateTimeISO(tripTimeZone),
   });
 
   return {

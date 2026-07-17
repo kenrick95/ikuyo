@@ -32,7 +32,7 @@ async function main() {
   });
 
   for (const user of customUsers || []) {
-    const lastLoginAt = user.lastLoginAt || 0;
+    const lastLoginAt = new Date(user.lastLoginAt || 0).getTime();
     const lastUpdatedAt = user.lastUpdatedAt || 0;
     const lastActivity = Math.max(lastLoginAt, lastUpdatedAt);
     const inactivityDuration = Date.now() - lastActivity;

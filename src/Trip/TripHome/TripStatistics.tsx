@@ -1,6 +1,6 @@
 import { Share1Icon } from '@radix-ui/react-icons';
 import { Button, DataList, Heading } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
+
 import { useCallback, useMemo } from 'react';
 import { Link } from 'wouter';
 import { useCurrentUser } from '../../Auth/hooks';
@@ -31,14 +31,18 @@ export function TripStatistics() {
   }, [trip, canShare, pushDialog]);
 
   const tripStartDateTime = trip
-    ? DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone)
+    ? Temporal.Instant.fromEpochMilliseconds(
+        trip.timestampStart,
+      ).toZonedDateTimeISO(trip.timeZone)
     : undefined;
   const tripEndDateTime = trip
-    ? DateTime.fromMillis(trip.timestampEnd).setZone(trip.timeZone)
+    ? Temporal.Instant.fromEpochMilliseconds(
+        trip.timestampEnd,
+      ).toZonedDateTimeISO(trip.timeZone)
     : undefined;
   const tripDuration =
     tripEndDateTime && tripStartDateTime
-      ? tripEndDateTime.diff(tripStartDateTime, 'days')
+      ? tripEndDateTime.since(tripStartDateTime, { largestUnit: 'days' })
       : undefined;
 
   // Calculate expense summary

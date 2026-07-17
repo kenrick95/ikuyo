@@ -2,9 +2,10 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Badge, Box, ContextMenu, Flex, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
-import { DateTime } from 'luxon';
+
 import { useCallback, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
+import { toFormat } from '../../common/dateTime/temporalFormatter';
 import { useShouldDisableDragAndDrop } from '../../common/deviceUtils';
 import { dangerToken } from '../../common/ui';
 import { RouteTripTaskList } from '../../Routes/routes';
@@ -101,8 +102,11 @@ export function TaskCard({
   const formatDate = useCallback(
     (timestamp?: number | null) => {
       if (!timestamp) return null;
-      return DateTime.fromMillis(timestamp, { zone: tripTimeZone }).toFormat(
+      return toFormat(
         'd LLL yyyy HH:mm',
+        Temporal.Instant.fromEpochMilliseconds(timestamp).toZonedDateTimeISO(
+          tripTimeZone ?? Temporal.Now.timeZoneId(),
+        ),
       );
     },
     [tripTimeZone],

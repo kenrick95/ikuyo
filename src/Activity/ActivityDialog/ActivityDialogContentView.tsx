@@ -6,10 +6,11 @@ import {
   Skeleton,
   Text,
 } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
+
 import { useCallback, useMemo } from 'react';
 import { CommentGroupWithForm } from '../../Comment/CommentGroupWithForm';
 import { COMMENT_GROUP_OBJECT_TYPE } from '../../Comment/db';
+import { toFormat } from '../../common/dateTime/temporalFormatter';
 import { useParseTextIntoNodes } from '../../common/text/parseTextIntoNodes';
 import type { DialogContentProps } from '../../Dialog/DialogRoute';
 import { useDeepBoundStore } from '../../data/store';
@@ -42,48 +43,51 @@ export function ActivityDialogContentView({
 
   const activityStartDateTime =
     activity && trip && activity.timestampStart != null
-      ? DateTime.fromMillis(activity.timestampStart).setZone(
-          activity.timeZoneStart ?? trip.timeZone,
-        )
+      ? Temporal.Instant.fromEpochMilliseconds(
+          activity.timestampStart,
+        ).toZonedDateTimeISO(activity.timeZoneStart ?? trip.timeZone)
       : undefined;
   const activityEndDateTime =
     activity && trip && activity.timestampEnd != null
-      ? DateTime.fromMillis(activity.timestampEnd).setZone(
-          activity.timeZoneEnd ?? trip.timeZone,
-        )
+      ? Temporal.Instant.fromEpochMilliseconds(
+          activity.timestampEnd,
+        ).toZonedDateTimeISO(activity.timeZoneEnd ?? trip.timeZone)
       : undefined;
 
   const activityTimeStr = useMemo(() => {
     if (activityStartDateTime && activityEndDateTime) {
-      if (activityStartDateTime.zoneName === activityEndDateTime.zoneName) {
+      if (activityStartDateTime.timeZoneId === activityEndDateTime.timeZoneId) {
         // Same timezone, show timezone only once
-
-        if (activityStartDateTime.hasSame(activityEndDateTime, 'day')) {
+        if (
+          activityStartDateTime
+            .toPlainDate()
+            .equals(activityEndDateTime.toPlainDate())
+        ) {
           // If same day, only show time
           return (
             <>
-              {activityStartDateTime.toFormat('d MMMM yyyy')}{' '}
-              {activityStartDateTime.toFormat('HH:mm')} &ndash;{' '}
-              {activityEndDateTime.toFormat('HH:mm')} (
-              {activityStartDateTime.zoneName})
+              {toFormat('d MMMM yyyy', activityStartDateTime)}{' '}
+              {toFormat('HH:mm', activityStartDateTime)} &ndash;{' '}
+              {toFormat('HH:mm', activityEndDateTime)} (
+              {activityStartDateTime.timeZoneId})
             </>
           );
         }
         return (
           <>
-            {activityStartDateTime.toFormat('d MMMM yyyy HH:mm')} &ndash;{' '}
-            {activityEndDateTime.toFormat('d MMMM yyyy HH:mm')} (
-            {activityStartDateTime.zoneName})
+            {toFormat('d MMMM yyyy HH:mm', activityStartDateTime)} &ndash;{' '}
+            {toFormat('d MMMM yyyy HH:mm', activityEndDateTime)} (
+            {activityStartDateTime.timeZoneId})
           </>
         );
       } else {
         // Different timezone, show both
         return (
           <>
-            {activityStartDateTime.toFormat('d MMMM yyyy HH:mm')} (
-            {activityStartDateTime.zoneName}) &ndash;{' '}
-            {activityEndDateTime.toFormat('d MMMM yyyy HH:mm')} (
-            {activityEndDateTime.zoneName})
+            {toFormat('d MMMM yyyy HH:mm', activityStartDateTime)} (
+            {activityStartDateTime.timeZoneId}) &ndash;{' '}
+            {toFormat('d MMMM yyyy HH:mm', activityEndDateTime)} (
+            {activityEndDateTime.timeZoneId})
           </>
         );
       }
@@ -91,8 +95,8 @@ export function ActivityDialogContentView({
       // Only start is set
       return (
         <>
-          {activityStartDateTime.toFormat('d MMMM yyyy HH:mm')} (
-          {activityStartDateTime.zoneName}) &ndash; No end time
+          {toFormat('d MMMM yyyy HH:mm', activityStartDateTime)} (
+          {activityStartDateTime.timeZoneId}) &ndash; No end time
         </>
       );
     } else if (activityEndDateTime) {
@@ -100,8 +104,8 @@ export function ActivityDialogContentView({
       return (
         <>
           No start time &ndash;{' '}
-          {activityEndDateTime.toFormat('d MMMM yyyy HH:mm')} (
-          {activityEndDateTime.zoneName})
+          {toFormat('d MMMM yyyy HH:mm', activityEndDateTime)} (
+          {activityEndDateTime.timeZoneId})
         </>
       );
     } else {

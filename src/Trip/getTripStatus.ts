@@ -1,5 +1,3 @@
-import { DateTime } from 'luxon';
-
 function buildTimeParts(
   years: number,
   months: number,
@@ -101,43 +99,36 @@ function formatTimeParts(
  * @returns
  */
 export function getTripStatus(
-  tripStartMaybe?: DateTime | Temporal.ZonedDateTime,
-  tripEndMaybe?: DateTime | Temporal.ZonedDateTime,
+  tripStart?: Temporal.ZonedDateTime,
+  tripEnd?: Temporal.ZonedDateTime,
 ) {
-  if (!tripStartMaybe || !tripEndMaybe) return null;
-  // TODO: Convert everything to Temporal in the future; for now reuse Luxon DateTime logic
-  const tripStart =
-    tripStartMaybe instanceof Temporal.ZonedDateTime
-      ? DateTime.fromMillis(tripStartMaybe.epochMilliseconds, {
-          zone: tripStartMaybe.timeZoneId,
-        })
-      : tripStartMaybe;
-  const tripEnd =
-    tripEndMaybe instanceof Temporal.ZonedDateTime
-      ? DateTime.fromMillis(tripEndMaybe.epochMilliseconds, {
-          zone: tripEndMaybe.timeZoneId,
-        })
-      : tripEndMaybe;
+  if (!tripStart || !tripEnd) return null;
+  const nowInTripTimeZone = Temporal.Now.instant().toZonedDateTimeISO(
+    tripStart.timeZoneId || tripEnd.timeZoneId,
+  );
 
-  const now = DateTime.now();
-
-  if (now < tripStart) {
+  if (nowInTripTimeZone.epochMilliseconds < tripStart.epochMilliseconds) {
     // Trip is in the future - show detailed countdown
-    const diff = tripStart.diff(now, [
-      'years',
-      'months',
-      'weeks',
-      'days',
-      'hours',
-      'minutes',
-    ]);
-    const years = Math.floor(diff.years);
-    const months = Math.floor(diff.months % 12);
-    const weeks = Math.floor(diff.weeks % 4.35); // Approximate weeks in a month
-    const days = Math.floor(diff.days % 7);
-    const hours = Math.floor(diff.hours);
-    const minutes = Math.floor(diff.minutes);
-    const totalDays = Math.floor(diff.days);
+
+    // Must use "Calendar duration" operations to get years and months
+    const calendarDiff = nowInTripTimeZone.until(tripStart, {
+      largestUnit: 'years',
+      smallestUnit: 'months',
+    });
+    const cursor = nowInTripTimeZone.add(calendarDiff);
+    const diff = cursor.until(tripStart, {
+      largestUnit: 'weeks',
+      smallestUnit: 'minutes',
+    });
+    const years = calendarDiff.years;
+    const months = calendarDiff.months;
+    const weeks = diff.weeks;
+    const days = diff.days;
+    const hours = diff.hours;
+    const minutes = diff.minutes;
+    const totalDays = nowInTripTimeZone.until(tripStart, {
+      largestUnit: 'days',
+    }).days;
 
     const parts = buildTimeParts(
       years,
@@ -158,11 +149,14 @@ export function getTripStatus(
           : `In ${formattedText}`,
       color: 'blue' as const,
     };
-  } else if (now >= tripStart && now < tripEnd) {
+  } else if (
+    nowInTripTimeZone.epochMilliseconds >= tripStart.epochMilliseconds &&
+    nowInTripTimeZone.epochMilliseconds < tripEnd.epochMilliseconds
+  ) {
     // Trip is currently happening
+    const totalDays = tripStart.until(tripEnd, { largestUnit: 'days' }).days;
     const currentDay =
-      Math.floor(now.diff(tripStart.startOf('day'), 'days').days) + 1;
-    const totalDays = Math.ceil(tripEnd.diff(tripStart, 'days').days);
+      tripStart.until(nowInTripTimeZone, { largestUnit: 'days' }).days + 1; // Add 1 to make it 1-indexed
     return {
       status: 'current' as const,
       text: `Trip in progress: Day ${currentDay} of ${totalDays}`,
@@ -170,21 +164,25 @@ export function getTripStatus(
     };
   } else {
     // Trip is in the past - show detailed time elapsed
-    const diff = now.diff(tripEnd, [
-      'years',
-      'months',
-      'weeks',
-      'days',
-      'hours',
-      'minutes',
-    ]);
-    const years = Math.floor(diff.years);
-    const months = Math.floor(diff.months % 12);
-    const weeks = Math.floor(diff.weeks % 4.35); // Approximate weeks in a month
-    const days = Math.floor(diff.days % 7);
-    const hours = Math.floor(diff.hours);
-    const minutes = Math.floor(diff.minutes);
-    const totalDays = Math.floor(diff.days);
+    // Must use "Calendar duration" operations to get years and months
+    const calendarDiff = nowInTripTimeZone.since(tripEnd, {
+      largestUnit: 'years',
+      smallestUnit: 'months',
+    });
+    const cursor = nowInTripTimeZone.subtract(calendarDiff);
+    const diff = cursor.since(tripEnd, {
+      largestUnit: 'weeks',
+      smallestUnit: 'minutes',
+    });
+    const years = calendarDiff.years;
+    const months = calendarDiff.months;
+    const weeks = diff.weeks;
+    const days = diff.days;
+    const hours = diff.hours;
+    const minutes = diff.minutes;
+    const totalDays = nowInTripTimeZone.since(tripEnd, {
+      largestUnit: 'days',
+    }).days;
 
     const parts = buildTimeParts(
       years,

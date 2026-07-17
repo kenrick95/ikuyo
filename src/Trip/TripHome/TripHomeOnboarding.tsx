@@ -1,5 +1,5 @@
 import { Button, Flex } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
+
 import { useCallback, useMemo } from 'react';
 import { useLocation } from 'wouter';
 import { RouteTripTimetableView } from '../../Routes/routes';
@@ -21,11 +21,11 @@ export function TripHomeOnboarding() {
   // Determine if trip is {current, or past}
   const isTripCurrentOrPast = useMemo(() => {
     if (!trip) return false;
-    const now = DateTime.now().setZone(trip.timeZone);
-    const tripStart = DateTime.fromMillis(trip.timestampStart).setZone(
-      trip.timeZone,
-    );
-    return now >= tripStart;
+    const now = Temporal.Now.zonedDateTimeISO(trip.timeZone);
+    const tripStart = Temporal.Instant.fromEpochMilliseconds(
+      trip.timestampStart,
+    ).toZonedDateTimeISO(trip.timeZone);
+    return Temporal.ZonedDateTime.compare(now, tripStart) >= 0;
   }, [trip]);
 
   const userCanModifyTrip = useMemo(() => {

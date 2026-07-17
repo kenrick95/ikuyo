@@ -9,7 +9,6 @@ import {
   Skeleton,
   Spinner,
 } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
 import { useEffect, useState } from 'react';
 import { Link, type RouteComponentProps, useLocation } from 'wouter';
 import { useCurrentUser } from '../Auth/hooks';
@@ -126,7 +125,7 @@ export function PageTrips(_props: RouteComponentProps) {
   );
 }
 
-const now = DateTime.now().toMillis();
+const now = Temporal.Now.instant().epochMilliseconds;
 
 function Trips({
   type,
