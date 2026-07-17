@@ -1,5 +1,4 @@
 import { Button, Flex, Switch, Text, TextArea } from '@radix-ui/themes';
-import type { DateTime } from 'luxon';
 import type { SubmitEvent } from 'react';
 import { useCallback, useId, useReducer, useState } from 'react';
 import { DateTimePicker } from '../../common/DatePicker2/DateTimePicker';
@@ -104,6 +103,9 @@ export function ActivityForm({
   activityIcon,
   activityStartDateTime,
   activityEndDateTime,
+  activityStartTimeZone,
+  activityEndTimeZone,
+
   activityLocation,
   activityLocationLng,
   activityLocationLat,
@@ -123,14 +125,18 @@ export function ActivityForm({
   mode: ActivityFormModeType;
   activityId?: string;
   tripId?: string;
-  tripStartDateTime: DateTime | undefined;
-  tripEndDateTime: DateTime | undefined;
+  tripStartDateTime: Temporal.PlainDate | undefined;
+  /** trip's final day */
+  tripEndDateTime: Temporal.PlainDate | undefined;
   tripTimeZone: string;
   tripRegion: string;
   activityTitle: string;
   activityIcon?: string | null | undefined;
-  activityStartDateTime: DateTime | undefined;
-  activityEndDateTime: DateTime | undefined;
+  activityStartDateTime: Temporal.PlainDateTime | undefined;
+  activityEndDateTime: Temporal.PlainDateTime | undefined;
+  activityStartTimeZone: string | undefined;
+  activityEndTimeZone: string | undefined;
+
   activityLocation: string;
   activityLocationLat: number | null | undefined;
   activityLocationLng: number | null | undefined;
@@ -170,18 +176,18 @@ export function ActivityForm({
   });
 
   // State for DateTime pickers
-  const [startDateTime, setStartDateTime] = useState<DateTime | undefined>(
-    activityStartDateTime,
-  );
-  const [endDateTime, setEndDateTime] = useState<DateTime | undefined>(
-    activityEndDateTime,
-  );
+  const [startDateTime, setStartDateTime] = useState<
+    Temporal.PlainDateTime | undefined
+  >(activityStartDateTime);
+  const [endDateTime, setEndDateTime] = useState<
+    Temporal.PlainDateTime | undefined
+  >(activityEndDateTime);
 
   const [startTimeZone, setStartTimeZone] = useState<string>(
-    activityStartDateTime?.zoneName ?? tripTimeZone,
+    activityStartTimeZone ?? tripTimeZone,
   );
   const [endTimeZone, setEndTimeZone] = useState<string>(
-    activityEndDateTime?.zoneName ?? tripTimeZone,
+    activityEndTimeZone ?? tripTimeZone,
   );
 
   const [locationFieldsState, dispatchLocationFieldsState] = useReducer(
@@ -337,58 +343,53 @@ export function ActivityForm({
     }
   }, []);
 
-  const handleTimeZoneStartChange = useCallback(
-    (newTimeZone: string) => {
-      setStartTimeZone(newTimeZone);
-      if (startDateTime) {
-        setStartDateTime(
-          startDateTime.setZone(newTimeZone, { keepLocalTime: true }),
-        );
-      }
-    },
-    [startDateTime],
-  );
+  const handleTimeZoneStartChange = useCallback((newTimeZone: string) => {
+    setStartTimeZone(newTimeZone);
+  }, []);
 
-  const handleTimeZoneEndChange = useCallback(
-    (newTimeZone: string) => {
-      setEndTimeZone(newTimeZone);
-      if (endDateTime) {
-        setEndDateTime(
-          endDateTime.setZone(newTimeZone, { keepLocalTime: true }),
-        );
-      }
-    },
-    [endDateTime],
-  );
+  const handleTimeZoneEndChange = useCallback((newTimeZone: string) => {
+    setEndTimeZone(newTimeZone);
+  }, []);
 
-  // Wrapper for start datetime changes that applies the selected timezone
   const handleStartDateTimeChange = useCallback(
-    (newDateTime: DateTime | undefined) => {
-      if (newDateTime) {
-        // Apply the selected timezone to the new datetime
-        setStartDateTime(
-          newDateTime.setZone(startTimeZone, { keepLocalTime: true }),
-        );
-      } else {
-        setStartDateTime(undefined);
+    (
+      newDateTimeMaybe: Temporal.PlainDate | Temporal.PlainDateTime | undefined,
+    ) => {
+      const newDateTime =
+        newDateTimeMaybe instanceof Temporal.PlainDateTime
+          ? newDateTimeMaybe
+          : newDateTimeMaybe instanceof Temporal.PlainDate
+            ? newDateTimeMaybe.toPlainDateTime({ hour: 0, minute: 0 })
+            : undefined;
+      setStartDateTime(newDateTime);
+
+      // If start time is changed, should try to preserve the duration of activity by adjusting the end time accordingly, if end time is set. If end time is before new start time, clear the end time
+      if (startDateTime && endDateTime && newDateTime) {
+        const duration = startDateTime.until(endDateTime, {
+          largestUnit: 'seconds',
+        });
+        const newEndDateTime = newDateTime.add(duration);
+        if (Temporal.PlainDateTime.compare(newEndDateTime, newDateTime) > 0) {
+          setEndDateTime(newEndDateTime);
+        } else {
+          setEndDateTime(undefined);
+        }
       }
     },
-    [startTimeZone],
+    [startDateTime, endDateTime],
   );
 
-  // Wrapper for end datetime changes that applies the selected timezone
   const handleEndDateTimeChange = useCallback(
-    (newDateTime: DateTime | undefined) => {
-      if (newDateTime) {
-        // Apply the selected timezone to the new datetime
-        setEndDateTime(
-          newDateTime.setZone(endTimeZone, { keepLocalTime: true }),
-        );
+    (newDateTime: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
+      if (newDateTime instanceof Temporal.PlainDateTime) {
+        setEndDateTime(newDateTime);
+      } else if (newDateTime instanceof Temporal.PlainDate) {
+        setEndDateTime(newDateTime.toPlainDateTime({ hour: 0, minute: 0 }));
       } else {
         setEndDateTime(undefined);
       }
     },
-    [endTimeZone],
+    [],
   );
 
   const handleSubmit = useCallback(() => {
@@ -408,8 +409,8 @@ export function ActivityForm({
       const location = (formData.get('location') as string | null) ?? '';
       const locationDestination =
         (formData.get('locationDestination') as string | null) ?? '';
-      const timeStartDate = startDateTime;
-      const timeEndDate = endDateTime;
+      const timeStartDate = startDateTime?.toZonedDateTime(startTimeZone);
+      const timeEndDate = endDateTime?.toZonedDateTime(endTimeZone);
       const flags = updateActivityFlag(
         activityFlags,
         ActivityFlag.IsIdea,
@@ -437,23 +438,37 @@ export function ActivityForm({
       if (
         timeEndDate &&
         timeStartDate &&
-        timeEndDate.diff(timeStartDate).as('minute') < 0
+        Temporal.ZonedDateTime.compare(timeStartDate, timeEndDate) > 0
       ) {
         setErrorMessage('End time must be after start time');
         return;
       }
-      // start time cannot be earlier than trip start time
+      // start time cannot be earlier than trip start time - 1d
       if (
         tripStartDateTime &&
         timeStartDate &&
-        timeStartDate < tripStartDateTime
+        Temporal.ZonedDateTime.compare(
+          timeStartDate,
+          tripStartDateTime.toZonedDateTime(tripTimeZone).subtract({ days: 1 }),
+        ) < 0
       ) {
-        setErrorMessage('Start time cannot be earlier than trip start time');
+        setErrorMessage(
+          'Start time cannot be earlier than 1 day before trip start',
+        );
         return;
       }
-      // end time cannot be later than trip end time
-      if (tripEndDateTime && timeEndDate && timeEndDate > tripEndDateTime) {
-        setErrorMessage('End time cannot be later than trip end time');
+      // end time cannot be later than trip end time + 1d
+      if (
+        tripEndDateTime &&
+        timeEndDate &&
+        Temporal.ZonedDateTime.compare(
+          timeEndDate,
+          tripEndDateTime.toZonedDateTime(tripTimeZone).add({ days: 2 }),
+        ) > 0
+      ) {
+        setErrorMessage(
+          'End time cannot be later than 1 day after trip end time',
+        );
         return;
       }
       if (mode === ActivityFormMode.Edit && activityId) {
@@ -487,10 +502,12 @@ export function ActivityForm({
               ? locationFieldsState.zoom[1]
               : null,
 
-          timestampStart: timeStartDate ? timeStartDate.toMillis() : null,
-          timestampEnd: timeEndDate ? timeEndDate.toMillis() : null,
-          timeZoneStart: timeStartDate ? timeStartDate.zoneName : null,
-          timeZoneEnd: timeEndDate ? timeEndDate.zoneName : null,
+          timestampStart: timeStartDate
+            ? timeStartDate.epochMilliseconds
+            : null,
+          timestampEnd: timeEndDate ? timeEndDate.epochMilliseconds : null,
+          timeZoneStart: timeStartDate ? timeStartDate.timeZoneId : null,
+          timeZoneEnd: timeEndDate ? timeEndDate.timeZoneId : null,
           flags: flags,
         });
         publishToast({
@@ -500,8 +517,9 @@ export function ActivityForm({
         });
       } else if (mode === ActivityFormMode.New && tripId) {
         if (timeEndDate) {
+          // So that when next time user open the form, it prefill the start time with the last end time of this activity
           setTripLocalState(tripId, {
-            activityTimestampStart: timeEndDate.toMillis(),
+            activityTimestampStart: timeEndDate.epochMilliseconds,
           });
         }
         await dbAddActivity(
@@ -532,10 +550,12 @@ export function ActivityForm({
               locationFieldsState.enabled[1] && locationFieldsState.count === 2
                 ? locationFieldsState.zoom[1]
                 : null,
-            timestampStart: timeStartDate ? timeStartDate.toMillis() : null,
-            timestampEnd: timeEndDate ? timeEndDate.toMillis() : null,
-            timeZoneStart: timeStartDate ? timeStartDate.zoneName : null,
-            timeZoneEnd: timeEndDate ? timeEndDate.zoneName : null,
+            timestampStart: timeStartDate
+              ? timeStartDate.epochMilliseconds
+              : null,
+            timestampEnd: timeEndDate ? timeEndDate.epochMilliseconds : null,
+            timeZoneStart: timeStartDate ? timeStartDate.timeZoneId : null,
+            timeZoneEnd: timeEndDate ? timeEndDate.timeZoneId : null,
             flags: flags,
           },
           {
@@ -554,12 +574,14 @@ export function ActivityForm({
     };
   }, [
     activityId,
-    endDateTime,
     locationFieldsState,
     mode,
     onFormSuccess,
     publishToast,
     startDateTime,
+    endDateTime,
+    startTimeZone,
+    endTimeZone,
     isIdea,
     tripId,
     tripTimeZone,
@@ -734,8 +756,8 @@ export function ActivityForm({
           name="startTime"
           mode={DateTimePickerMode.DateTime}
           // Buffer one day before and after trip start/end date to allow some flexibility
-          min={tripStartDateTime?.minus({ days: 1 })}
-          max={tripEndDateTime?.plus({ days: 1 })}
+          min={tripStartDateTime?.subtract({ days: 1 })}
+          max={tripEndDateTime?.add({ days: 1 })}
           value={startDateTime}
           onChange={handleStartDateTimeChange}
           clearable={true}
@@ -763,8 +785,8 @@ export function ActivityForm({
           name="endTime"
           mode={DateTimePickerMode.DateTime}
           // Buffer one day before and after trip start/end date to allow some flexibility
-          min={tripStartDateTime?.minus({ days: 1 })}
-          max={tripEndDateTime?.plus({ days: 1 })}
+          min={tripStartDateTime?.subtract({ days: 1 })}
+          max={tripEndDateTime?.add({ days: 1 })}
           value={endDateTime}
           onChange={handleEndDateTimeChange}
           clearable={true}

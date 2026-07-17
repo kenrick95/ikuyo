@@ -1,5 +1,4 @@
 import { Box, Dialog, Spinner } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
 import { useCallback } from 'react';
 import type { DialogContentProps } from '../../Dialog/DialogRoute';
 import { useTrip } from '../../Trip/store/hooks';
@@ -17,26 +16,30 @@ export function AccommodationDialogContentEdit({
 }: DialogContentProps<TripSliceAccommodation>) {
   const { trip } = useTrip(accommodation?.tripId);
 
-  const tripStartDateTime = trip
-    ? DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone)
-    : undefined;
-  const tripEndDateTime = trip
-    ? DateTime.fromMillis(trip.timestampEnd)
-        .setZone(trip.timeZone)
-        .minus({ minute: 1 })
-    : undefined;
-
-  const accommodationCheckInDateTime =
+  const tripStartDateTime =
     accommodation && trip
-      ? DateTime.fromMillis(accommodation.timestampCheckIn).setZone(
-          accommodation.timeZoneCheckIn ?? trip.timeZone,
-        )
+      ? Temporal.Instant.fromEpochMilliseconds(trip.timestampStart)
+          .toZonedDateTimeISO(trip.timeZone)
+          .toPlainDate()
+      : undefined;
+  const tripEndDateTime =
+    accommodation && trip
+      ? Temporal.Instant.fromEpochMilliseconds(trip.timestampEnd)
+          .toZonedDateTimeISO(trip.timeZone)
+          .toPlainDate()
+          .subtract({ days: 1 })
+      : undefined;
+  const accommodationCheckInDateTime =
+    accommodation && trip && accommodation.timestampCheckIn != null
+      ? Temporal.Instant.fromEpochMilliseconds(accommodation.timestampCheckIn)
+          .toZonedDateTimeISO(accommodation.timeZoneCheckIn ?? trip.timeZone)
+          .toPlainDateTime()
       : undefined;
   const accommodationCheckOutDateTime =
-    accommodation && trip
-      ? DateTime.fromMillis(accommodation.timestampCheckOut).setZone(
-          accommodation.timeZoneCheckOut ?? trip.timeZone,
-        )
+    accommodation && trip && accommodation.timestampCheckOut != null
+      ? Temporal.Instant.fromEpochMilliseconds(accommodation.timestampCheckOut)
+          .toZonedDateTimeISO(accommodation.timeZoneCheckOut ?? trip.timeZone)
+          .toPlainDateTime()
       : undefined;
   const backToViewMode = useCallback(() => {
     setMode(AccommodationDialogMode.View);
@@ -70,6 +73,12 @@ export function AccommodationDialogContentEdit({
           accommodationAddress={accommodation.address}
           accommodationCheckInDateTime={accommodationCheckInDateTime}
           accommodationCheckOutDateTime={accommodationCheckOutDateTime}
+          accommodationCheckInTimeZone={
+            accommodation.timeZoneCheckIn ?? trip.timeZone
+          }
+          accommodationCheckOutTimeZone={
+            accommodation.timeZoneCheckOut ?? trip.timeZone
+          }
           accommodationPhoneNumber={accommodation.phoneNumber}
           accommodationNotes={accommodation.notes}
           accommodationLocationLat={accommodation.locationLat}

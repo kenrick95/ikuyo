@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "lib": ["DOM", "ES2022"],
+    "lib": ["DOM", "ESNext"],
     "jsx": "react-jsx",
-    "target": "ES2022",
+    "target": "ESNext",
     "noEmit": true,
     "skipLibCheck": true,
     "useDefineForClassFields": true,

@@ -16,7 +16,6 @@ import {
   Text,
   Tooltip,
 } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
 import { useCallback, useMemo, useState } from 'react';
 import { CommentGroupWithForm } from '../Comment/CommentGroupWithForm';
 import { COMMENT_GROUP_OBJECT_TYPE } from '../Comment/db';
@@ -150,9 +149,9 @@ function ExpenseCardView({
         <Text size="1" color="gray" className={s.date}>
           {trip
             ? formatTimestampToReadableDate(
-                DateTime.fromMillis(expense.timestampIncurred, {
-                  zone: trip.timeZone,
-                }),
+                Temporal.Instant.fromEpochMilliseconds(
+                  expense.timestampIncurred,
+                ).toZonedDateTimeISO(trip.timeZone),
               )
             : ''}
         </Text>

@@ -15,16 +15,9 @@ import { dbAddActivity } from '../../Activity/db';
 import { CurrencySelect } from '../../common/CurrencySelect/CurrencySelect';
 import { DateTimePicker } from '../../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../../common/DatePicker2/DateTimePickerMode';
+import { toFormat } from '../../common/dateTime/temporalFormatter';
 import { TimeZoneSelect } from '../../common/TimeZoneSelect/TimeZoneSelect';
-import {
-  ALL_CURRENCIES,
-  getDefaultCurrencyForRegion,
-} from '../../data/intl/currencies';
 import { REGIONS_LIST } from '../../data/intl/regions';
-import {
-  ALL_TIMEZONES,
-  getDefaultTimezoneForRegion,
-} from '../../data/intl/timezones';
 import { useBoundStore } from '../../data/store';
 import { RouteTrip, RouteTrips } from '../../Routes/routes';
 import { dbAddTrip } from '../db';
@@ -32,7 +25,11 @@ import { TripSharingLevel } from '../tripSharingLevel';
 import { FlightSubform } from './FlightSubform';
 import s from './PageTripNew.module.css';
 import { WizardProgressDots } from './WizardProgressDots';
-import { createInitialWizardState, wizardReducer } from './wizardReducer';
+import {
+  createInitialWizardState,
+  type FlightCapture,
+  wizardReducer,
+} from './wizardReducer';
 import { getFlightTimeError, getOriginCurrencyFromLocale } from './wizardUtils';
 
 export default function PageTripNew() {
@@ -49,23 +46,12 @@ export default function PageTripNew() {
   const publishToast = useBoundStore((store) => store.publishToast);
   const currentUser = useBoundStore((store) => store.currentUser);
 
-  const handleRegionChange = useCallback(
-    (region: string) => {
-      const newTz = getDefaultTimezoneForRegion(region);
-      const newCurrency = getDefaultCurrencyForRegion(region);
-      dispatch({
-        type: 'SET_REGION',
-        region,
-        timeZone:
-          newTz && ALL_TIMEZONES.includes(newTz) ? newTz : state.timeZone,
-        currency:
-          newCurrency && ALL_CURRENCIES.includes(newCurrency)
-            ? newCurrency
-            : state.currency,
-      });
-    },
-    [state.timeZone, state.currency],
-  );
+  const handleRegionChange = useCallback((region: string) => {
+    dispatch({
+      type: 'SET_REGION',
+      region,
+    });
+  }, []);
 
   const idRegion = 'wizard-region';
 
@@ -88,6 +74,31 @@ export default function PageTripNew() {
       </Select.Root>
     ),
     [state.region, handleRegionChange],
+  );
+
+  const handleChangeStartDate = useCallback(
+    (date: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
+      if (date instanceof Temporal.PlainDate) {
+        dispatch({ type: 'SET_START_DATE', date });
+      } else if (date instanceof Temporal.PlainDateTime) {
+        dispatch({ type: 'SET_START_DATE', date: date.toPlainDate() });
+      } else {
+        dispatch({ type: 'SET_START_DATE', date: undefined });
+      }
+    },
+    [],
+  );
+  const handleChangeEndDate = useCallback(
+    (date: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
+      if (date instanceof Temporal.PlainDate) {
+        dispatch({ type: 'SET_END_DATE', date });
+      } else if (date instanceof Temporal.PlainDateTime) {
+        dispatch({ type: 'SET_END_DATE', date: date.toPlainDate() });
+      } else {
+        dispatch({ type: 'SET_END_DATE', date: undefined });
+      }
+    },
+    [],
   );
 
   const handleCreateTrip = useCallback(async () => {
@@ -114,12 +125,19 @@ export default function PageTripNew() {
     }
     setIsSubmitting(true);
     try {
+      const timestampStart = startDate
+        .toZonedDateTime(timeZone)
+        .toInstant().epochMilliseconds;
+      const timestampEnd = endDate
+        .add({ days: 1 })
+        .toZonedDateTime(timeZone)
+        .toInstant().epochMilliseconds;
       const { id: newTripId } = await dbAddTrip(
         {
           title,
           timeZone,
-          timestampStart: startDate.toMillis(),
-          timestampEnd: endDate.plus({ days: 1 }).toMillis(),
+          timestampStart,
+          timestampEnd,
           region,
           currency,
           originCurrency,
@@ -129,15 +147,23 @@ export default function PageTripNew() {
       );
       const flightPromises: Promise<unknown>[] = [];
       if (
+        state.travelMode === 'flight' &&
         state.outboundFlight?.flightNumber &&
         state.outboundFlight?.departureDateTime &&
         state.outboundFlight?.arrivalDateTime
       ) {
+        const timestampStart = state.outboundFlight.departureDateTime
+          .toZonedDateTime(state.outboundFlight.departureTimeZone || timeZone)
+          .toInstant().epochMilliseconds;
+        const timestampEnd = state.outboundFlight.arrivalDateTime
+          .toZonedDateTime(state.outboundFlight.arrivalTimeZone || timeZone)
+          .toInstant().epochMilliseconds;
+
         flightPromises.push(
           dbAddActivity(
             {
               title: state.outboundFlight.flightNumber,
-              location: state.outboundFlight.departureAirport,
+              location: state.outboundFlight.departureAirport || '',
               locationLat: state.outboundFlight.departureLat,
               locationLng: state.outboundFlight.departureLng,
               locationZoom: state.outboundFlight.departureZoom,
@@ -146,16 +172,8 @@ export default function PageTripNew() {
               locationDestinationLng: state.outboundFlight.arrivalLng,
               locationDestinationZoom: state.outboundFlight.arrivalZoom,
               description: '',
-              timestampStart: state.outboundFlight.departureDateTime
-                .setZone(state.outboundFlight.departureTimeZone, {
-                  keepLocalTime: true,
-                })
-                .toMillis(),
-              timestampEnd: state.outboundFlight.arrivalDateTime
-                .setZone(state.outboundFlight.arrivalTimeZone, {
-                  keepLocalTime: true,
-                })
-                .toMillis(),
+              timestampStart,
+              timestampEnd,
               timeZoneStart: state.outboundFlight.departureTimeZone,
               timeZoneEnd: state.outboundFlight.arrivalTimeZone,
               flags: ActivityFlag.IsFlight,
@@ -166,15 +184,22 @@ export default function PageTripNew() {
         );
       }
       if (
+        state.travelMode === 'flight' &&
         state.returnFlight?.flightNumber &&
         state.returnFlight?.departureDateTime &&
         state.returnFlight?.arrivalDateTime
       ) {
+        const timestampStart = state.returnFlight.departureDateTime
+          .toZonedDateTime(state.returnFlight.departureTimeZone || timeZone)
+          .toInstant().epochMilliseconds;
+        const timestampEnd = state.returnFlight.arrivalDateTime
+          .toZonedDateTime(state.returnFlight.arrivalTimeZone || timeZone)
+          .toInstant().epochMilliseconds;
         flightPromises.push(
           dbAddActivity(
             {
               title: state.returnFlight.flightNumber,
-              location: state.returnFlight.departureAirport,
+              location: state.returnFlight.departureAirport || '',
               locationLat: state.returnFlight.departureLat,
               locationLng: state.returnFlight.departureLng,
               locationZoom: state.returnFlight.departureZoom,
@@ -183,16 +208,8 @@ export default function PageTripNew() {
               locationDestinationLng: state.returnFlight.arrivalLng,
               locationDestinationZoom: state.returnFlight.arrivalZoom,
               description: '',
-              timestampStart: state.returnFlight.departureDateTime
-                .setZone(state.returnFlight.departureTimeZone, {
-                  keepLocalTime: true,
-                })
-                .toMillis(),
-              timestampEnd: state.returnFlight.arrivalDateTime
-                .setZone(state.returnFlight.arrivalTimeZone, {
-                  keepLocalTime: true,
-                })
-                .toMillis(),
+              timestampStart,
+              timestampEnd,
               timeZoneStart: state.returnFlight.departureTimeZone,
               timeZoneEnd: state.returnFlight.arrivalTimeZone,
               flags: ActivityFlag.IsFlight,
@@ -233,7 +250,7 @@ export default function PageTripNew() {
   const dateError =
     state.startDate !== undefined &&
     state.endDate !== undefined &&
-    state.endDate < state.startDate
+    Temporal.PlainDate.compare(state.startDate, state.endDate) > 0
       ? 'End date must be on or after the start date'
       : undefined;
 
@@ -253,11 +270,13 @@ export default function PageTripNew() {
     state.outboundFlight,
     state.startDate,
     state.endDate,
+    state.timeZone,
   );
   const returnFlightError = getFlightTimeError(
     state.returnFlight,
     state.startDate,
     state.endDate,
+    state.timeZone,
   );
 
   const regionDisplayName = useMemo(() => {
@@ -268,8 +287,29 @@ export default function PageTripNew() {
 
   const dateRangeLabel = useMemo(() => {
     if (!state.startDate || !state.endDate) return '';
-    return `${state.startDate.toFormat('MMM d, yyyy')} – ${state.endDate.toFormat('MMM d, yyyy')}`;
+    return `${toFormat('d MMM yyyy', state.startDate)} – ${toFormat('d MMM yyyy', state.endDate)}`;
   }, [state.startDate, state.endDate]);
+  const handleOutboundFlightChange = useCallback(
+    (flightCapture: FlightCapture | null) => {
+      const flight = flightCapture;
+      // If user has set departure date, but has not set arrival date, set arrival date to same as departure date
+      if (flight?.departureDateTime && !flight.arrivalDateTime) {
+        flight.arrivalDateTime = flight.departureDateTime.add({ hours: 2 });
+      }
+      dispatch({ type: 'SET_OUTBOUND_FLIGHT', flight });
+    },
+    [],
+  );
+  const handleReturnFlightChange = useCallback(
+    (flight: FlightCapture | null) => {
+      // If use has set departure date, but has not set arrival date, set arrival date to same as departure date
+      if (flight?.departureDateTime && !flight.arrivalDateTime) {
+        flight.arrivalDateTime = flight.departureDateTime.add({ hours: 2 });
+      }
+      dispatch({ type: 'SET_RETURN_FLIGHT', flight });
+    },
+    [],
+  );
 
   if (state.step === 1) {
     return (
@@ -310,7 +350,7 @@ export default function PageTripNew() {
             </Text>
             <DateTimePicker
               value={state.startDate}
-              onChange={(date) => dispatch({ type: 'SET_START_DATE', date })}
+              onChange={handleChangeStartDate}
               mode={DateTimePickerMode.Date}
               name="startDate"
               required
@@ -324,7 +364,7 @@ export default function PageTripNew() {
             </Text>
             <DateTimePicker
               value={state.endDate}
-              onChange={(date) => dispatch({ type: 'SET_END_DATE', date })}
+              onChange={handleChangeEndDate}
               mode={DateTimePickerMode.Date}
               name="endDate"
               required
@@ -505,9 +545,7 @@ export default function PageTripNew() {
             error={outboundFlightError}
             tripStartDate={state.startDate}
             tripEndDate={state.endDate}
-            onChange={(flight) =>
-              dispatch({ type: 'SET_OUTBOUND_FLIGHT', flight })
-            }
+            onChange={handleOutboundFlightChange}
           />
           <FlightSubform
             label="Return flight"
@@ -518,9 +556,7 @@ export default function PageTripNew() {
             error={returnFlightError}
             tripStartDate={state.startDate}
             tripEndDate={state.endDate}
-            onChange={(flight) =>
-              dispatch({ type: 'SET_RETURN_FLIGHT', flight })
-            }
+            onChange={handleReturnFlightChange}
           />
         </>
       )}

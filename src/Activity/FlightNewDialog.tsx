@@ -1,5 +1,4 @@
 import { Box, Dialog } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
 import { useMemo } from 'react';
 import { CommonLargeDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
@@ -21,36 +20,63 @@ export function FlightNewDialog({
   const localState = useTripLocalState(trip.id);
   const popDialog = useBoundStore((state) => state.popDialog);
 
-  const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
-    trip.timeZone,
-  );
-  const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd)
-    .setZone(trip.timeZone)
-    .minus({ minute: 1 });
-
-  const [activityStartDateTime, activityEndDateTime] = useMemo(() => {
+  const tripStartDateTime = Temporal.Instant.fromEpochMilliseconds(
+    trip.timestampStart,
+  )
+    .toZonedDateTimeISO(trip.timeZone)
+    .toPlainDate();
+  const tripEndDateTime = Temporal.Instant.fromEpochMilliseconds(
+    trip.timestampEnd,
+  )
+    .toZonedDateTimeISO(trip.timeZone)
+    .toPlainDate()
+    .subtract({ days: 1 });
+  const [
+    activityStartDateTime,
+    activityEndDateTime,
+    activityStartTimeZone,
+    activityEndTimeZone,
+  ] = useMemo(() => {
     if (prefillData) {
+      // Convert timeStart (HHMM format) to DateTime
       const hours = parseInt(prefillData.timeStart.substring(0, 2), 10);
       const minutes = parseInt(prefillData.timeStart.substring(2, 4), 10);
-      const tripStart = DateTime.fromMillis(trip.timestampStart).setZone(
-        trip.timeZone,
-      );
+
+      // Calculate the start of the selected day
+      const tripStart = Temporal.Instant.fromEpochMilliseconds(
+        trip.timestampStart,
+      ).toZonedDateTimeISO(trip.timeZone);
       const activityDay = tripStart
-        .plus({ days: prefillData.dayOfTrip - 1 })
-        .startOf('day');
-      const activityStartTime = activityDay.set({
+        .add({ days: prefillData.dayOfTrip - 1 })
+        .startOfDay();
+
+      // Set the specific time on that day
+      const activityStartZonedTime = activityDay.with({
         hour: hours,
         minute: minutes,
       });
-      const activityEndTime = activityStartTime.plus({ hours: 2 });
-      return [activityStartTime, activityEndTime];
+      const activityEndZonedTime = activityStartZonedTime.add({ hours: 2 });
+
+      return [
+        activityStartZonedTime.toPlainDateTime(),
+        activityEndZonedTime.toPlainDateTime(),
+        activityStartZonedTime.timeZoneId,
+        activityEndZonedTime.timeZoneId,
+      ];
     }
 
-    const activityStartTime = DateTime.fromMillis(
+    // Default behavior when no prefillData
+    const activityStartZonedTime = Temporal.Instant.fromEpochMilliseconds(
       localState?.activityTimestampStart ?? trip.timestampStart,
-    ).setZone(trip.timeZone);
-    const activityEndTime = activityStartTime.plus({ hours: 2 });
-    return [activityStartTime, activityEndTime];
+    ).toZonedDateTimeISO(trip.timeZone);
+    const activityEndZonedTime = activityStartZonedTime.add({ hours: 2 });
+
+    return [
+      activityStartZonedTime.toPlainDateTime(),
+      activityEndZonedTime.toPlainDateTime(),
+      activityStartZonedTime.timeZoneId,
+      activityEndZonedTime.timeZoneId,
+    ];
   }, [trip, prefillData, localState?.activityTimestampStart]);
 
   return (
@@ -72,6 +98,8 @@ export function FlightNewDialog({
           activityIcon="✈️"
           activityStartDateTime={activityStartDateTime}
           activityEndDateTime={activityEndDateTime}
+          activityStartTimeZone={activityStartTimeZone}
+          activityEndTimeZone={activityEndTimeZone}
           activityLocation=""
           activityDescription=""
           activityLocationLat={undefined}

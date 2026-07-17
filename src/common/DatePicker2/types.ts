@@ -1,13 +1,6 @@
-import type { DateTime } from 'luxon';
 import type { DateTimePickerModeType } from './DateTimePickerMode';
-
-export interface DatePickerProps {
-  value: DateTime | undefined;
-  min?: DateTime;
-  max?: DateTime;
-  mode: DateTimePickerModeType;
+export type DatePickerProps = {
   clearable?: boolean;
-  onChange: (value: DateTime | undefined) => void;
   disabled?: boolean;
 
   name?: string; // For form submission
@@ -16,27 +9,43 @@ export interface DatePickerProps {
   'aria-invalid'?: boolean; // For validation state
   'aria-label'?: string; // Custom label for trigger button
   placeholder?: string; // Custom placeholder text
-}
 
-export interface DatePickerState {
+  mode: DateTimePickerModeType;
+  /** value will be PlainDate if mode is 'date'; value will be PlainDateTime if mode is 'datetime'; value will be undefined if it is cleared */
+  value: Temporal.PlainDate | Temporal.PlainDateTime | undefined;
+  min?: Temporal.PlainDate | undefined;
+  max?: Temporal.PlainDate | undefined;
+  onChange: (
+    /** value will be PlainDate if mode is 'date'; value will be PlainDateTime if mode is 'datetime'; value will be undefined if it is cleared */
+    value: Temporal.PlainDate | Temporal.PlainDateTime | undefined,
+  ) => void;
+};
+
+export type DatePickerState = {
   isOpen: boolean;
-  focusedDate: DateTime;
-  selectedDate: DateTime | undefined;
-  hoveredDate: DateTime | undefined;
-  min: DateTime | undefined;
-  max: DateTime | undefined;
-
+  focusedDate: Temporal.PlainDate;
+  selectedDate: Temporal.PlainDate | undefined;
+  hoveredDate: Temporal.PlainDate | undefined;
+  min: Temporal.PlainDate | undefined;
+  max: Temporal.PlainDate | undefined;
   focusedHour: number | undefined;
   focusedMinute: number | undefined;
   selectedHour: number | undefined;
   selectedMinute: number | undefined;
-
-  selectedDateTime: DateTime | undefined;
-}
+};
 export type DatePickerAction =
-  | { type: 'setFocusedDate'; date: DateTime }
-  | { type: 'setSelectedDate'; date: DateTime }
-  | { type: 'setHoveredDate'; date: DateTime }
+  | {
+      type: 'setFocusedDate';
+      date: Temporal.PlainDate;
+    }
+  | {
+      type: 'setSelectedDate';
+      date: Temporal.PlainDate;
+    }
+  | {
+      type: 'setHoveredDate';
+      date: Temporal.PlainDate;
+    }
   | { type: 'setSelectedHour'; hour: number }
   | { type: 'setSelectedMinute'; minute: number }
   | { type: 'setFocusedHour'; hour: number }

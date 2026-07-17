@@ -1,5 +1,4 @@
 import { Button, Flex, Text, TextArea, TextField } from '@radix-ui/themes';
-import type { DateTime } from 'luxon';
 import type { SubmitEvent } from 'react';
 import { useCallback, useId, useState } from 'react';
 import { DateTimePicker } from '../common/DatePicker2/DateTimePicker';
@@ -19,12 +18,14 @@ export function MacroplanForm({
   tripId,
 
   tripTimeZone,
-  tripStartDateTime,
-  tripEndDateTime,
+  tripStartDate,
+  tripEndDate,
 
   macroplanName,
-  macroplanDateStartDateTime,
-  macroplanDateEndDateTime,
+  macroplanStartDate,
+  macroplanEndDate,
+  macroplanStartTimeZone,
+  macroplanEndTimeZone,
   macroplanNotes,
 
   onFormSuccess,
@@ -36,12 +37,16 @@ export function MacroplanForm({
   macroplanId?: string;
 
   tripTimeZone: string;
-  tripStartDateTime: DateTime | undefined;
-  tripEndDateTime: DateTime | undefined;
+  tripStartDate: Temporal.PlainDate | undefined;
+  /** final day of the trip */
+  tripEndDate: Temporal.PlainDate | undefined;
 
   macroplanName: string;
-  macroplanDateStartDateTime: DateTime | undefined;
-  macroplanDateEndDateTime: DateTime | undefined;
+  macroplanStartDate: Temporal.PlainDate | undefined;
+  /** final day of the macroplan */
+  macroplanEndDate: Temporal.PlainDate | undefined;
+  macroplanStartTimeZone: string | undefined;
+  macroplanEndTimeZone: string | undefined;
   macroplanNotes: string;
 
   onFormSuccess: () => void;
@@ -53,43 +58,52 @@ export function MacroplanForm({
   const publishToast = useBoundStore((state) => state.publishToast);
 
   const [errorMessage, setErrorMessage] = useState('');
-  const [dateStart, setDateStart] = useState<DateTime | undefined>(
-    macroplanDateStartDateTime,
+  const [dateStart, setDateStart] = useState<Temporal.PlainDate | undefined>(
+    macroplanStartDate,
   );
-  const [dateEnd, setDateEnd] = useState<DateTime | undefined>(
-    macroplanDateEndDateTime,
+  const [
+    /** Final date of the macroplan */
+    dateEnd,
+    setDateEnd,
+  ] = useState<Temporal.PlainDate | undefined>(macroplanEndDate);
+  const [timeZoneStart, setTimeZoneStart] = useState<string>(
+    macroplanStartTimeZone ?? tripTimeZone,
+  );
+  const [timeZoneEnd, setTimeZoneEnd] = useState<string>(
+    macroplanEndTimeZone ?? tripTimeZone,
   );
 
   const handleStartDateChange = useCallback(
-    (dateTime: DateTime | undefined) => {
-      setDateStart(dateTime);
+    (dateTime: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
+      if (dateTime instanceof Temporal.PlainDateTime) {
+        setDateStart(dateTime.toPlainDate());
+      } else {
+        setDateStart(dateTime);
+      }
       setErrorMessage(''); // Clear any date-related errors
     },
     [],
   );
 
-  const handleEndDateChange = useCallback((dateTime: DateTime | undefined) => {
-    setDateEnd(dateTime);
-    setErrorMessage(''); // Clear any date-related errors
+  const handleEndDateChange = useCallback(
+    (dateTime: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
+      if (dateTime instanceof Temporal.PlainDateTime) {
+        setDateEnd(dateTime.toPlainDate());
+      } else {
+        setDateEnd(dateTime);
+      }
+      setErrorMessage(''); // Clear any date-related errors
+    },
+    [],
+  );
+
+  const handleTimeZoneStartChange = useCallback((newTimeZone: string) => {
+    setTimeZoneStart(newTimeZone);
   }, []);
 
-  const handleTimeZoneStartChange = useCallback(
-    (newTimeZone: string) => {
-      if (dateStart) {
-        setDateStart(dateStart.setZone(newTimeZone, { keepLocalTime: true }));
-      }
-    },
-    [dateStart],
-  );
-
-  const handleTimeZoneEndChange = useCallback(
-    (newTimeZone: string) => {
-      if (dateEnd) {
-        setDateEnd(dateEnd.setZone(newTimeZone, { keepLocalTime: true }));
-      }
-    },
-    [dateEnd],
-  );
+  const handleTimeZoneEndChange = useCallback((newTimeZone: string) => {
+    setTimeZoneEnd(newTimeZone);
+  }, []);
 
   const handleSubmit = useCallback(() => {
     return async (elForm: HTMLFormElement) => {
@@ -103,36 +117,35 @@ export function MacroplanForm({
       const formData = new FormData(elForm);
       const name = (formData.get('name') as string | null) ?? '';
       const notes = (formData.get('notes') as string | null) ?? '';
-      const dateStartDateTime = dateStart;
-      const dateEndDateTime = dateEnd?.plus({ day: 1 });
+      const dateStartForDb = dateStart;
+      /** in db, the convention is to store 'date end' as the day _after_ the selected end date */
+      const dateEndForDb = dateEnd?.add({ days: 1 });
       console.log('MacroplanForm', {
         mode,
         macroplanId,
         tripId,
         name,
         notes,
-        dateStartDateTime,
-        dateEndDateTime,
+        dateStartDateTime: dateStartForDb,
+        dateEndDateTime: dateEndForDb,
       });
-      if (!name || !dateStartDateTime || !dateEndDateTime) {
+      if (!name || !dateStart || !dateEnd || !dateStartForDb || !dateEndForDb) {
         return;
       }
-      if (dateEndDateTime.diff(dateStartDateTime).as('minute') < 0) {
+      if (Temporal.PlainDate.compare(dateStartForDb, dateEnd) > 0) {
         setErrorMessage('End date must not be before start date');
         return;
       }
       // start date cannot be earlier than trip start date
-      if (tripStartDateTime && dateStartDateTime < tripStartDateTime) {
+      if (
+        tripStartDate &&
+        Temporal.PlainDate.compare(dateStartForDb, tripStartDate) < 0
+      ) {
         setErrorMessage('Start date cannot be earlier than trip start date');
         return;
       }
       // end date cannot be later than trip end date
-      // in db, the convention for 'end date' date-level entities are that they stored as start of next day
-      // however, tripEndDateTime prop has been adjusted to be the last minute of the trip
-      if (
-        tripEndDateTime &&
-        dateEndDateTime > tripEndDateTime.plus({ minute: 1 })
-      ) {
+      if (tripEndDate && Temporal.PlainDate.compare(dateEnd, tripEndDate) > 0) {
         setErrorMessage('End date cannot be later than trip end date');
         return;
       }
@@ -140,10 +153,12 @@ export function MacroplanForm({
         await dbUpdateMacroplan({
           id: macroplanId,
           name,
-          timestampStart: dateStartDateTime.toMillis(),
-          timestampEnd: dateEndDateTime.toMillis(),
-          timeZoneStart: dateStartDateTime.zoneName,
-          timeZoneEnd: dateEndDateTime.zoneName,
+          timestampStart:
+            dateStartForDb.toZonedDateTime(timeZoneStart).epochMilliseconds,
+          timestampEnd:
+            dateEndForDb.toZonedDateTime(timeZoneEnd).epochMilliseconds,
+          timeZoneStart: timeZoneStart,
+          timeZoneEnd: timeZoneEnd,
           notes,
         });
         publishToast({
@@ -155,10 +170,12 @@ export function MacroplanForm({
         const { id, result } = await dbAddMacroplan(
           {
             name,
-            timestampStart: dateStartDateTime.toMillis(),
-            timestampEnd: dateEndDateTime.toMillis(),
-            timeZoneStart: dateStartDateTime.zoneName,
-            timeZoneEnd: dateEndDateTime.zoneName,
+            timestampStart:
+              dateStartForDb.toZonedDateTime(timeZoneStart).epochMilliseconds,
+            timestampEnd:
+              dateEndForDb.toZonedDateTime(timeZoneEnd).epochMilliseconds,
+            timeZoneStart: timeZoneStart,
+            timeZoneEnd: timeZoneEnd,
             notes,
           },
           {
@@ -184,8 +201,10 @@ export function MacroplanForm({
     tripId,
     dateStart,
     dateEnd,
-    tripStartDateTime,
-    tripEndDateTime,
+    tripStartDate,
+    tripEndDate,
+    timeZoneStart,
+    timeZoneEnd,
   ]);
 
   const onFormInput = useCallback(() => {
@@ -227,14 +246,14 @@ export function MacroplanForm({
         <TimeZoneSelect
           id="timeZoneStart"
           name="timeZoneStart"
-          value={dateStart?.zoneName ?? tripTimeZone}
+          value={timeZoneStart}
           handleChange={handleTimeZoneStartChange}
           isFormLoading={false}
         />
         <Text as="label">
           Start date{' '}
           <Text weight="light" size="1">
-            (required; in {dateStart?.zoneName ?? tripTimeZone} time zone)
+            (required; in {timeZoneStart} time zone)
           </Text>
         </Text>
         <DateTimePicker
@@ -245,9 +264,8 @@ export function MacroplanForm({
           required
           aria-label="Day plan start date"
           placeholder="Select start date"
-          // Buffer one day before and after trip start/end date to allow some flexibility
-          min={tripStartDateTime?.minus({ days: 1 })}
-          max={tripEndDateTime?.plus({ days: 1 })}
+          min={tripStartDate}
+          max={tripEndDate}
         />
 
         <Text as="label">
@@ -259,14 +277,14 @@ export function MacroplanForm({
         <TimeZoneSelect
           id="timeZoneEnd"
           name="timeZoneEnd"
-          value={dateEnd?.zoneName ?? tripTimeZone}
+          value={timeZoneEnd}
           handleChange={handleTimeZoneEndChange}
           isFormLoading={false}
         />
         <Text as="label">
           End date{' '}
           <Text weight="light" size="1">
-            (required; in {dateEnd?.zoneName ?? tripTimeZone} time zone)
+            (required; in {timeZoneEnd} time zone)
           </Text>
         </Text>
         <DateTimePicker
@@ -277,9 +295,8 @@ export function MacroplanForm({
           required
           aria-label="Day plan end date"
           placeholder="Select end date"
-          // Buffer one day before and after trip start/end date to allow some flexibility
-          min={tripStartDateTime?.minus({ days: 1 })}
-          max={tripEndDateTime?.plus({ days: 1 })}
+          min={tripStartDate}
+          max={tripEndDate}
         />
         <Text as="label" htmlFor={idNotes}>
           Notes

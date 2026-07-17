@@ -6,7 +6,6 @@ import {
   TextArea,
   TextField,
 } from '@radix-ui/themes';
-import type { DateTime } from 'luxon';
 import { useCallback, useId, useState } from 'react';
 import { DateTimePicker } from '../../../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../../../common/DatePicker2/DateTimePickerMode';
@@ -36,7 +35,7 @@ export function TaskForm({
   taskTitle: string;
   taskDescription: string;
   taskStatus: number;
-  taskDueAtDateTime?: DateTime | null | undefined;
+  taskDueAtDateTime?: Temporal.PlainDateTime | null | undefined;
   taskIndex?: number;
   onFormSuccess: () => void;
   onFormCancel: () => void;
@@ -51,8 +50,26 @@ export function TaskForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // State for DateTime picker
-  const [dueAtDateTime, setDueAtDateTime] = useState<DateTime | undefined>(
-    taskDueAtDateTime || undefined,
+  const [dueAtDateTime, setDueAtDateTime] = useState<
+    Temporal.PlainDateTime | undefined
+  >(taskDueAtDateTime || undefined);
+  const handleDueAtChange = useCallback(
+    (value: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
+      if (value instanceof Temporal.PlainDateTime) {
+        setDueAtDateTime(value);
+      } else if (value instanceof Temporal.PlainDate) {
+        // If only a date is selected, set the time to 00:00 in the trip's time zone
+        setDueAtDateTime(
+          value.toPlainDateTime({
+            hour: 0,
+            minute: 0,
+          }),
+        );
+      } else {
+        setDueAtDateTime(undefined);
+      }
+    },
+    [],
   );
 
   const handleSubmit = useCallback(
@@ -72,7 +89,9 @@ export function TaskForm({
         return;
       }
 
-      const dueAt = dueAtDateTime ? dueAtDateTime.toMillis() : null;
+      const dueAt = dueAtDateTime
+        ? dueAtDateTime.toZonedDateTime(tripTimeZone).epochMilliseconds
+        : null;
 
       try {
         if (mode === TaskFormMode.New) {
@@ -134,6 +153,7 @@ export function TaskForm({
       taskIndex,
       publishToast,
       onFormSuccess,
+      tripTimeZone,
       dueAtDateTime,
     ],
   );
@@ -188,7 +208,7 @@ export function TaskForm({
           name="dueAt"
           mode={DateTimePickerMode.DateTime}
           value={dueAtDateTime}
-          onChange={setDueAtDateTime}
+          onChange={handleDueAtChange}
           clearable
         />
 

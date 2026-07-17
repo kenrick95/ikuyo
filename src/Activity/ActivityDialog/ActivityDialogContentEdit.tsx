@@ -1,5 +1,4 @@
 import { Box, Dialog, RadioCards, Spinner, Text } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
 import { useCallback, useEffect, useId, useState } from 'react';
 import type { DialogContentProps } from '../../Dialog/DialogRoute';
 import { useTrip } from '../../Trip/store/hooks';
@@ -28,25 +27,28 @@ export function ActivityDialogContentEdit({
 
   const tripStartDateTime =
     activity && trip
-      ? DateTime.fromMillis(trip.timestampStart).setZone(trip.timeZone)
+      ? Temporal.Instant.fromEpochMilliseconds(trip.timestampStart)
+          .toZonedDateTimeISO(trip.timeZone)
+          .toPlainDate()
       : undefined;
   const tripEndDateTime =
     activity && trip
-      ? DateTime.fromMillis(trip.timestampEnd)
-          .setZone(trip.timeZone)
-          .minus({ minute: 1 })
+      ? Temporal.Instant.fromEpochMilliseconds(trip.timestampEnd)
+          .toZonedDateTimeISO(trip.timeZone)
+          .toPlainDate()
+          .subtract({ days: 1 })
       : undefined;
   const activityStartDateTime =
     activity && trip && activity.timestampStart != null
-      ? DateTime.fromMillis(activity.timestampStart).setZone(
-          activity.timeZoneStart ?? trip.timeZone,
-        )
+      ? Temporal.Instant.fromEpochMilliseconds(activity.timestampStart)
+          .toZonedDateTimeISO(activity.timeZoneStart ?? trip.timeZone)
+          .toPlainDateTime()
       : undefined;
   const activityEndDateTime =
     activity && trip && activity.timestampEnd != null
-      ? DateTime.fromMillis(activity.timestampEnd).setZone(
-          activity.timeZoneEnd ?? trip.timeZone,
-        )
+      ? Temporal.Instant.fromEpochMilliseconds(activity.timestampEnd)
+          .toZonedDateTimeISO(activity.timeZoneEnd ?? trip.timeZone)
+          .toPlainDateTime()
       : undefined;
   const backToViewMode = useCallback(() => {
     setMode(ActivityDialogMode.View);
@@ -85,6 +87,8 @@ export function ActivityDialogContentEdit({
     activityIcon: activity?.icon,
     activityStartDateTime,
     activityEndDateTime,
+    activityStartTimeZone: activity?.timeZoneStart ?? trip?.timeZone,
+    activityEndTimeZone: activity?.timeZoneEnd ?? trip?.timeZone,
     activityLocationLat: activity?.locationLat,
     activityLocationLng: activity?.locationLng,
     activityLocationZoom: activity?.locationZoom,

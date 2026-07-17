@@ -6,7 +6,6 @@ import {
   TextArea,
   TextField,
 } from '@radix-ui/themes';
-import type { DateTime } from 'luxon';
 import type { SubmitEvent } from 'react';
 import { useCallback, useId, useReducer, useState } from 'react';
 import { DateTimePicker } from '../../common/DatePicker2/DateTimePicker';
@@ -88,6 +87,8 @@ export function AccommodationForm({
   accommodationAddress,
   accommodationCheckInDateTime,
   accommodationCheckOutDateTime,
+  accommodationCheckInTimeZone,
+  accommodationCheckOutTimeZone,
   accommodationPhoneNumber,
   accommodationNotes,
   accommodationLocationLat,
@@ -102,14 +103,18 @@ export function AccommodationForm({
   accommodationId?: string;
 
   tripTimeZone: string;
-  tripStartDateTime: DateTime | undefined;
-  tripEndDateTime: DateTime | undefined;
+  tripStartDateTime: Temporal.PlainDate | undefined;
+  /** Trip's final day */
+  tripEndDateTime: Temporal.PlainDate | undefined;
   tripRegion: string;
 
   accommodationName: string;
   accommodationAddress: string;
-  accommodationCheckInDateTime: DateTime | undefined;
-  accommodationCheckOutDateTime: DateTime | undefined;
+  accommodationCheckInDateTime: Temporal.PlainDateTime | undefined;
+  accommodationCheckOutDateTime: Temporal.PlainDateTime | undefined;
+  accommodationCheckInTimeZone: string | undefined;
+  accommodationCheckOutTimeZone: string | undefined;
+
   accommodationPhoneNumber: string;
   accommodationNotes: string;
   accommodationLocationLat: number | null | undefined;
@@ -127,25 +132,44 @@ export function AccommodationForm({
   const publishToast = useBoundStore((state) => state.publishToast);
 
   const [errorMessage, setErrorMessage] = useState('');
-  const [checkInDateTime, setCheckInDateTime] = useState<DateTime | undefined>(
-    accommodationCheckInDateTime,
-  );
+  const [checkInDateTime, setCheckInDateTime] = useState<
+    Temporal.PlainDateTime | undefined
+  >(accommodationCheckInDateTime);
   const [checkOutDateTime, setCheckOutDateTime] = useState<
-    DateTime | undefined
+    Temporal.PlainDateTime | undefined
   >(accommodationCheckOutDateTime);
+
+  const [checkInTimeZone, setCheckInTimeZone] = useState<string>(
+    accommodationCheckInTimeZone ?? tripTimeZone,
+  );
+  const [checkOutTimeZone, setCheckOutTimeZone] = useState<string>(
+    accommodationCheckOutTimeZone ?? tripTimeZone,
+  );
 
   // Handlers for date changes
   const handleCheckInDateChange = useCallback(
-    (dateTime: DateTime | undefined) => {
-      setCheckInDateTime(dateTime);
+    (newDate: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
+      if (newDate instanceof Temporal.PlainDate) {
+        setCheckInDateTime(
+          newDate.toPlainDateTime({ hour: 12, minute: 0, second: 0 }),
+        );
+      } else {
+        setCheckInDateTime(newDate);
+      }
       setErrorMessage(''); // Clear any date-related errors
     },
     [],
   );
 
   const handleCheckOutDateChange = useCallback(
-    (dateTime: DateTime | undefined) => {
-      setCheckOutDateTime(dateTime);
+    (newDate: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
+      if (newDate instanceof Temporal.PlainDate) {
+        setCheckOutDateTime(
+          newDate.toPlainDateTime({ hour: 12, minute: 0, second: 0 }),
+        );
+      } else {
+        setCheckOutDateTime(newDate);
+      }
       setErrorMessage(''); // Clear any date-related errors
     },
     [],
@@ -235,6 +259,10 @@ export function AccommodationForm({
       const notes = (formData.get('notes') as string | null) ?? '';
       const timeCheckInDate = checkInDateTime;
       const timeCheckOutDate = checkOutDateTime;
+      const zonedCheckInDateTime =
+        timeCheckInDate?.toZonedDateTime(checkInTimeZone);
+      const zonedCheckOutDateTime =
+        timeCheckOutDate?.toZonedDateTime(checkOutTimeZone);
       console.log('AccommodationForm', {
         mode,
         accommodationId,
@@ -247,20 +275,43 @@ export function AccommodationForm({
         timeCheckOutDate,
         coordinateState,
       });
-      if (!name || !timeCheckInDate || !timeCheckOutDate) {
+      if (
+        !name ||
+        !timeCheckInDate ||
+        !timeCheckOutDate ||
+        !zonedCheckInDateTime ||
+        !zonedCheckOutDateTime
+      ) {
         return;
       }
-      if (timeCheckOutDate.diff(timeCheckInDate).as('minute') < 0) {
+      if (
+        Temporal.ZonedDateTime.compare(
+          zonedCheckOutDateTime,
+          zonedCheckInDateTime,
+        ) < 0
+      ) {
         setErrorMessage('Check out time must be after check in time');
         return;
       }
       // check in time cannot be earlier than trip start time
-      if (tripStartDateTime && timeCheckInDate < tripStartDateTime) {
+      if (
+        tripStartDateTime &&
+        Temporal.ZonedDateTime.compare(
+          zonedCheckInDateTime,
+          tripStartDateTime.toZonedDateTime(tripTimeZone),
+        ) < 0
+      ) {
         setErrorMessage('Check in time cannot be earlier than trip start time');
         return;
       }
       // check out time cannot be later than trip end time
-      if (tripEndDateTime && timeCheckOutDate > tripEndDateTime) {
+      if (
+        tripEndDateTime &&
+        Temporal.ZonedDateTime.compare(
+          zonedCheckOutDateTime,
+          tripEndDateTime.toZonedDateTime(tripTimeZone).add({ days: 1 }),
+        ) > 0
+      ) {
         setErrorMessage('Check out time cannot be later than trip end time');
         return;
       }
@@ -269,10 +320,10 @@ export function AccommodationForm({
           id: accommodationId,
           name,
           address,
-          timestampCheckIn: timeCheckInDate.toMillis(),
-          timestampCheckOut: timeCheckOutDate.toMillis(),
-          timeZoneCheckIn: timeCheckInDate.zoneName,
-          timeZoneCheckOut: timeCheckOutDate.zoneName,
+          timestampCheckIn: zonedCheckInDateTime.epochMilliseconds,
+          timestampCheckOut: zonedCheckOutDateTime.epochMilliseconds,
+          timeZoneCheckIn: checkInTimeZone,
+          timeZoneCheckOut: checkOutTimeZone,
           phoneNumber,
           notes,
           locationLat: coordinateState.enabled ? coordinateState.lat : null,
@@ -289,10 +340,10 @@ export function AccommodationForm({
           {
             name,
             address,
-            timestampCheckIn: timeCheckInDate.toMillis(),
-            timestampCheckOut: timeCheckOutDate.toMillis(),
-            timeZoneCheckIn: timeCheckInDate.zoneName,
-            timeZoneCheckOut: timeCheckOutDate.zoneName,
+            timestampCheckIn: zonedCheckInDateTime.epochMilliseconds,
+            timestampCheckOut: zonedCheckOutDateTime.epochMilliseconds,
+            timeZoneCheckIn: checkInTimeZone,
+            timeZoneCheckOut: checkOutTimeZone,
             phoneNumber,
             notes,
             locationLat: coordinateState.enabled ? coordinateState.lat : null,
@@ -322,31 +373,20 @@ export function AccommodationForm({
     tripId,
     tripEndDateTime,
     tripStartDateTime,
+    tripTimeZone,
     coordinateState,
     checkInDateTime,
     checkOutDateTime,
+    checkInTimeZone,
+    checkOutTimeZone,
   ]);
 
-  const handleTimeZoneCheckInChange = useCallback(
-    (newTimeZone: string) => {
-      if (checkInDateTime) {
-        setCheckInDateTime(
-          checkInDateTime.setZone(newTimeZone, { keepLocalTime: true }),
-        );
-      }
-    },
-    [checkInDateTime],
-  );
-  const handleTimeZoneCheckOutChange = useCallback(
-    (newTimeZone: string) => {
-      if (checkOutDateTime) {
-        setCheckOutDateTime(
-          checkOutDateTime.setZone(newTimeZone, { keepLocalTime: true }),
-        );
-      }
-    },
-    [checkOutDateTime],
-  );
+  const handleTimeZoneCheckInChange = useCallback((newTimeZone: string) => {
+    setCheckInTimeZone(newTimeZone);
+  }, []);
+  const handleTimeZoneCheckOutChange = useCallback((newTimeZone: string) => {
+    setCheckOutTimeZone(newTimeZone);
+  }, []);
 
   const onFormInput = useCallback(() => {
     setErrorMessage('');
@@ -426,14 +466,14 @@ export function AccommodationForm({
         <TimeZoneSelect
           id="timeZoneCheckIn"
           name="timeZoneCheckIn"
-          value={checkInDateTime?.zoneName ?? tripTimeZone}
+          value={checkInTimeZone}
           handleChange={handleTimeZoneCheckInChange}
           isFormLoading={false}
         />
         <Text as="label">
           Check in time{' '}
           <Text weight="light" size="1">
-            (required; in {checkInDateTime?.zoneName ?? tripTimeZone} time zone)
+            (required; in {checkInTimeZone} time zone)
           </Text>
         </Text>
         <DateTimePicker
@@ -444,9 +484,8 @@ export function AccommodationForm({
           required
           aria-label="Accommodation check in time"
           placeholder="Select check in time"
-          // Buffer one day before and after trip start/end date to allow some flexibility
-          min={tripStartDateTime?.minus({ days: 1 })}
-          max={tripEndDateTime?.plus({ days: 1 })}
+          min={tripStartDateTime}
+          max={tripEndDateTime}
         />
         <Text as="label">
           Check out time zone{' '}
@@ -457,15 +496,14 @@ export function AccommodationForm({
         <TimeZoneSelect
           id="timeZoneCheckOut"
           name="timeZoneCheckOut"
-          value={checkOutDateTime?.zoneName ?? tripTimeZone}
+          value={checkOutTimeZone}
           handleChange={handleTimeZoneCheckOutChange}
           isFormLoading={false}
         />
         <Text as="label">
           Check out time{' '}
           <Text weight="light" size="1">
-            (required; in {checkOutDateTime?.zoneName ?? tripTimeZone} time
-            zone)
+            (required; in {checkOutTimeZone} time zone)
           </Text>
         </Text>
         <DateTimePicker
@@ -476,9 +514,8 @@ export function AccommodationForm({
           required
           aria-label="Accommodation check out time"
           placeholder="Select check out time"
-          // Buffer one day before and after trip start/end date to allow some flexibility
-          min={tripStartDateTime?.minus({ days: 1 })}
-          max={tripEndDateTime?.plus({ days: 1 })}
+          min={tripStartDateTime}
+          max={tripEndDateTime}
         />
         <Text as="label" htmlFor={idPhoneNumber}>
           Phone number

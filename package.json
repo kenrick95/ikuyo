@@ -35,6 +35,7 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-fast-compare": "^3.2.2",
+    "temporal-polyfill": "^1.0.1",
     "url-regex-safe": "^4.0.0",
     "wouter": "~3.10.0",
     "zustand": "~5.0.14"

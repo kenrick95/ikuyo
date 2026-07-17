@@ -1,5 +1,4 @@
 import { Flex, Select, Text, TextField } from '@radix-ui/themes';
-import type { DateTime } from 'luxon';
 import {
   type ChangeEvent,
   type FocusEvent,
@@ -22,8 +21,8 @@ export type FlightSubformProps = {
   destinationTimeZone: string;
   isOutbound: boolean;
   error?: string;
-  tripStartDate: DateTime | undefined;
-  tripEndDate: DateTime | undefined;
+  tripStartDate: Temporal.PlainDate | undefined;
+  tripEndDate: Temporal.PlainDate | undefined;
   onChange: (flight: FlightCapture | null) => void;
 };
 
@@ -40,29 +39,28 @@ export function FlightSubform({
 }: FlightSubformProps) {
   const defaultDepartureTz = isOutbound ? originTimeZone : destinationTimeZone;
   const defaultArrivalTz = isOutbound ? destinationTimeZone : originTimeZone;
-  const emptyFlight = useMemo<FlightCapture>(
-    () => ({
-      flightNumber: '',
-      departureAirport: '',
-      arrivalAirport: '',
-      departureDateTime: undefined,
-      arrivalDateTime: undefined,
-      departureTimeZone: defaultDepartureTz,
-      arrivalTimeZone: defaultArrivalTz,
-      departureLat: undefined,
-      departureLng: undefined,
-      departureZoom: undefined,
-      arrivalLat: undefined,
-      arrivalLng: undefined,
-      arrivalZoom: undefined,
-    }),
-    [defaultDepartureTz, defaultArrivalTz],
-  );
-  const current = value ?? emptyFlight;
+
+  const current = value;
   const [editingDepartureTz, setEditingDepartureTz] = useState(false);
   const [editingArrivalTz, setEditingArrivalTz] = useState(false);
   const departureBadgeRef = useRef<HTMLButtonElement>(null);
   const arrivalBadgeRef = useRef<HTMLButtonElement>(null);
+  const minDepartureDate: Temporal.PlainDate | undefined = useMemo(() => {
+    if (!tripStartDate) return undefined;
+    return tripStartDate.subtract({ days: 1 });
+  }, [tripStartDate]);
+  const maxDepartureDate: Temporal.PlainDate | undefined = useMemo(() => {
+    if (!tripEndDate) return undefined;
+    return tripEndDate.add({ days: 1 });
+  }, [tripEndDate]);
+  const minArrivalDate: Temporal.PlainDate | undefined = useMemo(() => {
+    if (!tripStartDate) return undefined;
+    return tripStartDate.subtract({ days: 1 });
+  }, [tripStartDate]);
+  const maxArrivalDate: Temporal.PlainDate | undefined = useMemo(() => {
+    if (!tripEndDate) return undefined;
+    return tripEndDate.add({ days: 1 });
+  }, [tripEndDate]);
 
   const handleFlightNumberChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) =>
@@ -150,13 +148,37 @@ export function FlightSubform({
     [],
   );
   const handleDepartureDateChange = useCallback(
-    (date: DateTime | undefined) =>
-      onChange({ ...current, departureDateTime: date }),
+    (date: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
+      return onChange({
+        ...current,
+        departureDateTime:
+          date instanceof Temporal.PlainDate
+            ? Temporal.PlainDateTime.from(date).with({
+                hour: 0,
+                minute: 0,
+                second: 0,
+                millisecond: 0,
+              })
+            : date,
+      });
+    },
     [current, onChange],
   );
   const handleArrivalDateChange = useCallback(
-    (date: DateTime | undefined) =>
-      onChange({ ...current, arrivalDateTime: date }),
+    (date: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
+      return onChange({
+        ...current,
+        arrivalDateTime:
+          date instanceof Temporal.PlainDate
+            ? Temporal.PlainDateTime.from(date).with({
+                hour: 0,
+                minute: 0,
+                second: 0,
+                millisecond: 0,
+              })
+            : date,
+      });
+    },
     [current, onChange],
   );
 
@@ -176,7 +198,7 @@ export function FlightSubform({
           <Text size="2">Flight number</Text>
           <TextField.Root
             placeholder="e.g. SQ321"
-            value={current.flightNumber}
+            value={current?.flightNumber ?? ''}
             onChange={handleFlightNumberChange}
           />
         </Flex>
@@ -185,7 +207,7 @@ export function FlightSubform({
           <Text size="2">Departure airport</Text>
           <TextField.Root
             placeholder="e.g. SYD or Sydney Airport"
-            value={current.departureAirport}
+            value={current?.departureAirport ?? ''}
             onChange={handleDepartureAirportChange}
             onBlur={handleDepartureAirportBlur}
           />
@@ -195,7 +217,7 @@ export function FlightSubform({
           <Text size="2">Arrival airport</Text>
           <TextField.Root
             placeholder="e.g. LHR or London Heathrow"
-            value={current.arrivalAirport}
+            value={current?.arrivalAirport ?? ''}
             onChange={handleArrivalAirportChange}
             onBlur={handleArrivalAirportBlur}
           />
@@ -207,7 +229,7 @@ export function FlightSubform({
             {editingDepartureTz ? (
               <Select.Root
                 defaultOpen
-                value={current.departureTimeZone}
+                value={current?.departureTimeZone ?? defaultDepartureTz}
                 onValueChange={handleDepartureTzChange}
                 onOpenChange={handleDepartureTzOpenChange}
               >
@@ -227,17 +249,17 @@ export function FlightSubform({
                 className={s.tzBadge}
                 onClick={handleOpenDepartureTzEdit}
               >
-                {current.departureTimeZone}
+                {current?.departureTimeZone ?? defaultDepartureTz}
               </button>
             )}
           </Flex>
           <DateTimePicker
-            value={current.departureDateTime}
+            value={current?.departureDateTime}
             onChange={handleDepartureDateChange}
             mode={DateTimePickerMode.DateTime}
             placeholder="Pick date & time"
-            min={tripStartDate?.minus({ days: 1 })}
-            max={tripEndDate?.plus({ days: 1 })}
+            min={minDepartureDate}
+            max={maxDepartureDate}
           />
         </Flex>
 
@@ -247,7 +269,7 @@ export function FlightSubform({
             {editingArrivalTz ? (
               <Select.Root
                 defaultOpen
-                value={current.arrivalTimeZone}
+                value={current?.arrivalTimeZone ?? defaultArrivalTz}
                 onValueChange={handleArrivalTzChange}
                 onOpenChange={handleArrivalTzOpenChange}
               >
@@ -267,17 +289,17 @@ export function FlightSubform({
                 className={s.tzBadge}
                 onClick={handleOpenArrivalTzEdit}
               >
-                {current.arrivalTimeZone}
+                {current?.arrivalTimeZone ?? defaultArrivalTz}
               </button>
             )}
           </Flex>
           <DateTimePicker
-            value={current.arrivalDateTime}
+            value={current?.arrivalDateTime}
             onChange={handleArrivalDateChange}
             mode={DateTimePickerMode.DateTime}
             placeholder="Pick date & time"
-            min={tripStartDate?.minus({ days: 1 })}
-            max={tripEndDate?.plus({ days: 1 })}
+            min={minArrivalDate}
+            max={maxArrivalDate}
           />
           {error !== undefined && (
             <Text size="1" color="red">

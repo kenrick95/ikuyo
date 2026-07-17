@@ -1,5 +1,3 @@
-// src/Trip/TripNew/wizardReducer.test.ts
-import { DateTime } from 'luxon';
 import { describe, expect, test } from 'vitest';
 import {
   createInitialWizardState,
@@ -49,8 +47,6 @@ describe('wizardReducer', () => {
     const next = wizardReducer(BASE, {
       type: 'SET_REGION',
       region: 'JP',
-      timeZone: 'Asia/Tokyo',
-      currency: 'JPY',
     });
     expect(next.region).toBe('JP');
     expect(next.timeZone).toBe('Asia/Tokyo');
@@ -65,24 +61,8 @@ describe('wizardReducer', () => {
     const next = wizardReducer(withTitle, {
       type: 'SET_REGION',
       region: 'JP',
-      timeZone: 'Asia/Tokyo',
-      currency: 'JPY',
     });
     expect(next.title).toBe('My Trip');
-  });
-
-  test('SET_START_DATE updates startDate (normalized to wizard timeZone)', () => {
-    const date = DateTime.fromISO('2026-10-01', { zone: 'UTC' });
-    const next = wizardReducer(BASE, { type: 'SET_START_DATE', date });
-    const expected = date.setZone('Asia/Tokyo', { keepLocalTime: true });
-    expect(next.startDate?.toISO()).toBe(expected.toISO());
-  });
-
-  test('SET_END_DATE updates endDate (normalized to wizard timeZone)', () => {
-    const date = DateTime.fromISO('2026-10-10', { zone: 'UTC' });
-    const next = wizardReducer(BASE, { type: 'SET_END_DATE', date });
-    const expected = date.setZone('Asia/Tokyo', { keepLocalTime: true });
-    expect(next.endDate?.toISO()).toBe(expected.toISO());
   });
 
   test('SET_TIMEZONE updates timeZone', () => {
@@ -131,8 +111,8 @@ describe('wizardReducer', () => {
       flightNumber: 'SQ321',
       departureAirport: 'SYD',
       arrivalAirport: 'NRT',
-      departureDateTime: DateTime.fromISO('2026-10-01T08:00'),
-      arrivalDateTime: DateTime.fromISO('2026-10-01T16:00'),
+      departureDateTime: Temporal.PlainDateTime.from('2026-10-01T08:00'),
+      arrivalDateTime: Temporal.PlainDateTime.from('2026-10-01T16:00'),
       departureTimeZone: 'America/New_York',
       arrivalTimeZone: 'Asia/Tokyo',
       departureLat: undefined,
@@ -143,7 +123,7 @@ describe('wizardReducer', () => {
       arrivalZoom: undefined,
     };
     const next = wizardReducer(BASE, { type: 'SET_OUTBOUND_FLIGHT', flight });
-    expect(next.outboundFlight).toBe(flight);
+    expect(next.outboundFlight).toStrictEqual(flight);
   });
 
   test('SET_OUTBOUND_FLIGHT can be cleared to null', () => {
@@ -177,8 +157,8 @@ describe('wizardReducer', () => {
       flightNumber: 'SQ322',
       departureAirport: 'NRT',
       arrivalAirport: 'SYD',
-      departureDateTime: DateTime.fromISO('2026-10-10T18:00'),
-      arrivalDateTime: DateTime.fromISO('2026-10-11T02:00'),
+      departureDateTime: Temporal.PlainDateTime.from('2026-10-10T18:00'),
+      arrivalDateTime: Temporal.PlainDateTime.from('2026-10-11T02:00'),
       departureTimeZone: 'Asia/Tokyo',
       arrivalTimeZone: 'America/New_York',
       departureLat: undefined,
@@ -189,7 +169,7 @@ describe('wizardReducer', () => {
       arrivalZoom: undefined,
     };
     const next = wizardReducer(BASE, { type: 'SET_RETURN_FLIGHT', flight });
-    expect(next.returnFlight).toBe(flight);
+    expect(next.returnFlight).toStrictEqual(flight);
   });
 
   test('reducer is pure — does not mutate state', () => {

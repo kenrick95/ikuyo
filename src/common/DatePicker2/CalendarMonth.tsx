@@ -1,19 +1,33 @@
 import { ArrowLeftIcon, ArrowRightIcon } from '@radix-ui/react-icons';
 import { Box, Button, Grid } from '@radix-ui/themes';
 import clsx from 'clsx';
-import { DateTime } from 'luxon';
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import s from './CalendarMonth.module.css';
 
+function formatMonthYear(date: Temporal.PlainDate) {
+  return date.toLocaleString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+function formatDate(date: Temporal.PlainDate) {
+  return date.toLocaleString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
 export interface CalendarMonthProps {
-  yearMonth: DateTime;
-  focusedDate: DateTime;
-  selectedDate?: DateTime;
-  onSelectDay: (date: DateTime) => void;
-  onFocusDay: (date: DateTime) => void;
-  onHoverDay: (date: DateTime) => void;
-  min?: DateTime;
-  max?: DateTime;
+  yearMonth: Temporal.PlainDate;
+  focusedDate: Temporal.PlainDate;
+  selectedDate?: Temporal.PlainDate;
+  onSelectDay: (date: Temporal.PlainDate) => void;
+  onFocusDay: (date: Temporal.PlainDate) => void;
+  onHoverDay: (date: Temporal.PlainDate) => void;
+  min?: Temporal.PlainDate;
+  max?: Temporal.PlainDate;
   disabled?: boolean;
   className?: string;
   // A11Y: Phase 2 - Live announcements for month navigation
@@ -35,21 +49,26 @@ export function CalendarMonth({
   className,
   onLiveAnnouncement,
 }: CalendarMonthProps) {
-  const startOfMonth = yearMonth.startOf('month');
+  const startOfMonth = useMemo(() => {
+    return yearMonth.with({ day: 1 });
+  }, [yearMonth]);
   const dayOfWeekArray = useMemo(() => {
     return Array.from({ length: 7 })
       .fill(0)
       .map((_, i) => {
-        const dateTime = startOfMonth.startOf('week').plus({ days: i });
+        // "Mon"-"Sun" at calendar headers
+        const dateTime = startOfMonth.add({
+          days: i - startOfMonth.dayOfWeek + 1,
+        });
         return {
-          abbr: dateTime.toFormat('ccc'),
-          full: dateTime.toFormat('cccc'),
+          abbr: dateTime.toLocaleString('en-US', { weekday: 'short' }),
+          full: dateTime.toLocaleString('en-US', { weekday: 'long' }),
         };
       });
   }, [startOfMonth]);
   const daysBeforeStartOfMonthArray = useMemo(() => {
-    return Array.from({ length: startOfMonth.weekday - 1 }).map((_, i) => i);
-  }, [startOfMonth.weekday]);
+    return Array.from({ length: startOfMonth.dayOfWeek - 1 }).map((_, i) => i);
+  }, [startOfMonth.dayOfWeek]);
   const daysInMonthArray = useMemo(() => {
     return Array.from({ length: startOfMonth.daysInMonth ?? 0 }).map(
       (_, i) => i,
@@ -60,7 +79,8 @@ export function CalendarMonth({
   const [isDayButtonFocused, setIsDayButtonFocused] = useState(true);
 
   const focusDayButton = useCallback(
-    (date: DateTime) => {
+    (date: Temporal.PlainDate) => {
+      console.log('focusDayButton', date.toString());
       setIsDayButtonFocused(true);
       onFocusDay(date);
     },
@@ -77,7 +97,7 @@ export function CalendarMonth({
   useLayoutEffect(() => {
     if (isDayButtonFocused) {
       const dayButton = gridRef.current?.querySelector(
-        `button[data-date="${focusedDate.toISODate()}"]`,
+        `button[data-date="${focusedDate.toString()}"]`,
       );
       if (dayButton) {
         (dayButton as HTMLButtonElement).focus();
@@ -87,34 +107,36 @@ export function CalendarMonth({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      let date: DateTime;
+      let date: Temporal.PlainDate;
 
       switch (e.key) {
         // Reference: https://github.com/WickyNilliams/cally/blob/38e6a7bc7c53e29c427f5de028b8544e2bff9a9d/src/calendar-month/useCalendarMonth.ts#L74-L101
         // MIT License (c) WickyNilliams
         case 'ArrowRight':
-          date = focusedDate.plus({ days: 1 });
+          date = focusedDate.add({ days: 1 });
           break;
         case 'ArrowLeft':
-          date = focusedDate.plus({ days: -1 });
+          date = focusedDate.add({ days: -1 });
           break;
         case 'ArrowDown':
-          date = focusedDate.plus({ days: 7 });
+          date = focusedDate.add({ days: 7 });
           break;
         case 'ArrowUp':
-          date = focusedDate.plus({ days: -7 });
+          date = focusedDate.add({ days: -7 });
           break;
         case 'PageUp':
-          date = focusedDate.plus(e.shiftKey ? { years: -1 } : { months: -1 });
+          date = focusedDate.add(e.shiftKey ? { years: -1 } : { months: -1 });
           break;
         case 'PageDown':
-          date = focusedDate.plus(e.shiftKey ? { years: 1 } : { months: 1 });
+          date = focusedDate.add(e.shiftKey ? { years: 1 } : { months: 1 });
           break;
         case 'Home':
-          date = focusedDate.startOf('week');
+          // Move to the first day of the week (Monday: 1); dayOfWeek is 1-7 (Monday-Sunday)
+          date = focusedDate.subtract({ days: focusedDate.dayOfWeek - 1 });
           break;
         case 'End':
-          date = focusedDate.endOf('week');
+          // Move to the last day of the week (Sunday: 7); dayOfWeek is 1-7 (Monday-Sunday)
+          date = focusedDate.add({ days: 7 - focusedDate.dayOfWeek });
           break;
         case 'Enter':
         case ' ':
@@ -139,9 +161,8 @@ export function CalendarMonth({
     (e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
       const dateStr = target.getAttribute('data-date');
-      const dateZone = target.getAttribute('data-timezone');
       if (dateStr) {
-        const date = DateTime.fromISO(dateStr, { zone: dateZone ?? undefined });
+        const date = Temporal.PlainDate.from(dateStr);
         if (!isDateInRange(date, min, max)) {
           return;
         }
@@ -156,9 +177,8 @@ export function CalendarMonth({
     (e: React.MouseEvent) => {
       const target = e.target as HTMLElement;
       const dateStr = target.getAttribute('data-date');
-      const dateZone = target.getAttribute('data-timezone');
       if (dateStr) {
-        const date = DateTime.fromISO(dateStr, { zone: dateZone ?? undefined });
+        const date = Temporal.PlainDate.from(dateStr);
         if (!isDateInRange(date, min, max)) {
           return;
         }
@@ -170,26 +190,35 @@ export function CalendarMonth({
 
   const handlePreviousMonth = useCallback(() => {
     const prevMonth = getDateInRange(
-      startOfMonth.plus({ months: -1 }),
+      startOfMonth.add({ months: -1 }),
       min,
       max,
     );
     onFocusDay(prevMonth);
-    onLiveAnnouncement?.(prevMonth.toFormat('MMMM yyyy'));
+    onLiveAnnouncement?.(formatMonthYear(prevMonth));
   }, [startOfMonth, onFocusDay, min, max, onLiveAnnouncement]);
 
   const handleNextMonth = useCallback(() => {
-    const nextMonth = getDateInRange(
-      startOfMonth.plus({ months: 1 }),
-      min,
-      max,
-    );
+    const nextMonth = getDateInRange(startOfMonth.add({ months: 1 }), min, max);
     onFocusDay(nextMonth);
-    onLiveAnnouncement?.(nextMonth.toFormat('MMMM yyyy'));
+    onLiveAnnouncement?.(formatMonthYear(nextMonth));
   }, [startOfMonth, onFocusDay, min, max, onLiveAnnouncement]);
 
-  const isPrevMonthDisabled = min && startOfMonth <= min.startOf('month');
-  const isNextMonthDisabled = max && startOfMonth >= max.startOf('month');
+  const isPrevMonthDisabled = useMemo(() => {
+    if (!min) {
+      return false;
+    }
+    const minStartofMonth = min.with({ day: 1 });
+    // Temporal.PlainDate.compare: Returns -1 if date1 comes before date2, 0 if they are the same, and 1 if date1 comes after date2
+    return Temporal.PlainDate.compare(startOfMonth, minStartofMonth) <= 0;
+  }, [min, startOfMonth]);
+  const isNextMonthDisabled = useMemo(() => {
+    if (!max) {
+      return false;
+    }
+    const maxStartofMonth = max.with({ day: 1 });
+    return Temporal.PlainDate.compare(startOfMonth, maxStartofMonth) >= 0;
+  }, [max, startOfMonth]);
 
   return (
     <Grid
@@ -199,7 +228,7 @@ export function CalendarMonth({
       ref={gridRef}
       className={clsx(s.calendarMonth, className)}
       role="grid"
-      aria-label={`Calendar for ${startOfMonth.toFormat('MMMM yyyy')}`}
+      aria-label={`Calendar for ${startOfMonth}`}
     >
       <Button
         variant="surface"
@@ -212,7 +241,7 @@ export function CalendarMonth({
         <ArrowLeftIcon aria-hidden="true" />
       </Button>
       <Box gridColumnStart="2" gridColumnEnd="7" className={s.monthLabel}>
-        {startOfMonth.toFormat('MMMM yyyy')}
+        {formatMonthYear(startOfMonth)}
       </Box>
       <Button
         variant="surface"
@@ -238,14 +267,12 @@ export function CalendarMonth({
         <Box key={i} />
       ))}
       {daysInMonthArray.map((i) => {
-        const date = startOfMonth.set({ day: i + 1 });
-        const isFocused = date.hasSame(focusedDate, 'day');
-        const isSelected = selectedDate
-          ? date.hasSame(selectedDate, 'day')
-          : false;
+        const date = startOfMonth.with({ day: i + 1 });
+        const isFocused = date.equals(focusedDate);
+        const isSelected = selectedDate ? date.equals(selectedDate) : false;
         const isDisabled = disabled || !isDateInRange(date, min, max);
         // A11Y: Mark today's date for screen readers
-        const isToday = date.hasSame(DateTime.now(), 'day');
+        const isToday = date.equals(Temporal.Now.plainDateISO());
 
         return (
           // biome-ignore lint/a11y/useSemanticElements: this is a button on a grid
@@ -253,23 +280,22 @@ export function CalendarMonth({
             type="button"
             role="gridcell"
             disabled={isDisabled}
-            key={date.toISODate()}
+            key={date.toString()}
             onKeyDown={handleKeyDown}
             onFocus={handleFocus}
             onBlur={handleBlur}
             onClick={handleClick}
             onMouseOver={handleMouseOver}
             tabIndex={isFocused ? 0 : -1}
-            data-date={date.toISODate()}
-            data-timezone={date.zoneName}
+            data-date={date.toString()}
             className={clsx(s.dayButton, {
               [s.dayButtonSelected]: isSelected,
             })}
-            aria-label={date.toFormat('cccc, MMMM d, yyyy')}
+            aria-label={formatDate(date)}
             aria-selected={isSelected}
             aria-current={isToday ? 'date' : undefined}
           >
-            {date.toFormat('d')}
+            {date.day}
           </button>
         );
       })}
@@ -277,23 +303,45 @@ export function CalendarMonth({
   );
 }
 
-function isDateInRange(date: DateTime, start?: DateTime, end?: DateTime) {
-  // console.log('isDateInRange', { date, start, end });
+function isDateInRange(
+  date: Temporal.PlainDate,
+  start?: Temporal.PlainDate,
+  end?: Temporal.PlainDate,
+) {
   if (start != null && end != null) {
-    return date >= start && date <= end;
+    // date >= start && date <= end
+    const isDateOnOrAfterStart = Temporal.PlainDate.compare(date, start) >= 0;
+    const isDateOnOrBeforeEnd = Temporal.PlainDate.compare(date, end) <= 0;
+    return isDateOnOrAfterStart && isDateOnOrBeforeEnd;
   } else if (start != null) {
-    return date >= start;
+    // date >= start
+    const isDateOnOrAfterStart = Temporal.PlainDate.compare(date, start) >= 0;
+    return isDateOnOrAfterStart;
   } else if (end != null) {
-    return date <= end;
+    // date <= end
+    const isDateOnOrBeforeEnd = Temporal.PlainDate.compare(date, end) <= 0;
+    return isDateOnOrBeforeEnd;
   }
   return true;
 }
-function getDateInRange(date: DateTime, start?: DateTime, end?: DateTime) {
-  if (start != null && date < start) {
-    return start;
+function getDateInRange(
+  date: Temporal.PlainDate,
+  start?: Temporal.PlainDate,
+  end?: Temporal.PlainDate,
+) {
+  if (start != null) {
+    // i.e. date < start
+    const isDateBeforeStart = Temporal.PlainDate.compare(date, start) < 0;
+    if (isDateBeforeStart) {
+      return start;
+    }
   }
-  if (end != null && date > end) {
-    return end;
+  if (end != null) {
+    // i.e. date > end
+    const isDateAfterEnd = Temporal.PlainDate.compare(date, end) > 0;
+    if (isDateAfterEnd) {
+      return end;
+    }
   }
   return date;
 }

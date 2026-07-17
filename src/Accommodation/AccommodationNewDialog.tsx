@@ -1,5 +1,4 @@
 import { Box, Dialog } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
 import { useMemo } from 'react';
 import { CommonLargeDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
@@ -17,47 +16,65 @@ export function AccommodationNewDialog({
   };
 }) {
   const popDialog = useBoundStore((state) => state.popDialog);
-  const tripStartDateTime = DateTime.fromMillis(trip.timestampStart).setZone(
-    trip.timeZone,
-  );
-  const tripEndDateTime = DateTime.fromMillis(trip.timestampEnd)
-    .setZone(trip.timeZone)
-    .minus({ minute: 1 });
+  const tripStartDateTime = Temporal.Instant.fromEpochMilliseconds(
+    trip.timestampStart,
+  )
+    .toZonedDateTimeISO(trip.timeZone)
+    .toPlainDate();
+  const tripEndDateTime = Temporal.Instant.fromEpochMilliseconds(
+    trip.timestampEnd,
+  )
+    .toZonedDateTimeISO(trip.timeZone)
+    .toPlainDate()
+    .subtract({ days: 1 });
 
-  const [accommodationCheckInDateTime, accommodationCheckOutDateTime] =
-    useMemo(() => {
-      if (prefillData) {
-        // Calculate the start of the selected day
-        const tripStart = DateTime.fromMillis(trip.timestampStart).setZone(
-          trip.timeZone,
-        );
-        const selectedDay = tripStart
-          .plus({ days: prefillData.dayOfTrip - 1 })
-          .startOf('day');
+  const [
+    accommodationCheckInDateTime,
+    accommodationCheckOutDateTime,
+    accommodationCheckInTimeZone,
+    accommodationCheckOutTimeZone,
+  ] = useMemo(() => {
+    if (prefillData) {
+      // Calculate the start of the selected day
+      const tripStart = Temporal.Instant.fromEpochMilliseconds(
+        trip.timestampStart,
+      ).toZonedDateTimeISO(trip.timeZone);
+      const selectedDay = tripStart
+        .add({ days: prefillData.dayOfTrip - 1 })
+        .startOfDay();
 
-        // Set check-in to 3pm on the selected day
-        const checkInTime = selectedDay.set({ hour: 15 });
-        // Set check-out to 11am the next day
-        const checkOutTime = selectedDay.plus({ days: 1 }).set({ hour: 11 });
+      // Set check-in to 3pm on the selected day
+      const checkInTime = selectedDay.with({ hour: 15 });
+      // Set check-out to 11am the next day
+      const checkOutTime = selectedDay.add({ days: 1 }).with({ hour: 11 });
 
-        return [checkInTime, checkOutTime];
-      }
-
-      // Default behavior when no prefillData
       return [
-        DateTime.fromMillis(trip.timestampStart)
-          .setZone(trip.timeZone)
-          // Usually check-in is 3pm of the first day
-          .plus({ hour: 15 }),
-        DateTime.fromMillis(trip.timestampEnd)
-          .setZone(trip.timeZone)
-          .minus({
-            day: 1,
-          })
-          // Usually check-out is 11am of the last day
-          .plus({ hour: 11 }),
+        checkInTime.toPlainDateTime(),
+        checkOutTime.toPlainDateTime(),
+        checkInTime.timeZoneId,
+        checkOutTime.timeZoneId,
       ];
-    }, [trip, prefillData]);
+    }
+
+    // Default behavior when no prefillData
+    return [
+      Temporal.Instant.fromEpochMilliseconds(trip.timestampStart)
+        .toZonedDateTimeISO(trip.timeZone)
+        // Usually check-in is 3pm of the first day
+        .with({ hour: 15 })
+        .toPlainDateTime(),
+      Temporal.Instant.fromEpochMilliseconds(trip.timestampEnd)
+        .toZonedDateTimeISO(trip.timeZone)
+        .subtract({
+          days: 1,
+        })
+        // Usually check-out is 11am of the last day
+        .with({ hour: 11 })
+        .toPlainDateTime(),
+      trip.timeZone,
+      trip.timeZone,
+    ];
+  }, [trip, prefillData]);
 
   return (
     <Dialog.Root open>
@@ -78,6 +95,8 @@ export function AccommodationNewDialog({
           accommodationAddress=""
           accommodationCheckInDateTime={accommodationCheckInDateTime}
           accommodationCheckOutDateTime={accommodationCheckOutDateTime}
+          accommodationCheckInTimeZone={accommodationCheckInTimeZone}
+          accommodationCheckOutTimeZone={accommodationCheckOutTimeZone}
           accommodationPhoneNumber=""
           accommodationNotes=""
           accommodationLocationLat={undefined}

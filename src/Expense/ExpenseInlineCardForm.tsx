@@ -1,6 +1,5 @@
 import { QuestionMarkCircledIcon } from '@radix-ui/react-icons';
 import { Button, Select, Text, TextField, Tooltip } from '@radix-ui/themes';
-import { DateTime } from 'luxon';
 import type * as React from 'react';
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
 import { DateTimePicker } from '../common/DatePicker2/DateTimePicker';
@@ -29,15 +28,17 @@ export function ExpenseInlineCardForm({
   );
   const setTripLocalState = useBoundStore((state) => state.setTripLocalState);
 
-  const dateTimeIncurred: DateTime<boolean> = useMemo(
+  const dateTimeIncurred: Temporal.PlainDate = useMemo(
     () =>
-      DateTime.fromMillis(
+      Temporal.Instant.fromEpochMilliseconds(
         expenseMode === ExpenseMode.Edit && expense
           ? expense.timestampIncurred
           : tripLocalState?.expenseTimestampIncurred != null
             ? tripLocalState?.expenseTimestampIncurred
             : trip.timestampStart,
-      ).setZone(trip.timeZone),
+      )
+        .toZonedDateTimeISO(trip.timeZone)
+        .toPlainDate(),
     [
       trip.timestampStart,
       trip.timeZone,
@@ -163,8 +164,10 @@ export function ExpenseInlineCardForm({
           amount: amountFloat,
           currencyConversionFactor: currencyConversionFactorFloat,
           amountInOriginCurrency: amountInOriginCurrencyFloat,
-          timestampIncurred: dateTimeIncurred.toMillis(),
-          timeZoneIncurred: dateTimeIncurred.zoneName ?? timeZoneIncurred,
+          timestampIncurred:
+            dateTimeIncurred.toZonedDateTime(timeZoneIncurred)
+              .epochMilliseconds,
+          timeZoneIncurred: timeZoneIncurred,
         })
           .then(() => {
             publishToast({
@@ -175,7 +178,9 @@ export function ExpenseInlineCardForm({
             setTripLocalState(trip.id, {
               expenseCurrency: currency,
               expenseCurrencyConversionFactor: currencyConversionFactorFloat,
-              expenseTimestampIncurred: dateTimeIncurred.toMillis(),
+              expenseTimestampIncurred:
+                dateTimeIncurred.toZonedDateTime(timeZoneIncurred)
+                  .epochMilliseconds,
             });
 
             setExpenseMode(ExpenseMode.View);
@@ -203,8 +208,10 @@ export function ExpenseInlineCardForm({
             amount: amountFloat,
             currencyConversionFactor: currencyConversionFactorFloat,
             amountInOriginCurrency: amountInOriginCurrencyFloat,
-            timestampIncurred: dateTimeIncurred.toMillis(),
-            timeZoneIncurred: dateTimeIncurred.zoneName ?? timeZoneIncurred,
+            timestampIncurred:
+              dateTimeIncurred.toZonedDateTime(timeZoneIncurred)
+                .epochMilliseconds,
+            timeZoneIncurred: timeZoneIncurred,
           },
           { tripId: trip.id },
         )
@@ -212,7 +219,9 @@ export function ExpenseInlineCardForm({
             setTripLocalState(trip.id, {
               expenseCurrency: currency,
               expenseCurrencyConversionFactor: currencyConversionFactorFloat,
-              expenseTimestampIncurred: dateTimeIncurred.toMillis(),
+              expenseTimestampIncurred:
+                dateTimeIncurred.toZonedDateTime(timeZoneIncurred)
+                  .epochMilliseconds,
             });
             publishToast({
               root: {},
@@ -253,11 +262,14 @@ export function ExpenseInlineCardForm({
   const refTitle = useRef<HTMLInputElement>(null);
 
   const handleTimestampIncurredChange = useCallback(
-    (value: DateTime | undefined) => {
+    (value: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
       if (value) {
         setFormState((prev) => ({
           ...prev,
-          dateTimeIncurred: value,
+          dateTimeIncurred:
+            value instanceof Temporal.PlainDateTime
+              ? value.toPlainDate()
+              : value,
         }));
       }
     },

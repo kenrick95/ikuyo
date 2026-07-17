@@ -1,5 +1,4 @@
 import { Button, Flex, Select, Text, TextField } from '@radix-ui/themes';
-import type { DateTime } from 'luxon';
 import type { SubmitEvent } from 'react';
 import { useCallback, useId, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
@@ -43,8 +42,8 @@ export function TripForm({
 }: {
   mode: TripFormMode;
   tripId?: string;
-  tripStartDateTime: DateTime | undefined;
-  tripEndDateTime: DateTime | undefined;
+  tripStartDateTime: Temporal.PlainDate | undefined;
+  tripEndDateTime: Temporal.PlainDate | undefined;
   tripTitle: string;
   tripTimeZone: string;
   tripRegion: string;
@@ -69,56 +68,42 @@ export function TripForm({
   const [currentOriginCurrency, setCurrentOriginCurrency] =
     useState(tripOriginCurrency);
   const [currentStartDate, setCurrentStartDate] = useState<
-    DateTime | undefined
+    Temporal.PlainDate | undefined
   >(tripStartDateTime);
-  const [currentEndDate, setCurrentEndDate] = useState<DateTime | undefined>(
-    tripEndDateTime,
-  );
+  const [currentEndDate, setCurrentEndDate] = useState<
+    Temporal.PlainDate | undefined
+  >(tripEndDateTime);
 
   const [errorMessage, setErrorMessage] = useState('');
 
   // Handler for start date changes
   const handleStartDateChange = useCallback(
-    (dateTime: DateTime | undefined) => {
-      setCurrentStartDate(
-        dateTime?.setZone(currentTimeZone, { keepLocalTime: true }),
-      );
+    (date: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
+      if (date instanceof Temporal.PlainDateTime) {
+        setCurrentStartDate(date.toPlainDate());
+      } else {
+        setCurrentStartDate(date);
+      }
     },
-    [currentTimeZone],
+    [],
   );
 
   // Handler for end date changes
   const handleEndDateChange = useCallback(
-    (dateTime: DateTime | undefined) => {
-      setCurrentEndDate(
-        dateTime?.setZone(currentTimeZone, { keepLocalTime: true }),
-      );
-    },
-    [currentTimeZone],
-  );
-
-  // Helper to update timezone on DateTime objects
-  const updateDateTimeZone = useCallback(
-    (dateTime: DateTime | undefined, newTimeZone: string) => {
-      if (!dateTime) return undefined;
-      return dateTime.setZone(newTimeZone, {
-        // "preserve" time relative to the date
-        keepLocalTime: true,
-      });
+    (date: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
+      if (date instanceof Temporal.PlainDateTime) {
+        setCurrentEndDate(date.toPlainDate());
+      } else {
+        setCurrentEndDate(date);
+      }
     },
     [],
   );
 
   // Handler for timezone change
-  const handleTimeZoneChange = useCallback(
-    (newTimeZone: string) => {
-      setCurrentTimeZone(newTimeZone);
-      // Update existing dates to new timezone
-      setCurrentStartDate((prev) => updateDateTimeZone(prev, newTimeZone));
-      setCurrentEndDate((prev) => updateDateTimeZone(prev, newTimeZone));
-    },
-    [updateDateTimeZone],
-  );
+  const handleTimeZoneChange = useCallback((newTimeZone: string) => {
+    setCurrentTimeZone(newTimeZone);
+  }, []);
 
   // Handler for region change to auto-populate timezone
   const handleRegionChange = useCallback(
@@ -157,8 +142,8 @@ export function TripForm({
       }
       const formData = new FormData(elForm);
       const title = (formData.get('title') as string | null) ?? '';
-      const dateStartDateTime = currentStartDate;
-      const dateEndDateTime = currentEndDate?.plus({ day: 1 });
+      const dateStartForDb = currentStartDate;
+      const dateEndForDb = currentEndDate?.add({ days: 1 });
       const timeZone = currentTimeZone;
       const region = currentRegion;
       const currency = currentCurrency;
@@ -173,13 +158,15 @@ export function TripForm({
         region,
         currency,
         originCurrency,
-        dateStartDateTime,
-        dateEndDateTime,
+        dateStartDateTime: dateStartForDb,
+        dateEndDateTime: dateEndForDb,
       });
       if (
         !title ||
-        !dateStartDateTime ||
-        !dateEndDateTime ||
+        !currentStartDate ||
+        !currentEndDate ||
+        !dateStartForDb ||
+        !dateEndForDb ||
         !timeZone ||
         !currency ||
         !originCurrency ||
@@ -188,8 +175,9 @@ export function TripForm({
         setIsFormLoading(false);
         return;
       }
-      if (dateEndDateTime.diff(dateStartDateTime).as('minute') < 0) {
-        setErrorMessage('End date must be after start date');
+      // compare(date1, date2) returns 1 if date1 > date2, 0 if equal, -1 if date1 < date2
+      if (Temporal.PlainDate.compare(currentStartDate, currentEndDate) > 0) {
+        setErrorMessage('Start date cannot be after end date');
         setIsFormLoading(false);
         return;
       }
@@ -198,8 +186,10 @@ export function TripForm({
           id: tripId,
           title,
           timeZone,
-          timestampStart: dateStartDateTime.toMillis(),
-          timestampEnd: dateEndDateTime.toMillis(),
+          timestampStart: dateStartForDb.toZonedDateTime(timeZone).toInstant()
+            .epochMilliseconds,
+          timestampEnd: dateEndForDb.toZonedDateTime(timeZone).toInstant()
+            .epochMilliseconds,
           region,
           currency,
           originCurrency,
@@ -218,8 +208,10 @@ export function TripForm({
           {
             title,
             timeZone,
-            timestampStart: dateStartDateTime.toMillis(),
-            timestampEnd: dateEndDateTime.toMillis(),
+            timestampStart: dateStartForDb.toZonedDateTime(timeZone).toInstant()
+              .epochMilliseconds,
+            timestampEnd: dateEndForDb.toZonedDateTime(timeZone).toInstant()
+              .epochMilliseconds,
             region,
             currency,
             originCurrency,
