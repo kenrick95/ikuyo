@@ -16,6 +16,7 @@ const TOKENS = [
   'cccc',
   'MMM',
   'LLL',
+  'ccc',
   'MM',
   'LL',
   'dd',
@@ -139,6 +140,8 @@ function formatToken(
 
     case 'cccc':
       return formatWeekdayName(temporal, 'long', locales);
+    case 'ccc':
+      return formatWeekdayName(temporal, 'short', locales);
 
     case 'dd':
       return formatNumber(temporal.day, 2, locales);
