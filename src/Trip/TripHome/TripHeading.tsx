@@ -13,10 +13,14 @@ export function TripHeading() {
   const { trip } = useCurrentTrip();
 
   const tripStartDateTime = trip
-    ? Temporal.Instant.fromEpochMilliseconds(trip.timestampStart).toZonedDateTimeISO(trip.timeZone)
+    ? Temporal.Instant.fromEpochMilliseconds(
+        trip.timestampStart,
+      ).toZonedDateTimeISO(trip.timeZone)
     : undefined;
   const tripEndDateTime = trip
-    ? Temporal.Instant.fromEpochMilliseconds(trip.timestampEnd).toZonedDateTimeISO(trip.timeZone)
+    ? Temporal.Instant.fromEpochMilliseconds(
+        trip.timestampEnd,
+      ).toZonedDateTimeISO(trip.timeZone)
     : undefined;
   // Dialog handlers
   const pushDialog = useBoundStore((state) => state.pushDialog);
