@@ -139,6 +139,35 @@ export function TimeSelector({
     }
   }, [focusedHour, focusedMinute, isHourItemFocused, isMinuteItemFocused]);
 
+  // Scroll into view when component mounts, only run once when component mounts, not on every render
+  const focusedHourRef = useRef(focusedHour);
+  const focusedMinuteRef = useRef(focusedMinute);
+  useLayoutEffect(() => {
+    if (focusedHourRef.current !== undefined) {
+      const hourItem = hourListRef.current?.querySelector(
+        `button[data-hour="${focusedHourRef.current}"]`,
+      );
+      if (hourItem) {
+        (hourItem as HTMLButtonElement).scrollIntoView({
+          behavior: 'instant',
+          block: 'center',
+        });
+      }
+    }
+
+    if (focusedMinuteRef.current !== undefined) {
+      const minuteItem = minuteListRef.current?.querySelector(
+        `button[data-minute="${focusedMinuteRef.current}"]`,
+      );
+      if (minuteItem) {
+        (minuteItem as HTMLButtonElement).scrollIntoView({
+          behavior: 'instant',
+          block: 'center',
+        });
+      }
+    }
+  }, []);
+
   // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
