@@ -56,6 +56,7 @@ export function MacroplanDialogContentDelete({
           onClick={() => {
             setMode(MacroplanDialogMode.View);
           }}
+          autoFocus
         >
           Cancel
         </Button>

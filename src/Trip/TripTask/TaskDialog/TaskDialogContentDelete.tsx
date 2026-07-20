@@ -58,6 +58,7 @@ export function TaskDialogContentDelete({
           onClick={() => {
             setMode(DialogMode.View);
           }}
+          autoFocus
         >
           Cancel
         </Button>

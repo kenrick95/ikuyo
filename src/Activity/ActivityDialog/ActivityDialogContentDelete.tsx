@@ -67,6 +67,7 @@ export function ActivityDialogContentDelete({
           onClick={() => {
             setMode(DialogMode.View);
           }}
+          autoFocus
         >
           Cancel
         </Button>

@@ -55,6 +55,7 @@ export function AccommodationDialogContentDelete({
           onClick={() => {
             setMode(AccommodationDialogMode.View);
           }}
+          autoFocus
         >
           Cancel
         </Button>
