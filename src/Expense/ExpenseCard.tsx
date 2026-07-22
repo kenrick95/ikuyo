@@ -167,7 +167,10 @@ function ExpenseCardView({
           {expense.currency}
         </Badge>
         <Text size="4" weight="bold">
-          {expense.amount.toFixed(2)}
+          {Intl.NumberFormat('en-US', {
+            currency: expense.currency,
+            minimumFractionDigits: 2,
+          }).format(expense.amount)}
         </Text>
         {isExpanded ? (
           <ChevronDownIcon className={s.expandButton} />

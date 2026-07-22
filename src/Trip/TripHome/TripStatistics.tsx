@@ -82,7 +82,11 @@ export function TripStatistics() {
         <DataList.Item>
           <DataList.Label>Total Expenses</DataList.Label>
           <DataList.Value>
-            {expenseSummary.currency} {expenseSummary.total.toFixed(2)}{' '}
+            {expenseSummary.currency}{' '}
+            {Intl.NumberFormat('en-US', {
+              currency: expenseSummary.currency,
+              minimumFractionDigits: 2,
+            }).format(expenseSummary.total)}{' '}
             <Button
               asChild
               variant="ghost"

@@ -98,7 +98,10 @@ export function ExpenseHeaderCard() {
             {expenseSummary.currency}
           </Badge>
           <Text size="3" className={s.summaryTotalAmount}>
-            {expenseSummary.total.toFixed(2)}
+            {Intl.NumberFormat('en-US', {
+              currency: expenseSummary.currency,
+              minimumFractionDigits: 2,
+            }).format(expenseSummary.total)}
           </Text>
         </Box>
       </Card>
@@ -141,7 +144,10 @@ export function ExpenseHeaderCard() {
               {dailyExpenseSummary.currency}
             </Badge>
             <Text size="3" className={s.summaryTotalAmount}>
-              {dailyExpenseSummary.total.toFixed(2)}
+              {Intl.NumberFormat('en-US', {
+                currency: dailyExpenseSummary.currency,
+                minimumFractionDigits: 2,
+              }).format(dailyExpenseSummary.total)}
             </Text>
           </Box>
         </Card>
