@@ -1,5 +1,5 @@
 import { Box, Dialog } from '@radix-ui/themes';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { CommonLargeDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
 import { useTripLocalState } from '../Trip/store/hooks';
@@ -20,6 +20,12 @@ export function FlightNewDialog({
   const localState = useTripLocalState(trip.id);
   const popDialog = useBoundStore((state) => state.popDialog);
 
+  const askToConfirmPopDialog = useBoundStore(
+    (state) => state.askToConfirmPopDialog,
+  );
+  const handleFormCancel = useCallback(() => {
+    askToConfirmPopDialog();
+  }, [askToConfirmPopDialog]);
   const tripStartDateTime = Temporal.Instant.fromEpochMilliseconds(
     trip.timestampStart,
   )
@@ -81,7 +87,10 @@ export function FlightNewDialog({
 
   return (
     <Dialog.Root open>
-      <Dialog.Content maxWidth={CommonLargeDialogMaxWidth}>
+      <Dialog.Content
+        maxWidth={CommonLargeDialogMaxWidth}
+        onEscapeKeyDown={handleFormCancel}
+      >
         <Dialog.Title>New Flight</Dialog.Title>
         <Dialog.Description size="2">
           Add a flight to your trip...
@@ -110,7 +119,7 @@ export function FlightNewDialog({
           activityLocationDestinationLng={undefined}
           activityLocationDestinationZoom={undefined}
           activityFlags={undefined}
-          onFormCancel={popDialog}
+          onFormCancel={handleFormCancel}
           onFormSuccess={popDialog}
         />
       </Dialog.Content>

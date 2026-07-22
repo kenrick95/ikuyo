@@ -1,5 +1,5 @@
 import { Box, Dialog } from '@radix-ui/themes';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { CommonLargeDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
 import { useTripLocalState } from '../Trip/store/hooks';
@@ -19,6 +19,12 @@ export function ActivityNewDialog({
 }) {
   const localState = useTripLocalState(trip.id);
   const popDialog = useBoundStore((state) => state.popDialog);
+  const askToConfirmPopDialog = useBoundStore(
+    (state) => state.askToConfirmPopDialog,
+  );
+  const handleFormCancel = useCallback(() => {
+    askToConfirmPopDialog();
+  }, [askToConfirmPopDialog]);
 
   const tripStartDateTime = Temporal.Instant.fromEpochMilliseconds(
     trip.timestampStart,
@@ -82,7 +88,10 @@ export function ActivityNewDialog({
 
   return (
     <Dialog.Root open>
-      <Dialog.Content maxWidth={CommonLargeDialogMaxWidth}>
+      <Dialog.Content
+        maxWidth={CommonLargeDialogMaxWidth}
+        onEscapeKeyDown={handleFormCancel}
+      >
         <Dialog.Title>New Activity</Dialog.Title>
         <Dialog.Description size="2">
           Fill in your new activity details...
@@ -111,7 +120,7 @@ export function ActivityNewDialog({
           activityLocationDestinationLng={undefined}
           activityLocationDestinationZoom={undefined}
           activityFlags={undefined}
-          onFormCancel={popDialog}
+          onFormCancel={handleFormCancel}
           onFormSuccess={popDialog}
         />
       </Dialog.Content>

@@ -1,5 +1,5 @@
 import { Box, Dialog } from '@radix-ui/themes';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { CommonLargeDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
 import type { TripSliceTrip } from '../Trip/store/types';
@@ -16,6 +16,13 @@ export function AccommodationNewDialog({
   };
 }) {
   const popDialog = useBoundStore((state) => state.popDialog);
+  const askToConfirmPopDialog = useBoundStore(
+    (state) => state.askToConfirmPopDialog,
+  );
+  const handleFormCancel = useCallback(() => {
+    askToConfirmPopDialog();
+  }, [askToConfirmPopDialog]);
+
   const tripStartDateTime = Temporal.Instant.fromEpochMilliseconds(
     trip.timestampStart,
   )
@@ -78,7 +85,10 @@ export function AccommodationNewDialog({
 
   return (
     <Dialog.Root open>
-      <Dialog.Content maxWidth={CommonLargeDialogMaxWidth}>
+      <Dialog.Content
+        maxWidth={CommonLargeDialogMaxWidth}
+        onEscapeKeyDown={handleFormCancel}
+      >
         <Dialog.Title>New Accommodation</Dialog.Title>
         <Dialog.Description size="2">
           Fill in the new accommodation details for this trip...
@@ -102,8 +112,8 @@ export function AccommodationNewDialog({
           accommodationLocationLat={undefined}
           accommodationLocationLng={undefined}
           accommodationLocationZoom={undefined}
-          onFormSuccess={() => popDialog()}
-          onFormCancel={() => popDialog()}
+          onFormSuccess={popDialog}
+          onFormCancel={handleFormCancel}
         />
       </Dialog.Content>
     </Dialog.Root>
