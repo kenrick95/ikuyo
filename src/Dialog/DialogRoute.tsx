@@ -1,8 +1,16 @@
 import { Cross1Icon } from '@radix-ui/react-icons';
 import { Box, Button, Dialog, Flex } from '@radix-ui/themes';
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useReducer } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useReducer,
+} from 'react';
 import { type RouteComponentProps, useLocation } from 'wouter';
+import { dangerToken } from '../common/ui';
 import { CommonDialogMaxWidth, CommonLargeDialogMaxWidth } from './ui';
 
 export const DialogMode = {
@@ -17,6 +25,8 @@ type DialogStateType = {
   mode: DialogModeType;
   open: boolean;
   closable: boolean;
+  needConfirmToClose: boolean;
+  confirmingClose: boolean;
 };
 type DialogActionType =
   | {
@@ -27,7 +37,11 @@ type DialogActionType =
       type: 'setClosable';
       closable: boolean;
     }
-  | { type: 'requestDismissDialog' };
+  | { type: 'requestDismissDialog' }
+  | { type: 'closeDialogFromTitleButton' }
+  // TODO: the confirming close flow is specific for editing & duplicating mode; while it works, the naming leave much to be desired
+  | { type: 'confirmClose' }
+  | { type: 'cancelClose' };
 
 export type DialogContentProps<DataType> = {
   data: DataType | undefined;
@@ -40,6 +54,11 @@ export type DialogContentProps<DataType> = {
   setDialogClosable: (closable: boolean) => void;
   DialogTitleSection: React.ComponentType<{ title: React.ReactNode }>;
 };
+
+const DialogRouteContext = createContext<{
+  closeDialogFromTitleButton: () => void;
+} | null>(null);
+
 export function createDialogRoute<DataType>({
   DialogContentView,
   DialogContentEdit,
@@ -66,8 +85,36 @@ export function createDialogRoute<DataType>({
           case 'setMode':
             return {
               ...state,
-              closable: action.mode === DialogMode.View,
+              closable:
+                action.mode === DialogMode.View ||
+                action.mode === DialogMode.Delete,
+              needConfirmToClose:
+                action.mode === DialogMode.Edit ||
+                action.mode === DialogMode.Duplicate,
               mode: action.mode,
+              confirmingClose: false,
+            };
+          case 'closeDialogFromTitleButton':
+            if (state.open && state.needConfirmToClose) {
+              return {
+                ...state,
+                confirmingClose: true,
+              };
+            }
+            return {
+              ...state,
+              open: false,
+            };
+          case 'confirmClose':
+            return {
+              ...state,
+              confirmingClose: false,
+              open: false,
+            };
+          case 'cancelClose':
+            return {
+              ...state,
+              confirmingClose: false,
             };
           case 'setClosable':
             return {
@@ -80,6 +127,11 @@ export function createDialogRoute<DataType>({
                 ...state,
                 open: false,
               };
+            } else if (state.open && state.needConfirmToClose) {
+              return {
+                ...state,
+                confirmingClose: true,
+              };
             }
             return state;
           }
@@ -90,7 +142,12 @@ export function createDialogRoute<DataType>({
       {
         mode: initialMode,
         open: true,
-        closable: initialMode === DialogMode.View,
+        closable:
+          initialMode === DialogMode.View || initialMode === DialogMode.Delete,
+        needConfirmToClose:
+          initialMode === DialogMode.Edit ||
+          initialMode === DialogMode.Duplicate,
+        confirmingClose: false,
       },
     );
     const setMode = useCallback((mode: DialogModeType) => {
@@ -127,43 +184,83 @@ export function createDialogRoute<DataType>({
             : CommonLargeDialogMaxWidth,
       } satisfies Dialog.ContentProps;
     }, [mode]);
-
+    const contextValue = useMemo(
+      () => ({
+        closeDialogFromTitleButton: () =>
+          dispatch({ type: 'closeDialogFromTitleButton' }),
+      }),
+      [],
+    );
+    const handleCancel = useCallback(() => {
+      dispatch({ type: 'cancelClose' });
+    }, []);
+    const handleConfirmClose = useCallback(() => {
+      dispatch({ type: 'confirmClose' });
+    }, []);
     return (
       <Dialog.Root open={state.open}>
-        {mode === DialogMode.View ? (
-          <DialogContentView
-            data={data}
-            loading={loading}
-            error={error}
-            mode={mode}
-            setMode={setMode}
-            dialogContentProps={dialogContentProps}
-            setDialogClosable={setDialogClosable}
-            DialogTitleSection={DialogTitleSection}
-          />
-        ) : mode === DialogMode.Edit || mode === DialogMode.Duplicate ? (
-          <DialogContentEdit
-            data={data}
-            loading={loading}
-            error={error}
-            mode={mode}
-            setMode={setMode}
-            dialogContentProps={dialogContentProps}
-            setDialogClosable={setDialogClosable}
-            DialogTitleSection={DialogTitleSection}
-          />
-        ) : mode === DialogMode.Delete ? (
-          <DialogContentDelete
-            data={data}
-            loading={loading}
-            error={error}
-            mode={mode}
-            setMode={setMode}
-            dialogContentProps={dialogContentProps}
-            setDialogClosable={setDialogClosable}
-            DialogTitleSection={DialogTitleSection}
-          />
-        ) : null}
+        <DialogRouteContext.Provider value={contextValue}>
+          <Dialog.Root open={state.confirmingClose}>
+            <Dialog.Content maxWidth={CommonDialogMaxWidth}>
+              <Dialog.Title>Discard unsaved changes?</Dialog.Title>
+              <Dialog.Description size="2">
+                You have unsaved changes in this form. If you close now, your
+                changes will be lost.
+              </Dialog.Description>
+              <Flex gap="3" mt="4" justify="end">
+                <Button
+                  variant="soft"
+                  color="gray"
+                  onClick={handleCancel}
+                  autoFocus
+                >
+                  Keep editing
+                </Button>
+                <Button
+                  variant="solid"
+                  color={dangerToken}
+                  onClick={handleConfirmClose}
+                >
+                  Discard changes
+                </Button>
+              </Flex>
+            </Dialog.Content>
+          </Dialog.Root>
+          {mode === DialogMode.View ? (
+            <DialogContentView
+              data={data}
+              loading={loading}
+              error={error}
+              mode={mode}
+              setMode={setMode}
+              dialogContentProps={dialogContentProps}
+              setDialogClosable={setDialogClosable}
+              DialogTitleSection={DialogTitleSection}
+            />
+          ) : mode === DialogMode.Edit || mode === DialogMode.Duplicate ? (
+            <DialogContentEdit
+              data={data}
+              loading={loading}
+              error={error}
+              mode={mode}
+              setMode={setMode}
+              dialogContentProps={dialogContentProps}
+              setDialogClosable={setDialogClosable}
+              DialogTitleSection={DialogTitleSection}
+            />
+          ) : mode === DialogMode.Delete ? (
+            <DialogContentDelete
+              data={data}
+              loading={loading}
+              error={error}
+              mode={mode}
+              setMode={setMode}
+              dialogContentProps={dialogContentProps}
+              setDialogClosable={setDialogClosable}
+              DialogTitleSection={DialogTitleSection}
+            />
+          ) : null}
+        </DialogRouteContext.Provider>
       </Dialog.Root>
     );
   }
@@ -171,10 +268,7 @@ export function createDialogRoute<DataType>({
 }
 
 function DialogTitleSection({ title }: { title: React.ReactNode }) {
-  const [, setLocation] = useLocation();
-  const closeDialog = useCallback(() => {
-    setLocation('');
-  }, [setLocation]);
+  const ctx = useContext(DialogRouteContext);
   return (
     <Flex justify="between" align="center" mt="-3" mx="-3" mb="3">
       <Box mt="3" mx="3">
@@ -185,7 +279,7 @@ function DialogTitleSection({ title }: { title: React.ReactNode }) {
         size="2"
         variant="soft"
         color="gray"
-        onClick={closeDialog}
+        onClick={ctx?.closeDialogFromTitleButton}
       >
         <Cross1Icon />
       </Button>

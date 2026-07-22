@@ -54,7 +54,7 @@ export function ActivityDialogContentEdit({
     setMode(ActivityDialogMode.View);
   }, [setMode]);
 
-  console.debug('ActivityDialogContentEdit', { activity, trip });
+  // console.debug('ActivityDialogContentEdit', { activity, trip });
 
   const [activityType, setActivityType] = useState<ActivityTypeType>(() =>
     getActivityType(activity?.flags),
