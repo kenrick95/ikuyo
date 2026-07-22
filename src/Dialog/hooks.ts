@@ -2,6 +2,15 @@ import type * as React from 'react';
 import type { StateCreator } from 'zustand';
 import type { BoundStoreType } from '../data/store';
 
+interface DialogConfirmPopDialogProps {
+  title?: string;
+  description?: string;
+  /** to confirm the closure, i.e. descructive action; e.g. 'discard changes' */
+  primaryButtonText?: string;
+  /** to cancel the confirmation, i.e. go back; e.g. 'Keep editing' */
+  secondaryButtonText?: string;
+}
+
 // Manage the stack of dialogs in the application
 export interface DialogSlice {
   /** Last dialog in the array is the one showing */
@@ -18,6 +27,12 @@ export interface DialogSlice {
   ) => void;
   popDialog: () => void;
   clearDialogs: () => void;
+
+  askToConfirmPopDialog: (props?: DialogConfirmPopDialogProps) => void;
+  cancelConfirmPopDialog: () => void;
+  confirmPopDialog: () => void;
+  isConfirmingPopDialogActive: boolean;
+  confirmingDialogProps?: DialogConfirmPopDialogProps;
 }
 
 export const createDialogSlice: StateCreator<
@@ -41,6 +56,8 @@ export const createDialogSlice: StateCreator<
     ) => {
       set((state) => {
         return {
+          isConfirmingPopDialogActive: false,
+          confirmingDialogProps: undefined,
           dialogs: [...state.dialogs, { component, props: props ?? {} }],
         };
       });
@@ -48,9 +65,37 @@ export const createDialogSlice: StateCreator<
     popDialog: () => {
       set((state) => {
         return {
+          isConfirmingPopDialogActive: false,
+          confirmingDialogProps: undefined,
           dialogs: state.dialogs.slice(0, -1),
         };
       });
     },
+    askToConfirmPopDialog: (props?: DialogConfirmPopDialogProps) => {
+      set(() => {
+        return {
+          isConfirmingPopDialogActive: true,
+          confirmingDialogProps: props,
+        };
+      });
+    },
+    cancelConfirmPopDialog: () => {
+      set(() => {
+        return {
+          isConfirmingPopDialogActive: false,
+          confirmingDialogProps: undefined,
+        };
+      });
+    },
+    confirmPopDialog: () => {
+      set((state) => {
+        return {
+          isConfirmingPopDialogActive: false,
+          dialogs: state.dialogs.slice(0, -1),
+          confirmingDialogProps: undefined,
+        };
+      });
+    },
+    isConfirmingPopDialogActive: false,
   };
 };

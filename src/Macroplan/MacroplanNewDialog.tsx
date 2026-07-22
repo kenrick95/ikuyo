@@ -1,5 +1,5 @@
 import { Dialog, Text } from '@radix-ui/themes';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { CommonLargeDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
 import type { TripSliceTrip } from '../Trip/store/types';
@@ -16,6 +16,12 @@ export function MacroplanNewDialog({
   };
 }) {
   const popDialog = useBoundStore((state) => state.popDialog);
+  const askToConfirmPopDialog = useBoundStore(
+    (state) => state.askToConfirmPopDialog,
+  );
+  const handleFormCancel = useCallback(() => {
+    askToConfirmPopDialog();
+  }, [askToConfirmPopDialog]);
 
   const tripStartDateTime = Temporal.Instant.fromEpochMilliseconds(
     trip.timestampStart,
@@ -75,7 +81,10 @@ export function MacroplanNewDialog({
 
   return (
     <Dialog.Root open>
-      <Dialog.Content maxWidth={CommonLargeDialogMaxWidth}>
+      <Dialog.Content
+        maxWidth={CommonLargeDialogMaxWidth}
+        onEscapeKeyDown={handleFormCancel}
+      >
         <Dialog.Title>New Day Plan</Dialog.Title>
         <Dialog.Description size="2">
           <Text as="p">
@@ -107,7 +116,7 @@ export function MacroplanNewDialog({
           macroplanStartTimeZone={macroplanStartTimeZone}
           macroplanEndTimeZone={macroplanEndTimeZone}
           macroplanNotes=""
-          onFormCancel={popDialog}
+          onFormCancel={handleFormCancel}
           onFormSuccess={popDialog}
         />
       </Dialog.Content>
