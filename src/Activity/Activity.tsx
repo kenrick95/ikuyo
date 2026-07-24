@@ -18,7 +18,6 @@ import style from './Activity.module.css';
 import { useActivityDialogHooks } from './ActivityDialog/activityDialogHooks';
 import { getActivityDisplayTitle } from './activityTitle';
 import { formatTime } from './time';
-import { getActivityCardViewTransitionName } from './viewTransition';
 
 function ActivityInner({
   activity,
@@ -29,7 +28,6 @@ function ActivityInner({
   tripTimeZone,
   tripTimestampStart,
   userCanEditOrDelete,
-  disableViewTransition = false,
 }: {
   activity: TripSliceActivityWithTime;
   className?: string;
@@ -40,7 +38,6 @@ function ActivityInner({
   tripTimeZone: string;
   tripTimestampStart: number;
   userCanEditOrDelete: boolean;
-  disableViewTransition?: boolean;
 }) {
   const activityStartDateTime =
     activity && activity.timestampStart != null
@@ -267,9 +264,6 @@ function ActivityInner({
   }, [openActivityDeleteDialog]);
 
   const activityTitle = getActivityDisplayTitle(activity);
-  // Clear viewTransitionName when this activity's dialog is open to avoid
-  // duplicate names in the new state snapshot (card + Dialog.Content both rendered)
-  const isDialogOpen = location.includes(activity.id);
   const boxStyle = useMemo(() => {
     return {
       gridRowStart: `t${timeStartRelativeToTrip}`,
@@ -277,21 +271,12 @@ function ActivityInner({
       gridColumnStart: `d${String(dayStart)}-c${String(columnIndex)}`,
       gridColumnEnd:
         columnIndex === columnEndIndex ? undefined : `de${String(dayEnd)}`,
-      viewTransitionName:
-        disableViewTransition || isDialogOpen
-          ? undefined
-          : getActivityCardViewTransitionName(activity.id),
-      viewTransitionClass:
-        disableViewTransition || isDialogOpen ? undefined : 'vt-entity-dialog',
     };
   }, [
-    activity.id,
     columnEndIndex,
     columnIndex,
     dayEnd,
     dayStart,
-    disableViewTransition,
-    isDialogOpen,
     timeEndRelativeToTrip,
     timeStartRelativeToTrip,
   ]);

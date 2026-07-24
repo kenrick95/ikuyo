@@ -5,7 +5,6 @@ import { useTrip } from '../../Trip/store/hooks';
 import type { TripSliceAccommodation } from '../../Trip/store/types';
 import { AccommodationForm } from '../AccommodationForm/AccommodationForm';
 import { AccommodationFormMode } from '../AccommodationForm/AccommodationFormMode';
-import { getAccommodationCardViewTransitionName } from '../viewTransition';
 import { AccommodationDialogMode } from './AccommodationDialogMode';
 
 export function AccommodationDialogContentEdit({
@@ -46,15 +45,7 @@ export function AccommodationDialogContentEdit({
   }, [setMode]);
 
   return (
-    <Dialog.Content
-      {...dialogContentProps}
-      style={{
-        viewTransitionName: getAccommodationCardViewTransitionName(
-          accommodation?.id ?? '',
-        ),
-        viewTransitionClass: 'vt-entity-dialog',
-      }}
-    >
+    <Dialog.Content {...dialogContentProps}>
       <DialogTitleSection title="Edit Accommodation" />
       <Dialog.Description size="2">
         Fill in the edited accommodation details for this trip...

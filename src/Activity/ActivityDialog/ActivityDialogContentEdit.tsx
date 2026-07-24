@@ -13,7 +13,6 @@ import {
   getActivityType,
 } from '../activityType';
 import { FlightForm } from '../FlightForm/FlightForm';
-import { getActivityCardViewTransitionName } from '../viewTransition';
 import { ActivityDialogMode } from './ActivityDialogMode';
 
 export function ActivityDialogContentEdit({
@@ -105,15 +104,7 @@ export function ActivityDialogContentEdit({
   const idActivityType = useId();
 
   return (
-    <Dialog.Content
-      {...dialogContentProps}
-      style={{
-        viewTransitionName: getActivityCardViewTransitionName(
-          activity?.id ?? '',
-        ),
-        viewTransitionClass: 'vt-entity-dialog',
-      }}
-    >
+    <Dialog.Content {...dialogContentProps}>
       <DialogTitleSection
         title={`${mode === ActivityDialogMode.Duplicate ? 'Duplicate' : 'Edit'} ${ActivityTypeLabel[activityType]}`}
       />

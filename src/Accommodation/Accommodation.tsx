@@ -16,7 +16,6 @@ import s from './Accommodation.module.css';
 import { useAccommodationDialogHooks } from './AccommodationDialog/accommodationDialogHooks';
 import { AccommodationDisplayTimeMode } from './AccommodationDisplayTimeMode';
 import { formatTime } from './time';
-import { getAccommodationCardViewTransitionName } from './viewTransition';
 
 function AccommodationInner({
   className,
@@ -27,7 +26,6 @@ function AccommodationInner({
   gridColumnEnd,
   timeZone,
   userCanEditOrDelete,
-  disableViewTransition = false,
 }: {
   className?: string;
   accommodation: TripSliceAccommodation;
@@ -37,7 +35,6 @@ function AccommodationInner({
   gridColumnEnd?: string;
   timeZone: string;
   userCanEditOrDelete: boolean;
-  disableViewTransition?: boolean;
 }) {
   const responsiveTextSize = { initial: '1' as const };
   const accommodationRef = useRef<HTMLDivElement>(null);
@@ -59,25 +56,12 @@ function AccommodationInner({
       shouldRestoreFocus.current = false;
     }
   }, [location]);
-  const isDialogOpen = location.includes(accommodation.id);
   const style = useMemo(() => {
     return {
       gridColumnStart: gridColumnStart,
       gridColumnEnd: gridColumnEnd,
-      viewTransitionName:
-        disableViewTransition || isDialogOpen
-          ? undefined
-          : getAccommodationCardViewTransitionName(accommodation.id),
-      viewTransitionClass:
-        disableViewTransition || isDialogOpen ? undefined : 'vt-entity-dialog',
     };
-  }, [
-    gridColumnStart,
-    gridColumnEnd,
-    accommodation.id,
-    disableViewTransition,
-    isDialogOpen,
-  ]);
+  }, [gridColumnStart, gridColumnEnd]);
   // Handle keyboard navigation for accessibility
   // Use onKeyDown for Enter to open the dialog
   // Use onKeyUp for Space to open the dialog

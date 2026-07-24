@@ -16,7 +16,6 @@ import { useTrip } from '../../Trip/store/hooks';
 import type { TripSliceMacroplan } from '../../Trip/store/types';
 import { TripUserRole } from '../../User/TripUserRole';
 import { formatMacroplanDateRange } from '../time';
-import { getMacroplanCardViewTransitionName } from '../viewTransition';
 import s from './MacroplanDialog.module.css';
 import { MacroplanDialogMode } from './MacroplanDialogMode';
 export function MacroplanDialogContentView({
@@ -55,15 +54,7 @@ export function MacroplanDialogContentView({
     setDialogClosable(false);
   }, [setDialogClosable]);
   return (
-    <Dialog.Content
-      {...dialogContentProps}
-      style={{
-        viewTransitionName: getMacroplanCardViewTransitionName(
-          macroplan?.id ?? '',
-        ),
-        viewTransitionClass: 'vt-entity-dialog',
-      }}
-    >
+    <Dialog.Content {...dialogContentProps}>
       <DialogTitleSection
         title={
           <>Day Plan: {macroplan?.name ?? <Skeleton>Day plan</Skeleton>}</>
