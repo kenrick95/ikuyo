@@ -68,7 +68,10 @@ function App() {
       if (
         !document.startViewTransition ||
         document.visibilityState === 'hidden' ||
-        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+        // Disable on trip list & trip timetable dialog routes as they compete with Radix's own default transition
+        to?.includes('/list/') ||
+        to?.includes('/timetable/')
       ) {
         // check if supported and document is visible
         console.log('[VT] View transition skipped');
