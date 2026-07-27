@@ -347,6 +347,87 @@ describe('Trip', () => {
     );
   });
 
+  test('Two overlapping activities before activity that spans to next day', () => {
+    const activities: TripSliceActivity[] = [
+      createActivity({
+        id: 'act-0',
+        title: 'act-0',
+        timestampStart: new Date('2024-09-23T23:00:00Z').getTime(),
+        timestampEnd: new Date('2024-09-24T02:00:00Z').getTime(),
+      }),
+      createActivity({
+        id: 'act-1',
+        title: 'act-1',
+        timestampStart: new Date('2024-09-23T21:00:00Z').getTime(),
+        timestampEnd: new Date('2024-09-23T22:00:00Z').getTime(),
+      }),
+      createActivity({
+        id: 'act-2',
+        title: 'act-2',
+        timestampStart: new Date('2024-09-23T21:00:00Z').getTime(),
+        timestampEnd: new Date('2024-09-23T22:00:00Z').getTime(),
+      }),
+    ];
+    const trip: TripSliceTrip = {
+      ...baseTrip,
+      activityIds: activities.map((a) => a.id),
+    };
+    const result = groupActivitiesByDays({
+      trip,
+      activities,
+      macroplans: [],
+      accommodations: [],
+    });
+    expect(result.inTrip.length).toBe(2);
+    expect(result.inTrip[0].activities.length).toBe(3);
+    expect(result.inTrip[1].activities.length).toBe(1);
+    expect(result.inTrip[0].columns).toBe(2);
+    expect(result.inTrip[1].columns).toBe(1);
+
+    // Verify it's the same activity on both days
+    expect(result.inTrip[0].activities[0].id).toBe('act-1');
+    expect(result.inTrip[0].activities[1].id).toBe('act-2');
+    expect(result.inTrip[0].activities[2].id).toBe('act-0');
+    expect(result.inTrip[1].activities[0].id).toBe('act-0');
+
+    // Verify the activities have clipped times for each day
+    const day1Activity = result.inTrip[0].activities[2];
+    const day2Activity = result.inTrip[1].activities[0];
+
+    // Day 1: should run from 23:00 to end of day (24:00 = start of next day)
+    expect(day1Activity.timestampStart).toBe(
+      new Date('2024-09-23T23:00:00Z').getTime(),
+    );
+    expect(day1Activity.timestampEnd).toBe(
+      new Date('2024-09-24T00:00:00Z').getTime(),
+    );
+
+    expect(result.inTrip[0].activityColumnIndexMap.get('act-0')).toEqual({
+      start: 1,
+      end: 2,
+    });
+    expect(result.inTrip[0].activityColumnIndexMap.get('act-1')).toEqual({
+      start: 1,
+      end: 1,
+    });
+    expect(result.inTrip[0].activityColumnIndexMap.get('act-2')).toEqual({
+      start: 2,
+      end: 2,
+    });
+    expect(result.inTrip[1].activityColumnIndexMap.get('act-0')).toEqual({
+      start: 1,
+      end: 1,
+    });
+
+    // Day 2: should run from start of day (00:00) to 02:00
+    expect(day2Activity.timestampStart).toBe(
+      new Date('2024-09-24T00:00:00Z').getTime(),
+    );
+    expect(day2Activity.timestampEnd).toBe(
+      new Date('2024-09-24T02:00:00Z').getTime(),
+    );
+  });
+
   test('Multiple activities with some spanning multiple days', () => {
     const activities: TripSliceActivity[] = [
       // Regular activity on day 1

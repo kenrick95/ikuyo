@@ -413,7 +413,8 @@ function getDayStartEnd(
     activity.timestampStart,
   ).toZonedDateTimeISO(tripTimeZone);
   const activityEndRelativeToTrip = Temporal.Instant.fromEpochMilliseconds(
-    activity.timestampEnd,
+    // Deduct 1ms so that an activity that ends exactly at midnight is considered to end on the previous day
+    activity.timestampEnd - 1,
   ).toZonedDateTimeISO(tripTimeZone);
   const diffStart = activityStartRelativeToTrip.since(tripStart, {
     largestUnit: 'days',
