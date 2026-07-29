@@ -1,5 +1,6 @@
 import {
   ExclamationTriangleIcon,
+  Link1Icon,
   PlusIcon,
   TrashIcon,
 } from '@radix-ui/react-icons';
@@ -147,6 +148,32 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
     [syncTripSharingLevel],
   );
 
+  const handleCopyLink = useCallback(() => {
+    if (!trip) {
+      return;
+    }
+    const tripLink = `${window.location.origin}/trip/${trip.id}`;
+    navigator.clipboard
+      .writeText(tripLink)
+      .then(() => {
+        publishToast({
+          root: {},
+          title: { children: 'Copied trip link to clipboard' },
+          close: {},
+        });
+      })
+      .catch((error: unknown) => {
+        console.error('Error copying link to clipboard', error);
+        publishToast({
+          root: {},
+          title: {
+            children: 'Error copying link',
+          },
+          close: {},
+        });
+      });
+  }, [trip, publishToast]);
+
   return (
     <Dialog.Root open={true}>
       <Dialog.Content
@@ -174,7 +201,7 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
         {currentUserIsOwner ? (
           <Flex direction="column" gap="2" my="2">
             <Flex direction="row" gap="1" align="baseline">
-              <Text size="2">Privacy setting for this trip:</Text>
+              <Text size="2">Privacy setting for this trip: </Text>
               <Select.Root
                 name="tripSharingLevel"
                 value={String(tripSharingLevel)}
@@ -223,69 +250,86 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
               </Callout.Root>
             ) : null}
             {tripSharingLevel !== TripSharingLevel.Private ? (
-              <Flex direction="column" gap="3" mt="2">
+              <Flex direction="column" mt="2">
                 <Text size="2" weight="medium">
-                  Section visibility
+                  Section Visibility
                 </Text>
-                <Flex direction="column" gap="1">
-                  <Text size="1" color="gray" weight="medium">
-                    Public visitors
-                  </Text>
-                  {(
-                    [
-                      ['publicShowExpenses', 'Expenses'],
-                      ['publicShowTasks', 'Tasks'],
-                      ['publicShowComments', 'Comments'],
-                    ] as const
-                  ).map(([field, label]) => (
-                    <Flex key={field} align="center" gap="2">
-                      <Switch
-                        id={field}
-                        size="1"
-                        checked={trip?.[field] !== false}
-                        disabled={isLoading || !trip}
-                        onCheckedChange={(checked) => {
-                          if (!trip) return;
-                          void dbUpdateTripSectionVisibility(trip.id, {
-                            [field]: checked,
-                          });
-                        }}
-                      />
-                      <Text as="label" htmlFor={field} size="2">
-                        {label}
-                      </Text>
-                    </Flex>
-                  ))}
-                </Flex>
-                <Flex direction="column" gap="1">
-                  <Text size="1" color="gray" weight="medium">
-                    Invited viewers (Viewer role)
-                  </Text>
-                  {(
-                    [
-                      ['viewerShowExpenses', 'Expenses'],
-                      ['viewerShowTasks', 'Tasks'],
-                      ['viewerShowComments', 'Comments'],
-                    ] as const
-                  ).map(([field, label]) => (
-                    <Flex key={field} align="center" gap="2">
-                      <Switch
-                        id={field}
-                        size="1"
-                        checked={trip?.[field] !== false}
-                        disabled={isLoading || !trip}
-                        onCheckedChange={(checked) => {
-                          if (!trip) return;
-                          void dbUpdateTripSectionVisibility(trip.id, {
-                            [field]: checked,
-                          });
-                        }}
-                      />
-                      <Text as="label" htmlFor={field} size="2">
-                        {label}
-                      </Text>
-                    </Flex>
-                  ))}
+                <Flex
+                  justify="between"
+                  direction={{ initial: 'column', sm: 'row' }}
+                  gap="3"
+                  mt="3"
+                >
+                  <Flex
+                    flexGrow="1"
+                    maxWidth={{ initial: '100%', sm: '50%' }}
+                    direction="column"
+                    gap="1"
+                  >
+                    <Text size="1" color="gray" weight="medium">
+                      Public Visitors
+                    </Text>
+                    {(
+                      [
+                        ['publicShowExpenses', 'Expenses'],
+                        ['publicShowTasks', 'Tasks'],
+                        ['publicShowComments', 'Comments'],
+                      ] as const
+                    ).map(([field, label]) => (
+                      <Flex key={field} align="center" gap="2">
+                        <Switch
+                          id={field}
+                          size="1"
+                          checked={trip?.[field] !== false}
+                          disabled={isLoading || !trip}
+                          onCheckedChange={(checked) => {
+                            if (!trip) return;
+                            void dbUpdateTripSectionVisibility(trip.id, {
+                              [field]: checked,
+                            });
+                          }}
+                        />
+                        <Text as="label" htmlFor={field} size="2">
+                          {label}
+                        </Text>
+                      </Flex>
+                    ))}
+                  </Flex>
+                  <Flex
+                    flexGrow="1"
+                    maxWidth={{ initial: '100%', md: '50%' }}
+                    direction="column"
+                    gap="1"
+                  >
+                    <Text size="1" color="gray" weight="medium">
+                      Invited Viewers (Viewer Role)
+                    </Text>
+                    {(
+                      [
+                        ['viewerShowExpenses', 'Expenses'],
+                        ['viewerShowTasks', 'Tasks'],
+                        ['viewerShowComments', 'Comments'],
+                      ] as const
+                    ).map(([field, label]) => (
+                      <Flex key={field} align="center" gap="2">
+                        <Switch
+                          id={field}
+                          size="1"
+                          checked={trip?.[field] !== false}
+                          disabled={isLoading || !trip}
+                          onCheckedChange={(checked) => {
+                            if (!trip) return;
+                            void dbUpdateTripSectionVisibility(trip.id, {
+                              [field]: checked,
+                            });
+                          }}
+                        />
+                        <Text as="label" htmlFor={field} size="2">
+                          {label}
+                        </Text>
+                      </Flex>
+                    ))}
+                  </Flex>
                 </Flex>
               </Flex>
             ) : null}
@@ -404,6 +448,18 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
         </Inset>
 
         <Flex gap="3" mt="5" justify="end">
+          {tripSharingLevel === TripSharingLevel.PublicListed ||
+          tripSharingLevel === TripSharingLevel.PublicUnlisted ? (
+            <Button
+              size="2"
+              variant="soft"
+              color="gray"
+              onClick={handleCopyLink}
+            >
+              <Link1Icon />
+              Copy trip link
+            </Button>
+          ) : null}
           <Button
             size="2"
             variant="soft"
