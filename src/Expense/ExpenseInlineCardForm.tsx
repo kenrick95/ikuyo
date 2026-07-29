@@ -8,6 +8,7 @@ import { DateTimePickerMode } from '../common/DatePicker2/DateTimePickerMode';
 import { dangerToken } from '../common/ui';
 import { useBoundStore } from '../data/store';
 import type { TripSliceExpense, TripSliceTrip } from '../Trip/store/types';
+import { formatCurrencyAmount } from './currency';
 import { dbAddExpense, dbUpdateExpense } from './db';
 import s from './ExpenseCard.module.css';
 import { ExpenseMode } from './ExpenseMode';
@@ -57,14 +58,14 @@ export function ExpenseInlineCardForm({
           title: expense.title,
           description: expense.description,
           currency: expense.currency,
-          amount: expense.amount.toFixed(2),
+          amount: expense.amount.toFixed(15),
           currencyConversionFactor:
             expense.currencyConversionFactor != null
-              ? expense.currencyConversionFactor.toFixed(2)
+              ? expense.currencyConversionFactor.toFixed(15)
               : '1',
           amountInOriginCurrency:
             expense.amountInOriginCurrency != null
-              ? expense.amountInOriginCurrency.toFixed(2)
+              ? expense.amountInOriginCurrency.toFixed(15)
               : '',
         }
       : {
@@ -79,7 +80,7 @@ export function ExpenseInlineCardForm({
           amount: '',
           currencyConversionFactor:
             tripLocalState?.expenseCurrencyConversionFactor != null
-              ? tripLocalState?.expenseCurrencyConversionFactor.toFixed(2)
+              ? tripLocalState?.expenseCurrencyConversionFactor.toFixed(15)
               : '1',
           amountInOriginCurrency: '',
         },
@@ -291,9 +292,11 @@ export function ExpenseInlineCardForm({
       );
       setFormState((prev) => ({
         ...prev,
-        amount: (
-          amountInOriginCurrencyFloat * currencyConversionFactorFloat
-        ).toFixed(2),
+        amount: formatCurrencyAmount(
+          undefined,
+          amountInOriginCurrencyFloat * currencyConversionFactorFloat,
+          false,
+        ),
       }));
     }
   }, [
@@ -315,9 +318,11 @@ export function ExpenseInlineCardForm({
       );
       setFormState((prev) => ({
         ...prev,
-        currencyConversionFactor: (
-          amountFloat / amountInOriginCurrencyFloat
-        ).toFixed(2),
+        currencyConversionFactor: formatCurrencyAmount(
+          undefined,
+          amountFloat / amountInOriginCurrencyFloat,
+          false,
+        ),
       }));
     }
   }, [
@@ -339,9 +344,11 @@ export function ExpenseInlineCardForm({
       );
       setFormState((prev) => ({
         ...prev,
-        amountInOriginCurrency: (
-          amountFloat / currencyConversionFactorFloat
-        ).toFixed(2),
+        amountInOriginCurrency: formatCurrencyAmount(
+          undefined,
+          amountFloat / currencyConversionFactorFloat,
+          false,
+        ),
       }));
     }
   }, [
@@ -470,7 +477,8 @@ export function ExpenseInlineCardForm({
         </Text>
         <TextField.Root
           name="amount"
-          type="number"
+          type="text"
+          inputMode="decimal"
           value={formState.amount}
           onChange={handleInputChange}
           onFocus={handleFocusAmount}
@@ -493,7 +501,8 @@ export function ExpenseInlineCardForm({
         </Text>
         <TextField.Root
           name="currencyConversionFactor"
-          type="number"
+          type="text"
+          inputMode="decimal"
           value={formState.currencyConversionFactor}
           onChange={handleInputChange}
           onFocus={handleFocusCurrencyConversionFactor}
@@ -509,7 +518,8 @@ export function ExpenseInlineCardForm({
         </Text>
         <TextField.Root
           name="amountInOriginCurrency"
-          type="number"
+          type="text"
+          inputMode="decimal"
           value={formState.amountInOriginCurrency}
           onChange={handleInputChange}
           disabled={formState.loading}

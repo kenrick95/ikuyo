@@ -2,6 +2,7 @@ import { Badge, Box, Card, Heading, Text } from '@radix-ui/themes';
 import { useMemo } from 'react';
 import { getTripStatus } from '../Trip/getTripStatus';
 import { useCurrentTrip, useTripExpenses } from '../Trip/store/hooks';
+import { formatCurrencyAmount } from './currency';
 import s from './ExpenseHeaderCard.module.css';
 
 export function ExpenseHeaderCard() {
@@ -98,10 +99,10 @@ export function ExpenseHeaderCard() {
             {expenseSummary.currency}
           </Badge>
           <Text size="3" className={s.summaryTotalAmount}>
-            {Intl.NumberFormat('en-US', {
-              currency: expenseSummary.currency,
-              minimumFractionDigits: 2,
-            }).format(expenseSummary.total)}
+            {formatCurrencyAmount(
+              expenseSummary.currency,
+              expenseSummary.total,
+            )}
           </Text>
         </Box>
       </Card>
@@ -144,10 +145,10 @@ export function ExpenseHeaderCard() {
               {dailyExpenseSummary.currency}
             </Badge>
             <Text size="3" className={s.summaryTotalAmount}>
-              {Intl.NumberFormat('en-US', {
-                currency: dailyExpenseSummary.currency,
-                minimumFractionDigits: 2,
-              }).format(dailyExpenseSummary.total)}
+              {formatCurrencyAmount(
+                dailyExpenseSummary.currency,
+                dailyExpenseSummary.total,
+              )}
             </Text>
           </Box>
         </Card>

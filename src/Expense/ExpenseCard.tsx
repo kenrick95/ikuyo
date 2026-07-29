@@ -24,6 +24,7 @@ import { useBoundStore, useDeepBoundStore } from '../data/store';
 import { useTrip } from '../Trip/store/hooks';
 import type { TripSliceExpense } from '../Trip/store/types';
 import { TripUserRole } from '../User/TripUserRole';
+import { formatCurrencyAmount } from './currency';
 import { dbDeleteExpense } from './db';
 import s from './ExpenseCard.module.css';
 import { ExpenseInlineCardForm } from './ExpenseInlineCardForm';
@@ -167,10 +168,7 @@ function ExpenseCardView({
           {expense.currency}
         </Badge>
         <Text size="4" weight="bold">
-          {Intl.NumberFormat('en-US', {
-            currency: expense.currency,
-            minimumFractionDigits: 2,
-          }).format(expense.amount)}
+          {formatCurrencyAmount(expense.currency, expense.amount)}
         </Text>
         {isExpanded ? (
           <ChevronDownIcon className={s.expandButton} />
@@ -256,7 +254,9 @@ function ExpenseCardView({
                   Amount in {expense.currency}:
                 </Text>
                 <Flex align="center" gap="1">
-                  <Text size="2">{expense.amount?.toFixed(2)}</Text>
+                  <Text size="2">
+                    {formatCurrencyAmount(expense.currency, expense.amount)}
+                  </Text>
                 </Flex>
               </div>
               <div className={s.conversionRow}>
@@ -271,7 +271,10 @@ function ExpenseCardView({
                 </Text>
                 <Flex align="center" gap="1">
                   <Text size="2">
-                    {expense.currencyConversionFactor?.toFixed(2)}
+                    {formatCurrencyAmount(
+                      undefined,
+                      expense.currencyConversionFactor,
+                    )}
                   </Text>
                 </Flex>
               </div>
@@ -281,7 +284,10 @@ function ExpenseCardView({
                   {trip?.originCurrency ? ` (${trip.originCurrency})` : ''}:
                 </Text>
                 <Text size="2" weight="medium">
-                  {expense.amountInOriginCurrency?.toFixed(2)}
+                  {formatCurrencyAmount(
+                    trip?.originCurrency,
+                    expense.amountInOriginCurrency,
+                  )}
                 </Text>
               </div>
             </div>

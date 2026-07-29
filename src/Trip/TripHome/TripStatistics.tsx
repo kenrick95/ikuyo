@@ -6,6 +6,7 @@ import { Link } from 'wouter';
 import { useCurrentUser } from '../../Auth/hooks';
 import { REGIONS_MAP, type RegionCode } from '../../data/intl/regions';
 import { useBoundStore } from '../../data/store';
+import { formatCurrencyAmount } from '../../Expense/currency';
 import { RouteTripExpenses } from '../../Routes/routes';
 import { TripUserRole } from '../../User/TripUserRole';
 import { useCurrentTrip, useTripExpenses } from '../store/hooks';
@@ -83,10 +84,10 @@ export function TripStatistics() {
           <DataList.Label>Total Expenses</DataList.Label>
           <DataList.Value>
             {expenseSummary.currency}{' '}
-            {Intl.NumberFormat('en-US', {
-              currency: expenseSummary.currency,
-              minimumFractionDigits: 2,
-            }).format(expenseSummary.total)}{' '}
+            {formatCurrencyAmount(
+              expenseSummary.currency,
+              expenseSummary.total,
+            )}{' '}
             <Button
               asChild
               variant="ghost"
