@@ -1,11 +1,20 @@
-import { QuestionMarkCircledIcon } from '@radix-ui/react-icons';
-import { Button, Select, Text, TextField, Tooltip } from '@radix-ui/themes';
+import { MagicWandIcon, QuestionMarkCircledIcon } from '@radix-ui/react-icons';
+import {
+  Box,
+  Button,
+  Flex,
+  Select,
+  Text,
+  TextField,
+  Tooltip,
+} from '@radix-ui/themes';
 import type * as React from 'react';
 import { useCallback, useId, useMemo, useRef, useState } from 'react';
 import { DateTimePicker } from '../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../common/DatePicker2/DateTimePickerMode';
 // import { TimeZoneSelect } from '../common/TimeZoneSelect/TimeZoneSelect';
 import { dangerToken } from '../common/ui';
+import { ALL_CURRENCIES } from '../data/intl/currencies';
 import { useBoundStore } from '../data/store';
 import type { TripSliceExpense, TripSliceTrip } from '../Trip/store/types';
 import { formatCurrencyAmount } from './currency';
@@ -58,15 +67,31 @@ export function ExpenseInlineCardForm({
           title: expense.title,
           description: expense.description,
           currency: expense.currency,
-          amount: expense.amount.toFixed(15),
+          amount: formatCurrencyAmount(undefined, expense.amount, false),
           currencyConversionFactor:
             expense.currencyConversionFactor != null
-              ? expense.currencyConversionFactor.toFixed(15)
+              ? formatCurrencyAmount(
+                  undefined,
+                  expense.currencyConversionFactor,
+                  false,
+                )
               : '1',
           amountInOriginCurrency:
             expense.amountInOriginCurrency != null
-              ? expense.amountInOriginCurrency.toFixed(15)
+              ? formatCurrencyAmount(
+                  undefined,
+                  expense.amountInOriginCurrency,
+                  false,
+                )
               : '',
+
+          amountAbleToBeCalculated:
+            expense.amountInOriginCurrency != null &&
+            expense.currencyConversionFactor != null,
+          currencyConversionFactorAbleToBeCalculated:
+            expense.amount != null && expense.amountInOriginCurrency != null,
+          amountInOriginCurrencyAbleToBeCalculated:
+            expense.amount != null && expense.currencyConversionFactor != null,
         }
       : {
           loading: false,
@@ -80,9 +105,17 @@ export function ExpenseInlineCardForm({
           amount: '',
           currencyConversionFactor:
             tripLocalState?.expenseCurrencyConversionFactor != null
-              ? tripLocalState?.expenseCurrencyConversionFactor.toFixed(15)
+              ? formatCurrencyAmount(
+                  undefined,
+                  tripLocalState?.expenseCurrencyConversionFactor,
+                  false,
+                )
               : '1',
           amountInOriginCurrency: '',
+
+          amountAbleToBeCalculated: false,
+          currencyConversionFactorAbleToBeCalculated: false,
+          amountInOriginCurrencyAbleToBeCalculated: false,
         },
   );
   const [errorMessage, setErrorMessage] = useState('');
@@ -91,7 +124,6 @@ export function ExpenseInlineCardForm({
       ? expense.timeZoneIncurred
       : trip.timeZone,
   );
-  const currencies = useMemo(() => Intl.supportedValuesOf('currency'), []);
 
   const resetFormState = useCallback(() => {
     setFormState((prevValue) => ({
@@ -103,18 +135,71 @@ export function ExpenseInlineCardForm({
       amount: '',
       currencyConversionFactor: prevValue.currencyConversionFactor,
       amountInOriginCurrency: '',
+      amountAbleToBeCalculated: false,
+      currencyConversionFactorAbleToBeCalculated: false,
+      amountInOriginCurrencyAbleToBeCalculated: false,
     }));
+  }, []);
+
+  const deriveNewState = useCallback((prevState: typeof formState) => {
+    const newState = { ...prevState } satisfies typeof prevState;
+
+    const amountFloat = Number.parseFloat(newState.amount);
+    const currencyConversionFactorFloat = Number.parseFloat(
+      newState.currencyConversionFactor,
+    );
+    const amountInOriginCurrencyFloat = Number.parseFloat(
+      newState.amountInOriginCurrency,
+    );
+
+    if (
+      newState.amount != null &&
+      !Number.isNaN(amountFloat) &&
+      newState.amountInOriginCurrency != null &&
+      !Number.isNaN(amountInOriginCurrencyFloat)
+    ) {
+      newState.currencyConversionFactorAbleToBeCalculated = true;
+    } else {
+      newState.currencyConversionFactorAbleToBeCalculated = false;
+    }
+
+    if (
+      newState.amount != null &&
+      !Number.isNaN(amountFloat) &&
+      newState.currencyConversionFactor != null &&
+      !Number.isNaN(currencyConversionFactorFloat)
+    ) {
+      newState.amountInOriginCurrencyAbleToBeCalculated = true;
+    } else {
+      newState.amountInOriginCurrencyAbleToBeCalculated = false;
+    }
+
+    if (
+      newState.amountInOriginCurrency != null &&
+      !Number.isNaN(amountInOriginCurrencyFloat) &&
+      newState.currencyConversionFactor != null &&
+      !Number.isNaN(currencyConversionFactorFloat)
+    ) {
+      newState.amountAbleToBeCalculated = true;
+    } else {
+      newState.amountAbleToBeCalculated = false;
+    }
+    return newState;
   }, []);
 
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       const { name, value } = e.target;
-      setFormState((prevState) => ({
-        ...prevState,
-        [name]: value,
-      }));
+      setFormState((prevState) => {
+        const newState = {
+          ...prevState,
+          [name]: value,
+        } satisfies typeof prevState;
+
+        return deriveNewState(newState);
+      });
     },
-    [],
+    [deriveNewState],
   );
 
   // TODO: implement later
@@ -145,13 +230,42 @@ export function ExpenseInlineCardForm({
         amountInOriginCurrency,
       );
 
-      if (
-        !dateTimeIncurred ||
-        !title ||
-        !currency ||
-        Number.isNaN(amountFloat)
-      ) {
+      if (!dateTimeIncurred || !title || !currency) {
         setErrorMessage('Please fill in all required fields.');
+        setFormState((prev) => ({ ...prev, loading: false }));
+        return;
+      } else if (Number.isNaN(amountFloat)) {
+        setErrorMessage(`Please fill in a valid number for "Amount"`);
+        setFormState((prev) => ({ ...prev, loading: false }));
+        return;
+      } else if (Number.isNaN(amountInOriginCurrencyFloat)) {
+        setErrorMessage(
+          `Please fill in a valid number for "Amount in Origin Currency"`,
+        );
+        setFormState((prev) => ({ ...prev, loading: false }));
+        return;
+      } else if (Number.isNaN(currencyConversionFactorFloat)) {
+        setErrorMessage(
+          `Please fill in a valid number for "Currency Conversion Factor"`,
+        );
+        setFormState((prev) => ({ ...prev, loading: false }));
+        return;
+      } else if (currencyConversionFactorFloat <= 0) {
+        setErrorMessage(
+          `Please fill in a valid number greater than 0 for "Currency Conversion Factor"`,
+        );
+        setFormState((prev) => ({ ...prev, loading: false }));
+        return;
+      } else if (amountInOriginCurrencyFloat <= 0) {
+        setErrorMessage(
+          `Please fill in a valid number greater than 0 for "Amount in Origin Currency"`,
+        );
+        setFormState((prev) => ({ ...prev, loading: false }));
+        return;
+      } else if (amountFloat <= 0) {
+        setErrorMessage(
+          `Please fill in a valid number greater than 0 for "Amount"`,
+        );
         setFormState((prev) => ({ ...prev, loading: false }));
         return;
       }
@@ -277,6 +391,29 @@ export function ExpenseInlineCardForm({
     [],
   );
 
+  const calculateAmount = useCallback(() => {
+    const currencyConversionFactorFloat = Number.parseFloat(
+      formState.currencyConversionFactor,
+    );
+    const amountInOriginCurrencyFloat = Number.parseFloat(
+      formState.amountInOriginCurrency,
+    );
+    setFormState((prev) =>
+      deriveNewState({
+        ...prev,
+        amount: formatCurrencyAmount(
+          undefined,
+          amountInOriginCurrencyFloat * currencyConversionFactorFloat,
+          false,
+        ),
+      }),
+    );
+  }, [
+    formState.currencyConversionFactor,
+    formState.amountInOriginCurrency,
+    deriveNewState,
+  ]);
+
   const handleFocusAmount = useCallback(() => {
     // If the other two values are available & this is empty, then calculate it
     if (
@@ -284,26 +421,31 @@ export function ExpenseInlineCardForm({
       formState.currencyConversionFactor &&
       formState.amountInOriginCurrency
     ) {
-      const amountInOriginCurrencyFloat = Number.parseFloat(
-        formState.amountInOriginCurrency,
-      );
-      const currencyConversionFactorFloat = Number.parseFloat(
-        formState.currencyConversionFactor,
-      );
-      setFormState((prev) => ({
-        ...prev,
-        amount: formatCurrencyAmount(
-          undefined,
-          amountInOriginCurrencyFloat * currencyConversionFactorFloat,
-          false,
-        ),
-      }));
+      calculateAmount();
     }
   }, [
     formState.amount,
     formState.amountInOriginCurrency,
     formState.currencyConversionFactor,
+    calculateAmount,
   ]);
+
+  const calculateCurrencyConversionFactor = useCallback(() => {
+    const amountFloat = Number.parseFloat(formState.amount);
+    const amountInOriginCurrencyFloat = Number.parseFloat(
+      formState.amountInOriginCurrency,
+    );
+    setFormState((prev) =>
+      deriveNewState({
+        ...prev,
+        currencyConversionFactor: formatCurrencyAmount(
+          undefined,
+          amountFloat / amountInOriginCurrencyFloat,
+          false,
+        ),
+      }),
+    );
+  }, [formState.amount, formState.amountInOriginCurrency, deriveNewState]);
 
   const handleFocusCurrencyConversionFactor = useCallback(() => {
     // If the other two values are available & this is empty, then calculate it
@@ -312,24 +454,31 @@ export function ExpenseInlineCardForm({
       !formState.currencyConversionFactor &&
       formState.amountInOriginCurrency
     ) {
-      const amountFloat = Number.parseFloat(formState.amount);
-      const amountInOriginCurrencyFloat = Number.parseFloat(
-        formState.amountInOriginCurrency,
-      );
-      setFormState((prev) => ({
-        ...prev,
-        currencyConversionFactor: formatCurrencyAmount(
-          undefined,
-          amountFloat / amountInOriginCurrencyFloat,
-          false,
-        ),
-      }));
+      calculateCurrencyConversionFactor();
     }
   }, [
     formState.amount,
     formState.amountInOriginCurrency,
     formState.currencyConversionFactor,
+    calculateCurrencyConversionFactor,
   ]);
+
+  const calculateAmountInOriginCurrency = useCallback(() => {
+    const amountFloat = Number.parseFloat(formState.amount);
+    const currencyConversionFactorFloat = Number.parseFloat(
+      formState.currencyConversionFactor,
+    );
+    setFormState((prev) =>
+      deriveNewState({
+        ...prev,
+        amountInOriginCurrency: formatCurrencyAmount(
+          undefined,
+          amountFloat / currencyConversionFactorFloat,
+          false,
+        ),
+      }),
+    );
+  }, [formState.amount, formState.currencyConversionFactor, deriveNewState]);
 
   const handleFocusAmountInOriginCurrency = useCallback(() => {
     // If the other two values are available & this is empty, then calculate it
@@ -338,23 +487,13 @@ export function ExpenseInlineCardForm({
       formState.currencyConversionFactor &&
       !formState.amountInOriginCurrency
     ) {
-      const amountFloat = Number.parseFloat(formState.amount);
-      const currencyConversionFactorFloat = Number.parseFloat(
-        formState.currencyConversionFactor,
-      );
-      setFormState((prev) => ({
-        ...prev,
-        amountInOriginCurrency: formatCurrencyAmount(
-          undefined,
-          amountFloat / currencyConversionFactorFloat,
-          false,
-        ),
-      }));
+      calculateAmountInOriginCurrency();
     }
   }, [
     formState.amount,
     formState.amountInOriginCurrency,
     formState.currencyConversionFactor,
+    calculateAmountInOriginCurrency,
   ]);
 
   const handleOnBack = useCallback(() => {
@@ -392,7 +531,7 @@ export function ExpenseInlineCardForm({
       >
         <Select.Trigger />
         <Select.Content>
-          {currencies.map((currency) => (
+          {ALL_CURRENCIES.map((currency) => (
             <Select.Item key={currency} value={currency}>
               {currency}
             </Select.Item>
@@ -400,13 +539,7 @@ export function ExpenseInlineCardForm({
         </Select.Content>
       </Select.Root>
     );
-  }, [
-    currencies,
-    formState.currency,
-    formState.loading,
-    handleCurrencyChange,
-    idForm,
-  ]);
+  }, [formState.currency, formState.loading, handleCurrencyChange, idForm]);
 
   return (
     <form
@@ -475,16 +608,38 @@ export function ExpenseInlineCardForm({
         <Text color="gray" size="1" weight="medium" className={s.formLabel}>
           Amount *
         </Text>
-        <TextField.Root
-          name="amount"
-          type="text"
-          inputMode="decimal"
-          value={formState.amount}
-          onChange={handleInputChange}
-          onFocus={handleFocusAmount}
-          disabled={formState.loading}
-          required
-        />
+        <Flex direction="row" gap="2">
+          <Box asChild flexGrow="1">
+            <TextField.Root
+              name="amount"
+              type="text"
+              inputMode="decimal"
+              value={formState.amount}
+              onChange={handleInputChange}
+              onFocus={handleFocusAmount}
+              disabled={formState.loading}
+              required
+            />
+          </Box>
+          <Box asChild flexGrow="0">
+            <Tooltip
+              content={`Based on "Amount in Origin Currency" and "Currency Conversion Factor", calculate "Amount".`}
+            >
+              <Button
+                type="button"
+                variant="outline"
+                color="gray"
+                onClick={calculateAmount}
+                disabled={
+                  formState.loading || !formState.amountAbleToBeCalculated
+                }
+              >
+                <MagicWandIcon />
+                Calculate
+              </Button>
+            </Tooltip>
+          </Box>
+        </Flex>
       </div>
 
       <div className={s.formRow}>
@@ -499,16 +654,39 @@ export function ExpenseInlineCardForm({
             :
           </Text>
         </Text>
-        <TextField.Root
-          name="currencyConversionFactor"
-          type="text"
-          inputMode="decimal"
-          value={formState.currencyConversionFactor}
-          onChange={handleInputChange}
-          onFocus={handleFocusCurrencyConversionFactor}
-          disabled={formState.loading}
-          required
-        />
+        <Flex direction="row" gap="2">
+          <Box asChild flexGrow="1">
+            <TextField.Root
+              name="currencyConversionFactor"
+              type="text"
+              inputMode="decimal"
+              value={formState.currencyConversionFactor}
+              onChange={handleInputChange}
+              onFocus={handleFocusCurrencyConversionFactor}
+              disabled={formState.loading}
+              required
+            />
+          </Box>
+          <Box asChild flexGrow="0">
+            <Tooltip
+              content={`Based on "Amount" and "Amount in Origin Currency", calculate "Currency Conversion Factor".`}
+            >
+              <Button
+                type="button"
+                variant="outline"
+                color="gray"
+                onClick={calculateCurrencyConversionFactor}
+                disabled={
+                  formState.loading ||
+                  !formState.currencyConversionFactorAbleToBeCalculated
+                }
+              >
+                <MagicWandIcon />
+                Calculate
+              </Button>
+            </Tooltip>
+          </Box>
+        </Flex>
       </div>
 
       <div className={s.formRow}>
@@ -516,16 +694,39 @@ export function ExpenseInlineCardForm({
           Amount in Origin Currency
           {trip?.originCurrency ? ` (${trip.originCurrency})` : ''} *
         </Text>
-        <TextField.Root
-          name="amountInOriginCurrency"
-          type="text"
-          inputMode="decimal"
-          value={formState.amountInOriginCurrency}
-          onChange={handleInputChange}
-          disabled={formState.loading}
-          onFocus={handleFocusAmountInOriginCurrency}
-          required
-        />
+        <Flex direction="row" gap="2">
+          <Box asChild flexGrow="1">
+            <TextField.Root
+              name="amountInOriginCurrency"
+              type="text"
+              inputMode="decimal"
+              value={formState.amountInOriginCurrency}
+              onChange={handleInputChange}
+              disabled={formState.loading}
+              onFocus={handleFocusAmountInOriginCurrency}
+              required
+            />
+          </Box>
+          <Box asChild flexGrow="0">
+            <Tooltip
+              content={`Based on "Amount" and "Currency Conversion Factor", calculate "Amount in Origin Currency".`}
+            >
+              <Button
+                type="button"
+                variant="outline"
+                color="gray"
+                onClick={calculateAmountInOriginCurrency}
+                disabled={
+                  formState.loading ||
+                  !formState.amountInOriginCurrencyAbleToBeCalculated
+                }
+              >
+                <MagicWandIcon />
+                Calculate
+              </Button>
+            </Tooltip>
+          </Box>
+        </Flex>
       </div>
 
       {errorMessage && (
