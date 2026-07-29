@@ -73,9 +73,14 @@
 
 .expandButton {
   opacity: 0.6;
-  transition: opacity 0.2s ease;
   grid-row: 1 / span 2;
   grid-column: 3 / span 1;
+  transition:
+    transform 250ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 250ms ease;
+}
+.collapsedHeader[data-state="open"] .expandButton {
+  transform: rotate(90deg);
 }
 
 .collapsedHeader:hover .expandButton {
@@ -84,14 +89,54 @@
 
 /* Expanded Content Styles */
 .expandedContent {
-  padding: var(--space-3);
-  border-top: 1px solid var(--gray-4);
-  background-color: var(--gray-1);
+  overflow: hidden;
+}
+.expandedContent[data-state="open"] {
+  animation: collapsibleOpen 120ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.expandedContent[data-state="closed"] {
+  animation: collapsibleClose 120ms cubic-bezier(0.7, 0, 0.84, 0);
+}
+
+.expandedContentInner {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+
+  padding: var(--space-3);
+  border-top: 1px solid var(--gray-4);
+  background-color: var(--gray-1);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .expandedContent[data-state="open"],
+  .expandedContent[data-state="closed"] {
+    animation-duration: 1ms;
+  }
+
+  .expandIcon {
+    transition-duration: 1ms;
+  }
+}
+@keyframes collapsibleOpen {
+  from {
+    height: 0;
+  }
+
+  to {
+    height: var(--radix-collapsible-content-height);
+  }
+}
+
+@keyframes collapsibleClose {
+  from {
+    height: var(--radix-collapsible-content-height);
+  }
+
+  to {
+    height: 0;
+  }
+}
 .detailSection {
   display: flex;
   flex-direction: column;

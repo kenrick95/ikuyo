@@ -1,5 +1,9 @@
 import {
-  ChevronDownIcon,
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@radix-ui/react-collapsible';
+import {
   ChevronRightIcon,
   Pencil1Icon,
   QuestionMarkCircledIcon,
@@ -16,6 +20,7 @@ import {
   Text,
   Tooltip,
 } from '@radix-ui/themes';
+
 import { useCallback, useMemo, useState } from 'react';
 import { CommentGroupWithForm } from '../Comment/CommentGroupWithForm';
 import { COMMENT_GROUP_OBJECT_TYPE } from '../Comment/db';
@@ -86,22 +91,6 @@ function ExpenseCardView({
   const { trip, loading } = useTrip(expense.tripId);
   const currentUser = useDeepBoundStore((state) => state.currentUser);
 
-  const handleClick = useCallback(
-    (_e: React.MouseEvent<HTMLButtonElement>) => {
-      setIsExpanded(!isExpanded);
-    },
-    [isExpanded, setIsExpanded],
-  );
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLButtonElement>) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        setIsExpanded(!isExpanded);
-      }
-    },
-    [isExpanded, setIsExpanded],
-  );
-
   const handleEditExpense = useCallback(() => {
     setExpenseMode(ExpenseMode.Edit);
   }, [setExpenseMode]);
@@ -135,92 +124,102 @@ function ExpenseCardView({
       trip?.currentUserRole === TripUserRole.Editor
     );
   }, [trip?.currentUserRole]);
-
   return (
-    <Inset className={s.cardContent}>
-      {/* Collapsed Header - Always Visible */}
-      <button
-        className={s.collapsedHeader}
-        onClick={handleClick}
-        onKeyDown={handleKeyDown}
-        type="button"
-        aria-expanded={isExpanded}
-        aria-label={`${isExpanded ? 'Collapse' : 'Expand'} expense details for ${expense.title}`}
-      >
-        <Text size="1" color="gray" className={s.date}>
-          {trip
-            ? formatTimestampToReadableDate(
-                Temporal.Instant.fromEpochMilliseconds(
-                  expense.timestampIncurred,
-                ).toZonedDateTimeISO(trip.timeZone),
-              )
-            : ''}
-        </Text>
-        <Text size="3" weight="bold" className={s.title}>
-          {expense.title}
-        </Text>
-        <Badge
-          variant="soft"
-          color="grass"
-          size="1"
-          className={s.currencyBadge}
+    <Collapsible open={isExpanded} onOpenChange={setIsExpanded} asChild>
+      <Inset className={s.cardContent}>
+        {/* Collapsed Header - Always Visible */}
+        <CollapsibleTrigger
+          className={s.collapsedHeader}
+          type="button"
+          aria-expanded={isExpanded}
+          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} expense details for ${expense.title}`}
         >
-          {expense.currency}
-        </Badge>
-        <Text size="4" weight="bold">
-          {formatCurrencyAmount(expense.currency, expense.amount)}
-        </Text>
-        {isExpanded ? (
-          <ChevronDownIcon className={s.expandButton} />
-        ) : (
+          <Text size="1" color="gray" className={s.date}>
+            {trip
+              ? formatTimestampToReadableDate(
+                  Temporal.Instant.fromEpochMilliseconds(
+                    expense.timestampIncurred,
+                  ).toZonedDateTimeISO(trip.timeZone),
+                )
+              : ''}
+          </Text>
+          <Text size="3" weight="bold" className={s.title}>
+            {expense.title}
+          </Text>
+          <Badge
+            variant="soft"
+            color="grass"
+            size="1"
+            className={s.currencyBadge}
+          >
+            {expense.currency}
+          </Badge>
+          <Text size="4" weight="bold">
+            {formatCurrencyAmount(expense.currency, expense.amount)}
+          </Text>
           <ChevronRightIcon className={s.expandButton} />
-        )}
-      </button>
-
-      {isExpanded && (
-        <div className={s.expandedContent}>
-          {/* Actions */}
-          {userCanEditOrDelete ? (
-            <div className={s.actionsSection}>
-              <Button variant="outline" size="2" onClick={handleEditExpense}>
-                <Pencil1Icon />
-                Edit
-              </Button>
-              <Popover.Root>
-                <Popover.Trigger>
-                  <Button variant="outline" size="2" color="red">
-                    <TrashIcon />
-                    Delete
-                  </Button>
-                </Popover.Trigger>
-                <Popover.Content>
-                  <Text as="p" size="2">
-                    Delete expense "{expense.title}"?
-                  </Text>
-                  <Text as="p" size="2" color={dangerToken}>
-                    This action is irreversible!
-                  </Text>
-                  <Flex gap="3" mt="4" justify="end">
-                    <Popover.Close>
-                      <Button variant="soft" color="gray">
-                        Cancel
-                      </Button>
-                    </Popover.Close>
-                    <Button
-                      variant="solid"
-                      color={dangerToken}
-                      onClick={handleDeleteExpense}
-                    >
+        </CollapsibleTrigger>
+        <CollapsibleContent className={s.expandedContent}>
+          <div className={s.expandedContentInner}>
+            {/* Actions */}
+            {userCanEditOrDelete ? (
+              <div className={s.actionsSection}>
+                <Button variant="outline" size="2" onClick={handleEditExpense}>
+                  <Pencil1Icon />
+                  Edit
+                </Button>
+                <Popover.Root>
+                  <Popover.Trigger>
+                    <Button variant="outline" size="2" color="red">
+                      <TrashIcon />
                       Delete
                     </Button>
-                  </Flex>
-                </Popover.Content>
-              </Popover.Root>
-            </div>
-          ) : null}
+                  </Popover.Trigger>
+                  <Popover.Content>
+                    <Text as="p" size="2">
+                      Delete expense "{expense.title}"?
+                    </Text>
+                    <Text as="p" size="2" color={dangerToken}>
+                      This action is irreversible!
+                    </Text>
+                    <Flex gap="3" mt="4" justify="end">
+                      <Popover.Close>
+                        <Button variant="soft" color="gray">
+                          Cancel
+                        </Button>
+                      </Popover.Close>
+                      <Button
+                        variant="solid"
+                        color={dangerToken}
+                        onClick={handleDeleteExpense}
+                      >
+                        Delete
+                      </Button>
+                    </Flex>
+                  </Popover.Content>
+                </Popover.Root>
+              </div>
+            ) : null}
 
-          {/* Description */}
-          {expense.description ? (
+            {/* Description */}
+            {expense.description ? (
+              <div className={s.detailSection}>
+                <Heading
+                  as="h5"
+                  className={s.detailLabel}
+                  size="1"
+                  color="gray"
+                  weight="medium"
+                >
+                  Description
+                </Heading>
+                <Text size="2" className={s.description}>
+                  {expense.description}
+                </Text>
+              </div>
+            ) : null}
+
+            {/* Currency Conversion Details */}
             <div className={s.detailSection}>
               <Heading
                 as="h5"
@@ -229,94 +228,78 @@ function ExpenseCardView({
                 color="gray"
                 weight="medium"
               >
-                Description
+                Currency Conversion
               </Heading>
-              <Text size="2" className={s.description}>
-                {expense.description}
-              </Text>
-            </div>
-          ) : null}
-
-          {/* Currency Conversion Details */}
-          <div className={s.detailSection}>
-            <Heading
-              as="h5"
-              className={s.detailLabel}
-              size="1"
-              color="gray"
-              weight="medium"
-            >
-              Currency Conversion
-            </Heading>
-            <div className={s.conversionInfo}>
-              <div className={s.conversionRow}>
-                <Text size="2" color="gray">
-                  Amount in {expense.currency}:
-                </Text>
-                <Flex align="center" gap="1">
-                  <Text size="2">
-                    {formatCurrencyAmount(expense.currency, expense.amount)}
+              <div className={s.conversionInfo}>
+                <div className={s.conversionRow}>
+                  <Text size="2" color="gray">
+                    Amount in {expense.currency}:
                   </Text>
-                </Flex>
-              </div>
-              <div className={s.conversionRow}>
-                <Text size="2" color="gray">
-                  Conversion Factor{' '}
-                  <Tooltip
-                    content={`How much does 1 unit of origin's currency${trip?.originCurrency ? ` (${trip.originCurrency})` : ''} is worth in the entry's currency (${expense.currency}). This is equal to "Amount" divided by "Amount in Origin's Currency".`}
-                  >
-                    <QuestionMarkCircledIcon className={s.tooltipIcon} />
-                  </Tooltip>{' '}
-                  :
-                </Text>
-                <Flex align="center" gap="1">
-                  <Text size="2">
+                  <Flex align="center" gap="1">
+                    <Text size="2">
+                      {formatCurrencyAmount(expense.currency, expense.amount)}
+                    </Text>
+                  </Flex>
+                </div>
+                <div className={s.conversionRow}>
+                  <Text size="2" color="gray">
+                    Conversion Factor{' '}
+                    <Tooltip
+                      content={`How much does 1 unit of origin's currency${trip?.originCurrency ? ` (${trip.originCurrency})` : ''} is worth in the entry's currency (${expense.currency}). This is equal to "Amount" divided by "Amount in Origin's Currency".`}
+                    >
+                      <QuestionMarkCircledIcon className={s.tooltipIcon} />
+                    </Tooltip>{' '}
+                    :
+                  </Text>
+                  <Flex align="center" gap="1">
+                    <Text size="2">
+                      {formatCurrencyAmount(
+                        undefined,
+                        expense.currencyConversionFactor,
+                      )}
+                    </Text>
+                  </Flex>
+                </div>
+                <div className={s.conversionRow}>
+                  <Text size="2" color="gray">
+                    Amount in Origin's Currency
+                    {trip?.originCurrency ? ` (${trip.originCurrency})` : ''}:
+                  </Text>
+                  <Text size="2" weight="medium">
                     {formatCurrencyAmount(
-                      undefined,
-                      expense.currencyConversionFactor,
+                      trip?.originCurrency,
+                      expense.amountInOriginCurrency,
                     )}
                   </Text>
-                </Flex>
-              </div>
-              <div className={s.conversionRow}>
-                <Text size="2" color="gray">
-                  Amount in Origin's Currency
-                  {trip?.originCurrency ? ` (${trip.originCurrency})` : ''}:
-                </Text>
-                <Text size="2" weight="medium">
-                  {formatCurrencyAmount(
-                    trip?.originCurrency,
-                    expense.amountInOriginCurrency,
-                  )}
-                </Text>
+                </div>
               </div>
             </div>
+
+            {/* Comments */}
+            <Flex direction="column" gap="2">
+              <Heading
+                as="h5"
+                className={s.detailLabel}
+                size="1"
+                color="gray"
+                weight="medium"
+              >
+                Comments
+              </Heading>
+
+              <CommentGroupWithForm
+                tripId={expense?.tripId}
+                objectId={expense?.id}
+                objectType={COMMENT_GROUP_OBJECT_TYPE.EXPENSE}
+                user={currentUser}
+                onFormFocus={noop}
+                commentGroupId={expense?.commentGroupId}
+                isLoading={loading}
+              />
+            </Flex>
           </div>
-
-          {/* Comments */}
-          <Flex direction="column" gap="2">
-            <Heading
-              as="h5"
-              className={s.detailLabel}
-              size="1"
-              color="gray"
-              weight="medium"
-            >
-              Comments
-            </Heading>
-
-            <CommentGroupWithForm
-              tripId={expense?.tripId}
-              objectId={expense?.id}
-              objectType={COMMENT_GROUP_OBJECT_TYPE.EXPENSE}
-              user={currentUser}
-              onFormFocus={noop}
-              commentGroupId={expense?.commentGroupId}
-              isLoading={loading}
-            />
-          </Flex>
-        </div>
-      )}
-    </Inset>
+        </CollapsibleContent>
+      </Inset>
+    </Collapsible>
   );
 }
