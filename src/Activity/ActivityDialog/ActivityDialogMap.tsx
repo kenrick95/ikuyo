@@ -12,6 +12,7 @@ import { MapStyle } from '../../theme/maptiler';
 import s from './ActivityDialogMap.module.css';
 import '@maptiler/sdk/style.css';
 import { GeocodingControl } from '@maptiler/geocoding-control/maptilersdk';
+import clsx from 'clsx';
 import { ThemeAppearance } from '../../theme/constants';
 import { useTheme } from '../../theme/hooks';
 
@@ -19,18 +20,22 @@ const routeLineLayerId = 'Route Line' as const;
 const routeArrowLayerId = 'Route Line Arrow' as const;
 const routeSourceId = 'route' as const;
 
+type ActivityMapModeType = 'view' | 'edit';
+
 export function ActivityMap({
   mapOptions,
   marker,
   markerDestination,
   setMarkerCoordinate,
   setMapZoom,
+  mode,
 }: {
   mapOptions: { lng: number; lat: number; zoom?: number; region?: string };
   marker?: { lng: number; lat: number };
   markerDestination?: { lng: number; lat: number };
   setMarkerCoordinate?: (coordinate: { lng: number; lat: number }) => void;
   setMapZoom?: (zoom: number) => void;
+  mode: ActivityMapModeType;
 }) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<MapTilerMap>(null);
@@ -177,23 +182,32 @@ export function ActivityMap({
       mapMarker.current = new Marker({
         color: 'var(--accent-indicator)',
         draggable: !!setMarkerCoordinate,
+        className: clsx(s.mapMarker, mode === 'edit' && s.mapMarkerDraggable),
       });
       mapMarker.current
         .setLngLat([initialValues.marker.lng, initialValues.marker.lat])
-        .addTo(map.current)
-        .on('dragend', (event: { type: 'dragend'; target: Marker }) => {
+        .addTo(map.current);
+      mapMarker.current.on('dragstart', () => {
+        mapMarker.current?.addClassName(s.mapMarkerDragging);
+      });
+      mapMarker.current.on(
+        'dragend',
+        (event: { type: 'dragend'; target: Marker }) => {
           if (!map.current) return;
+          mapMarker.current?.removeClassName(s.mapMarkerDragging);
           const { lng, lat } = event.target.getLngLat();
           console.log('ActivityDialogMap dragend', { lng, lat });
           if (setMarkerCoordinate) {
             setMarkerCoordinate({ lng, lat });
           }
-        });
+        },
+      );
     }
 
     if (initialValues.markerDestination) {
       mapMarkerDestination.current = new Marker({
         color: 'var(--accent-indicator)',
+        className: clsx(s.mapMarker, mode === 'edit' && s.mapMarkerDraggable),
       });
       mapMarkerDestination.current
         .setLngLat([
@@ -244,7 +258,7 @@ export function ActivityMap({
         mapMarkerDestination.current.remove();
       }
     };
-  }, [setMapZoom, setMarkerCoordinate, theme, initialValues]);
+  }, [setMapZoom, setMarkerCoordinate, theme, initialValues, mode]);
 
   useEffect(() => {
     if (!map.current) return;

@@ -667,6 +667,7 @@ export function ActivityForm({
         />
         {locationFieldsState.enabled[0] ? (
           <ActivityMap
+            mode="edit"
             mapOptions={{
               lng: locationFieldsState.lng[0] ?? 0,
               lat: locationFieldsState.lat[0] ?? 0,
@@ -711,6 +712,7 @@ export function ActivityForm({
             />
             {locationFieldsState.enabled[1] ? (
               <ActivityMap
+                mode="edit"
                 mapOptions={{
                   lng: locationFieldsState.lng[1] ?? 0,
                   lat: locationFieldsState.lat[1] ?? 0,

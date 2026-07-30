@@ -251,6 +251,7 @@ export function ActivityDialogContentView({
           ) : null}
           {activity?.locationLat != null && activity?.locationLng != null ? (
             <ActivityMap
+              mode="view"
               mapOptions={{
                 lng: activity.locationLng,
                 lat: activity.locationLat,
