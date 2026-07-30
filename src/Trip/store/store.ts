@@ -54,13 +54,17 @@ export const createTripSlice: StateCreator<
       dragging: false,
       source: {
         activityId: undefined,
+        mode: undefined,
       },
     },
     setTimetableDragging: (
       dragging: boolean,
-      source?: {
-        activityId?: string;
-      },
+      source:
+        | {
+            activityId: string;
+            mode: 'drag' | 'resize' | undefined;
+          }
+        | undefined,
     ) => {
       set((state) => {
         return {
@@ -70,6 +74,9 @@ export const createTripSlice: StateCreator<
               activityId: dragging
                 ? (source?.activityId ??
                   state.timetableDragging.source.activityId)
+                : undefined,
+              mode: dragging
+                ? (source?.mode ?? state.timetableDragging.source.mode)
                 : undefined,
             },
           },

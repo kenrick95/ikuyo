@@ -41,6 +41,7 @@ export function calculateNewTimestamps(
   activity: TripSliceActivity,
   tripTimestampStart: number,
   tripTimeZone: string,
+  mode: 'drag' | 'resize',
 ): { timestampStart: number; timestampEnd: number } {
   console.log('Calculating new timestamps', { gridRow, gridColumn });
 
@@ -50,38 +51,51 @@ export function calculateNewTimestamps(
   // Get time offset from grid row
   const timeOffset = gridRowToTimeOffset(gridRow);
 
-  // Calculate the original duration of the activity
-  /** -1 if either timestamp is not set! */
-  let originalDuration =
-    activity.timestampStart != null && activity.timestampEnd != null
-      ? activity.timestampEnd - activity.timestampStart
-      : -1;
-  if (originalDuration < 0) {
-    console.log(
-      'Activity duration not set or invalid, using default duration of 30 minutes',
-    );
-    originalDuration = 30 * 60 * 1000; // Default to 30 minutes if duration is not set
-  }
-
   // Calculate the start of `the day for the activity's new position
   const tripStart =
     Temporal.Instant.fromEpochMilliseconds(
       tripTimestampStart,
     ).toZonedDateTimeISO(tripTimeZone);
   const newDayStart = tripStart.add({ days: newDayIndex }).startOfDay();
-
-  // Add the time offset to get the new start timestamp
-  const newStartTimestamp = newDayStart.add({
+  const dropTargetStartTimestamp = newDayStart.add({
     milliseconds: timeOffset,
   }).epochMilliseconds;
 
+  // Calculate the new duration of the activity: on dragging preserve the original duration, on resizing calculate the new duration based on the new end time
+  /** -1 if either timestamp is not set! */
+  let newDuration =
+    activity.timestampStart != null && activity.timestampEnd != null
+      ? mode === 'drag'
+        ? activity.timestampEnd - activity.timestampStart
+        : dropTargetStartTimestamp - activity.timestampStart + 30 * 60 * 1000 // Add 30 minutes to the new end time for resizing
+      : -1;
+  if (newDuration < 0 && mode === 'drag') {
+    console.log(
+      'Activity duration not set or invalid, using default duration of 30 minutes',
+    );
+    newDuration = 30 * 60 * 1000; // Default to 30 minutes if duration is not set
+  } else if (newDuration < 0 && mode === 'resize') {
+    console.log('Activity duration not set or invalid, stopping');
+    return {
+      timestampStart: activity.timestampStart ?? dropTargetStartTimestamp,
+      timestampEnd:
+        activity.timestampEnd ?? dropTargetStartTimestamp + 30 * 60 * 1000,
+    };
+  }
+
+  // Add the time offset to get the new start timestamp (resize: keep same start; drag: move to new start)
+  const newStartTimestamp =
+    mode === 'drag'
+      ? dropTargetStartTimestamp
+      : (activity.timestampStart ?? dropTargetStartTimestamp);
+
   // The end timestamp is the start timestamp plus the original duration
-  const newEndTimestamp = newStartTimestamp + originalDuration;
+  const newEndTimestamp = newStartTimestamp + newDuration;
 
   console.log('New timestamps calculated', {
     day: newDayIndex + 1,
     timeOffset: `${timeOffset / (60 * 60 * 1000)} hours`,
-    originalDuration: `${originalDuration / (60 * 60 * 1000)} hours`,
+    originalDuration: `${newDuration / (60 * 60 * 1000)} hours`,
     newStartTimestamp:
       Temporal.Instant.fromEpochMilliseconds(
         newStartTimestamp,

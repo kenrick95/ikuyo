@@ -354,13 +354,17 @@ export interface TripSlice {
     dragging: boolean;
     source: {
       activityId: string | undefined;
+      mode: 'drag' | 'resize' | undefined;
     };
   };
   setTimetableDragging: (
     dragging: boolean,
-    source?: {
-      activityId?: string;
-    },
+    source:
+      | {
+          activityId: string;
+          mode: 'drag' | 'resize' | undefined;
+        }
+      | undefined,
   ) => void;
   setCurrentTripId: (tripId: string | undefined) => void;
   getCurrentTrip: () => TripSliceTrip | undefined;

@@ -103,9 +103,14 @@
     min-height: var(--row-minute-height);
     z-index: 0;
 
-    &.dragOver {
+    &.dragging {
       background: linear-gradient(to bottom, var(--accent-3), transparent);
-      border-top: 2px dashed var(--accent-8);
+      border-top: 2px dashed var(--accent-8); 
+    }
+    &.resizing {
+      background: linear-gradient(to top, var(--accent-3), transparent);
+      border-bottom: 2px dashed var(--accent-8); 
+      border-radius: 0 0 var(--radius-2) var(--radius-2);
     }
   }
 

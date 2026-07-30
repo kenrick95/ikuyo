@@ -279,7 +279,7 @@ export function Timetable() {
   const handleDrop = useCallback(
     async (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
-      setTimetableDragging(false);
+      setTimetableDragging(false, undefined);
       if (!trip) {
         console.warn('No trip found for dropping activity');
         return;
@@ -346,8 +346,16 @@ export function Timetable() {
         }
 
         // Get the activity data from the drag event
-        const activityData = JSON.parse(e.dataTransfer.getData('text/plain'));
-        const { activityId } = activityData;
+        const activityData = JSON.parse(
+          e.dataTransfer.getData('text/plain'),
+        ) as {
+          activityId: string;
+          mode: 'drag' | 'resize';
+          originalTimeStart: string;
+          originalTimeEnd: string;
+          originalDayStart: number;
+        };
+        const { activityId, mode } = activityData;
 
         // Find the activity in the trip
         const activity = activities.find((a) => a.id === activityId);
@@ -361,8 +369,8 @@ export function Timetable() {
           title: activity.title,
           gridRow,
           gridColumn,
+          activityData,
         });
-
         // Calculate new timestamps based on the drop position
         const { timestampStart, timestampEnd } = calculateNewTimestamps(
           gridRow,
@@ -370,6 +378,7 @@ export function Timetable() {
           activity,
           trip.timestampStart,
           trip.timeZone,
+          mode,
         );
 
         // Handle if timestamp is the same
@@ -392,7 +401,9 @@ export function Timetable() {
 
         publishToast({
           root: {},
-          title: { children: `Moved: ${activity.title}` },
+          title: {
+            children: `${mode === 'drag' ? 'Moved' : 'End time changed'}: ${activity.title}`,
+          },
           close: {},
         });
       } catch (error) {
@@ -406,15 +417,6 @@ export function Timetable() {
     },
     [trip, activities, publishToast, userCanModifyTrip, setTimetableDragging],
   );
-  const handleDragOver = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      setTimetableDragging(true);
-    },
-    [setTimetableDragging],
-  );
-
   const toggleSidebar = useCallback(() => {
     setSidebarVisible(!isSidebarVisible);
   }, [isSidebarVisible]);
@@ -453,7 +455,6 @@ export function Timetable() {
         style={timetableStyle}
         ref={timetableRef}
         onDrop={handleDrop}
-        onDragOver={handleDragOver}
       >
         <TimetableGrid days={dayGroups.inTrip.length} />
         <TimetableTimeHeader />

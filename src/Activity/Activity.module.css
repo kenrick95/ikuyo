@@ -6,6 +6,7 @@
   cursor: var(--cursor-link);
   display: block;
   text-align: start;
+  position: relative;
   &:hover {
     border-color: var(--accent-7);
     background-color: var(--accent-2);
@@ -13,6 +14,15 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     z-index: 3;
   }
+}
+.activityResizeHint {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 8px;
+  cursor: ns-resize;
 }
 .activity:focus-visible {
   outline: 2px solid var(--accent-9);
@@ -31,6 +41,15 @@
   opacity: 0.6;
   cursor: grabbing;
   transform: rotate(2deg);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+  &:hover {
+    /* unset z-index so it can target "timetableCell" as the drag target */
+    z-index: unset;
+  }
+}
+.activityResizing {
+  opacity: 0.6;
+  cursor: ns-resize;
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
   &:hover {
     /* unset z-index so it can target "timetableCell" as the drag target */

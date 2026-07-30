@@ -170,7 +170,10 @@ function ActivityInner({
       }
       setTimetableDragging(true, {
         activityId: activity.id,
+        mode: 'drag',
       });
+
+      console.log('Drag start (drag)', activity.id);
 
       // Store the activity data for the drop
       e.dataTransfer.setData(
@@ -180,6 +183,7 @@ function ActivityInner({
           originalTimeStart: timeStartRelativeToTrip,
           originalTimeEnd: timeEndRelativeToTrip,
           originalDayStart: dayStart,
+          mode: 'drag',
         }),
       );
 
@@ -207,10 +211,57 @@ function ActivityInner({
         e.preventDefault();
         return;
       }
-      setTimetableDragging(false);
+      setTimetableDragging(false, undefined);
     },
     [tripViewMode, isDragAndDropDisabled, setTimetableDragging],
   );
+
+  const handleResizeStart = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      console.log('Resize start', activity.id);
+      if (tripViewMode !== TripViewMode.Timetable || isDragAndDropDisabled) {
+        // Prevent resizing if the trip is not in timetable view or drag is disabled
+        e.preventDefault();
+        return;
+      }
+      setTimetableDragging(true, {
+        activityId: activity.id,
+        mode: 'resize',
+      });
+
+      console.log('Resize start', activity.id);
+
+      // Store the activity data for the drop
+      e.dataTransfer.setData(
+        'text/plain',
+        JSON.stringify({
+          activityId: activity.id,
+          originalTimeStart: timeStartRelativeToTrip,
+          originalTimeEnd: timeEndRelativeToTrip,
+          originalDayStart: dayStart,
+          mode: 'resize',
+        }),
+      );
+
+      // Set the drag image/opacity
+      e.dataTransfer.effectAllowed = 'move';
+      if (e.currentTarget.parentElement) {
+        e.dataTransfer.setDragImage(e.currentTarget, 20, 20);
+      }
+
+      e.stopPropagation(); // Prevent triggering the parent drag event
+    },
+    [
+      activity.id,
+      timeStartRelativeToTrip,
+      timeEndRelativeToTrip,
+      dayStart,
+      tripViewMode,
+      isDragAndDropDisabled,
+      setTimetableDragging,
+    ],
+  );
+
   // Handle keyboard navigation for accessibility
   // Use onKeyDown for Enter to open the dialog
   // Use onKeyUp for Space to open the dialog
@@ -295,7 +346,9 @@ function ActivityInner({
             isActivityOngoing ? style.activityOngoing : '',
             timetableDragging.dragging &&
               timetableDragging.source.activityId === activity.id
-              ? style.activityDragging
+              ? timetableDragging.source.mode === 'drag'
+                ? style.activityDragging
+                : style.activityResizing
               : '',
             className,
           )}
@@ -367,6 +420,19 @@ function ActivityInner({
               <InfoCircledIcon style={{ verticalAlign: '-2px' }} />{' '}
               {activity.description}
             </Text>
+          ) : null}
+
+          {!isDragAndDropDisabled && tripViewMode === TripViewMode.Timetable ? (
+            // biome-ignore lint/a11y/noStaticElementInteractions: indicator for resizing
+            <div
+              className={style.activityResizeHint}
+              onDragStart={handleResizeStart}
+              draggable={
+                tripViewMode === TripViewMode.Timetable &&
+                userCanEditOrDelete &&
+                !isDragAndDropDisabled
+              }
+            />
           ) : null}
         </Box>
       </ContextMenu.Trigger>

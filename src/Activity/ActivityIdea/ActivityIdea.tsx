@@ -40,6 +40,7 @@ export function ActivityIdea({
       }
       setTimetableDragging(true, {
         activityId: activity.id,
+        mode: 'drag',
       });
       // Store the activity data for the drop
       e.dataTransfer.setData(
@@ -49,6 +50,7 @@ export function ActivityIdea({
           originalTimeStart: null,
           originalTimeEnd: null,
           originalDayStart: null,
+          mode: 'drag',
         }),
       );
 
@@ -67,7 +69,7 @@ export function ActivityIdea({
         e.preventDefault();
         return;
       }
-      setTimetableDragging(false);
+      setTimetableDragging(false, undefined);
     },
     [tripViewMode, isDragDisabled, setTimetableDragging],
   );
