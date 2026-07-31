@@ -42,9 +42,7 @@ export function calculateNewTimestamps(
   tripTimestampStart: number,
   tripTimeZone: string,
   mode: 'drag' | 'resize',
-): { timestampStart: number; timestampEnd: number } {
-  console.log('Calculating new timestamps', { gridRow, gridColumn });
-
+): { timestampStart: number; timestampEnd: number; error?: string } {
   // Get the new day index
   const newDayIndex = gridColumnToDay(gridColumn) - 1; // 0-based index
 
@@ -75,8 +73,8 @@ export function calculateNewTimestamps(
     );
     newDuration = 30 * 60 * 1000; // Default to 30 minutes if duration is not set
   } else if (newDuration < 0 && mode === 'resize') {
-    console.log('Activity duration not set or invalid, stopping');
     return {
+      error: 'Activity end time cannot end earlier than start time',
       timestampStart: activity.timestampStart ?? dropTargetStartTimestamp,
       timestampEnd:
         activity.timestampEnd ?? dropTargetStartTimestamp + 30 * 60 * 1000,

@@ -9,7 +9,15 @@ import { IconButton, Section, Text, Tooltip } from '@radix-ui/themes';
 import clsx from 'clsx';
 
 import type * as React from 'react';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Route, Switch } from 'wouter';
 import { Accommodation } from '../../Accommodation/Accommodation';
 import { AccommodationDialog } from '../../Accommodation/AccommodationDialog/AccommodationDialog';
@@ -17,7 +25,11 @@ import { AccommodationNewDialog } from '../../Accommodation/AccommodationNewDial
 import { Activity } from '../../Activity/Activity';
 import { ActivityDialog } from '../../Activity/ActivityDialog/ActivityDialog';
 import { ActivityNewDialog } from '../../Activity/ActivityNewDialog';
-import { dbUpdateActivityDragEnd } from '../../Activity/db';
+import {
+  type DbActivity,
+  dbAddActivity,
+  dbUpdateActivityDragEnd,
+} from '../../Activity/db';
 import { calculateNewTimestamps } from '../../Activity/dragUtils';
 import {
   type DayGroups,
@@ -104,6 +116,7 @@ export function Timetable() {
   }, [trip, tripAccommodations]);
   const { timetableDragging, setTimetableDragging } =
     useTripTimetableDragging();
+
   // Hide sidebar initially on small screens
   const initialWindowWidth = useMemo(() => {
     return window.innerWidth;
@@ -183,7 +196,7 @@ export function Timetable() {
   }, [dayGroups, currentDayIndex]);
 
   // Auto-scroll to current day and hour when trip is in progress
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (
       currentDayIndex == null ||
       trip?.timeZone == null ||
@@ -364,15 +377,20 @@ export function Timetable() {
           return;
         }
 
+        const isCopying = e.altKey || e.ctrlKey;
         console.log('Dropping activity', {
           activityId,
           title: activity.title,
           gridRow,
           gridColumn,
           activityData,
+          isCopying,
+          altKeyPressed: e.altKey,
+          ctrlKeyPressed: e.ctrlKey,
         });
+
         // Calculate new timestamps based on the drop position
-        const { timestampStart, timestampEnd } = calculateNewTimestamps(
+        const { timestampStart, timestampEnd, error } = calculateNewTimestamps(
           gridRow,
           gridColumn,
           activity,
@@ -380,6 +398,18 @@ export function Timetable() {
           trip.timeZone,
           mode,
         );
+
+        if (error) {
+          console.warn('Error calculating new timestamps:', error);
+          publishToast({
+            root: {},
+            title: {
+              children: `Failed to ${mode === 'drag' ? 'move' : 'change end time of'} activity: ${error}`,
+            },
+            close: {},
+          });
+          return;
+        }
 
         // Handle if timestamp is the same
         if (
@@ -390,22 +420,52 @@ export function Timetable() {
           return;
         }
 
-        // Update the activity's timestamps in the database
-        await dbUpdateActivityDragEnd(activityId, {
-          timestampStart,
-          timestampEnd,
-          currentFlags: activity.flags,
-          // if it's dropped into timetable, means removed from idea list
-          isIdea: false,
-        });
+        if (isCopying) {
+          // Copy activity instead of move/resize
+          const newActivity = {
+            timestampStart,
+            timestampEnd,
+            title: activity.title,
+            location: activity.location,
+            locationLat: activity.locationLat,
+            locationLng: activity.locationLng,
+            locationZoom: activity.locationZoom,
+            locationDestination: activity.locationDestination,
+            locationDestinationLat: activity.locationDestinationLat,
+            locationDestinationLng: activity.locationDestinationLng,
+            locationDestinationZoom: activity.locationDestinationZoom,
+            description: activity.description,
+            timeZoneStart: activity.timeZoneStart,
+            timeZoneEnd: activity.timeZoneEnd,
+          } satisfies Omit<
+            DbActivity,
+            'id' | 'createdAt' | 'lastUpdatedAt' | 'trip'
+          >;
+          await dbAddActivity(newActivity, { tripId: trip.id });
 
-        publishToast({
-          root: {},
-          title: {
-            children: `${mode === 'drag' ? 'Moved' : 'End time changed'}: ${activity.title}`,
-          },
-          close: {},
-        });
+          publishToast({
+            root: {},
+            title: { children: `Copied: ${activity.title}` },
+            close: {},
+          });
+          return;
+        } else {
+          // Update the activity's timestamps in the database
+          await dbUpdateActivityDragEnd(activityId, {
+            timestampStart,
+            timestampEnd,
+            currentFlags: activity.flags,
+            // if it's dropped into timetable, means removed from idea list
+            isIdea: false,
+          });
+          publishToast({
+            root: {},
+            title: {
+              children: `${mode === 'drag' ? 'Moved' : 'End time changed'}: ${activity.title}`,
+            },
+            close: {},
+          });
+        }
       } catch (error) {
         console.error('Error during drag and drop:', error);
         publishToast({
