@@ -7,6 +7,8 @@
   display: block;
   text-align: start;
   position: relative;
+  /* Prevent text selection so alt key can be used to copy activities without selecting text */
+  user-select: none;
   &:hover {
     border-color: var(--accent-7);
     background-color: var(--accent-2);

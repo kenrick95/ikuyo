@@ -173,8 +173,6 @@ function ActivityInner({
         mode: 'drag',
       });
 
-      console.log('Drag start (drag)', activity.id);
-
       // Store the activity data for the drop
       e.dataTransfer.setData(
         'text/plain',
@@ -218,7 +216,6 @@ function ActivityInner({
 
   const handleResizeStart = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
-      console.log('Resize start', activity.id);
       if (tripViewMode !== TripViewMode.Timetable || isDragAndDropDisabled) {
         // Prevent resizing if the trip is not in timetable view or drag is disabled
         e.preventDefault();
@@ -228,8 +225,6 @@ function ActivityInner({
         activityId: activity.id,
         mode: 'resize',
       });
-
-      console.log('Resize start', activity.id);
 
       // Store the activity data for the drop
       e.dataTransfer.setData(
