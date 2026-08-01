@@ -63,9 +63,10 @@ export async function dbAddActivity(
     tripId: string;
   },
 ) {
-  return db.transact(
-    db.tx.activity[id()]
-      .update({
+  const newId = id();
+  const transaction = await db.transact(
+    db.tx.activity[newId]
+      .create({
         ...newActivity,
         createdAt: Date.now(),
         lastUpdatedAt: Date.now(),
@@ -74,6 +75,14 @@ export async function dbAddActivity(
         trip: tripId,
       }),
   );
+
+  return {
+    transaction,
+    id: newId,
+    undo: async () => {
+      return await db.transact(db.tx.activity[newId].delete());
+    },
+  };
 }
 export async function dbDeleteActivity(activityId: string) {
   const commentGroups = await db.queryOnce({
@@ -94,6 +103,7 @@ export async function dbDeleteActivity(activityId: string) {
   const commentIds = commentGroups.data.commentGroup.flatMap((commentGroup) =>
     commentGroup.comment.map((comment) => comment.id),
   );
+  // TODO: very hard to undo all of these ._.
 
   return db.transact([
     ...commentGroupIds.map((commentGroupId) =>
@@ -110,12 +120,31 @@ export async function dbDeleteActivity(activityId: string) {
 export async function dbUpdateActivity(
   activity: Omit<DbActivity, 'createdAt' | 'lastUpdatedAt' | 'trip'>,
 ) {
-  return db.transact(
+  const snapshot = await db.queryOnce({
+    activity: {
+      $: {
+        where: { id: activity.id },
+      },
+    },
+  });
+
+  const transaction = db.transact(
     db.tx.activity[activity.id].merge({
       ...activity,
       lastUpdatedAt: Date.now(),
     }),
   );
+
+  return {
+    transaction,
+    undo: async () => {
+      return await db.transact(
+        db.tx.activity[activity.id].merge({
+          ...snapshot.data.activity[0],
+        }),
+      );
+    },
+  };
 }
 
 export async function dbDuplicateActivityDragEnd(

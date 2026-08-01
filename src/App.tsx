@@ -1,11 +1,10 @@
 import '@radix-ui/themes/styles.css';
 import './accent.css';
 
-import { Portal, Theme } from '@radix-ui/themes';
+import { Theme } from '@radix-ui/themes';
 import React, { useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import { type AroundNavHandler, Redirect, Route, Router, Switch } from 'wouter';
-import s from './App.module.css';
 import {
   useRedirectUnauthenticatedRoutes,
   useSubscribeUser,
@@ -26,7 +25,6 @@ import {
   RouteTripsPublic,
 } from './Routes/routes';
 import { ImperativeToastRoot } from './Toast/ImperativeToast';
-import { ThemeAppearance } from './theme/constants';
 import { useSubscribeTheme, useTheme } from './theme/hooks';
 
 const PageLanding = withLoading()(
@@ -69,9 +67,11 @@ function App() {
         !document.startViewTransition ||
         document.visibilityState === 'hidden' ||
         window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
-        // Disable on trip list & trip timetable dialog routes as they compete with Radix's own default transition
+        // Disable on trip list & trip timetable dialog routes (to/from) as they compete with Radix's own default transition, causing unpleasant blinking effect
         to?.includes('/list/') ||
-        to?.includes('/timetable/')
+        to?.includes('/timetable/') ||
+        location.pathname?.includes('/list/') ||
+        location.pathname?.includes('/timetable/')
       ) {
         // check if supported and document is visible
         console.log('[VT] View transition skipped');
@@ -158,14 +158,7 @@ function App() {
           <DialogRoot />
         </Router>
       </Theme>
-      <Portal className={s.notificationArea} asChild>
-        <Theme
-          appearance={theme === ThemeAppearance.Dark ? 'dark' : 'light'}
-          accentColor="red"
-        >
-          <ImperativeToastRoot />
-        </Theme>
-      </Portal>
+      <ImperativeToastRoot />
     </>
   );
 }
