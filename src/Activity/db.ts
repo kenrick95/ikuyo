@@ -117,26 +117,104 @@ export async function dbUpdateActivity(
     }),
   );
 }
+
+export async function dbDuplicateActivityDragEnd(
+  activityId: string,
+  {
+    timestampStart,
+    timestampEnd,
+  }: {
+    timestampStart: number;
+    timestampEnd: number;
+  },
+) {
+  const res = await db.queryOnce({
+    activity: {
+      $: {
+        where: { id: activityId },
+      },
+      trip: {
+        $: {
+          fields: ['id'],
+        },
+      },
+    },
+  });
+  const activity = res.data.activity[0];
+  if (!activity) {
+    throw new Error(`Activity with id ${activityId} not found`);
+  }
+  const tripId = activity?.trip?.id;
+  if (!tripId) {
+    throw new Error(`Activity with id ${activityId} has no trip`);
+  }
+  delete activity.trip;
+  const newId = id();
+  const transaction = await db.transact(
+    db.tx.activity[newId]
+      .create({
+        ...activity,
+        timestampStart,
+        timestampEnd,
+        createdAt: Date.now(),
+        lastUpdatedAt: Date.now(),
+        flags: updateActivityFlag(activity.flags, ActivityFlag.IsIdea, false),
+      })
+      .link({
+        trip: tripId,
+      }),
+  );
+  return {
+    id: newId,
+    transaction,
+    undo: async () => {
+      return await db.transact(db.tx.activity[newId].delete());
+    },
+  };
+}
+
 export async function dbUpdateActivityDragEnd(
   activityId: string,
   {
-    currentFlags,
     timestampStart,
     timestampEnd,
-    isIdea,
   }: {
-    currentFlags: number | null | undefined;
     timestampStart: number;
     timestampEnd: number;
-    isIdea: boolean;
   },
 ) {
-  return db.transact(
-    db.tx.activity[activityId].merge({
+  const res = await db.queryOnce({
+    activity: {
+      $: {
+        where: { id: activityId },
+      },
+    },
+  });
+  const activitySnapshot = res.data.activity[0];
+  if (!activitySnapshot) {
+    throw new Error(`Activity with id ${activityId} not found`);
+  }
+  const transaction = await db.transact(
+    db.tx.activity[activitySnapshot.id].merge({
       timestampStart,
       timestampEnd,
       lastUpdatedAt: Date.now(),
-      flags: updateActivityFlag(currentFlags, ActivityFlag.IsIdea, isIdea),
+      flags: updateActivityFlag(
+        activitySnapshot.flags,
+        ActivityFlag.IsIdea,
+        false,
+      ),
     }),
   );
+  return {
+    transaction,
+    undo: async () => {
+      return await db.transact(
+        db.tx.activity[activitySnapshot.id].merge({
+          ...activitySnapshot,
+          lastUpdatedAt: Date.now(),
+        }),
+      );
+    },
+  };
 }

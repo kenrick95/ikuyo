@@ -26,8 +26,7 @@ import { Activity } from '../../Activity/Activity';
 import { ActivityDialog } from '../../Activity/ActivityDialog/ActivityDialog';
 import { ActivityNewDialog } from '../../Activity/ActivityNewDialog';
 import {
-  type DbActivity,
-  dbAddActivity,
+  dbDuplicateActivityDragEnd,
   dbUpdateActivityDragEnd,
 } from '../../Activity/db';
 import { calculateNewTimestamps } from '../../Activity/dragUtils';
@@ -422,26 +421,10 @@ export function Timetable() {
 
         if (isCopying) {
           // Copy activity instead of move/resize
-          const newActivity = {
+          await dbDuplicateActivityDragEnd(activityId, {
             timestampStart,
             timestampEnd,
-            title: activity.title,
-            location: activity.location,
-            locationLat: activity.locationLat,
-            locationLng: activity.locationLng,
-            locationZoom: activity.locationZoom,
-            locationDestination: activity.locationDestination,
-            locationDestinationLat: activity.locationDestinationLat,
-            locationDestinationLng: activity.locationDestinationLng,
-            locationDestinationZoom: activity.locationDestinationZoom,
-            description: activity.description,
-            timeZoneStart: activity.timeZoneStart,
-            timeZoneEnd: activity.timeZoneEnd,
-          } satisfies Omit<
-            DbActivity,
-            'id' | 'createdAt' | 'lastUpdatedAt' | 'trip'
-          >;
-          await dbAddActivity(newActivity, { tripId: trip.id });
+          });
 
           publishToast({
             root: {},
@@ -454,9 +437,6 @@ export function Timetable() {
           await dbUpdateActivityDragEnd(activityId, {
             timestampStart,
             timestampEnd,
-            currentFlags: activity.flags,
-            // if it's dropped into timetable, means removed from idea list
-            isIdea: false,
           });
           publishToast({
             root: {},
