@@ -128,7 +128,7 @@ export async function dbUpdateActivity(
     },
   });
 
-  const transaction = db.transact(
+  const transaction = await db.transact(
     db.tx.activity[activity.id].merge({
       ...activity,
       lastUpdatedAt: Date.now(),

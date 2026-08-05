@@ -402,7 +402,6 @@ export function ActivityForm({
       if (!elForm.reportValidity()) {
         return;
       }
-      resetToast();
       const formData = new FormData(elForm);
       const title = (formData.get('title') as string | null) ?? '';
       const iconRaw = (formData.get('icon') as string | null) ?? '';
@@ -512,6 +511,7 @@ export function ActivityForm({
           timeZoneEnd: timeEndDate ? timeEndDate.timeZoneId : null,
           flags: flags,
         });
+        resetToast();
         publishToast({
           root: { duration: 15_000 },
           title: { children: `Activity ${title} edited` },
@@ -577,6 +577,7 @@ export function ActivityForm({
             tripId: tripId,
           },
         );
+        resetToast();
         publishToast({
           root: { duration: 15_000 },
           title: { children: `Activity ${title} added` },

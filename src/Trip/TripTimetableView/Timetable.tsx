@@ -297,7 +297,6 @@ export function Timetable() {
         console.warn('No trip found for dropping activity');
         return;
       }
-      resetToast();
       if (!userCanModifyTrip) {
         console.warn(
           'User does not have permission to edit or delete activities',
@@ -428,6 +427,7 @@ export function Timetable() {
             timestampEnd,
           });
 
+          resetToast();
           publishToast({
             root: { duration: 15_000 },
             title: { children: `Copied activity ${activity.title}` },
@@ -435,7 +435,7 @@ export function Timetable() {
               children: 'Undo',
               altText: `Undo the copy of ${activity.title}`,
               onClick: async () => {
-                undo();
+                await undo();
                 resetToast();
                 publishToast({
                   root: {},
@@ -453,6 +453,7 @@ export function Timetable() {
             timestampStart,
             timestampEnd,
           });
+          resetToast();
           publishToast({
             root: { duration: 15_000 },
             title: {

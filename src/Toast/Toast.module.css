@@ -146,10 +146,7 @@
   margin-top: var(--space-1);
   padding: var(--space-1) var(--space-2);
 
-  /* TODO: when a dialog is opened, the toast will appear on top of the dialog. HOWEVER, the toast seem to be non-focusable via tab; and also if clicked, the event will go to the dialog instead of handled by toast (i.e. the dialog will be dismissed instead of button click) */
-  /* TODO: I can't seem to focus on the button too, but at least this is now clickable */
-  /* Restore pointer-events due to all:unset */
-  /* So this is because of Dialog's modality. The 'correct' way is to render another Toast INSIDE Dialog Content but it feels so wrong too */
+  /* TODO: Restore pointer-events because Radix's Dialog makes it unfocusable, but with this, at least it is clickable. For keyboard support, the correct way is to find a way to make these focusable outside Radix's Dialog content. Maybe use Radix Primitive Dialog directly with non-modal mode? Radix Primitive Focus Guard has "branches" prop that takes in HTMLElement[] to still give focus */
   pointer-events: auto;
 }
 .ToastAction:hover {
