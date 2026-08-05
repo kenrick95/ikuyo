@@ -142,6 +142,7 @@ export function Timetable() {
   }, [dayGroups]);
   const timetableRef = useRef<HTMLDivElement>(null);
   const publishToast = useBoundStore((state) => state.publishToast);
+  const resetToast = useBoundStore((state) => state.resetToast);
 
   // State to track if we've already scrolled for this trip to prevent repeated scrolling
   const [hasScrolledForTrip, setHasScrolledForTrip] = useState<string | null>(
@@ -421,27 +422,57 @@ export function Timetable() {
 
         if (isCopying) {
           // Copy activity instead of move/resize
-          await dbDuplicateActivityDragEnd(activityId, {
+          const { undo } = await dbDuplicateActivityDragEnd(activityId, {
             timestampStart,
             timestampEnd,
           });
 
+          resetToast();
           publishToast({
-            root: {},
-            title: { children: `Copied: ${activity.title}` },
+            root: { duration: 15_000 },
+            title: { children: `Copied activity ${activity.title}` },
+            action: {
+              children: 'Undo',
+              altText: `Undo the copy of ${activity.title}`,
+              onClick: async () => {
+                await undo();
+                resetToast();
+                publishToast({
+                  root: {},
+                  title: { children: `Undone copy of ${activity.title}` },
+                  close: {},
+                });
+              },
+            },
             close: {},
           });
           return;
         } else {
           // Update the activity's timestamps in the database
-          await dbUpdateActivityDragEnd(activityId, {
+          const { undo } = await dbUpdateActivityDragEnd(activityId, {
             timestampStart,
             timestampEnd,
           });
+          resetToast();
           publishToast({
-            root: {},
+            root: { duration: 15_000 },
             title: {
-              children: `${mode === 'drag' ? 'Moved' : 'End time changed'}: ${activity.title}`,
+              children: `${mode === 'drag' ? 'Moved' : 'End time changed'} for activity ${activity.title}`,
+            },
+            action: {
+              children: 'Undo',
+              altText: `Undo ${mode === 'drag' ? 'the move' : 'the end time change'} of ${activity.title}`,
+              onClick: async () => {
+                await undo();
+                resetToast();
+                publishToast({
+                  root: {},
+                  title: {
+                    children: `Undone ${mode === 'drag' ? 'the move' : 'the end time change'} of ${activity.title}`,
+                  },
+                  close: {},
+                });
+              },
             },
             close: {},
           });
@@ -455,7 +486,14 @@ export function Timetable() {
         });
       }
     },
-    [trip, activities, publishToast, userCanModifyTrip, setTimetableDragging],
+    [
+      trip,
+      activities,
+      publishToast,
+      resetToast,
+      userCanModifyTrip,
+      setTimetableDragging,
+    ],
   );
   const toggleSidebar = useCallback(() => {
     setSidebarVisible(!isSidebarVisible);

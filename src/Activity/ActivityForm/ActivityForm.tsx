@@ -167,6 +167,7 @@ export function ActivityForm({
   const idDescription = useId();
   const idCoordinates = useId();
   const publishToast = useBoundStore((state) => state.publishToast);
+  const resetToast = useBoundStore((state) => state.resetToast);
   const [errorMessage, setErrorMessage] = useState('');
 
   const setTripLocalState = useBoundStore((state) => state.setTripLocalState);
@@ -472,7 +473,7 @@ export function ActivityForm({
         return;
       }
       if (mode === ActivityFormMode.Edit && activityId) {
-        await dbUpdateActivity({
+        const { undo } = await dbUpdateActivity({
           id: activityId,
           title,
           icon: icon || null,
@@ -510,9 +511,23 @@ export function ActivityForm({
           timeZoneEnd: timeEndDate ? timeEndDate.timeZoneId : null,
           flags: flags,
         });
+        resetToast();
         publishToast({
-          root: {},
+          root: { duration: 15_000 },
           title: { children: `Activity ${title} edited` },
+          action: {
+            children: 'Undo',
+            altText: `Undo edit of activity ${title}`,
+            onClick: async () => {
+              await undo();
+              resetToast();
+              publishToast({
+                root: {},
+                title: { children: `Undone edit of activity ${title}` },
+                close: {},
+              });
+            },
+          },
           close: {},
         });
       } else if (mode === ActivityFormMode.New && tripId) {
@@ -522,7 +537,7 @@ export function ActivityForm({
             activityTimestampStart: timeEndDate.epochMilliseconds,
           });
         }
-        await dbAddActivity(
+        const { undo } = await dbAddActivity(
           {
             title,
             icon: icon || null,
@@ -562,9 +577,23 @@ export function ActivityForm({
             tripId: tripId,
           },
         );
+        resetToast();
         publishToast({
-          root: {},
+          root: { duration: 15_000 },
           title: { children: `Activity ${title} added` },
+          action: {
+            children: 'Undo',
+            altText: `Undo creation of activity ${title}`,
+            onClick: async () => {
+              await undo();
+              resetToast();
+              publishToast({
+                root: {},
+                title: { children: `Undone creation of activity ${title}` },
+                close: {},
+              });
+            },
+          },
           close: {},
         });
       }
@@ -589,6 +618,7 @@ export function ActivityForm({
     tripEndDateTime,
     setTripLocalState,
     activityFlags,
+    resetToast,
   ]);
 
   const onFormInput = useCallback(() => {
