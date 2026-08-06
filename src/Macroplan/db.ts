@@ -49,31 +49,53 @@ export async function dbAddMacroplan(
   { tripId }: { tripId: string },
 ) {
   const newMacroplanId = id();
+  const transaction = await db.transact([
+    db.tx.macroplan[newMacroplanId]
+      .update({
+        ...newMacroplan,
+        createdAt: Date.now(),
+        lastUpdatedAt: Date.now(),
+      })
+      .link({
+        trip: tripId,
+      }),
+  ]);
   return {
     id: newMacroplanId,
-    result: await db.transact([
-      db.tx.macroplan[newMacroplanId]
-        .update({
-          ...newMacroplan,
-          createdAt: Date.now(),
-          lastUpdatedAt: Date.now(),
-        })
-        .link({
-          trip: tripId,
-        }),
-    ]),
+    transaction,
+    undo: async () => {
+      return await db.transact(db.tx.macroplan[newMacroplanId].delete());
+    },
   };
 }
 
 export async function dbUpdateMacroplan(
   macroplan: Omit<DbMacroplan, 'createdAt' | 'lastUpdatedAt' | 'trip'>,
 ) {
-  return db.transact(
+  const snapshot = await db.queryOnce({
+    macroplan: {
+      $: {
+        where: { id: macroplan.id },
+      },
+    },
+  });
+  const transaction = await db.transact(
     db.tx.macroplan[macroplan.id].merge({
       ...macroplan,
       lastUpdatedAt: Date.now(),
     }),
   );
+  return {
+    transaction,
+    undo: async () => {
+      return await db.transact(
+        db.tx.macroplan[macroplan.id].merge({
+          ...snapshot.data.macroplan[0],
+          lastUpdatedAt: Date.now(),
+        }),
+      );
+    },
+  };
 }
 
 export async function dbDeleteMacroplan(macroplanId: string) {
@@ -96,6 +118,7 @@ export async function dbDeleteMacroplan(macroplanId: string) {
     commentGroup.comment.map((comment) => comment.id),
   );
 
+  // TODO: change to soft delete so we can easily undo
   return db.transact([
     ...commentGroupIds.map((commentGroupId) =>
       db.tx.commentGroup[commentGroupId].delete(),

@@ -130,6 +130,7 @@ export function AccommodationForm({
   const idNotes = useId();
   const idCoordinates = useId();
   const publishToast = useBoundStore((state) => state.publishToast);
+  const resetToast = useBoundStore((state) => state.resetToast);
 
   const [errorMessage, setErrorMessage] = useState('');
   const [checkInDateTime, setCheckInDateTime] = useState<
@@ -316,7 +317,7 @@ export function AccommodationForm({
         return;
       }
       if (mode === AccommodationFormMode.Edit && accommodationId) {
-        await dbUpdateAccommodation({
+        const { undo } = await dbUpdateAccommodation({
           id: accommodationId,
           name,
           address,
@@ -330,13 +331,27 @@ export function AccommodationForm({
           locationLng: coordinateState.enabled ? coordinateState.lng : null,
           locationZoom: coordinateState.enabled ? coordinateState.zoom : null,
         });
+        resetToast();
         publishToast({
-          root: {},
+          root: { duration: 15_000 },
           title: { children: `Accommodation ${name} updated` },
+          action: {
+            children: 'Undo',
+            altText: `Undo edit of accommodation ${name}`,
+            onClick: async () => {
+              await undo();
+              resetToast();
+              publishToast({
+                root: {},
+                title: { children: `Undone edit of accommodation ${name}` },
+                close: {},
+              });
+            },
+          },
           close: {},
         });
       } else if (mode === AccommodationFormMode.New && tripId) {
-        const { id, result } = await dbAddAccommodation(
+        const { undo } = await dbAddAccommodation(
           {
             name,
             address,
@@ -354,10 +369,23 @@ export function AccommodationForm({
             tripId: tripId,
           },
         );
-        console.log('AccommodationForm: dbAddAccommodation', { id, result });
+        resetToast();
         publishToast({
-          root: {},
+          root: { duration: 15_000 },
           title: { children: `Accommodation ${name} added` },
+          action: {
+            children: 'Undo',
+            altText: `Undo creation of accommodation ${name}`,
+            onClick: async () => {
+              await undo();
+              resetToast();
+              publishToast({
+                root: {},
+                title: { children: `Undone creation of accommodation ${name}` },
+                close: {},
+              });
+            },
+          },
           close: {},
         });
       }
@@ -369,6 +397,7 @@ export function AccommodationForm({
     accommodationId,
     mode,
     publishToast,
+    resetToast,
     onFormSuccess,
     tripId,
     tripEndDateTime,

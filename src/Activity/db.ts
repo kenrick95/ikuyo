@@ -103,8 +103,7 @@ export async function dbDeleteActivity(activityId: string) {
   const commentIds = commentGroups.data.commentGroup.flatMap((commentGroup) =>
     commentGroup.comment.map((comment) => comment.id),
   );
-  // TODO: very hard to undo all of these ._.
-
+  // TODO: change to soft delete so we can easily undo
   return db.transact([
     ...commentGroupIds.map((commentGroupId) =>
       db.tx.commentGroup[commentGroupId].delete(),
@@ -141,6 +140,7 @@ export async function dbUpdateActivity(
       return await db.transact(
         db.tx.activity[activity.id].merge({
           ...snapshot.data.activity[0],
+          lastUpdatedAt: Date.now(),
         }),
       );
     },

@@ -56,6 +56,7 @@ export function MacroplanForm({
   const idNotes = useId();
 
   const publishToast = useBoundStore((state) => state.publishToast);
+  const resetToast = useBoundStore((state) => state.resetToast);
 
   const [errorMessage, setErrorMessage] = useState('');
   const [dateStart, setDateStart] = useState<Temporal.PlainDate | undefined>(
@@ -150,7 +151,7 @@ export function MacroplanForm({
         return;
       }
       if (mode === MacroplanFormMode.Edit && macroplanId) {
-        await dbUpdateMacroplan({
+        const { undo } = await dbUpdateMacroplan({
           id: macroplanId,
           name,
           timestampStart:
@@ -161,13 +162,27 @@ export function MacroplanForm({
           timeZoneEnd: timeZoneEnd,
           notes,
         });
+        resetToast();
         publishToast({
-          root: {},
+          root: { duration: 15_000 },
           title: { children: `Day plan ${name} updated` },
+          action: {
+            children: 'Undo',
+            altText: `Undo edit of day plan ${name}`,
+            onClick: async () => {
+              await undo();
+              resetToast();
+              publishToast({
+                root: {},
+                title: { children: `Undone edit of day plan ${name}` },
+                close: {},
+              });
+            },
+          },
           close: {},
         });
       } else if (mode === MacroplanFormMode.New && tripId) {
-        const { id, result } = await dbAddMacroplan(
+        const { undo } = await dbAddMacroplan(
           {
             name,
             timestampStart:
@@ -182,10 +197,23 @@ export function MacroplanForm({
             tripId: tripId,
           },
         );
-        console.log('MacroplanForm: dbAddMacroplan', { id, result });
+        resetToast();
         publishToast({
-          root: {},
+          root: { duration: 15_000 },
           title: { children: `Day plan ${name} added` },
+          action: {
+            children: 'Undo',
+            altText: `Undo creation of day plan ${name}`,
+            onClick: async () => {
+              await undo();
+              resetToast();
+              publishToast({
+                root: {},
+                title: { children: `Undone creation of day plan ${name}` },
+                close: {},
+              });
+            },
+          },
           close: {},
         });
       }
@@ -197,6 +225,7 @@ export function MacroplanForm({
     macroplanId,
     mode,
     publishToast,
+    resetToast,
     onFormSuccess,
     tripId,
     dateStart,

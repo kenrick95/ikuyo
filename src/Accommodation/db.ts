@@ -45,31 +45,55 @@ export async function dbAddAccommodation(
   },
 ) {
   const newAccommodationId = id();
+  const transaction = await db.transact([
+    db.tx.accommodation[newAccommodationId]
+      .update({
+        ...newAccommodation,
+        createdAt: Date.now(),
+        lastUpdatedAt: Date.now(),
+      })
+      .link({
+        trip: tripId,
+      }),
+  ]);
   return {
     id: newAccommodationId,
-    result: await db.transact([
-      db.tx.accommodation[newAccommodationId]
-        .update({
-          ...newAccommodation,
-          createdAt: Date.now(),
-          lastUpdatedAt: Date.now(),
-        })
-        .link({
-          trip: tripId,
-        }),
-    ]),
+    transaction,
+    undo: async () => {
+      return await db.transact(
+        db.tx.accommodation[newAccommodationId].delete(),
+      );
+    },
   };
 }
 
 export async function dbUpdateAccommodation(
   accommodation: Omit<DbAccommodation, 'createdAt' | 'lastUpdatedAt' | 'trip'>,
 ) {
-  return db.transact(
+  const snapshot = await db.queryOnce({
+    accommodation: {
+      $: {
+        where: { id: accommodation.id },
+      },
+    },
+  });
+  const transaction = await db.transact(
     db.tx.accommodation[accommodation.id].merge({
       ...accommodation,
       lastUpdatedAt: Date.now(),
     }),
   );
+  return {
+    transaction,
+    undo: async () => {
+      return await db.transact(
+        db.tx.accommodation[accommodation.id].merge({
+          ...snapshot.data.accommodation[0],
+          lastUpdatedAt: Date.now(),
+        }),
+      );
+    },
+  };
 }
 
 export async function dbDeleteAccommodation(accommodationId: string) {
@@ -92,6 +116,7 @@ export async function dbDeleteAccommodation(accommodationId: string) {
     commentGroup.comment.map((comment) => comment.id),
   );
 
+  // TODO: change to soft delete so we can easily undo
   return db.transact([
     ...commentGroupIds.map((commentGroupId) =>
       db.tx.commentGroup[commentGroupId].delete(),
