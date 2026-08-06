@@ -137,7 +137,8 @@ export function ActivityDialogContentView({
     return getActivityType(activity?.flags);
   }, [activity?.flags]);
 
-  const isFlight = activityType === ActivityType.Flight;
+  const isTransport =
+    activityType === ActivityType.Flight || activityType === ActivityType.Train;
 
   const activityTitle = useMemo(() => {
     if (!activity) {
@@ -146,7 +147,14 @@ export function ActivityDialogContentView({
     return getActivityDisplayTitle(activity);
   }, [activity]);
 
-  const typeLabel = isFlight ? 'Flight' : isIdea ? 'Activity Idea' : 'Activity';
+  const typeLabel =
+    activityType === ActivityType.Flight
+      ? 'Flight'
+      : activityType === ActivityType.Train
+        ? 'Train'
+        : isIdea
+          ? 'Activity Idea'
+          : 'Activity';
 
   return (
     <Dialog.Content {...dialogContentProps}>
@@ -201,7 +209,7 @@ export function ActivityDialogContentView({
             </Button>
           </Flex>
           <Dialog.Description size="2">
-            {isFlight ? 'Flight details' : 'Activity details'}
+            {isTransport ? 'Transport details' : 'Activity details'}
           </Dialog.Description>
           <Heading as="h2" size="4">
             Title
@@ -224,7 +232,7 @@ export function ActivityDialogContentView({
           {activity?.location ? (
             <>
               <Heading as="h2" size="4">
-                {isFlight
+                {isTransport
                   ? 'From'
                   : activity?.locationDestination
                     ? 'Origin'
@@ -236,7 +244,7 @@ export function ActivityDialogContentView({
           {activity?.locationDestination ? (
             <>
               <Heading as="h2" size="4">
-                {isFlight ? 'To' : 'Destination'}
+                {isTransport ? 'To' : 'Destination'}
               </Heading>
               <Text>{activity.locationDestination}</Text>
             </>
@@ -244,7 +252,7 @@ export function ActivityDialogContentView({
           {activity?.description ? (
             <>
               <Heading as="h2" size="4">
-                {isFlight ? 'Notes' : 'Description'}
+                {isTransport ? 'Notes' : 'Description'}
               </Heading>
               <Text className={s.description}>{descriptions}</Text>
             </>

@@ -24,13 +24,19 @@ import { dbAddTrip } from '../db';
 import { TripSharingLevel } from '../tripSharingLevel';
 import { FlightSubform } from './FlightSubform';
 import s from './PageTripNew.module.css';
+import { TrainSubform } from './TrainSubform';
 import { WizardProgressDots } from './WizardProgressDots';
 import {
   createInitialWizardState,
   type FlightCapture,
+  type TrainCapture,
   wizardReducer,
 } from './wizardReducer';
-import { getFlightTimeError, getOriginCurrencyFromLocale } from './wizardUtils';
+import {
+  getFlightTimeError,
+  getOriginCurrencyFromLocale,
+  getTrainTimeError,
+} from './wizardUtils';
 
 export default function PageTripNew() {
   const [, setLocation] = useLocation();
@@ -143,7 +149,7 @@ export default function PageTripNew() {
         },
         { userId: currentUser.id },
       );
-      const flightPromises: Promise<unknown>[] = [];
+      const activityPromises: Promise<unknown>[] = [];
       if (
         state.travelMode === 'flight' &&
         state.outboundFlight?.flightNumber &&
@@ -157,7 +163,7 @@ export default function PageTripNew() {
           .toZonedDateTime(state.outboundFlight.arrivalTimeZone || timeZone)
           .toInstant().epochMilliseconds;
 
-        flightPromises.push(
+        activityPromises.push(
           dbAddActivity(
             {
               title: state.outboundFlight.flightNumber,
@@ -193,7 +199,7 @@ export default function PageTripNew() {
         const timestampEnd = state.returnFlight.arrivalDateTime
           .toZonedDateTime(state.returnFlight.arrivalTimeZone || timeZone)
           .toInstant().epochMilliseconds;
-        flightPromises.push(
+        activityPromises.push(
           dbAddActivity(
             {
               title: state.returnFlight.flightNumber,
@@ -217,8 +223,81 @@ export default function PageTripNew() {
           ),
         );
       }
+      if (
+        state.travelMode === 'train' &&
+        state.outboundTrain?.trainNumber &&
+        state.outboundTrain?.departureDateTime &&
+        state.outboundTrain?.arrivalDateTime
+      ) {
+        const timestampStart = state.outboundTrain.departureDateTime
+          .toZonedDateTime(state.outboundTrain.departureTimeZone || timeZone)
+          .toInstant().epochMilliseconds;
+        const timestampEnd = state.outboundTrain.arrivalDateTime
+          .toZonedDateTime(state.outboundTrain.arrivalTimeZone || timeZone)
+          .toInstant().epochMilliseconds;
+
+        activityPromises.push(
+          dbAddActivity(
+            {
+              title: state.outboundTrain.trainNumber,
+              location: state.outboundTrain.departureStation || '',
+              locationLat: state.outboundTrain.departureLat,
+              locationLng: state.outboundTrain.departureLng,
+              locationZoom: state.outboundTrain.departureZoom,
+              locationDestination: state.outboundTrain.arrivalStation,
+              locationDestinationLat: state.outboundTrain.arrivalLat,
+              locationDestinationLng: state.outboundTrain.arrivalLng,
+              locationDestinationZoom: state.outboundTrain.arrivalZoom,
+              description: '',
+              timestampStart,
+              timestampEnd,
+              timeZoneStart: state.outboundTrain.departureTimeZone,
+              timeZoneEnd: state.outboundTrain.arrivalTimeZone,
+              flags: ActivityFlag.IsTrain,
+              icon: '🚆',
+            },
+            { tripId: newTripId },
+          ),
+        );
+      }
+      if (
+        state.travelMode === 'train' &&
+        state.returnTrain?.trainNumber &&
+        state.returnTrain?.departureDateTime &&
+        state.returnTrain?.arrivalDateTime
+      ) {
+        const timestampStart = state.returnTrain.departureDateTime
+          .toZonedDateTime(state.returnTrain.departureTimeZone || timeZone)
+          .toInstant().epochMilliseconds;
+        const timestampEnd = state.returnTrain.arrivalDateTime
+          .toZonedDateTime(state.returnTrain.arrivalTimeZone || timeZone)
+          .toInstant().epochMilliseconds;
+        activityPromises.push(
+          dbAddActivity(
+            {
+              title: state.returnTrain.trainNumber,
+              location: state.returnTrain.departureStation || '',
+              locationLat: state.returnTrain.departureLat,
+              locationLng: state.returnTrain.departureLng,
+              locationZoom: state.returnTrain.departureZoom,
+              locationDestination: state.returnTrain.arrivalStation,
+              locationDestinationLat: state.returnTrain.arrivalLat,
+              locationDestinationLng: state.returnTrain.arrivalLng,
+              locationDestinationZoom: state.returnTrain.arrivalZoom,
+              description: '',
+              timestampStart,
+              timestampEnd,
+              timeZoneStart: state.returnTrain.departureTimeZone,
+              timeZoneEnd: state.returnTrain.arrivalTimeZone,
+              flags: ActivityFlag.IsTrain,
+              icon: '🚆',
+            },
+            { tripId: newTripId },
+          ),
+        );
+      }
       try {
-        await Promise.all(flightPromises);
+        await Promise.all(activityPromises);
         publishToast({
           root: {},
           title: { children: 'Trip created!' },
@@ -229,7 +308,7 @@ export default function PageTripNew() {
           root: {},
           title: {
             children:
-              'Trip created, but we could not add your flights. You can add them later.',
+              'Trip created, but we could not add your transport. You can add them later.',
           },
           close: {},
         });
@@ -276,6 +355,18 @@ export default function PageTripNew() {
     state.endDate,
     state.timeZone,
   );
+  const outboundTrainError = getTrainTimeError(
+    state.outboundTrain,
+    state.startDate,
+    state.endDate,
+    state.timeZone,
+  );
+  const returnTrainError = getTrainTimeError(
+    state.returnTrain,
+    state.startDate,
+    state.endDate,
+    state.timeZone,
+  );
 
   const regionDisplayName = useMemo(() => {
     if (!state.region) return '';
@@ -308,6 +399,24 @@ export default function PageTripNew() {
     },
     [],
   );
+  const handleOutboundTrainChange = useCallback(
+    (trainCapture: TrainCapture | null) => {
+      const train = trainCapture;
+      // If user has set departure date, but has not set arrival date, set arrival date to same as departure date
+      if (train?.departureDateTime && !train.arrivalDateTime) {
+        train.arrivalDateTime = train.departureDateTime.add({ hours: 2 });
+      }
+      dispatch({ type: 'SET_OUTBOUND_TRAIN', train });
+    },
+    [],
+  );
+  const handleReturnTrainChange = useCallback((train: TrainCapture | null) => {
+    // If user has set departure date, but has not set arrival date, set arrival date to same as departure date
+    if (train?.departureDateTime && !train.arrivalDateTime) {
+      train.arrivalDateTime = train.departureDateTime.add({ hours: 2 });
+    }
+    dispatch({ type: 'SET_RETURN_TRAIN', train });
+  }, []);
 
   if (state.step === 1) {
     return (
@@ -499,12 +608,12 @@ export default function PageTripNew() {
       </Heading>
 
       <RadioCards.Root
-        columns="2"
+        columns="3"
         value={state.travelMode ?? ''}
         onValueChange={(v) =>
           dispatch({
             type: 'SET_TRAVEL_MODE',
-            travelMode: v as 'flight' | 'other',
+            travelMode: v as 'flight' | 'train' | 'other',
           })
         }
         mt="2"
@@ -514,6 +623,14 @@ export default function PageTripNew() {
             <span>✈️</span>
             <Text size="2" weight="medium">
               Flying
+            </Text>
+          </Flex>
+        </RadioCards.Item>
+        <RadioCards.Item value="train">
+          <Flex direction="column" align="center" gap="1" width="100%">
+            <span>🚆</span>
+            <Text size="2" weight="medium">
+              Train
             </Text>
           </Flex>
         </RadioCards.Item>
@@ -557,6 +674,33 @@ export default function PageTripNew() {
         </>
       )}
 
+      {state.travelMode === 'train' && (
+        <>
+          <TrainSubform
+            label="Outbound train"
+            value={state.outboundTrain}
+            originTimeZone={localTimeZone}
+            destinationTimeZone={state.timeZone}
+            isOutbound={true}
+            error={outboundTrainError}
+            tripStartDate={state.startDate}
+            tripEndDate={state.endDate}
+            onChange={handleOutboundTrainChange}
+          />
+          <TrainSubform
+            label="Return train"
+            value={state.returnTrain}
+            originTimeZone={localTimeZone}
+            destinationTimeZone={state.timeZone}
+            isOutbound={false}
+            error={returnTrainError}
+            tripStartDate={state.startDate}
+            tripEndDate={state.endDate}
+            onChange={handleReturnTrainChange}
+          />
+        </>
+      )}
+
       <Flex justify="between" mt="5">
         <Button
           variant="ghost"
@@ -565,14 +709,14 @@ export default function PageTripNew() {
         >
           ← Back
         </Button>
-        {state.travelMode !== 'flight' ? (
+        {state.travelMode === null ? (
           <Flex gap="2">
             <Button
               variant="ghost"
               loading={isSubmitting}
               onClick={handleCreateTrip}
             >
-              Skip — I'll add flights later
+              Skip — I'll add transport later
             </Button>
             <Button loading={isSubmitting} onClick={handleCreateTrip}>
               Create Trip
@@ -582,8 +726,12 @@ export default function PageTripNew() {
           <Button
             loading={isSubmitting}
             disabled={
-              outboundFlightError !== undefined ||
-              returnFlightError !== undefined
+              (state.travelMode === 'flight' &&
+                (outboundFlightError !== undefined ||
+                  returnFlightError !== undefined)) ||
+              (state.travelMode === 'train' &&
+                (outboundTrainError !== undefined ||
+                  returnTrainError !== undefined))
             }
             onClick={handleCreateTrip}
           >

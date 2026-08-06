@@ -2,6 +2,7 @@ export const ActivityFlag = {
   // NOTE: Start from 2 (1 << 1) to avoid confusion with falsy 0 and truthy 1
   IsIdea: 2 as const, // 1 << 1
   IsFlight: 4 as const, // 1 << 2
+  IsTrain: 8 as const, // 1 << 3
 };
 export type ActivityFlagType = (typeof ActivityFlag)[keyof typeof ActivityFlag];
 

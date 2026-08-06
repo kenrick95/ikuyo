@@ -1,0 +1,715 @@
+import {
+  Button,
+  Flex,
+  Switch,
+  Text,
+  TextArea,
+  TextField,
+} from '@radix-ui/themes';
+import type { SubmitEvent } from 'react';
+import { useCallback, useId, useReducer, useState } from 'react';
+import { DateTimePicker } from '../../common/DatePicker2/DateTimePicker';
+import { DateTimePickerMode } from '../../common/DatePicker2/DateTimePickerMode';
+import { EmojiTextField } from '../../common/EmojiTextField/EmojiTextField';
+import { TimeZoneSelect } from '../../common/TimeZoneSelect/TimeZoneSelect';
+import { dangerToken } from '../../common/ui';
+import { useBoundStore } from '../../data/store';
+import { ActivityMap } from '../ActivityDialog/ActivityDialogMap';
+import {
+  ActivityFormMode,
+  type ActivityFormModeType,
+} from '../ActivityForm/ActivityFormMode';
+import {
+  ActivityFlag,
+  addActivityFlag,
+  hasActivityFlag,
+  updateActivityFlag,
+} from '../activityFlag';
+import { dbAddActivity, dbUpdateActivity } from '../db';
+import { stationGeocodingRequest } from './TrainFormGeocoding';
+
+interface LocationCoordinateState {
+  enabled: [boolean, boolean];
+  lat: [number | null | undefined, number | null | undefined];
+  lng: [number | null | undefined, number | null | undefined];
+  zoom: [number | null | undefined, number | null | undefined];
+}
+
+function coordinateStateReducer(
+  state: LocationCoordinateState,
+  action:
+    | { type: 'setMapZoom'; index: number; zoom: number }
+    | { type: 'setMarkerCoordinate'; index: number; lat: number; lng: number }
+    | {
+        type: 'setEnabled';
+        index: number;
+        lat: number | null | undefined;
+        lng: number | null | undefined;
+        zoom: number | null | undefined;
+      }
+    | { type: 'setDisabled'; index: number },
+): LocationCoordinateState {
+  switch (action.type) {
+    case 'setEnabled': {
+      const newState = { ...state };
+      newState.enabled[action.index] = true;
+      newState.lat[action.index] = action.lat;
+      newState.lng[action.index] = action.lng;
+      newState.zoom[action.index] = action.zoom;
+      return newState;
+    }
+    case 'setDisabled': {
+      const newState = { ...state };
+      newState.enabled[action.index] = false;
+      return newState;
+    }
+    case 'setMapZoom': {
+      const newState = { ...state };
+      newState.zoom[action.index] = action.zoom;
+      return newState;
+    }
+    case 'setMarkerCoordinate': {
+      const newState = { ...state };
+      newState.lat[action.index] = action.lat;
+      newState.lng[action.index] = action.lng;
+      return newState;
+    }
+    default:
+      return state;
+  }
+}
+
+export function TrainForm({
+  mode,
+  activityId,
+  tripId,
+  tripStartDateTime,
+  tripEndDateTime,
+  tripTimeZone,
+  activityTitle,
+  activityIcon,
+  activityStartDateTime,
+  activityEndDateTime,
+  activityStartTimeZone,
+  activityEndTimeZone,
+  activityLocation,
+  activityLocationLng,
+  activityLocationLat,
+  activityLocationZoom,
+  activityLocationDestination,
+  activityLocationDestinationLng,
+  activityLocationDestinationLat,
+  activityLocationDestinationZoom,
+  activityDescription,
+  activityFlags,
+  onFormSuccess,
+  onFormCancel,
+}: {
+  mode: ActivityFormModeType;
+  activityId?: string;
+  tripId?: string;
+  tripStartDateTime: Temporal.PlainDate | undefined;
+  /** Trip's final day */
+  tripEndDateTime: Temporal.PlainDate | undefined;
+  tripTimeZone: string;
+  tripRegion: string;
+  activityTitle: string;
+  activityIcon?: string | null | undefined;
+  activityStartDateTime: Temporal.PlainDateTime | undefined;
+  activityEndDateTime: Temporal.PlainDateTime | undefined;
+  activityStartTimeZone: string | undefined;
+  activityEndTimeZone: string | undefined;
+  activityLocation: string;
+  activityLocationLat: number | null | undefined;
+  activityLocationLng: number | null | undefined;
+  activityLocationZoom: number | null | undefined;
+  activityLocationDestination: string | null | undefined;
+  activityLocationDestinationLat: number | null | undefined;
+  activityLocationDestinationLng: number | null | undefined;
+  activityLocationDestinationZoom: number | null | undefined;
+  activityDescription: string;
+  activityFlags: number | null | undefined;
+  onFormSuccess: () => void;
+  onFormCancel: () => void;
+}) {
+  const idForm = useId();
+  const idTitle = useId();
+  const idTimeStart = useId();
+  const idTimeEnd = useId();
+  const idFrom = useId();
+  const idTo = useId();
+  const idCoordinatesFrom = useId();
+  const idCoordinatesTo = useId();
+  const idDescription = useId();
+  const idIsIdea = useId();
+
+  const publishToast = useBoundStore((state) => state.publishToast);
+  const setTripLocalState = useBoundStore((state) => state.setTripLocalState);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const [isIdea, setIsIdea] = useState(() =>
+    hasActivityFlag(activityFlags, ActivityFlag.IsIdea),
+  );
+
+  const [startDateTime, setStartDateTime] = useState<
+    Temporal.PlainDateTime | undefined
+  >(activityStartDateTime);
+  const [endDateTime, setEndDateTime] = useState<
+    Temporal.PlainDateTime | undefined
+  >(activityEndDateTime);
+  const [startTimeZone, setStartTimeZone] = useState<string>(
+    activityStartTimeZone ?? tripTimeZone,
+  );
+  const [endTimeZone, setEndTimeZone] = useState<string>(
+    activityEndTimeZone ?? tripTimeZone,
+  );
+
+  const [locationFieldsState, dispatchLocationFieldsState] = useReducer(
+    coordinateStateReducer,
+    {
+      enabled: [
+        activityLocationLat != null && activityLocationLng != null,
+        activityLocationDestinationLat != null &&
+          activityLocationDestinationLng != null,
+      ],
+      lat: [activityLocationLat, activityLocationDestinationLat],
+      lng: [activityLocationLng, activityLocationDestinationLng],
+      zoom: [activityLocationZoom ?? 9, activityLocationDestinationZoom ?? 9],
+    },
+  );
+
+  const setCoordinateEnabled = useCallback(
+    async (enabled: boolean) => {
+      if (enabled) {
+        if (locationFieldsState.lat[0] && locationFieldsState.lng[0]) {
+          dispatchLocationFieldsState({
+            type: 'setEnabled',
+            index: 0,
+            lat: locationFieldsState.lat[0],
+            lng: locationFieldsState.lng[0],
+            zoom: locationFieldsState.zoom[0],
+          });
+        } else {
+          const elFrom = document.getElementById(idFrom) as HTMLInputElement;
+          const [lng, lat, zoom] = await stationGeocodingRequest(
+            elFrom?.value ?? '',
+          );
+          dispatchLocationFieldsState({
+            type: 'setEnabled',
+            index: 0,
+            lat,
+            lng,
+            zoom: zoom ?? locationFieldsState.zoom[0],
+          });
+        }
+      } else {
+        dispatchLocationFieldsState({ type: 'setDisabled', index: 0 });
+      }
+    },
+    [
+      idFrom,
+      locationFieldsState.lat,
+      locationFieldsState.lng,
+      locationFieldsState.zoom,
+    ],
+  );
+
+  const setCoordinateEnabledForDestination = useCallback(
+    async (enabled: boolean) => {
+      if (enabled) {
+        if (locationFieldsState.lat[1] && locationFieldsState.lng[1]) {
+          dispatchLocationFieldsState({
+            type: 'setEnabled',
+            index: 1,
+            lat: locationFieldsState.lat[1],
+            lng: locationFieldsState.lng[1],
+            zoom: locationFieldsState.zoom[1],
+          });
+        } else {
+          const elTo = document.getElementById(idTo) as HTMLInputElement;
+          const [lng, lat, zoom] = await stationGeocodingRequest(
+            elTo?.value ?? '',
+          );
+          dispatchLocationFieldsState({
+            type: 'setEnabled',
+            index: 1,
+            lat,
+            lng,
+            zoom: zoom ?? locationFieldsState.zoom[1],
+          });
+        }
+      } else {
+        dispatchLocationFieldsState({ type: 'setDisabled', index: 1 });
+      }
+    },
+    [
+      idTo,
+      locationFieldsState.lat,
+      locationFieldsState.lng,
+      locationFieldsState.zoom,
+    ],
+  );
+
+  const setMarkerCoordinate = useCallback(
+    (coordinate: { lng: number; lat: number }) => {
+      dispatchLocationFieldsState({
+        type: 'setMarkerCoordinate',
+        index: 0,
+        lat: coordinate.lat,
+        lng: coordinate.lng,
+      });
+    },
+    [],
+  );
+  const setMarkerCoordinateForDestination = useCallback(
+    (coordinate: { lng: number; lat: number }) => {
+      dispatchLocationFieldsState({
+        type: 'setMarkerCoordinate',
+        index: 1,
+        lat: coordinate.lat,
+        lng: coordinate.lng,
+      });
+    },
+    [],
+  );
+  const setMapZoom = useCallback((zoom: number) => {
+    dispatchLocationFieldsState({ type: 'setMapZoom', index: 0, zoom });
+  }, []);
+  const setMapZoomForDestination = useCallback((zoom: number) => {
+    dispatchLocationFieldsState({ type: 'setMapZoom', index: 1, zoom });
+  }, []);
+
+  const handleTimeZoneStartChange = useCallback((newTimeZone: string) => {
+    setStartTimeZone(newTimeZone);
+  }, []);
+  const handleTimeZoneEndChange = useCallback((newTimeZone: string) => {
+    setEndTimeZone(newTimeZone);
+  }, []);
+  const handleStartDateTimeChange = useCallback(
+    (newDateTime: Temporal.PlainDateTime | Temporal.PlainDate | undefined) => {
+      if (newDateTime instanceof Temporal.PlainDateTime) {
+        setStartDateTime(newDateTime);
+      } else if (newDateTime instanceof Temporal.PlainDate) {
+        setStartDateTime(newDateTime.toPlainDateTime({ hour: 0, minute: 0 }));
+      } else {
+        setStartDateTime(undefined);
+      }
+    },
+    [],
+  );
+  const handleEndDateTimeChange = useCallback(
+    (newDateTime: Temporal.PlainDateTime | Temporal.PlainDate | undefined) => {
+      if (newDateTime instanceof Temporal.PlainDateTime) {
+        setEndDateTime(newDateTime);
+      } else if (newDateTime instanceof Temporal.PlainDate) {
+        setEndDateTime(newDateTime.toPlainDateTime({ hour: 0, minute: 0 }));
+      } else {
+        setEndDateTime(undefined);
+      }
+    },
+    [],
+  );
+
+  const handleSubmit = useCallback(() => {
+    return async (elForm: HTMLFormElement) => {
+      setErrorMessage('');
+      if (!elForm.reportValidity()) return;
+
+      const formData = new FormData(elForm);
+      const title = (formData.get('title') as string | null) ?? '';
+      const iconRaw = (formData.get('icon') as string | null) ?? '';
+      const icon = iconRaw.trim();
+      const description = (formData.get('description') as string | null) ?? '';
+      const from = (formData.get('from') as string | null) ?? '';
+      const to = (formData.get('to') as string | null) ?? '';
+      const startZonedDateTime = startDateTime?.toZonedDateTime(startTimeZone);
+      const endZonedDateTime = endDateTime?.toZonedDateTime(endTimeZone);
+
+      if (!title) return;
+      if (!from) {
+        setErrorMessage('Departure station is required');
+        return;
+      }
+      if (!to) {
+        setErrorMessage('Arrival station is required');
+        return;
+      }
+      if (
+        startZonedDateTime &&
+        endZonedDateTime &&
+        Temporal.ZonedDateTime.compare(startZonedDateTime, endZonedDateTime) > 0
+      ) {
+        setErrorMessage('Arrival time must be after departure time');
+        return;
+      }
+      if (
+        tripStartDateTime &&
+        startZonedDateTime &&
+        Temporal.ZonedDateTime.compare(
+          tripStartDateTime.subtract({ days: 1 }).toZonedDateTime(tripTimeZone),
+          startZonedDateTime,
+        ) > 0
+      ) {
+        setErrorMessage(
+          'Departure time cannot be earlier than 1 day before trip start',
+        );
+        return;
+      }
+      if (
+        tripEndDateTime &&
+        endZonedDateTime &&
+        Temporal.ZonedDateTime.compare(
+          endZonedDateTime,
+          tripEndDateTime.add({ days: 2 }).toZonedDateTime(tripTimeZone),
+        ) > 0
+      ) {
+        setErrorMessage(
+          'Arrival time cannot be later than 1 day after trip end',
+        );
+        return;
+      }
+
+      // Always set IsTrain flag; preserve IsIdea
+      let flags = addActivityFlag(activityFlags, ActivityFlag.IsTrain);
+      flags = updateActivityFlag(flags, ActivityFlag.IsIdea, isIdea);
+
+      if (mode === ActivityFormMode.Edit && activityId) {
+        await dbUpdateActivity({
+          id: activityId,
+          title,
+          icon: icon || null,
+          description,
+          location: from,
+          locationLat: locationFieldsState.enabled[0]
+            ? locationFieldsState.lat[0]
+            : null,
+          locationLng: locationFieldsState.enabled[0]
+            ? locationFieldsState.lng[0]
+            : null,
+          locationZoom: locationFieldsState.enabled[0]
+            ? locationFieldsState.zoom[0]
+            : null,
+          locationDestination: to,
+          locationDestinationLat: locationFieldsState.enabled[1]
+            ? locationFieldsState.lat[1]
+            : null,
+          locationDestinationLng: locationFieldsState.enabled[1]
+            ? locationFieldsState.lng[1]
+            : null,
+          locationDestinationZoom: locationFieldsState.enabled[1]
+            ? locationFieldsState.zoom[1]
+            : null,
+          timestampStart: startZonedDateTime
+            ? startZonedDateTime.epochMilliseconds
+            : null,
+          timestampEnd: endZonedDateTime
+            ? endZonedDateTime.epochMilliseconds
+            : null,
+          timeZoneStart: startZonedDateTime
+            ? startZonedDateTime.timeZoneId
+            : null,
+          timeZoneEnd: endZonedDateTime ? endZonedDateTime.timeZoneId : null,
+          flags,
+        });
+        publishToast({
+          root: {},
+          title: { children: `Train ${title} edited` },
+          close: {},
+        });
+      } else if (mode === ActivityFormMode.New && tripId) {
+        if (endZonedDateTime) {
+          setTripLocalState(tripId, {
+            activityTimestampStart: endZonedDateTime.epochMilliseconds,
+          });
+        }
+        await dbAddActivity(
+          {
+            title,
+            icon: icon || null,
+            description,
+            location: from,
+            locationLat: locationFieldsState.enabled[0]
+              ? locationFieldsState.lat[0]
+              : null,
+            locationLng: locationFieldsState.enabled[0]
+              ? locationFieldsState.lng[0]
+              : null,
+            locationZoom: locationFieldsState.enabled[0]
+              ? locationFieldsState.zoom[0]
+              : null,
+            locationDestination: to,
+            locationDestinationLat: locationFieldsState.enabled[1]
+              ? locationFieldsState.lat[1]
+              : null,
+            locationDestinationLng: locationFieldsState.enabled[1]
+              ? locationFieldsState.lng[1]
+              : null,
+            locationDestinationZoom: locationFieldsState.enabled[1]
+              ? locationFieldsState.zoom[1]
+              : null,
+            timestampStart: startZonedDateTime
+              ? startZonedDateTime.epochMilliseconds
+              : null,
+            timestampEnd: endZonedDateTime
+              ? endZonedDateTime.epochMilliseconds
+              : null,
+            timeZoneStart: startZonedDateTime
+              ? startZonedDateTime.timeZoneId
+              : null,
+            timeZoneEnd: endZonedDateTime ? endZonedDateTime.timeZoneId : null,
+
+            flags,
+          },
+          { tripId },
+        );
+        publishToast({
+          root: {},
+          title: { children: `Train ${title} added` },
+          close: {},
+        });
+      }
+
+      elForm.reset();
+      onFormSuccess();
+    };
+  }, [
+    activityFlags,
+    activityId,
+    startDateTime,
+    endDateTime,
+    startTimeZone,
+    endTimeZone,
+    isIdea,
+    locationFieldsState,
+    mode,
+    onFormSuccess,
+    publishToast,
+    setTripLocalState,
+    tripStartDateTime,
+    tripEndDateTime,
+    tripTimeZone,
+    tripId,
+  ]);
+
+  const onFormInput = useCallback(() => {
+    setErrorMessage('');
+  }, []);
+
+  const onFormSubmit = useCallback(
+    (event: SubmitEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const elForm = event.currentTarget;
+      void handleSubmit()(elForm);
+    },
+    [handleSubmit],
+  );
+
+  return (
+    <form id={idForm} onInput={onFormInput} onSubmit={onFormSubmit}>
+      <Flex direction="column" gap="2">
+        <Text as="label" htmlFor={idTitle}>
+          Train / service number{' '}
+          <Text weight="light" size="1">
+            (required)
+          </Text>
+        </Text>
+        <EmojiTextField
+          defaultValue={activityTitle}
+          placeholder="e.g. TGV 6181"
+          name="title"
+          id={idTitle}
+          iconName="icon"
+          defaultIcon={activityIcon}
+          required
+          clearable
+        />
+
+        <Text as="label" htmlFor={idFrom}>
+          From — departure station{' '}
+          <Text weight="light" size="1">
+            (required)
+          </Text>
+        </Text>
+        <TextField.Root
+          id={idFrom}
+          name="from"
+          placeholder="e.g. Paris Gare de Lyon"
+          defaultValue={activityLocation}
+          required
+        />
+
+        <Text as="label" htmlFor={idCoordinatesFrom}>
+          Set departure station coordinates
+        </Text>
+        <Switch
+          id={idCoordinatesFrom}
+          checked={locationFieldsState.enabled[0]}
+          onCheckedChange={setCoordinateEnabled}
+        />
+        {locationFieldsState.enabled[0] ? (
+          <ActivityMap
+            mode="edit"
+            mapOptions={{
+              lng: locationFieldsState.lng[0] ?? 0,
+              lat: locationFieldsState.lat[0] ?? 0,
+              zoom: locationFieldsState.zoom[0] ?? 9,
+              // Don't use 'region' to allow free choosing of station around the world
+            }}
+            marker={
+              locationFieldsState.lng[0] != null &&
+              locationFieldsState.lat[0] != null
+                ? {
+                    lng: locationFieldsState.lng[0],
+                    lat: locationFieldsState.lat[0],
+                  }
+                : undefined
+            }
+            setMarkerCoordinate={setMarkerCoordinate}
+            setMapZoom={setMapZoom}
+          />
+        ) : null}
+
+        <Text as="label" htmlFor={idTo}>
+          To — arrival station{' '}
+          <Text weight="light" size="1">
+            (required)
+          </Text>
+        </Text>
+        <TextField.Root
+          id={idTo}
+          name="to"
+          placeholder="e.g. Marseille Saint-Charles"
+          defaultValue={activityLocationDestination ?? ''}
+          required
+        />
+
+        <Text as="label" htmlFor={idCoordinatesTo}>
+          Set arrival station coordinates
+        </Text>
+        <Switch
+          id={idCoordinatesTo}
+          checked={locationFieldsState.enabled[1]}
+          onCheckedChange={setCoordinateEnabledForDestination}
+        />
+        {locationFieldsState.enabled[1] ? (
+          <ActivityMap
+            mode="edit"
+            mapOptions={{
+              lng: locationFieldsState.lng[1] ?? 0,
+              lat: locationFieldsState.lat[1] ?? 0,
+              zoom: locationFieldsState.zoom[1] ?? 9,
+              // Don't use 'region' to allow free choosing of station around the world
+            }}
+            marker={
+              locationFieldsState.lng[1] != null &&
+              locationFieldsState.lat[1] != null
+                ? {
+                    lng: locationFieldsState.lng[1],
+                    lat: locationFieldsState.lat[1],
+                  }
+                : undefined
+            }
+            setMarkerCoordinate={setMarkerCoordinateForDestination}
+            setMapZoom={setMapZoomForDestination}
+          />
+        ) : null}
+
+        <Text as="label">
+          Departure time zone{' '}
+          <Text weight="light" size="1">
+            (trip default: {tripTimeZone})
+          </Text>
+        </Text>
+        <TimeZoneSelect
+          id="timeZoneStart"
+          name="timeZoneStart"
+          value={startTimeZone}
+          handleChange={handleTimeZoneStartChange}
+          isFormLoading={false}
+        />
+        <Text as="label" htmlFor={idTimeStart}>
+          Departure time{' '}
+          <Text weight="light" size="1">
+            (in {startTimeZone})
+          </Text>
+        </Text>
+        <DateTimePicker
+          name="startTime"
+          mode={DateTimePickerMode.DateTime}
+          min={tripStartDateTime?.subtract({ days: 1 })}
+          max={tripEndDateTime?.add({ days: 1 })}
+          value={startDateTime}
+          onChange={handleStartDateTimeChange}
+          clearable={true}
+        />
+
+        <Text as="label">
+          Arrival time zone{' '}
+          <Text weight="light" size="1">
+            (trip default: {tripTimeZone})
+          </Text>
+        </Text>
+        <TimeZoneSelect
+          id="timeZoneEnd"
+          name="timeZoneEnd"
+          value={endTimeZone}
+          handleChange={handleTimeZoneEndChange}
+          isFormLoading={false}
+        />
+        <Text as="label" htmlFor={idTimeEnd}>
+          Arrival time{' '}
+          <Text weight="light" size="1">
+            (in {endTimeZone})
+          </Text>
+        </Text>
+        <DateTimePicker
+          name="endTime"
+          mode={DateTimePickerMode.DateTime}
+          min={tripStartDateTime?.subtract({ days: 1 })}
+          max={tripEndDateTime?.add({ days: 1 })}
+          value={endDateTime}
+          onChange={handleEndDateTimeChange}
+          clearable={true}
+        />
+
+        <Text as="label" htmlFor={idIsIdea}>
+          Is this train an idea?{' '}
+          <Text weight="light" size="1">
+            (if yes, will appear in activity idea list)
+          </Text>
+        </Text>
+        <Switch id={idIsIdea} checked={isIdea} onCheckedChange={setIsIdea} />
+
+        <Text as="label" htmlFor={idDescription}>
+          Notes
+        </Text>
+        <TextArea
+          defaultValue={activityDescription}
+          placeholder="Enter notes (booking reference, carriage, seat, etc.)"
+          name="description"
+          id={idDescription}
+          style={{ minHeight: 120 }}
+        />
+      </Flex>
+      <Flex mt="5" justify="end">
+        <Text color={dangerToken} size="2">
+          {errorMessage}&nbsp;
+        </Text>
+      </Flex>
+      <Flex gap="3" mt="2" justify="end">
+        <Button
+          type="button"
+          size="2"
+          variant="soft"
+          color="gray"
+          onClick={onFormCancel}
+        >
+          Cancel
+        </Button>
+        <Button type="submit" size="2" variant="solid">
+          Save
+        </Button>
+      </Flex>
+    </form>
+  );
+}

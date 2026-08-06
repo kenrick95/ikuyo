@@ -23,6 +23,22 @@ export type FlightCapture = {
   arrivalZoom?: number | undefined;
 };
 
+export type TrainCapture = {
+  trainNumber?: string | undefined;
+  departureStation?: string | undefined;
+  arrivalStation?: string | undefined;
+  departureDateTime?: Temporal.PlainDateTime | undefined;
+  arrivalDateTime?: Temporal.PlainDateTime | undefined;
+  departureTimeZone?: string | undefined;
+  arrivalTimeZone?: string | undefined;
+  departureLat?: number | undefined;
+  departureLng?: number | undefined;
+  departureZoom?: number | undefined;
+  arrivalLat?: number | undefined;
+  arrivalLng?: number | undefined;
+  arrivalZoom?: number | undefined;
+};
+
 export type WizardState = {
   step: 1 | 2 | 3;
   // Step 1
@@ -35,9 +51,11 @@ export type WizardState = {
   currency: string;
   originCurrency: string;
   // Step 3
-  travelMode: 'flight' | 'other' | null;
+  travelMode: 'flight' | 'train' | 'other' | null;
   outboundFlight: FlightCapture | null;
   returnFlight: FlightCapture | null;
+  outboundTrain: TrainCapture | null;
+  returnTrain: TrainCapture | null;
 };
 
 export type WizardAction =
@@ -49,9 +67,14 @@ export type WizardAction =
   | { type: 'SET_TIMEZONE'; timeZone: string }
   | { type: 'SET_CURRENCY'; currency: string }
   | { type: 'SET_ORIGIN_CURRENCY'; originCurrency: string }
-  | { type: 'SET_TRAVEL_MODE'; travelMode: 'flight' | 'other' | null }
+  | {
+      type: 'SET_TRAVEL_MODE';
+      travelMode: 'flight' | 'train' | 'other' | null;
+    }
   | { type: 'SET_OUTBOUND_FLIGHT'; flight: FlightCapture | null }
-  | { type: 'SET_RETURN_FLIGHT'; flight: FlightCapture | null };
+  | { type: 'SET_RETURN_FLIGHT'; flight: FlightCapture | null }
+  | { type: 'SET_OUTBOUND_TRAIN'; train: TrainCapture | null }
+  | { type: 'SET_RETURN_TRAIN'; train: TrainCapture | null };
 
 export function wizardReducer(
   state: WizardState,
@@ -107,6 +130,50 @@ export function wizardReducer(
             arrivalTimeZone: currentTimeZone,
           };
           newState = { ...newState, returnFlight: defaultReturnFlight };
+        }
+        if (!state.outboundTrain && state.startDate) {
+          const zonedDepartureDateTime = state.startDate
+            .toPlainDateTime({
+              hour: 9,
+              minute: 0,
+            })
+            .toZonedDateTime(state.timeZone);
+          const zonedArrivalDateTime = zonedDepartureDateTime
+            .with({
+              hour: 12,
+              minute: 0,
+            })
+            .withTimeZone(currentTimeZone);
+
+          const defaultOutboundTrain: TrainCapture = {
+            departureDateTime: zonedDepartureDateTime.toPlainDateTime(),
+            arrivalDateTime: zonedArrivalDateTime.toPlainDateTime(),
+            departureTimeZone: currentTimeZone,
+            arrivalTimeZone: state.timeZone,
+          };
+          newState = { ...newState, outboundTrain: defaultOutboundTrain };
+        }
+        if (!state.returnTrain && state.endDate) {
+          const zonedDepartureDateTime = state.endDate
+            .toPlainDateTime({
+              hour: 15,
+              minute: 0,
+            })
+            .toZonedDateTime(state.timeZone);
+          const zonedArrivalDateTime = zonedDepartureDateTime
+            .with({
+              hour: 18,
+              minute: 0,
+            })
+            .withTimeZone(currentTimeZone);
+
+          const defaultReturnTrain: TrainCapture = {
+            departureDateTime: zonedDepartureDateTime.toPlainDateTime(),
+            arrivalDateTime: zonedArrivalDateTime.toPlainDateTime(),
+            departureTimeZone: state.timeZone,
+            arrivalTimeZone: currentTimeZone,
+          };
+          newState = { ...newState, returnTrain: defaultReturnTrain };
         }
         return newState;
       }
@@ -182,6 +249,24 @@ export function wizardReducer(
         ...state,
         returnFlight: { ...(state.returnFlight || {}), ...action.flight },
       };
+    case 'SET_OUTBOUND_TRAIN':
+      // Clear the outbound train if the action specifies null; else merge it
+      if (action.train === null) {
+        return { ...state, outboundTrain: null };
+      }
+      return {
+        ...state,
+        outboundTrain: { ...(state.outboundTrain || {}), ...action.train },
+      };
+    case 'SET_RETURN_TRAIN':
+      // Clear the return train if the action specifies null; else merge it
+      if (action.train === null) {
+        return { ...state, returnTrain: null };
+      }
+      return {
+        ...state,
+        returnTrain: { ...(state.returnTrain || {}), ...action.train },
+      };
     default:
       return state;
   }
@@ -203,5 +288,7 @@ export function createInitialWizardState(
     travelMode: null,
     outboundFlight: null,
     returnFlight: null,
+    outboundTrain: null,
+    returnTrain: null,
   };
 }
