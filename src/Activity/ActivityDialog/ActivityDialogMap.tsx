@@ -13,6 +13,7 @@ import s from './ActivityDialogMap.module.css';
 import '@maptiler/sdk/style.css';
 import { GeocodingControl } from '@maptiler/geocoding-control/maptilersdk';
 import clsx from 'clsx';
+import { createLineGeoJSON } from '../../Map/geometry';
 import { ThemeAppearance } from '../../theme/constants';
 import { useTheme } from '../../theme/hooks';
 
@@ -322,21 +323,4 @@ export function ActivityMap({
       <div ref={mapContainer} className={s.map} />
     </div>
   );
-}
-
-function createLineGeoJSON(
-  from: { lng: number; lat: number },
-  to: { lng: number; lat: number },
-) {
-  return {
-    type: 'Feature' as const,
-    properties: {},
-    geometry: {
-      type: 'LineString' as const,
-      coordinates: [
-        [from.lng, from.lat],
-        [to.lng, to.lat],
-      ] as [number, number][],
-    },
-  };
 }

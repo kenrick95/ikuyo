@@ -11,7 +11,7 @@ export function createGeoJsonData(allLines: Line[]): GeoJSON.FeatureCollection {
     ),
   };
 }
-function createLineGeoJSON(
+export function createLineGeoJSON(
   from: { lng: number; lat: number },
   to: { lng: number; lat: number },
 ) {
