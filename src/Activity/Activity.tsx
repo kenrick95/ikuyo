@@ -327,6 +327,32 @@ function ActivityInner({
     timeStartRelativeToTrip,
   ]);
 
+  const isActivityResizable = useMemo(() => {
+    if (!isDragAndDropDisabled) {
+      return false;
+    }
+    if (!userCanEditOrDelete) {
+      return false;
+    }
+    if (activity.timestampStart == null || activity.timestampEnd == null) {
+      return false;
+    }
+    if (tripViewMode !== TripViewMode.Timetable) {
+      return false;
+    }
+    if (activity.timestampEnd - activity.timestampStart < 15 * 60 * 1000) {
+      // If the activity is less than 15 minutes, don't allow resizing, because it will be too small to resize
+      return false;
+    }
+    return true;
+  }, [
+    isDragAndDropDisabled,
+    tripViewMode,
+    userCanEditOrDelete,
+    activity.timestampStart,
+    activity.timestampEnd,
+  ]);
+
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger>
@@ -417,7 +443,7 @@ function ActivityInner({
             </Text>
           ) : null}
 
-          {!isDragAndDropDisabled && tripViewMode === TripViewMode.Timetable ? (
+          {isActivityResizable ? (
             // biome-ignore lint/a11y/noStaticElementInteractions: indicator for resizing
             <div
               className={style.activityResizeHint}
