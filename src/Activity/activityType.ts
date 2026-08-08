@@ -56,3 +56,13 @@ export const ActivityTypeLabel: Record<ActivityTypeType, string> = {
   [ActivityType.Flight]: 'Flight',
   [ActivityType.Train]: 'Train Journey',
 };
+
+/**
+ * Human-readable display label for an activity's flags, e.g. "Flight",
+ * "Train Journey", "Activity Idea", "Flight Idea" or "Train Journey Idea".
+ * Adds an " Idea" suffix when the IsIdea flag is set.
+ */
+export function getActivityTypeLabel(flags: number | null | undefined): string {
+  const base = ActivityTypeLabel[getActivityType(flags)];
+  return hasActivityFlag(flags, ActivityFlag.IsIdea) ? `${base} Idea` : base;
+}

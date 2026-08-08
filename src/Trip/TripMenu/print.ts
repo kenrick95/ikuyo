@@ -1,5 +1,9 @@
 import { AccommodationDisplayTimeMode } from '../../Accommodation/AccommodationDisplayTimeMode';
-import { ActivityType, getActivityType } from '../../Activity/activityType';
+import {
+  ActivityType,
+  getActivityType,
+  getActivityTypeLabel,
+} from '../../Activity/activityType';
 import { groupActivitiesByDays } from '../../Activity/eventGrouping';
 import { toFormat } from '../../common/dateTime/temporalFormatter';
 import type {
@@ -101,12 +105,7 @@ function renderActivity(
   const type = getActivityType(activity.flags);
   const isTransport =
     type === ActivityType.Flight || type === ActivityType.Train;
-  const tag =
-    type === ActivityType.Flight
-      ? 'Flight'
-      : type === ActivityType.Train
-        ? 'Train'
-        : 'Activity';
+  const tag = getActivityTypeLabel(activity.flags);
   const icon = activity.icon ?? '';
   const location =
     isTransport && activity.locationDestination

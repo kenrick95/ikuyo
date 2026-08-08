@@ -6,7 +6,7 @@ import { type DialogContentProps, DialogMode } from '../../Dialog/DialogRoute';
 import { useBoundStore } from '../../data/store';
 import type { TripSliceActivity } from '../../Trip/store/types';
 import { getActivityDisplayTitle } from '../activityTitle';
-import { ActivityTypeLabel, getActivityType } from '../activityType';
+import { getActivityTypeLabel } from '../activityType';
 import { dbDeleteActivity } from '../db';
 
 export function ActivityDialogContentDelete({
@@ -21,8 +21,7 @@ export function ActivityDialogContentDelete({
     ? getActivityDisplayTitle(activity)
     : undefined;
   const activityTitleRaw = activity?.title;
-  const activityType = getActivityType(activity?.flags);
-  const typeLabel = ActivityTypeLabel[activityType];
+  const typeLabel = getActivityTypeLabel(activity?.flags);
   const deleteActivity = useCallback(() => {
     if (!activity) {
       console.error('Activity is undefined');

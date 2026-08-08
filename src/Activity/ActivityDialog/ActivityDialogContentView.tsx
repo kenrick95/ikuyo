@@ -17,9 +17,12 @@ import { useDeepBoundStore } from '../../data/store';
 import { useTrip } from '../../Trip/store/hooks';
 import type { TripSliceActivity } from '../../Trip/store/types';
 import { TripUserRole } from '../../User/TripUserRole';
-import { ActivityFlag, hasActivityFlag } from '../activityFlag';
 import { getActivityDisplayTitle } from '../activityTitle';
-import { ActivityType, getActivityType } from '../activityType';
+import {
+  ActivityType,
+  getActivityType,
+  getActivityTypeLabel,
+} from '../activityType';
 import s from './ActivityDialog.module.css';
 import { ActivityMap } from './ActivityDialogMap';
 import { ActivityDialogMode } from './ActivityDialogMode';
@@ -129,10 +132,6 @@ export function ActivityDialogContentView({
     setDialogClosable(false);
   }, [setDialogClosable]);
 
-  const isIdea = useMemo(() => {
-    return hasActivityFlag(activity?.flags, ActivityFlag.IsIdea);
-  }, [activity?.flags]);
-
   const activityType = useMemo(() => {
     return getActivityType(activity?.flags);
   }, [activity?.flags]);
@@ -147,14 +146,7 @@ export function ActivityDialogContentView({
     return getActivityDisplayTitle(activity);
   }, [activity]);
 
-  const typeLabel =
-    activityType === ActivityType.Flight
-      ? 'Flight'
-      : activityType === ActivityType.Train
-        ? 'Train'
-        : isIdea
-          ? 'Activity Idea'
-          : 'Activity';
+  const typeLabel = getActivityTypeLabel(activity?.flags);
 
   return (
     <Dialog.Content {...dialogContentProps}>
