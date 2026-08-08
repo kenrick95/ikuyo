@@ -151,15 +151,13 @@ export function wizardReducer(
               timeZone: state.timeZone,
             })
             .withTimeZone(currentTimeZone);
-          const zonedArrivalDateTime = state.startDate
-            .toZonedDateTime({
-              plainTime: {
-                hour: 12,
-                minute: 0,
-              },
-              timeZone: state.timeZone,
-            })
-            .withTimeZone(currentTimeZone);
+          const zonedArrivalDateTime = state.startDate.toZonedDateTime({
+            plainTime: {
+              hour: 12,
+              minute: 0,
+            },
+            timeZone: state.timeZone,
+          });
 
           const defaultOutboundTrain: TrainCapture = {
             departureDateTime: zonedDepartureDateTime.toPlainDateTime(),
