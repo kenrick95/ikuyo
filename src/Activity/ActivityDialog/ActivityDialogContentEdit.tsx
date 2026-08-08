@@ -113,7 +113,7 @@ export function ActivityDialogContentEdit({
         {activityType === ActivityType.Flight
           ? 'Fill in your edited flight details...'
           : activityType === ActivityType.Train
-            ? 'Fill in your edited train details...'
+            ? 'Fill in your edited train journey details...'
             : 'Fill in your edited activity details...'}
       </Dialog.Description>
       <Box height="16px" />

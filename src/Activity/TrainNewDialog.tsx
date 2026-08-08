@@ -91,9 +91,9 @@ export function TrainNewDialog({
         maxWidth={CommonLargeDialogMaxWidth}
         onEscapeKeyDown={handleFormCancel}
       >
-        <Dialog.Title>New Train</Dialog.Title>
+        <Dialog.Title>New Train Journey</Dialog.Title>
         <Dialog.Description size="2">
-          Add a train to your trip...
+          Add a train journey to your trip...
         </Dialog.Description>
         <Box height="16px" />
         <TrainForm

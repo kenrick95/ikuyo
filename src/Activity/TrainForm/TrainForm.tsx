@@ -337,7 +337,8 @@ export function TrainForm({
       if (
         startZonedDateTime &&
         endZonedDateTime &&
-        Temporal.ZonedDateTime.compare(startZonedDateTime, endZonedDateTime) > 0
+        Temporal.ZonedDateTime.compare(startZonedDateTime, endZonedDateTime) >=
+          0
       ) {
         setErrorMessage('Arrival time must be after departure time');
         return;
@@ -508,7 +509,7 @@ export function TrainForm({
     <form id={idForm} onInput={onFormInput} onSubmit={onFormSubmit}>
       <Flex direction="column" gap="2">
         <Text as="label" htmlFor={idTitle}>
-          Train / service number{' '}
+          Train number or service number or line name{' '}
           <Text weight="light" size="1">
             (required)
           </Text>
@@ -525,7 +526,7 @@ export function TrainForm({
         />
 
         <Text as="label" htmlFor={idFrom}>
-          From — departure station{' '}
+          Departure station{' '}
           <Text weight="light" size="1">
             (required)
           </Text>
@@ -570,7 +571,7 @@ export function TrainForm({
         ) : null}
 
         <Text as="label" htmlFor={idTo}>
-          To — arrival station{' '}
+          Arrival station{' '}
           <Text weight="light" size="1">
             (required)
           </Text>
@@ -673,7 +674,7 @@ export function TrainForm({
         />
 
         <Text as="label" htmlFor={idIsIdea}>
-          Is this train an idea?{' '}
+          Is this train journey an idea?{' '}
           <Text weight="light" size="1">
             (if yes, will appear in activity idea list)
           </Text>

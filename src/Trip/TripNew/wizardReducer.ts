@@ -88,18 +88,23 @@ export function wizardReducer(
         const currentTimeZone = Temporal.Now.timeZoneId();
         let newState = { ...state, step: action.step };
         if (!state.outboundFlight && state.startDate) {
+          // Outbound flight: default departure: 9 am at trip time zone (converted to current time zone); default arrival: 12 pm at trip time zone
           const zonedDepartureDateTime = state.startDate
-            .toPlainDateTime({
-              hour: 9,
-              minute: 0,
-            })
-            .toZonedDateTime(state.timeZone);
-          const zonedArrivalDateTime = zonedDepartureDateTime
-            .with({
-              hour: 12,
-              minute: 0,
+            .toZonedDateTime({
+              plainTime: {
+                hour: 9,
+                minute: 0,
+              },
+              timeZone: state.timeZone,
             })
             .withTimeZone(currentTimeZone);
+          const zonedArrivalDateTime = state.startDate.toZonedDateTime({
+            plainTime: {
+              hour: 12,
+              minute: 0,
+            },
+            timeZone: state.timeZone,
+          });
 
           const defaultOutboundFlight: FlightCapture = {
             departureDateTime: zonedDepartureDateTime.toPlainDateTime(),
@@ -110,16 +115,21 @@ export function wizardReducer(
           newState = { ...newState, outboundFlight: defaultOutboundFlight };
         }
         if (!state.returnFlight && state.endDate) {
-          const zonedDepartureDateTime = state.endDate
-            .toPlainDateTime({
+          // Return flight: default departure: 3 pm at trip time zone; default arrival: 6 pm at trip time zone (converted to current time zone)
+          const zonedDepartureDateTime = state.endDate.toZonedDateTime({
+            plainTime: {
               hour: 15,
               minute: 0,
-            })
-            .toZonedDateTime(state.timeZone);
-          const zonedArrivalDateTime = zonedDepartureDateTime
-            .with({
-              hour: 18,
-              minute: 0,
+            },
+            timeZone: state.timeZone,
+          });
+          const zonedArrivalDateTime = state.endDate
+            .toZonedDateTime({
+              plainTime: {
+                hour: 18,
+                minute: 0,
+              },
+              timeZone: state.timeZone,
             })
             .withTimeZone(currentTimeZone);
 
@@ -133,15 +143,21 @@ export function wizardReducer(
         }
         if (!state.outboundTrain && state.startDate) {
           const zonedDepartureDateTime = state.startDate
-            .toPlainDateTime({
-              hour: 9,
-              minute: 0,
+            .toZonedDateTime({
+              plainTime: {
+                hour: 9,
+                minute: 0,
+              },
+              timeZone: state.timeZone,
             })
-            .toZonedDateTime(state.timeZone);
-          const zonedArrivalDateTime = zonedDepartureDateTime
-            .with({
-              hour: 12,
-              minute: 0,
+            .withTimeZone(currentTimeZone);
+          const zonedArrivalDateTime = state.startDate
+            .toZonedDateTime({
+              plainTime: {
+                hour: 12,
+                minute: 0,
+              },
+              timeZone: state.timeZone,
             })
             .withTimeZone(currentTimeZone);
 
@@ -154,16 +170,20 @@ export function wizardReducer(
           newState = { ...newState, outboundTrain: defaultOutboundTrain };
         }
         if (!state.returnTrain && state.endDate) {
-          const zonedDepartureDateTime = state.endDate
-            .toPlainDateTime({
+          const zonedDepartureDateTime = state.endDate.toZonedDateTime({
+            plainTime: {
               hour: 15,
               minute: 0,
-            })
-            .toZonedDateTime(state.timeZone);
-          const zonedArrivalDateTime = zonedDepartureDateTime
-            .with({
-              hour: 18,
-              minute: 0,
+            },
+            timeZone: state.timeZone,
+          });
+          const zonedArrivalDateTime = state.endDate
+            .toZonedDateTime({
+              plainTime: {
+                hour: 18,
+                minute: 0,
+              },
+              timeZone: state.timeZone,
             })
             .withTimeZone(currentTimeZone);
 

@@ -54,5 +54,5 @@ export function applyActivityType(
 export const ActivityTypeLabel: Record<ActivityTypeType, string> = {
   [ActivityType.Activity]: 'Activity',
   [ActivityType.Flight]: 'Flight',
-  [ActivityType.Train]: 'Train',
+  [ActivityType.Train]: 'Train Journey',
 };

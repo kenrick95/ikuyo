@@ -80,18 +80,19 @@ export function TrainSubform({
   );
   const handleDepartureStationBlur = useCallback(
     async (e: FocusEvent<HTMLInputElement>) => {
+      const input = e.currentTarget;
       const query = e.target.value.trim();
       if (!query) return;
       const [lng, lat, zoom] = await stationGeocodingRequest(query);
+      if (input.value.trim() !== query) return;
       onChange({
-        ...current,
         departureStation: query,
         departureLat: lat,
         departureLng: lng,
         departureZoom: zoom,
       });
     },
-    [current, onChange],
+    [onChange],
   );
   const handleArrivalStationChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) =>

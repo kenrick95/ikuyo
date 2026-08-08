@@ -308,7 +308,7 @@ export default function PageTripNew() {
           root: {},
           title: {
             children:
-              'Trip created, but we could not add your transport. You can add them later.',
+              'Trip created, but we could not add your transport details. You can add them later.',
           },
           close: {},
         });
