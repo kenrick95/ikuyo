@@ -6,6 +6,7 @@ import { AccommodationNewDialog } from '../../Accommodation/AccommodationNewDial
 import { ActivityNewDialog } from '../../Activity/ActivityNewDialog';
 import { FlightNewDialog } from '../../Activity/FlightNewDialog';
 import { activitiesToIcs, downloadIcs } from '../../Activity/icsExport';
+import { TrainNewDialog } from '../../Activity/TrainNewDialog';
 import { useCurrentUser } from '../../Auth/hooks';
 import { UserAvatarMenu } from '../../Auth/UserAvatarMenu';
 import { db } from '../../data/db';
@@ -110,6 +111,21 @@ export function TripMenu() {
             }
           >
             New flight
+          </DropdownMenu.Item>
+
+          <DropdownMenu.Item
+            disabled={!userCanModifyTrip}
+            onClick={
+              userCanModifyTrip
+                ? () => {
+                    if (trip) {
+                      pushDialog(TrainNewDialog, { trip });
+                    }
+                  }
+                : undefined
+            }
+          >
+            New train
           </DropdownMenu.Item>
 
           <DropdownMenu.Separator />

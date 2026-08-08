@@ -13,6 +13,7 @@ import {
   getActivityType,
 } from '../activityType';
 import { FlightForm } from '../FlightForm/FlightForm';
+import { TrainForm } from '../TrainForm/TrainForm';
 import { ActivityDialogMode } from './ActivityDialogMode';
 
 export function ActivityDialogContentEdit({
@@ -111,7 +112,9 @@ export function ActivityDialogContentEdit({
       <Dialog.Description size="2">
         {activityType === ActivityType.Flight
           ? 'Fill in your edited flight details...'
-          : 'Fill in your edited activity details...'}
+          : activityType === ActivityType.Train
+            ? 'Fill in your edited train journey details...'
+            : 'Fill in your edited activity details...'}
       </Dialog.Description>
       <Box height="16px" />
       {activity && trip ? (
@@ -120,7 +123,7 @@ export function ActivityDialogContentEdit({
             Type
           </Text>
           <RadioCards.Root
-            columns="2"
+            columns="3"
             size="1"
             id={idActivityType}
             value={activityType}
@@ -136,6 +139,8 @@ export function ActivityDialogContentEdit({
           <Box height="16px" />
           {activityType === ActivityType.Flight ? (
             <FlightForm {...commonFormProps} />
+          ) : activityType === ActivityType.Train ? (
+            <TrainForm {...commonFormProps} />
           ) : (
             <ActivityForm {...commonFormProps} />
           )}

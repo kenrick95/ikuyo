@@ -6,11 +6,7 @@ import { type DialogContentProps, DialogMode } from '../../Dialog/DialogRoute';
 import { useBoundStore } from '../../data/store';
 import type { TripSliceActivity } from '../../Trip/store/types';
 import { getActivityDisplayTitle } from '../activityTitle';
-import {
-  ActivityType,
-  ActivityTypeLabel,
-  getActivityType,
-} from '../activityType';
+import { getActivityTypeLabel } from '../activityType';
 import { dbDeleteActivity } from '../db';
 
 export function ActivityDialogContentDelete({
@@ -25,9 +21,7 @@ export function ActivityDialogContentDelete({
     ? getActivityDisplayTitle(activity)
     : undefined;
   const activityTitleRaw = activity?.title;
-  const activityType = getActivityType(activity?.flags);
-  const isFlight = activityType === ActivityType.Flight;
-  const typeLabel = ActivityTypeLabel[activityType];
+  const typeLabel = getActivityTypeLabel(activity?.flags);
   const deleteActivity = useCallback(() => {
     if (!activity) {
       console.error('Activity is undefined');
@@ -56,7 +50,7 @@ export function ActivityDialogContentDelete({
     <Dialog.Content {...dialogContentProps}>
       <DialogTitleSection title={`Delete ${typeLabel}`} />
       <Dialog.Description size="2">
-        Are you sure to delete {isFlight ? 'flight' : 'activity'} &ldquo;
+        Are you sure to delete {typeLabel.toLowerCase()} &ldquo;
         {activityTitle ?? <Skeleton>Activity name</Skeleton>}&rdquo;?
       </Dialog.Description>
 

@@ -1,18 +1,27 @@
 import { getDefaultCurrencyForRegion } from '../../data/intl/currencies';
-import type { FlightCapture } from './wizardReducer';
+import type { FlightCapture, TrainCapture } from './wizardReducer';
 
-export function getFlightTimeError(
-  flight: FlightCapture | null,
+type TransportCapture = Pick<
+  FlightCapture | TrainCapture,
+  | 'departureDateTime'
+  | 'arrivalDateTime'
+  | 'departureTimeZone'
+  | 'arrivalTimeZone'
+>;
+
+export function getTransportTimeError(
+  transport: TransportCapture | null,
   tripStartDate: Temporal.PlainDate | undefined,
   tripEndDate: Temporal.PlainDate | undefined,
   tripTimeZone: string | undefined,
 ): string | undefined {
-  if (!flight?.departureDateTime && !flight?.arrivalDateTime) return undefined;
-  const dep = flight.departureDateTime?.toZonedDateTime(
-    flight.departureTimeZone ?? tripTimeZone ?? Temporal.Now.timeZoneId(),
+  if (!transport?.departureDateTime && !transport?.arrivalDateTime)
+    return undefined;
+  const dep = transport.departureDateTime?.toZonedDateTime(
+    transport.departureTimeZone ?? tripTimeZone ?? Temporal.Now.timeZoneId(),
   );
-  const arr = flight.arrivalDateTime?.toZonedDateTime(
-    flight.arrivalTimeZone ?? tripTimeZone ?? Temporal.Now.timeZoneId(),
+  const arr = transport.arrivalDateTime?.toZonedDateTime(
+    transport.arrivalTimeZone ?? tripTimeZone ?? Temporal.Now.timeZoneId(),
   );
   if (dep && arr && Temporal.ZonedDateTime.compare(arr, dep) <= 0)
     return 'Arrival must be after departure';
@@ -28,6 +37,29 @@ export function getFlightTimeError(
   if (arr && maxBound && Temporal.ZonedDateTime.compare(arr, maxBound) > 0)
     return 'Arrival cannot be more than 1 day after trip end';
   return undefined;
+}
+
+export function getFlightTimeError(
+  flight: FlightCapture | null,
+  tripStartDate: Temporal.PlainDate | undefined,
+  tripEndDate: Temporal.PlainDate | undefined,
+  tripTimeZone: string | undefined,
+): string | undefined {
+  return getTransportTimeError(
+    flight,
+    tripStartDate,
+    tripEndDate,
+    tripTimeZone,
+  );
+}
+
+export function getTrainTimeError(
+  train: TrainCapture | null,
+  tripStartDate: Temporal.PlainDate | undefined,
+  tripEndDate: Temporal.PlainDate | undefined,
+  tripTimeZone: string | undefined,
+): string | undefined {
+  return getTransportTimeError(train, tripStartDate, tripEndDate, tripTimeZone);
 }
 
 export function getOriginCurrencyFromLocale(): string {
