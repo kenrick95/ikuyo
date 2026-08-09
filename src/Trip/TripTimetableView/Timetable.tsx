@@ -534,7 +534,10 @@ export function Timetable() {
         ref={timetableRef}
         onDrop={handleDrop}
       >
-        <TimetableGrid days={dayGroups.inTrip.length} />
+        <TimetableGrid
+          days={dayGroups.inTrip.length}
+          scrollContainerRef={timetableRef}
+        />
         <TimetableTimeHeader />
         {dayGroups.inTrip.map((dayGroup, i) => {
           const dayNumber = i + 1;
