@@ -10,48 +10,51 @@ import { calculateZoomFromFeature } from '../../common/geocodingUtils';
 
 export async function airportGeocodingRequest(
   query: string,
+  country?: string,
 ): Promise<[number | undefined, number | undefined, number | undefined]> {
   if (!query.trim()) {
     return [undefined, undefined, undefined];
   }
 
-  const geocodingOptions: GeocodingOptions = {
+  const baseOptions: GeocodingOptions = {
     language: 'en',
     limit: 5,
     types: ['poi'],
     apiKey: process.env.MAPTILER_API_KEY,
   };
+  // When a country is provided, scope the search to it (e.g. origin/destination region).
+  const countryOptions: GeocodingOptions = country
+    ? { ...baseOptions, country: [country.toLowerCase()] }
+    : baseOptions;
 
   let lat: number | undefined;
   let lng: number | undefined;
   let zoom: number | undefined;
 
-  try {
-    // TODO: BUG? "HND" goes to "Henderson Executive Airport" (which has FAA code HND) instead of "Tokyo Haneda Airport" (which has IATA code HND)
-    console.log('Airport geocoding request:', query, geocodingOptions);
-    const res = await geocoding.forward(query, geocodingOptions);
-    console.log('Airport geocoding response:', res);
-    const feature = res?.features[0];
-    if (feature) {
-      [lng, lat] = feature.center ?? [];
-      zoom = calculateZoomFromFeature(feature);
-    }
-  } catch (e) {
-    console.error('Airport geocoding request failed:', e);
-  }
-
-  // Fallback: append "airport" in case the user entered a bare IATA code
-  if (lng === undefined || lat === undefined) {
+  const geocode = async (q: string, options: GeocodingOptions) => {
     try {
-      const res = await geocoding.forward(`${query} airport`, geocodingOptions);
+      console.log('Airport geocoding request:', q, options);
+      const res = await geocoding.forward(q, options);
+      console.log('Airport geocoding response:', res);
       const feature = res?.features[0];
       if (feature) {
         [lng, lat] = feature.center ?? [];
         zoom = calculateZoomFromFeature(feature);
+        return true;
       }
     } catch (e) {
-      console.error('Airport fallback geocoding request failed:', e);
+      console.error('Airport geocoding request failed:', e);
     }
+    return false;
+  };
+
+  let found = await geocode(query, countryOptions);
+  // Fallback: append "airport" in case the user entered a bare IATA code
+  if (!found) found = await geocode(`${query} airport`, countryOptions);
+  // Last resort: retry without the country scope (avoids empty results)
+  if (!found && country) {
+    found = await geocode(query, baseOptions);
+    if (!found) await geocode(`${query} airport`, baseOptions);
   }
 
   return [lng, lat, zoom];

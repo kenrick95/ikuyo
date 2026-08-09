@@ -144,6 +144,7 @@ export type DbTripQueryReturnType = {
   currency: string;
   region: string;
   originCurrency: string;
+  originRegion?: string | null;
   timeZone: string;
   sharingLevel: number;
   publicShowExpenses?: boolean | null;

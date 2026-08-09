@@ -19,6 +19,8 @@ export type FlightSubformProps = {
   value: FlightCapture | null;
   originTimeZone: string;
   destinationTimeZone: string;
+  originRegion: string;
+  destinationRegion: string;
   isOutbound: boolean;
   error?: string;
   tripStartDate: Temporal.PlainDate | undefined;
@@ -31,6 +33,8 @@ export function FlightSubform({
   value,
   originTimeZone,
   destinationTimeZone,
+  originRegion,
+  destinationRegion,
   isOutbound,
   error,
   tripStartDate,
@@ -82,7 +86,8 @@ export function FlightSubform({
     async (e: FocusEvent<HTMLInputElement>) => {
       const query = e.target.value.trim();
       if (!query) return;
-      const [lng, lat, zoom] = await airportGeocodingRequest(query);
+      const country = isOutbound ? originRegion : destinationRegion;
+      const [lng, lat, zoom] = await airportGeocodingRequest(query, country);
       onChange({
         ...current,
         departureAirport: query,
@@ -91,7 +96,7 @@ export function FlightSubform({
         departureZoom: zoom,
       });
     },
-    [current, onChange],
+    [current, onChange, isOutbound, originRegion, destinationRegion],
   );
   const handleArrivalAirportChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) =>
@@ -108,7 +113,8 @@ export function FlightSubform({
     async (e: FocusEvent<HTMLInputElement>) => {
       const query = e.target.value.trim();
       if (!query) return;
-      const [lng, lat, zoom] = await airportGeocodingRequest(query);
+      const country = isOutbound ? destinationRegion : originRegion;
+      const [lng, lat, zoom] = await airportGeocodingRequest(query, country);
       onChange({
         ...current,
         arrivalAirport: query,
@@ -117,7 +123,7 @@ export function FlightSubform({
         arrivalZoom: zoom,
       });
     },
-    [current, onChange],
+    [current, onChange, isOutbound, originRegion, destinationRegion],
   );
   const handleDepartureTzChange = useCallback(
     (tz: string) => onChange({ ...current, departureTimeZone: tz }),

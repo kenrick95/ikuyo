@@ -12,6 +12,7 @@ function makeTrip(overrides: Partial<TripSliceTrip>): TripSliceTrip {
     currency: 'USD',
     region: 'US',
     originCurrency: 'USD',
+    originRegion: 'US',
     timeZone: 'UTC',
     sharingLevel: 2,
     accommodationIds: [],

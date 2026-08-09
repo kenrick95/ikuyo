@@ -50,6 +50,9 @@ export type WizardState = {
   timeZone: string;
   currency: string;
   originCurrency: string;
+  // Step 2 (origin region; pre-filled from user preferences)
+  originRegion: string;
+  originTimeZone: string;
   // Step 3
   travelMode: 'flight' | 'train' | 'other' | null;
   outboundFlight: FlightCapture | null;
@@ -67,6 +70,8 @@ export type WizardAction =
   | { type: 'SET_TIMEZONE'; timeZone: string }
   | { type: 'SET_CURRENCY'; currency: string }
   | { type: 'SET_ORIGIN_CURRENCY'; originCurrency: string }
+  | { type: 'SET_ORIGIN_REGION'; originRegion: string }
+  | { type: 'SET_ORIGIN_TIMEZONE'; originTimeZone: string }
   | {
       type: 'SET_TRAVEL_MODE';
       travelMode: 'flight' | 'train' | 'other' | null;
@@ -86,6 +91,7 @@ export function wizardReducer(
       if (state.step === 2 && action.step === 3) {
         // When moving from step 2 to 3, pre-fill outbound flight and return flight with default values based on the trip's start and end dates only if it has not been set yet
         const currentTimeZone = Temporal.Now.timeZoneId();
+        const originTimeZone = state.originTimeZone || currentTimeZone;
         let newState = { ...state, step: action.step };
         if (!state.outboundFlight && state.startDate) {
           // Outbound flight: default departure: 9 am at trip time zone (converted to current time zone); default arrival: 12 pm at trip time zone
@@ -97,7 +103,7 @@ export function wizardReducer(
               },
               timeZone: state.timeZone,
             })
-            .withTimeZone(currentTimeZone);
+            .withTimeZone(originTimeZone);
           const zonedArrivalDateTime = state.startDate.toZonedDateTime({
             plainTime: {
               hour: 12,
@@ -109,7 +115,7 @@ export function wizardReducer(
           const defaultOutboundFlight: FlightCapture = {
             departureDateTime: zonedDepartureDateTime.toPlainDateTime(),
             arrivalDateTime: zonedArrivalDateTime.toPlainDateTime(),
-            departureTimeZone: currentTimeZone,
+            departureTimeZone: originTimeZone,
             arrivalTimeZone: state.timeZone,
           };
           newState = { ...newState, outboundFlight: defaultOutboundFlight };
@@ -131,13 +137,13 @@ export function wizardReducer(
               },
               timeZone: state.timeZone,
             })
-            .withTimeZone(currentTimeZone);
+            .withTimeZone(originTimeZone);
 
           const defaultReturnFlight: FlightCapture = {
             departureDateTime: zonedDepartureDateTime.toPlainDateTime(),
             arrivalDateTime: zonedArrivalDateTime.toPlainDateTime(),
             departureTimeZone: state.timeZone,
-            arrivalTimeZone: currentTimeZone,
+            arrivalTimeZone: originTimeZone,
           };
           newState = { ...newState, returnFlight: defaultReturnFlight };
         }
@@ -150,7 +156,7 @@ export function wizardReducer(
               },
               timeZone: state.timeZone,
             })
-            .withTimeZone(currentTimeZone);
+            .withTimeZone(originTimeZone);
           const zonedArrivalDateTime = state.startDate.toZonedDateTime({
             plainTime: {
               hour: 12,
@@ -162,7 +168,7 @@ export function wizardReducer(
           const defaultOutboundTrain: TrainCapture = {
             departureDateTime: zonedDepartureDateTime.toPlainDateTime(),
             arrivalDateTime: zonedArrivalDateTime.toPlainDateTime(),
-            departureTimeZone: currentTimeZone,
+            departureTimeZone: originTimeZone,
             arrivalTimeZone: state.timeZone,
           };
           newState = { ...newState, outboundTrain: defaultOutboundTrain };
@@ -183,13 +189,13 @@ export function wizardReducer(
               },
               timeZone: state.timeZone,
             })
-            .withTimeZone(currentTimeZone);
+            .withTimeZone(originTimeZone);
 
           const defaultReturnTrain: TrainCapture = {
             departureDateTime: zonedDepartureDateTime.toPlainDateTime(),
             arrivalDateTime: zonedArrivalDateTime.toPlainDateTime(),
             departureTimeZone: state.timeZone,
-            arrivalTimeZone: currentTimeZone,
+            arrivalTimeZone: originTimeZone,
           };
           newState = { ...newState, returnTrain: defaultReturnTrain };
         }
@@ -247,6 +253,28 @@ export function wizardReducer(
       return { ...state, currency: action.currency };
     case 'SET_ORIGIN_CURRENCY':
       return { ...state, originCurrency: action.originCurrency };
+    case 'SET_ORIGIN_REGION': {
+      const newOriginCurrency = getDefaultCurrencyForRegion(
+        action.originRegion,
+      );
+      const newOriginTimeZone = getDefaultTimezoneForRegion(
+        action.originRegion,
+      );
+      return {
+        ...state,
+        originRegion: action.originRegion,
+        originCurrency:
+          newOriginCurrency && ALL_CURRENCIES.includes(newOriginCurrency)
+            ? newOriginCurrency
+            : state.originCurrency,
+        originTimeZone:
+          newOriginTimeZone && ALL_TIMEZONES.includes(newOriginTimeZone)
+            ? newOriginTimeZone
+            : state.originTimeZone,
+      };
+    }
+    case 'SET_ORIGIN_TIMEZONE':
+      return { ...state, originTimeZone: action.originTimeZone };
     case 'SET_TRAVEL_MODE':
       return { ...state, travelMode: action.travelMode };
     case 'SET_OUTBOUND_FLIGHT':
@@ -293,7 +321,22 @@ export function wizardReducer(
 export function createInitialWizardState(
   currentTimeZone: string,
   originCurrency: string,
+  preferences?: {
+    region?: string;
+    currency?: string;
+    timeZone?: string;
+  },
 ): WizardState {
+  const preferredRegion = preferences?.region;
+  const preferredCurrency = preferences?.currency;
+  const preferredTimeZone = preferences?.timeZone;
+
+  const originTimeZone =
+    (preferredRegion && getDefaultTimezoneForRegion(preferredRegion)) ||
+    currentTimeZone;
+  const originDefaultCurrency =
+    (preferredRegion && getDefaultCurrencyForRegion(preferredRegion)) || '';
+
   return {
     step: 1,
     title: '',
@@ -302,7 +345,10 @@ export function createInitialWizardState(
     endDate: undefined,
     timeZone: currentTimeZone,
     currency: '',
-    originCurrency,
+    originCurrency:
+      preferredCurrency || originDefaultCurrency || originCurrency,
+    originRegion: preferredRegion || '',
+    originTimeZone: preferredTimeZone || originTimeZone,
     travelMode: null,
     outboundFlight: null,
     returnFlight: null,

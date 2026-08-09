@@ -1,4 +1,6 @@
 import { getDefaultCurrencyForRegion } from '../../data/intl/currencies';
+import type { DbUser } from '../../User/db';
+import { dbUpdateUserPreferences } from '../../User/db';
 import type { FlightCapture, TrainCapture } from './wizardReducer';
 
 type TransportCapture = Pick<
@@ -69,5 +71,28 @@ export function getOriginCurrencyFromLocale(): string {
     return getDefaultCurrencyForRegion(region) ?? 'USD';
   } catch {
     return 'USD';
+  }
+}
+
+/**
+ * Persist origin preferences to the user only for fields they haven't set yet.
+ * Fire-and-forget; never throws to the caller.
+ */
+export async function saveOriginPreferences(
+  currentUser: DbUser | undefined,
+  region: string | undefined,
+  currency: string | undefined,
+  timeZone: string | undefined,
+): Promise<void> {
+  if (!currentUser?.id) return;
+  const attrs: { region?: string; currency?: string; timeZone?: string } = {};
+  if (region && !currentUser.preferredRegion) attrs.region = region;
+  if (currency && !currentUser.preferredCurrency) attrs.currency = currency;
+  if (timeZone && !currentUser.preferredTimeZone) attrs.timeZone = timeZone;
+  if (Object.keys(attrs).length === 0) return;
+  try {
+    await dbUpdateUserPreferences({ id: currentUser.id, ...attrs });
+  } catch (e) {
+    console.error('Failed to save origin preferences:', e);
   }
 }

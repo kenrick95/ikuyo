@@ -35,6 +35,7 @@ export function TripForm({
   tripRegion,
   tripCurrency,
   tripOriginCurrency,
+  tripOriginRegion,
   tripSharingLevel,
   userId,
   onFormSuccess,
@@ -49,6 +50,7 @@ export function TripForm({
   tripRegion: string;
   tripCurrency: string;
   tripOriginCurrency: string;
+  tripOriginRegion: string;
   tripSharingLevel: TripSharingLevelType;
   userId?: string;
   onFormSuccess: () => void;
@@ -60,6 +62,7 @@ export function TripForm({
   const idCurrency = useId();
   const idOriginCurrency = useId();
   const idRegion = useId();
+  const idOriginRegion = useId();
   const publishToast = useBoundStore((state) => state.publishToast);
   const [isFormLoading, setIsFormLoading] = useState(false);
   const [currentTimeZone, setCurrentTimeZone] = useState(tripTimeZone);
@@ -67,6 +70,8 @@ export function TripForm({
   const [currentCurrency, setCurrentCurrency] = useState(tripCurrency);
   const [currentOriginCurrency, setCurrentOriginCurrency] =
     useState(tripOriginCurrency);
+  const [currentOriginRegion, setCurrentOriginRegion] =
+    useState(tripOriginRegion);
   const [currentStartDate, setCurrentStartDate] = useState<
     Temporal.PlainDate | undefined
   >(tripStartDateTime);
@@ -133,6 +138,22 @@ export function TripForm({
       handleTimeZoneChange,
     ],
   );
+  const handleOriginRegionChange = useCallback(
+    (newRegion: string) => {
+      setCurrentOriginRegion(newRegion);
+      if (
+        mode === TripFormMode.New ||
+        currentOriginCurrency === tripOriginCurrency
+      ) {
+        const defaultCurrency = getDefaultCurrencyForRegion(newRegion);
+        if (defaultCurrency && ALL_CURRENCIES.includes(defaultCurrency)) {
+          setCurrentOriginCurrency(defaultCurrency);
+        }
+      }
+    },
+    [mode, currentOriginCurrency, tripOriginCurrency],
+  );
+
   const handleForm = useCallback(() => {
     return async (elForm: HTMLFormElement) => {
       setErrorMessage('');
@@ -149,6 +170,7 @@ export function TripForm({
       const currency = currentCurrency;
       const originCurrency =
         (formData.get('originCurrency') as string | null) ?? '';
+      const originRegion = currentOriginRegion;
       console.log('TripForm', {
         mode,
         location,
@@ -158,6 +180,7 @@ export function TripForm({
         region,
         currency,
         originCurrency,
+        originRegion,
         dateStartDateTime: dateStartForDb,
         dateEndDateTime: dateEndForDb,
       });
@@ -193,6 +216,7 @@ export function TripForm({
           region,
           currency,
           originCurrency,
+          originRegion,
           sharingLevel: tripSharingLevel,
         });
         publishToast({
@@ -215,6 +239,7 @@ export function TripForm({
             region,
             currency,
             originCurrency,
+            originRegion,
             sharingLevel: TripSharingLevel.Private,
           },
           {
@@ -251,6 +276,7 @@ export function TripForm({
     currentTimeZone,
     currentRegion,
     currentCurrency,
+    currentOriginRegion,
     currentStartDate,
     currentEndDate,
   ]);
@@ -323,6 +349,38 @@ export function TripForm({
           </Text>
         </Text>
         {fieldSelectRegion}
+
+        <Text as="label" htmlFor={idOriginRegion}>
+          Origin's region{' '}
+          <Text weight="light" size="1">
+            (optional)
+          </Text>
+          <br />
+          <Text weight="light" size="1">
+            Where you're travelling from. Used to auto-fill your origin currency
+            and to geocode your departure transport.
+          </Text>
+        </Text>
+        <Select.Root
+          name="originRegion"
+          value={currentOriginRegion}
+          onValueChange={handleOriginRegionChange}
+          disabled={isFormLoading}
+        >
+          <Select.Trigger
+            id={idOriginRegion}
+            placeholder="Select an origin region…"
+          />
+          <Select.Content>
+            {REGIONS_LIST.map(([regionCode, regionName]) => {
+              return (
+                <Select.Item key={regionCode} value={regionCode}>
+                  {regionName}
+                </Select.Item>
+              );
+            })}
+          </Select.Content>
+        </Select.Root>
 
         <Text as="label" htmlFor={idTimeZone}>
           Destination's default time zone{' '}

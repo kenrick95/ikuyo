@@ -3,6 +3,7 @@ import {
   Container,
   Flex,
   Heading,
+  Select,
   Text,
   TextField,
 } from '@radix-ui/themes';
@@ -11,11 +12,15 @@ import { useCallback, useId, useState } from 'react';
 import type { RouteComponentProps } from 'wouter';
 import { useAuthUser } from '../Auth/hooks';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
+import { CurrencySelect } from '../common/CurrencySelect/CurrencySelect';
+import { TimeZoneSelect } from '../common/TimeZoneSelect/TimeZoneSelect';
 import { dangerToken } from '../common/ui';
+import { REGIONS_LIST } from '../data/intl/regions';
 import { useBoundStore, useDeepBoundStore } from '../data/store';
 import { DocTitle } from '../Nav/DocTitle';
 import { Navbar } from '../Nav/Navbar';
-import { dbUpdateUser } from '../User/db';
+import { getOriginCurrencyFromLocale } from '../Trip/TripNew/wizardUtils';
+import { dbUpdateUser, dbUpdateUserPreferences } from '../User/db';
 
 export default PageAccount;
 export function PageAccount(_props: RouteComponentProps) {
@@ -26,10 +31,23 @@ export function PageAccount(_props: RouteComponentProps) {
 
   const idEmail = useId();
   const idHandle = useId();
+  const idPrefRegion = useId();
+  const idPrefCurrency = useId();
+  const idPrefTimeZone = useId();
 
   const [errorMessage, setErrorMessage] = useState('');
   const { authUser } = useAuthUser();
   const isGuest = !currentUser?.email;
+
+  const [prefRegion, setPrefRegion] = useState(
+    currentUser?.preferredRegion ?? '',
+  );
+  const [prefCurrency, setPrefCurrency] = useState(
+    currentUser?.preferredCurrency ?? getOriginCurrencyFromLocale(),
+  );
+  const [prefTimeZone, setPrefTimeZone] = useState(
+    currentUser?.preferredTimeZone ?? Temporal.Now.timeZoneId(),
+  );
 
   const handleForm = useCallback(() => {
     return async (elForm: HTMLFormElement) => {
@@ -93,6 +111,41 @@ export function PageAccount(_props: RouteComponentProps) {
       void handleForm()(elForm);
     },
     [handleForm],
+  );
+
+  const handlePrefForm = useCallback(
+    (event: SubmitEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      void (async () => {
+        if (!currentUser?.id) return;
+        setIsFormLoading(true);
+        try {
+          await dbUpdateUserPreferences({
+            id: currentUser.id,
+            region: prefRegion || undefined,
+            currency: prefCurrency || undefined,
+            timeZone: prefTimeZone || undefined,
+          });
+          publishToast({
+            root: {},
+            title: { children: 'Trip preferences updated' },
+            close: {},
+          });
+        } catch (err) {
+          publishToast({
+            root: { duration: Number.POSITIVE_INFINITY },
+            title: { children: 'Failed to update trip preferences' },
+            description: {
+              children: (err as { message?: string }).message || '',
+            },
+            close: {},
+          });
+        } finally {
+          setIsFormLoading(false);
+        }
+      })();
+    },
+    [currentUser?.id, prefRegion, prefCurrency, prefTimeZone, publishToast],
   );
 
   return (
@@ -159,6 +212,72 @@ export function PageAccount(_props: RouteComponentProps) {
               disabled={isGuest}
             >
               Save
+            </Button>
+          </Flex>
+        </form>
+
+        <Heading as="h2" mt="6">
+          Trip Preferences
+        </Heading>
+        <Text as="p" size="2" color="gray">
+          Your origin (home) country/region. New trips are pre-filled with these
+          values so your origin currency and time zone don't have to be
+          re-entered.
+        </Text>
+        <form onInput={onFormInput} onSubmit={handlePrefForm}>
+          <Flex direction="column" gap="2" mt="3">
+            <Text as="label" htmlFor={idPrefRegion}>
+              Origin region / country
+            </Text>
+            <Select.Root
+              name="prefRegion"
+              value={prefRegion}
+              onValueChange={setPrefRegion}
+              disabled={isFormLoading}
+            >
+              <Select.Trigger
+                id={idPrefRegion}
+                placeholder="Select an origin region…"
+              />
+              <Select.Content>
+                {REGIONS_LIST.map(([regionCode, regionName]) => (
+                  <Select.Item key={regionCode} value={regionCode}>
+                    {regionName}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Root>
+
+            <Text as="label" htmlFor={idPrefCurrency}>
+              Origin currency
+            </Text>
+            <CurrencySelect
+              name="prefCurrency"
+              id={idPrefCurrency}
+              value={prefCurrency}
+              isFormLoading={isFormLoading}
+              handleChange={setPrefCurrency}
+            />
+
+            <Text as="label" htmlFor={idPrefTimeZone}>
+              Origin time zone
+            </Text>
+            <TimeZoneSelect
+              name="prefTimeZone"
+              id={idPrefTimeZone}
+              value={prefTimeZone}
+              isFormLoading={isFormLoading}
+              handleChange={setPrefTimeZone}
+            />
+          </Flex>
+          <Flex gap="3" mt="5">
+            <Button
+              type="submit"
+              size="2"
+              variant="solid"
+              loading={isFormLoading}
+            >
+              Save Preferences
             </Button>
           </Flex>
         </form>

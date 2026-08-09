@@ -27,6 +27,26 @@ describe('createInitialWizardState', () => {
     expect(BASE.outboundFlight).toBeNull();
     expect(BASE.returnFlight).toBeNull();
   });
+
+  test('seeds origin region, currency, and time zone from preferences', () => {
+    const state = createInitialWizardState('Asia/Tokyo', 'USD', {
+      region: 'SG',
+      currency: 'SGD',
+      timeZone: 'Asia/Singapore',
+    });
+    expect(state.originRegion).toBe('SG');
+    expect(state.originCurrency).toBe('SGD');
+    expect(state.originTimeZone).toBe('Asia/Singapore');
+  });
+
+  test('derives origin currency/time zone from preferred region when not overridden', () => {
+    const state = createInitialWizardState('Asia/Tokyo', 'USD', {
+      region: 'JP',
+    });
+    expect(state.originRegion).toBe('JP');
+    expect(state.originCurrency).toBe('JPY');
+    expect(state.originTimeZone).toBe('Asia/Tokyo');
+  });
 });
 
 describe('wizardReducer', () => {
@@ -84,6 +104,24 @@ describe('wizardReducer', () => {
       originCurrency: 'SGD',
     });
     expect(next.originCurrency).toBe('SGD');
+  });
+
+  test('SET_ORIGIN_REGION updates origin region, currency, and time zone atomically', () => {
+    const next = wizardReducer(BASE, {
+      type: 'SET_ORIGIN_REGION',
+      originRegion: 'SG',
+    });
+    expect(next.originRegion).toBe('SG');
+    expect(next.originCurrency).toBe('SGD');
+    expect(next.originTimeZone).toBe('Asia/Singapore');
+  });
+
+  test('SET_ORIGIN_TIMEZONE updates originTimeZone', () => {
+    const next = wizardReducer(BASE, {
+      type: 'SET_ORIGIN_TIMEZONE',
+      originTimeZone: 'Europe/London',
+    });
+    expect(next.originTimeZone).toBe('Europe/London');
   });
 
   test('SET_TRAVEL_MODE updates travelMode', () => {
@@ -275,13 +313,12 @@ describe('wizardReducer - step 3 train defaults', () => {
   test('moving to step 3 prefills outbound and return trains', () => {
     const atStep2 = stateAtStep2('2026-10-01', '2026-10-10', 'Asia/Tokyo');
     const next = wizardReducer(atStep2, { type: 'SET_STEP', step: 3 });
-    const local = Temporal.Now.timeZoneId();
 
     expect(next.outboundTrain).not.toBeNull();
     expect(next.returnTrain).not.toBeNull();
 
-    // Outbound times are wall-clock converted into the local timezone
-    expect(next.outboundTrain?.departureTimeZone).toBe(local);
+    // Outbound times are wall-clock converted into the origin timezone
+    expect(next.outboundTrain?.departureTimeZone).toBe('Asia/Tokyo');
     expect(next.outboundTrain?.arrivalTimeZone).toBe('Asia/Tokyo');
 
     // Return departure wall-clock is 15:00 in the trip timezone (not converted)
@@ -289,20 +326,23 @@ describe('wizardReducer - step 3 train defaults', () => {
       Temporal.PlainDateTime.from('2026-10-10T15:00'),
     );
     expect(next.returnTrain?.departureTimeZone).toBe('Asia/Tokyo');
-    // Return arrival is converted back into the local timezone
-    expect(next.returnTrain?.arrivalTimeZone).toBe(local);
+    // Return arrival is converted back into the origin timezone
+    expect(next.returnTrain?.arrivalTimeZone).toBe('Asia/Tokyo');
   });
 
-  test('outbound and return trains use differing local and trip time zones', () => {
+  test('outbound and return trains use differing origin and trip time zones', () => {
     const atStep2 = stateAtStep2('2026-10-01', '2026-10-10', 'Asia/Tokyo');
-    const next = wizardReducer(atStep2, { type: 'SET_STEP', step: 3 });
-    const local = Temporal.Now.timeZoneId();
-    // Outbound: departure tagged as the user's local timezone, arrival in trip tz
-    expect(next.outboundTrain?.departureTimeZone).toBe(local);
+    const withOriginTz = wizardReducer(atStep2, {
+      type: 'SET_ORIGIN_TIMEZONE',
+      originTimeZone: 'Asia/Singapore',
+    });
+    const next = wizardReducer(withOriginTz, { type: 'SET_STEP', step: 3 });
+    // Outbound: departure tagged as the origin timezone, arrival in trip tz
+    expect(next.outboundTrain?.departureTimeZone).toBe('Asia/Singapore');
     expect(next.outboundTrain?.arrivalTimeZone).toBe('Asia/Tokyo');
-    // Return: departure in trip tz, arrival back in the user's local timezone
+    // Return: departure in trip tz, arrival back in the origin timezone
     expect(next.returnTrain?.departureTimeZone).toBe('Asia/Tokyo');
-    expect(next.returnTrain?.arrivalTimeZone).toBe(local);
+    expect(next.returnTrain?.arrivalTimeZone).toBe('Asia/Singapore');
   });
 
   test('moving to step 3 does not overwrite an existing outbound train', () => {

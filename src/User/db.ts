@@ -9,7 +9,30 @@ export type DbUser = {
   lastUpdatedAt: number;
   activated: boolean;
   lastLoginAt: number | undefined;
+  preferredRegion?: string;
+  preferredCurrency?: string;
+  preferredTimeZone?: string;
 };
+
+export async function dbUpdateUserPreferences({
+  id: userId,
+  region,
+  currency,
+  timeZone,
+}: {
+  id: string;
+  region?: string;
+  currency?: string;
+  timeZone?: string;
+}) {
+  const attrs: Record<string, unknown> = {
+    lastUpdatedAt: Date.now(),
+  };
+  if (region !== undefined) attrs.preferredRegion = region;
+  if (currency !== undefined) attrs.preferredCurrency = currency;
+  if (timeZone !== undefined) attrs.preferredTimeZone = timeZone;
+  return db.transact(db.tx.user[userId].merge(attrs));
+}
 
 export async function dbCreateUser({
   email,
