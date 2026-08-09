@@ -49,6 +49,8 @@ export type DbTrip = {
   currency: string;
   /** origin's default currency */
   originCurrency: string;
+  /** origin 2-letter Intl region. Uppercase! Optional for backward compat */
+  originRegion: string;
 
   /** 0: private; 1: group (removed, no longer in use); 2: public but unlisted; 3: public listed in public directory */
   sharingLevel: TripSharingLevelType;

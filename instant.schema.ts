@@ -79,6 +79,7 @@ const _schema = i.schema({
       region: i.string(),
       lastUpdatedAt: i.number(),
       originCurrency: i.string(),
+      originRegion: i.string().optional(),
       timestampEnd: i.number().indexed(),
       timestampStart: i.number(),
       timeZone: i.string(),
@@ -103,6 +104,9 @@ const _schema = i.schema({
       handle: i.string().unique().indexed(),
       lastUpdatedAt: i.number(),
       lastLoginAt: i.date().optional(),
+      preferredRegion: i.string().optional(),
+      preferredCurrency: i.string().optional(),
+      preferredTimeZone: i.string().optional(),
     }),
     commentGroup: i.entity({
       status: i.number(),

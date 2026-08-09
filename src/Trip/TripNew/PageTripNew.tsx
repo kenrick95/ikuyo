@@ -36,24 +36,36 @@ import {
   getFlightTimeError,
   getOriginCurrencyFromLocale,
   getTrainTimeError,
+  saveOriginPreferences,
 } from './wizardUtils';
 
 export default function PageTripNew() {
   const [, setLocation] = useLocation();
   const localTimeZone = Temporal.Now.timeZoneId();
+  const currentUser = useBoundStore((store) => store.currentUser);
 
   const [state, dispatch] = useReducer(wizardReducer, undefined, () =>
-    createInitialWizardState(localTimeZone, getOriginCurrencyFromLocale()),
+    createInitialWizardState(localTimeZone, getOriginCurrencyFromLocale(), {
+      region: currentUser?.preferredRegion,
+      currency: currentUser?.preferredCurrency,
+      timeZone: currentUser?.preferredTimeZone,
+    }),
   );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const publishToast = useBoundStore((store) => store.publishToast);
-  const currentUser = useBoundStore((store) => store.currentUser);
 
   const handleRegionChange = useCallback((region: string) => {
     dispatch({
       type: 'SET_REGION',
       region,
+    });
+  }, []);
+
+  const handleOriginRegionChange = useCallback((region: string) => {
+    dispatch({
+      type: 'SET_ORIGIN_REGION',
+      originRegion: region,
     });
   }, []);
 
@@ -113,6 +125,7 @@ export default function PageTripNew() {
       region,
       currency,
       originCurrency,
+      originRegion,
       timeZone,
     } = state;
     if (
@@ -145,6 +158,7 @@ export default function PageTripNew() {
           region,
           currency,
           originCurrency,
+          originRegion,
           sharingLevel: TripSharingLevel.Private,
         },
         { userId: currentUser.id },
@@ -313,6 +327,12 @@ export default function PageTripNew() {
           close: {},
         });
       }
+      saveOriginPreferences(
+        currentUser,
+        originRegion,
+        originCurrency,
+        state.originTimeZone,
+      );
       setLocation(RouteTrip.asRouteTarget(newTripId));
     } catch {
       publishToast({
@@ -449,6 +469,38 @@ export default function PageTripNew() {
               Region / Country
             </Text>
             {regionSelect}
+          </Flex>
+
+          <Flex direction="column" gap="1">
+            <Text
+              as="label"
+              htmlFor="wizard-originRegion"
+              size="2"
+              weight="medium"
+            >
+              Origin region / country
+            </Text>
+            <Text as="p" size="1" color="gray">
+              Where you're travelling from. Used to auto-fill your origin
+              currency and time zone, and to geocode your departure transport.
+            </Text>
+            <Select.Root
+              name="originRegion"
+              value={state.originRegion}
+              onValueChange={handleOriginRegionChange}
+            >
+              <Select.Trigger
+                id="wizard-originRegion"
+                placeholder="Select an origin region…"
+              />
+              <Select.Content>
+                {REGIONS_LIST.map(([code, name]) => (
+                  <Select.Item key={code} value={code}>
+                    {name}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select.Root>
           </Flex>
 
           <Flex direction="column" gap="1">
@@ -652,8 +704,10 @@ export default function PageTripNew() {
           <FlightSubform
             label="Outbound flight"
             value={state.outboundFlight}
-            originTimeZone={localTimeZone}
+            originTimeZone={state.originTimeZone}
             destinationTimeZone={state.timeZone}
+            originRegion={state.originRegion}
+            destinationRegion={state.region}
             isOutbound={true}
             error={outboundFlightError}
             tripStartDate={state.startDate}
@@ -663,8 +717,10 @@ export default function PageTripNew() {
           <FlightSubform
             label="Return flight"
             value={state.returnFlight}
-            originTimeZone={localTimeZone}
+            originTimeZone={state.originTimeZone}
             destinationTimeZone={state.timeZone}
+            originRegion={state.originRegion}
+            destinationRegion={state.region}
             isOutbound={false}
             error={returnFlightError}
             tripStartDate={state.startDate}
@@ -679,8 +735,10 @@ export default function PageTripNew() {
           <TrainSubform
             label="Outbound train"
             value={state.outboundTrain}
-            originTimeZone={localTimeZone}
+            originTimeZone={state.originTimeZone}
             destinationTimeZone={state.timeZone}
+            originRegion={state.originRegion}
+            destinationRegion={state.region}
             isOutbound={true}
             error={outboundTrainError}
             tripStartDate={state.startDate}
@@ -690,8 +748,10 @@ export default function PageTripNew() {
           <TrainSubform
             label="Return train"
             value={state.returnTrain}
-            originTimeZone={localTimeZone}
+            originTimeZone={state.originTimeZone}
             destinationTimeZone={state.timeZone}
+            originRegion={state.originRegion}
+            destinationRegion={state.region}
             isOutbound={false}
             error={returnTrainError}
             tripStartDate={state.startDate}

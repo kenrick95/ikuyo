@@ -14,7 +14,8 @@
     "preview": "rsbuild preview",
     "test": "vitest",
     "typecheck": "tsc --noEmit",
-    "s:delete-users": "node --experimental-transform-types ./scripts/delete-inactive-users.ts"
+    "s:delete-users": "node --experimental-transform-types ./scripts/delete-inactive-users.ts",
+    "s:populate-trip-origin-region": "node --experimental-transform-types ./scripts/populate-trip-origin-region.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

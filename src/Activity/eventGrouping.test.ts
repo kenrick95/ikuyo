@@ -18,6 +18,7 @@ describe('Trip', () => {
     timeZone: 'UTC',
     currency: 'GBP',
     originCurrency: 'USD',
+    originRegion: 'US',
     region: 'GB',
     activityIds: [],
     accommodationIds: [],

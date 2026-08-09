@@ -41,6 +41,7 @@ export function deriveNewTripState(
       currency: trip.currency,
       region: trip.region,
       originCurrency: trip.originCurrency,
+      originRegion: trip.originRegion ?? '',
       timeZone: trip.timeZone,
       accommodationIds: trip.accommodation.map((a) => a.id),
       activityIds: trip.activity.map((a) => a.id),

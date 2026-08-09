@@ -19,6 +19,8 @@ export type TrainSubformProps = {
   value: TrainCapture | null;
   originTimeZone: string;
   destinationTimeZone: string;
+  originRegion: string;
+  destinationRegion: string;
   isOutbound: boolean;
   error?: string;
   tripStartDate: Temporal.PlainDate | undefined;
@@ -31,6 +33,8 @@ export function TrainSubform({
   value,
   originTimeZone,
   destinationTimeZone,
+  originRegion,
+  destinationRegion,
   isOutbound,
   error,
   tripStartDate,
@@ -83,7 +87,8 @@ export function TrainSubform({
       const input = e.currentTarget;
       const query = e.target.value.trim();
       if (!query) return;
-      const [lng, lat, zoom] = await stationGeocodingRequest(query);
+      const country = isOutbound ? originRegion : destinationRegion;
+      const [lng, lat, zoom] = await stationGeocodingRequest(query, country);
       if (input.value.trim() !== query) return;
       onChange({
         departureStation: query,
@@ -92,7 +97,7 @@ export function TrainSubform({
         departureZoom: zoom,
       });
     },
-    [onChange],
+    [onChange, isOutbound, originRegion, destinationRegion],
   );
   const handleArrivalStationChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) =>
@@ -109,7 +114,8 @@ export function TrainSubform({
     async (e: FocusEvent<HTMLInputElement>) => {
       const query = e.target.value.trim();
       if (!query) return;
-      const [lng, lat, zoom] = await stationGeocodingRequest(query);
+      const country = isOutbound ? destinationRegion : originRegion;
+      const [lng, lat, zoom] = await stationGeocodingRequest(query, country);
       onChange({
         ...current,
         arrivalStation: query,
@@ -118,7 +124,7 @@ export function TrainSubform({
         arrivalZoom: zoom,
       });
     },
-    [current, onChange],
+    [current, onChange, isOutbound, originRegion, destinationRegion],
   );
   const handleDepartureTzChange = useCallback(
     (tz: string) => onChange({ ...current, departureTimeZone: tz }),
