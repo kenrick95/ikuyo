@@ -1,4 +1,4 @@
-import { ContextMenu } from '@radix-ui/themes';
+import type { RefObject } from 'react';
 import React, { type MouseEvent, memo, useCallback, useMemo } from 'react';
 import { AccommodationNewDialog } from '../../Accommodation/AccommodationNewDialog';
 import { ActivityNewDialog } from '../../Activity/ActivityNewDialog';
@@ -8,14 +8,15 @@ import { useBoundStore } from '../../data/store';
 import { MacroplanNewDialog } from '../../Macroplan/MacroplanNewDialog';
 import { TripUserRole } from '../../User/TripUserRole';
 import { useCurrentTrip } from '../store/hooks';
-import { TimetableCell } from './TimetableCell';
+import { TimetableDragTarget } from './TimetableDragTarget';
 import { pad2 } from './time';
 
 interface TimetableGridProps {
   days: number;
+  scrollContainerRef: RefObject<HTMLElement | null>;
 }
 
-function TimetableGridInner({ days }: TimetableGridProps) {
+function TimetableGridInner({ days, scrollContainerRef }: TimetableGridProps) {
   // Create an array of hours (0-23)
   const hours = Array.from({ length: 24 }, (_, i) => i);
 
@@ -136,80 +137,29 @@ function TimetableGridInner({ days }: TimetableGridProps) {
                 const columnStr = `d${day}-c1`; // Assuming single column per day
 
                 return (
-                  <ContextMenu.Root key={`${day}-${timeStr}`}>
-                    <ContextMenu.Trigger>
-                      <div
-                        style={{
-                          gridRowStart: `t${timeStr}`,
-                          gridRowEnd:
-                            minute === 30
-                              ? `te${pad2(hour)}59`
-                              : `te${pad2(hour)}30`,
-                          gridColumnStart: `d${day}`,
-                          gridColumnEnd: `de${day}`,
-                        }}
-                      >
-                        <TimetableCell row={`t${timeStr}`} column={columnStr} />
-                      </div>
-                    </ContextMenu.Trigger>
-                    <ContextMenu.Content>
-                      <ContextMenu.Label>{trip?.title}</ContextMenu.Label>
-                      <ContextMenu.Item
-                        onClick={
-                          userCanModifyTrip ? openActivityNewDialog : undefined
-                        }
-                        disabled={!userCanModifyTrip}
-                        data-time-start={timeStr}
-                        data-day={day}
-                      >
-                        New activity
-                      </ContextMenu.Item>
-
-                      <ContextMenu.Item
-                        onClick={
-                          userCanModifyTrip ? openFlightNewDialog : undefined
-                        }
-                        disabled={!userCanModifyTrip}
-                        data-time-start={timeStr}
-                        data-day={day}
-                      >
-                        New flight
-                      </ContextMenu.Item>
-
-                      <ContextMenu.Item
-                        onClick={
-                          userCanModifyTrip ? openTrainNewDialog : undefined
-                        }
-                        disabled={!userCanModifyTrip}
-                        data-time-start={timeStr}
-                        data-day={day}
-                      >
-                        New train
-                      </ContextMenu.Item>
-
-                      <ContextMenu.Item
-                        onClick={
-                          userCanModifyTrip
-                            ? openAccommodationNewDialog
-                            : undefined
-                        }
-                        disabled={!userCanModifyTrip}
-                        data-day={day}
-                      >
-                        New acommodation
-                      </ContextMenu.Item>
-
-                      <ContextMenu.Item
-                        onClick={
-                          userCanModifyTrip ? openMacroplanNewDialog : undefined
-                        }
-                        disabled={!userCanModifyTrip}
-                        data-day={day}
-                      >
-                        New day plan
-                      </ContextMenu.Item>
-                    </ContextMenu.Content>
-                  </ContextMenu.Root>
+                  <TimetableDragTarget
+                    key={`${day}-${timeStr}`}
+                    day={day}
+                    timeStr={timeStr}
+                    columnStr={columnStr}
+                    gridStyle={{
+                      gridRowStart: `t${timeStr}`,
+                      gridRowEnd:
+                        minute === 30
+                          ? `te${pad2(hour)}59`
+                          : `te${pad2(hour)}30`,
+                      gridColumnStart: `d${day}`,
+                      gridColumnEnd: `de${day}`,
+                    }}
+                    scrollContainerRef={scrollContainerRef}
+                    tripTitle={trip?.title}
+                    userCanModifyTrip={userCanModifyTrip}
+                    onNewActivity={openActivityNewDialog}
+                    onNewFlight={openFlightNewDialog}
+                    onNewTrain={openTrainNewDialog}
+                    onNewAccommodation={openAccommodationNewDialog}
+                    onNewMacroplan={openMacroplanNewDialog}
+                  />
                 );
               })}
             </React.Fragment>
@@ -222,6 +172,9 @@ function TimetableGridInner({ days }: TimetableGridProps) {
 export const TimetableGrid = memo(
   TimetableGridInner,
   (prevProps, nextProps) => {
-    return prevProps.days === nextProps.days;
+    return (
+      prevProps.days === nextProps.days &&
+      prevProps.scrollContainerRef === nextProps.scrollContainerRef
+    );
   },
 );
