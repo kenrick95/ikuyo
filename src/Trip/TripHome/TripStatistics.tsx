@@ -1,15 +1,20 @@
 import { Share1Icon } from '@radix-ui/react-icons';
-import { Button, DataList, Heading } from '@radix-ui/themes';
+import { Button, DataList, Flex, Heading } from '@radix-ui/themes';
 
 import { useCallback, useMemo } from 'react';
 import { Link } from 'wouter';
 import { useCurrentUser } from '../../Auth/hooks';
+import { UserHandle } from '../../common/UserHandle/UserHandle';
 import { REGIONS_MAP, type RegionCode } from '../../data/intl/regions';
 import { useBoundStore } from '../../data/store';
 import { formatCurrencyAmount } from '../../Expense/currency';
 import { RouteTripExpenses } from '../../Routes/routes';
 import { TripUserRole } from '../../User/TripUserRole';
-import { useCurrentTrip, useTripExpenses } from '../store/hooks';
+import {
+  useCurrentTrip,
+  useTripExpenses,
+  useTripUserIds,
+} from '../store/hooks';
 import { TripSharingDialog } from '../TripDialog/TripSharingDialog';
 
 const statisticsOrientation = {
@@ -58,6 +63,8 @@ export function TripStatistics() {
 
     return { total, currency: trip?.originCurrency || 'USD' };
   }, [expenses, trip?.originCurrency]);
+
+  const tripUsers = useTripUserIds(trip?.tripUserIds ?? []);
 
   return (
     <>
@@ -121,9 +128,8 @@ export function TripStatistics() {
           <DataList.Value>{trip?.accommodationIds?.length}</DataList.Value>
         </DataList.Item>
         <DataList.Item>
-          <DataList.Label>Participants</DataList.Label>
-          <DataList.Value>
-            {trip?.tripUserIds?.length}
+          <DataList.Label>
+            Participants
             <Button
               variant="outline"
               mx="2"
@@ -134,6 +140,26 @@ export function TripStatistics() {
               <Share1Icon />
               Share trip
             </Button>
+          </DataList.Label>
+          <DataList.Value>
+            <Flex direction="row" align="start" gap="1" wrap="wrap">
+              {tripUsers.length > 1 ? (
+                tripUsers.map((user) => (
+                  <UserHandle
+                    key={user.id}
+                    handle={user.handle}
+                    mode="compact"
+                    size="1"
+                  />
+                ))
+              ) : (
+                <UserHandle
+                  handle={tripUsers?.[0]?.handle}
+                  mode="full"
+                  size="1"
+                />
+              )}
+            </Flex>
           </DataList.Value>
         </DataList.Item>
       </DataList.Root>

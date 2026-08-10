@@ -1,26 +1,34 @@
-import { Avatar, Card, Flex, Text } from '@radix-ui/themes';
+import { Card, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
+import { useMemo } from 'react';
 import { Link } from 'wouter';
+import { UserHandle } from '../common/UserHandle/UserHandle';
 import { RouteTrip } from '../Routes/routes';
 import { formatTripDateRange } from '../Trip/time';
 import type { TripsPublicSliceTrip } from './store';
 import s from './TripPublicCard.module.css';
 
-function getTripDayCount(trip: {
+function useTripDayCount({
+  timestampStart,
+  timestampEnd,
+  timeZone,
+}: {
   timestampStart: number;
   timestampEnd: number;
   timeZone: string;
-}): number {
-  const start = Temporal.Instant.fromEpochMilliseconds(trip.timestampStart)
-    .toZonedDateTimeISO(trip.timeZone)
-    .startOfDay();
-  const end = Temporal.Instant.fromEpochMilliseconds(trip.timestampEnd)
-    .toZonedDateTimeISO(trip.timeZone)
-    .startOfDay();
-  return Math.max(
-    1,
-    Math.round(end.since(start, { largestUnit: 'days' }).days),
-  );
+}) {
+  return useMemo(() => {
+    const start = Temporal.Instant.fromEpochMilliseconds(timestampStart)
+      .toZonedDateTimeISO(timeZone)
+      .startOfDay();
+    const end = Temporal.Instant.fromEpochMilliseconds(timestampEnd)
+      .toZonedDateTimeISO(timeZone)
+      .startOfDay();
+    return Math.max(
+      1,
+      Math.round(end.since(start, { largestUnit: 'days' }).days),
+    );
+  }, [timestampStart, timestampEnd, timeZone]);
 }
 
 export function TripPublicCard({
@@ -30,7 +38,7 @@ export function TripPublicCard({
   trip: TripsPublicSliceTrip;
   className: string;
 }) {
-  const dayCount = getTripDayCount(trip);
+  const dayCount = useTripDayCount(trip);
 
   return (
     <li className={clsx(className)}>
@@ -47,15 +55,7 @@ export function TripPublicCard({
           </Text>
           <div className={s.meta}>
             {trip.ownerHandle ? (
-              <Flex align="center" gap="1">
-                <Avatar
-                  size="1"
-                  radius="full"
-                  color="gray"
-                  variant="soft"
-                  fallback={trip.ownerHandle[0].toUpperCase()}
-                />
-              </Flex>
+              <UserHandle handle={trip.ownerHandle} mode="full" size="1" />
             ) : null}
             <Text as="span" size="1" color="gray">
               {dayCount} {dayCount === 1 ? 'day' : 'days'}

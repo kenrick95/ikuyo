@@ -1,5 +1,6 @@
 import { Button, DropdownMenu } from '@radix-ui/themes';
 import { Link, useLocation } from 'wouter';
+import { UserHandle } from '../common/UserHandle/UserHandle';
 import { db } from '../data/db';
 import type { DbUser } from '../data/types';
 import {
@@ -7,7 +8,6 @@ import {
   RouteAccountUpgrade,
   RouteLogin,
 } from '../Routes/routes';
-import { UserAvatar } from './UserAvatar';
 
 export function UserAvatarMenu({ user }: { user: DbUser | null | undefined }) {
   const [, setLocation] = useLocation();
@@ -15,7 +15,7 @@ export function UserAvatarMenu({ user }: { user: DbUser | null | undefined }) {
     <DropdownMenu.Root>
       <DropdownMenu.Trigger>
         <Button variant="ghost">
-          <UserAvatar user={user} />
+          <UserHandle handle={user?.handle} size="2" mode="avatar-only" />
         </Button>
       </DropdownMenu.Trigger>
 

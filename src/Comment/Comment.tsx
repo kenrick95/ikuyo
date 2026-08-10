@@ -10,9 +10,9 @@ import {
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'wouter';
-import { UserAvatar } from '../Auth/UserAvatar';
 import { toFormat } from '../common/dateTime/temporalFormatter';
 import { useParseTextIntoNodes } from '../common/text/parseTextIntoNodes';
+import { UserHandle } from '../common/UserHandle/UserHandle';
 import { dangerToken } from '../common/ui';
 import { useBoundStore, useDeepBoundStore } from '../data/store';
 import {
@@ -149,7 +149,7 @@ function CommentInner({
     }, [commentGroup, showCommentObjectTarget]);
   return (
     <Flex gap="3" align="start" ref={containerRef} id={commentId}>
-      <UserAvatar user={user} />
+      <UserHandle handle={user.handle} size="2" mode="avatar-only" />
       <Flex direction="column" gap="1" flexGrow="1">
         <Box className={s.commentHeader}>
           <Text size="2" weight="bold">

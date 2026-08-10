@@ -1,7 +1,7 @@
 import { Box, Button, Flex, Text, TextArea } from '@radix-ui/themes';
 import type { SubmitEvent } from 'react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { UserAvatar } from '../Auth/UserAvatar';
+import { UserHandle } from '../common/UserHandle/UserHandle';
 import { dangerToken } from '../common/ui';
 import { useBoundStore } from '../data/store';
 import type { DbUser } from '../data/types';
@@ -144,7 +144,9 @@ export function CommentForm({
       onSubmit={onFormSubmit}
     >
       <Flex gap="3">
-        {mode === CommentMode.Add ? <UserAvatar user={user} /> : null}
+        {mode === CommentMode.Add ? (
+          <UserHandle size="2" handle={user?.handle} mode="avatar-only" />
+        ) : null}
         <Box flexGrow="1">
           <TextArea
             id={idContent}
