@@ -377,55 +377,6 @@ export function TripForm({
         </Text>
         {fieldSelectRegion}
 
-        <Text as="label" htmlFor={idOriginRegion}>
-          Origin's region{' '}
-          <Text weight="light" size="1">
-            (optional)
-          </Text>
-          <br />
-          <Text weight="light" size="1">
-            Where you're travelling from. To auto-populate origin currency.
-          </Text>
-        </Text>
-        <Select.Root
-          name="originRegion"
-          value={currentOriginRegion}
-          onValueChange={handleOriginRegionChange}
-          disabled={isFormLoading}
-        >
-          <Select.Trigger
-            id={idOriginRegion}
-            placeholder="Select an origin region…"
-          />
-          <Select.Content>
-            {REGIONS_LIST.map(([regionCode, regionName]) => {
-              return (
-                <Select.Item key={regionCode} value={regionCode}>
-                  {regionName}
-                </Select.Item>
-              );
-            })}
-          </Select.Content>
-        </Select.Root>
-
-        <Text as="label" htmlFor={idOriginTimeZone}>
-          Origin's time zone{' '}
-          <Text weight="light" size="1">
-            (optional)
-          </Text>
-          <br />
-          <Text weight="light" size="1">
-            Time zone of where you're travelling from.
-          </Text>
-        </Text>
-        <TimeZoneSelect
-          name="originTimeZone"
-          id={idOriginTimeZone}
-          value={currentOriginTimeZone}
-          isFormLoading={isFormLoading}
-          handleChange={handleOriginTimeZoneChange}
-        />
-
         <Text as="label" htmlFor={idTimeZone}>
           Destination's default time zone{' '}
           <Text weight="light" size="1">
@@ -494,6 +445,56 @@ export function TripForm({
           value={currentCurrency}
           isFormLoading={isFormLoading}
           handleChange={setCurrentCurrency}
+        />
+
+        <Text as="label" htmlFor={idOriginRegion}>
+          Origin's region{' '}
+          <Text weight="light" size="1">
+            (optional)
+          </Text>
+          <br />
+          <Text weight="light" size="1">
+            Where you're travelling from. To auto-populate origin currency and
+            time zone.
+          </Text>
+        </Text>
+        <Select.Root
+          name="originRegion"
+          value={currentOriginRegion}
+          onValueChange={handleOriginRegionChange}
+          disabled={isFormLoading}
+        >
+          <Select.Trigger
+            id={idOriginRegion}
+            placeholder="Select an origin region…"
+          />
+          <Select.Content>
+            {REGIONS_LIST.map(([regionCode, regionName]) => {
+              return (
+                <Select.Item key={regionCode} value={regionCode}>
+                  {regionName}
+                </Select.Item>
+              );
+            })}
+          </Select.Content>
+        </Select.Root>
+
+        <Text as="label" htmlFor={idOriginTimeZone}>
+          Origin's time zone{' '}
+          <Text weight="light" size="1">
+            (optional)
+          </Text>
+          <br />
+          <Text weight="light" size="1">
+            Time zone of where you're travelling from.
+          </Text>
+        </Text>
+        <TimeZoneSelect
+          name="originTimeZone"
+          id={idOriginTimeZone}
+          value={currentOriginTimeZone}
+          isFormLoading={isFormLoading}
+          handleChange={handleOriginTimeZoneChange}
         />
 
         <Text as="label" htmlFor={idOriginCurrency}>

@@ -468,7 +468,7 @@ export default function PageTripNew() {
 
           <Flex direction="column" gap="1">
             <Text as="label" htmlFor={idRegion} size="2" weight="medium">
-              Region / Country
+              Destination Region / Country
             </Text>
             {regionSelect}
           </Flex>
@@ -481,9 +481,6 @@ export default function PageTripNew() {
               weight="medium"
             >
               Origin region / country
-            </Text>
-            <Text as="p" size="1" color="gray">
-              Where you're travelling from. To auto-populate origin currency.
             </Text>
             <Select.Root
               name="originRegion"
