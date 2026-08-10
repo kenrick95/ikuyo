@@ -9,8 +9,10 @@ import type { DbCommentGroup, DbCommentGroupObjectType } from '../Comment/db';
 import { db } from '../data/db';
 import type { DbUser } from '../data/types';
 import type { DbMacroplan, DbMacroplanWithTrip } from '../Macroplan/db';
+import { TaskStatus } from '../Task/TaskStatus';
 import { generateUniqueHandle } from '../User/handle';
 import { TripUserRole } from '../User/TripUserRole';
+import { shiftTimestampToTripDate } from './duplicateTripDateShift';
 import type { TripSliceTrip } from './store/types';
 import type { TripSharingLevelType } from './tripSharingLevel';
 
@@ -176,8 +178,9 @@ export type TripDuplicateOptions = {
  * selected via `options` are copied.
  *
  * When the start/end date differs from the source trip, the timestamps of
- * activities, accommodations, and day plans are shifted by the same day offset
- * so they keep their relative position within the new trip.
+ * activities, accommodations, and day plans are shifted by the change in the
+ * trip's start date (calendar-day arithmetic) so they keep their relative
+ * position within the new trip. Expenses and tasks keep their original dates.
  */
 export async function dbDuplicateTrip(
   sourceTripId: string,
@@ -208,10 +211,6 @@ export async function dbDuplicateTrip(
   const newTripId = id();
   const newTripUserId = id();
 
-  // Shift timestamps of copied children by the change in the trip's start date,
-  // preserving each item's relative day offset from the start of the trip.
-  const timestampOffset = options.startDateMs - sourceTrip.timestampStart;
-
   // biome-ignore lint/suspicious/noExplicitAny: The type should be generic
   const transactions: TransactionChunk<any, any>[] = [
     db.tx.trip[newTripId].update({
@@ -241,113 +240,144 @@ export async function dbDuplicateTrip(
       }),
   ];
 
-  for (const activity of sourceTrip.activity ?? []) {
-    if (!options.includeActivities) break;
-    const newId = id();
-    transactions.push(
-      db.tx.activity[newId]
-        .update({
-          title: activity.title,
-          description: activity.description,
-          location: activity.location,
-          locationLat: activity.locationLat,
-          locationLng: activity.locationLng,
-          locationZoom: activity.locationZoom,
-          locationDestination: activity.locationDestination,
-          locationDestinationLat: activity.locationDestinationLat,
-          locationDestinationLng: activity.locationDestinationLng,
-          locationDestinationZoom: activity.locationDestinationZoom,
-          timestampStart: options.removeActivityDates
-            ? null
-            : activity.timestampStart == null
-              ? activity.timestampStart
-              : activity.timestampStart + timestampOffset,
-          timestampEnd: options.removeActivityDates
-            ? null
-            : activity.timestampEnd == null
-              ? activity.timestampEnd
-              : activity.timestampEnd + timestampOffset,
-          timeZoneStart: activity.timeZoneStart,
-          timeZoneEnd: activity.timeZoneEnd,
-          flags: activity.flags,
-          icon: activity.icon,
-          createdAt: now,
-          lastUpdatedAt: now,
-        })
-        .link({
-          trip: newTripId,
-        }),
-    );
+  if (options.includeActivities) {
+    for (const activity of sourceTrip.activity ?? []) {
+      const newId = id();
+      transactions.push(
+        db.tx.activity[newId]
+          .update({
+            title: activity.title,
+            description: activity.description,
+            location: activity.location,
+            locationLat: activity.locationLat,
+            locationLng: activity.locationLng,
+            locationZoom: activity.locationZoom,
+            locationDestination: activity.locationDestination,
+            locationDestinationLat: activity.locationDestinationLat,
+            locationDestinationLng: activity.locationDestinationLng,
+            locationDestinationZoom: activity.locationDestinationZoom,
+            timestampStart: options.removeActivityDates
+              ? null
+              : shiftTimestampToTripDate(
+                  activity.timestampStart,
+                  sourceTrip.timestampStart,
+                  options.startDateMs,
+                  sourceTrip.timeZone,
+                ),
+            timestampEnd: options.removeActivityDates
+              ? null
+              : shiftTimestampToTripDate(
+                  activity.timestampEnd,
+                  sourceTrip.timestampStart,
+                  options.startDateMs,
+                  sourceTrip.timeZone,
+                ),
+            timeZoneStart: activity.timeZoneStart,
+            timeZoneEnd: activity.timeZoneEnd,
+            flags: activity.flags,
+            icon: activity.icon,
+            createdAt: now,
+            lastUpdatedAt: now,
+          })
+          .link({
+            trip: newTripId,
+          }),
+      );
+    }
   }
 
-  for (const accommodation of sourceTrip.accommodation ?? []) {
-    if (!options.includeAccommodations) break;
-    const newId = id();
-    transactions.push(
-      db.tx.accommodation[newId]
-        .update({
-          name: accommodation.name,
-          address: accommodation.address,
-          timestampCheckIn: accommodation.timestampCheckIn + timestampOffset,
-          timestampCheckOut: accommodation.timestampCheckOut + timestampOffset,
-          timeZoneCheckIn: accommodation.timeZoneCheckIn,
-          timeZoneCheckOut: accommodation.timeZoneCheckOut,
-          phoneNumber: accommodation.phoneNumber,
-          notes: accommodation.notes,
-          locationLat: accommodation.locationLat,
-          locationLng: accommodation.locationLng,
-          locationZoom: accommodation.locationZoom,
-          createdAt: now,
-          lastUpdatedAt: now,
-        })
-        .link({
-          trip: newTripId,
-        }),
-    );
+  if (options.includeAccommodations) {
+    for (const accommodation of sourceTrip.accommodation ?? []) {
+      const newId = id();
+      transactions.push(
+        db.tx.accommodation[newId]
+          .update({
+            name: accommodation.name,
+            address: accommodation.address,
+            timestampCheckIn: shiftTimestampToTripDate(
+              accommodation.timestampCheckIn,
+              sourceTrip.timestampStart,
+              options.startDateMs,
+              sourceTrip.timeZone,
+            ),
+            timestampCheckOut: shiftTimestampToTripDate(
+              accommodation.timestampCheckOut,
+              sourceTrip.timestampStart,
+              options.startDateMs,
+              sourceTrip.timeZone,
+            ),
+            timeZoneCheckIn: accommodation.timeZoneCheckIn,
+            timeZoneCheckOut: accommodation.timeZoneCheckOut,
+            phoneNumber: accommodation.phoneNumber,
+            notes: accommodation.notes,
+            locationLat: accommodation.locationLat,
+            locationLng: accommodation.locationLng,
+            locationZoom: accommodation.locationZoom,
+            createdAt: now,
+            lastUpdatedAt: now,
+          })
+          .link({
+            trip: newTripId,
+          }),
+      );
+    }
   }
 
-  for (const macroplan of sourceTrip.macroplan ?? []) {
-    if (!options.includeMacroplans) break;
-    const newId = id();
-    transactions.push(
-      db.tx.macroplan[newId]
-        .update({
-          name: macroplan.name,
-          notes: macroplan.notes,
-          timestampStart: macroplan.timestampStart + timestampOffset,
-          timestampEnd: macroplan.timestampEnd + timestampOffset,
-          timeZoneStart: macroplan.timeZoneStart,
-          timeZoneEnd: macroplan.timeZoneEnd,
-          createdAt: now,
-          lastUpdatedAt: now,
-        })
-        .link({
-          trip: newTripId,
-        }),
-    );
+  if (options.includeMacroplans) {
+    for (const macroplan of sourceTrip.macroplan ?? []) {
+      const newId = id();
+      transactions.push(
+        db.tx.macroplan[newId]
+          .update({
+            name: macroplan.name,
+            notes: macroplan.notes,
+            timestampStart: shiftTimestampToTripDate(
+              macroplan.timestampStart,
+              sourceTrip.timestampStart,
+              options.startDateMs,
+              sourceTrip.timeZone,
+            ),
+            timestampEnd: shiftTimestampToTripDate(
+              macroplan.timestampEnd,
+              sourceTrip.timestampStart,
+              options.startDateMs,
+              sourceTrip.timeZone,
+            ),
+            timeZoneStart: macroplan.timeZoneStart,
+            timeZoneEnd: macroplan.timeZoneEnd,
+            createdAt: now,
+            lastUpdatedAt: now,
+          })
+          .link({
+            trip: newTripId,
+          }),
+      );
+    }
   }
 
-  for (const expense of sourceTrip.expense ?? []) {
-    if (!options.includeExpenses) break;
-    const newId = id();
-    transactions.push(
-      db.tx.expense[newId]
-        .update({
-          title: expense.title,
-          description: expense.description,
-          timestampIncurred: expense.timestampIncurred,
-          currency: expense.currency,
-          amount: expense.amount,
-          currencyConversionFactor: expense.currencyConversionFactor,
-          amountInOriginCurrency: expense.amountInOriginCurrency,
-          timeZoneIncurred: expense.timeZoneIncurred,
-          createdAt: now,
-          lastUpdatedAt: now,
-        })
-        .link({
-          trip: newTripId,
-        }),
-    );
+  if (options.includeExpenses) {
+    for (const expense of sourceTrip.expense ?? []) {
+      const newId = id();
+      transactions.push(
+        db.tx.expense[newId]
+          .update({
+            title: expense.title,
+            description: expense.description,
+            // Expenses keep their original dates
+            timestampIncurred: expense.timestampIncurred,
+            currency: expense.currency,
+            amount: expense.amount,
+            currencyConversionFactor: expense.currencyConversionFactor,
+            amountInOriginCurrency: expense.amountInOriginCurrency,
+            timeZoneIncurred: expense.timeZoneIncurred,
+            createdAt: now,
+            lastUpdatedAt: now,
+          })
+          .link({
+            trip: newTripId,
+          }),
+      );
+    }
   }
 
   if (options.includeTasks) {
@@ -374,9 +404,10 @@ export async function dbDuplicateTrip(
               title: task.title,
               description: task.description,
               index: task.index,
-              status: task.status,
+              // Copied tasks start as not done; they keep their due date
+              status: TaskStatus.Todo,
               dueAt: task.dueAt,
-              completedAt: task.completedAt,
+              completedAt: null,
               createdAt: now,
               lastUpdatedAt: now,
             })
