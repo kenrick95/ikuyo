@@ -409,115 +409,117 @@ function ActivityInner({
     activity.timestampEnd,
   ]);
 
+  const activityContent = (
+    <Box
+      p={{ initial: '1' }}
+      as="div"
+      role="button"
+      tabIndex={0}
+      ref={activityRef}
+      className={clsx(
+        style.activity,
+        isActivityOngoing ? style.activityOngoing : '',
+        timetableDragging.dragging &&
+          timetableDragging.source.activityId === activity.id
+          ? timetableDragging.source.mode === 'drag'
+            ? style.activityDragging
+            : style.activityResizing
+          : '',
+        className,
+      )}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      onKeyUp={handleKeyUp}
+      draggable={
+        tripViewMode === TripViewMode.Timetable &&
+        userCanEditOrDelete &&
+        !isDragAndDropDisabled
+      }
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      style={boxStyle}
+    >
+      {tripViewMode === TripViewMode.List ? (
+        <Text
+          as="div"
+          size={responsiveTextSize}
+          color="gray"
+          className={style.activityTime}
+        >
+          <ClockIcon style={{ verticalAlign: '-2px' }} />{' '}
+          {timeStartRelativeToTrip} - {timeEndRelativeToTrip}
+        </Text>
+      ) : null}
+      {tripViewMode === TripViewMode.Home ? (
+        <Text
+          as="div"
+          size={responsiveTextSize}
+          color="gray"
+          className={style.activityTime}
+        >
+          <ClockIcon style={{ verticalAlign: '-2px' }} /> {activityTimeStr}
+        </Text>
+      ) : null}
+
+      <Text
+        as="div"
+        size={responsiveTextSize}
+        weight="bold"
+        className={style.activityTitle}
+      >
+        {activityTitle}
+      </Text>
+
+      {activity.location ? (
+        <Text
+          as="div"
+          size={responsiveTextSize}
+          color="gray"
+          className={style.activityLocation}
+        >
+          <SewingPinIcon style={{ verticalAlign: '-2px' }} />{' '}
+          {activity.location}
+          {activity.locationDestination
+            ? ` → ${activity.locationDestination}`
+            : null}
+        </Text>
+      ) : null}
+
+      {activity.description ? (
+        <Text
+          as="div"
+          size={responsiveTextSize}
+          color="gray"
+          className={style.activityDescription}
+        >
+          <InfoCircledIcon style={{ verticalAlign: '-2px' }} />{' '}
+          {activity.description}
+        </Text>
+      ) : null}
+
+      {isActivityResizable ? (
+        // biome-ignore lint/a11y/noStaticElementInteractions: indicator for resizing
+        <div
+          className={style.activityResizeHint}
+          onDragStart={handleResizeStart}
+          draggable={
+            tripViewMode === TripViewMode.Timetable &&
+            userCanEditOrDelete &&
+            !isDragAndDropDisabled
+          }
+        />
+      ) : null}
+    </Box>
+  );
+
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger>
-        <TooltipForSmallActivity
-          content={activityTitle}
-          isSmallActivity={isSmallActivity}
-        >
-          <Box
-            p={{ initial: '1' }}
-            as="div"
-            role="button"
-            tabIndex={0}
-            ref={activityRef}
-            className={clsx(
-              style.activity,
-              isActivityOngoing ? style.activityOngoing : '',
-              timetableDragging.dragging &&
-                timetableDragging.source.activityId === activity.id
-                ? timetableDragging.source.mode === 'drag'
-                  ? style.activityDragging
-                  : style.activityResizing
-                : '',
-              className,
-            )}
-            onClick={handleClick}
-            onKeyDown={handleKeyDown}
-            onKeyUp={handleKeyUp}
-            draggable={
-              tripViewMode === TripViewMode.Timetable &&
-              userCanEditOrDelete &&
-              !isDragAndDropDisabled
-            }
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            style={boxStyle}
-          >
-            {tripViewMode === TripViewMode.List ? (
-              <Text
-                as="div"
-                size={responsiveTextSize}
-                color="gray"
-                className={style.activityTime}
-              >
-                <ClockIcon style={{ verticalAlign: '-2px' }} />{' '}
-                {timeStartRelativeToTrip} - {timeEndRelativeToTrip}
-              </Text>
-            ) : null}
-            {tripViewMode === TripViewMode.Home ? (
-              <Text
-                as="div"
-                size={responsiveTextSize}
-                color="gray"
-                className={style.activityTime}
-              >
-                <ClockIcon style={{ verticalAlign: '-2px' }} />{' '}
-                {activityTimeStr}
-              </Text>
-            ) : null}
-
-            <Text
-              as="div"
-              size={responsiveTextSize}
-              weight="bold"
-              className={style.activityTitle}
-            >
-              {activityTitle}
-            </Text>
-
-            {activity.location ? (
-              <Text
-                as="div"
-                size={responsiveTextSize}
-                color="gray"
-                className={style.activityLocation}
-              >
-                <SewingPinIcon style={{ verticalAlign: '-2px' }} />{' '}
-                {activity.location}
-                {activity.locationDestination
-                  ? ` → ${activity.locationDestination}`
-                  : null}
-              </Text>
-            ) : null}
-
-            {activity.description ? (
-              <Text
-                as="div"
-                size={responsiveTextSize}
-                color="gray"
-                className={style.activityDescription}
-              >
-                <InfoCircledIcon style={{ verticalAlign: '-2px' }} />{' '}
-                {activity.description}
-              </Text>
-            ) : null}
-
-            {isActivityResizable ? (
-              // biome-ignore lint/a11y/noStaticElementInteractions: indicator for resizing
-              <div
-                className={style.activityResizeHint}
-                onDragStart={handleResizeStart}
-                draggable={
-                  tripViewMode === TripViewMode.Timetable &&
-                  userCanEditOrDelete &&
-                  !isDragAndDropDisabled
-                }
-              />
-            ) : null}
-          </Box>
-        </TooltipForSmallActivity>
+        {isSmallActivity ? (
+          <Tooltip content={activityTitle}>{activityContent}</Tooltip>
+        ) : (
+          activityContent
+        )}
       </ContextMenu.Trigger>
       <ContextMenu.Content>
         <ContextMenu.Label>{activityTitle}</ContextMenu.Label>
@@ -547,21 +549,6 @@ function ActivityInner({
       </ContextMenu.Content>
     </ContextMenu.Root>
   );
-}
-
-function TooltipForSmallActivity({
-  content,
-  isSmallActivity,
-  children,
-}: {
-  content: string;
-  isSmallActivity: boolean;
-  children: React.ReactNode;
-}) {
-  if (isSmallActivity) {
-    return <Tooltip content={content}>{children}</Tooltip>;
-  }
-  return <>{children}</>;
 }
 
 export const Activity = memo(ActivityInner, (prevProps, nextProps) => {
