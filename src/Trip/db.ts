@@ -165,6 +165,8 @@ export type TripDuplicateOptions = {
   includeAccommodations: boolean;
   includeExpenses: boolean;
   includeTasks: boolean;
+  /** when true, copied activities have their dates removed (become undated) */
+  removeActivityDates: boolean;
 };
 
 /**
@@ -255,12 +257,14 @@ export async function dbDuplicateTrip(
           locationDestinationLat: activity.locationDestinationLat,
           locationDestinationLng: activity.locationDestinationLng,
           locationDestinationZoom: activity.locationDestinationZoom,
-          timestampStart:
-            activity.timestampStart == null
+          timestampStart: options.removeActivityDates
+            ? null
+            : activity.timestampStart == null
               ? activity.timestampStart
               : activity.timestampStart + timestampOffset,
-          timestampEnd:
-            activity.timestampEnd == null
+          timestampEnd: options.removeActivityDates
+            ? null
+            : activity.timestampEnd == null
               ? activity.timestampEnd
               : activity.timestampEnd + timestampOffset,
           timeZoneStart: activity.timeZoneStart,
