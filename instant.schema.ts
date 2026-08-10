@@ -80,6 +80,7 @@ const _schema = i.schema({
       lastUpdatedAt: i.number(),
       originCurrency: i.string(),
       originRegion: i.string().optional(),
+      originTimeZone: i.string().optional(),
       timestampEnd: i.number().indexed(),
       timestampStart: i.number(),
       timeZone: i.string(),

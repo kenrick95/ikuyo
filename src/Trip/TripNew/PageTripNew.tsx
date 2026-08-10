@@ -126,6 +126,7 @@ export default function PageTripNew() {
       currency,
       originCurrency,
       originRegion,
+      originTimeZone,
       timeZone,
     } = state;
     if (
@@ -159,6 +160,7 @@ export default function PageTripNew() {
           currency,
           originCurrency,
           originRegion,
+          originTimeZone,
           sharingLevel: TripSharingLevel.Private,
         },
         { userId: currentUser.id },
@@ -481,8 +483,7 @@ export default function PageTripNew() {
               Origin region / country
             </Text>
             <Text as="p" size="1" color="gray">
-              Where you're travelling from. Used to auto-fill your origin
-              currency and time zone, and to geocode your departure transport.
+              Where you're travelling from. To auto-populate origin currency.
             </Text>
             <Select.Root
               name="originRegion"

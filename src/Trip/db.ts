@@ -51,6 +51,8 @@ export type DbTrip = {
   originCurrency: string;
   /** origin 2-letter Intl region. Uppercase! Optional for backward compat */
   originRegion: string;
+  /** origin's IANA time zone. Optional for backward compat */
+  originTimeZone: string;
 
   /** 0: private; 1: group (removed, no longer in use); 2: public but unlisted; 3: public listed in public directory */
   sharingLevel: TripSharingLevelType;
