@@ -52,9 +52,10 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
     includeActivities: true,
     includeMacroplans: true,
     includeAccommodations: true,
-    includeExpenses: true,
-    includeTasks: true,
+    includeExpenses: false,
+    includeTasks: false,
   });
+  const [removeActivityDates, setRemoveActivityDates] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const sections: DuplicateSection[] = useMemo(() => {
@@ -109,6 +110,7 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
         includeAccommodations: includes.includeAccommodations,
         includeExpenses: includes.includeExpenses,
         includeTasks: includes.includeTasks,
+        removeActivityDates,
       },
       { userId: user.id },
     )
@@ -138,6 +140,7 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
     startDate,
     endDate,
     includes,
+    removeActivityDates,
     publishToast,
     clearDialogs,
     setLocation,
@@ -244,6 +247,16 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
               </Text>
             </Flex>
           ))}
+          <Flex gap="2" align="center">
+            <Checkbox
+              checked={removeActivityDates}
+              onCheckedChange={(checked) => {
+                setRemoveActivityDates(checked === true);
+              }}
+              disabled={isSubmitting || !includes.includeActivities}
+            />
+            <Text size="2">Remove dates from activities</Text>
+          </Flex>
         </Flex>
 
         <Flex gap="3" mt="4" justify="end">
