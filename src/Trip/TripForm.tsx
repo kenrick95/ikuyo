@@ -36,6 +36,7 @@ export function TripForm({
   tripCurrency,
   tripOriginCurrency,
   tripOriginRegion,
+  tripOriginTimeZone,
   tripSharingLevel,
   userId,
   onFormSuccess,
@@ -51,6 +52,7 @@ export function TripForm({
   tripCurrency: string;
   tripOriginCurrency: string;
   tripOriginRegion: string;
+  tripOriginTimeZone: string;
   tripSharingLevel: TripSharingLevelType;
   userId?: string;
   onFormSuccess: () => void;
@@ -63,6 +65,7 @@ export function TripForm({
   const idOriginCurrency = useId();
   const idRegion = useId();
   const idOriginRegion = useId();
+  const idOriginTimeZone = useId();
   const publishToast = useBoundStore((state) => state.publishToast);
   const [isFormLoading, setIsFormLoading] = useState(false);
   const [currentTimeZone, setCurrentTimeZone] = useState(tripTimeZone);
@@ -72,6 +75,8 @@ export function TripForm({
     useState(tripOriginCurrency);
   const [currentOriginRegion, setCurrentOriginRegion] =
     useState(tripOriginRegion);
+  const [currentOriginTimeZone, setCurrentOriginTimeZone] =
+    useState(tripOriginTimeZone);
   const [currentStartDate, setCurrentStartDate] = useState<
     Temporal.PlainDate | undefined
   >(tripStartDateTime);
@@ -150,9 +155,27 @@ export function TripForm({
           setCurrentOriginCurrency(defaultCurrency);
         }
       }
+      if (
+        mode === TripFormMode.New ||
+        currentOriginTimeZone === tripOriginTimeZone
+      ) {
+        const defaultTimezone = getDefaultTimezoneForRegion(newRegion);
+        if (defaultTimezone && ALL_TIMEZONES.includes(defaultTimezone)) {
+          setCurrentOriginTimeZone(defaultTimezone);
+        }
+      }
     },
-    [mode, currentOriginCurrency, tripOriginCurrency],
+    [
+      mode,
+      currentOriginCurrency,
+      tripOriginCurrency,
+      currentOriginTimeZone,
+      tripOriginTimeZone,
+    ],
   );
+  const handleOriginTimeZoneChange = useCallback((newTimeZone: string) => {
+    setCurrentOriginTimeZone(newTimeZone);
+  }, []);
 
   const handleForm = useCallback(() => {
     return async (elForm: HTMLFormElement) => {
@@ -171,6 +194,7 @@ export function TripForm({
       const originCurrency =
         (formData.get('originCurrency') as string | null) ?? '';
       const originRegion = currentOriginRegion;
+      const originTimeZone = currentOriginTimeZone;
       console.log('TripForm', {
         mode,
         location,
@@ -217,6 +241,7 @@ export function TripForm({
           currency,
           originCurrency,
           originRegion,
+          originTimeZone,
           sharingLevel: tripSharingLevel,
         });
         publishToast({
@@ -240,6 +265,7 @@ export function TripForm({
             currency,
             originCurrency,
             originRegion,
+            originTimeZone,
             sharingLevel: TripSharingLevel.Private,
           },
           {
@@ -277,6 +303,7 @@ export function TripForm({
     currentRegion,
     currentCurrency,
     currentOriginRegion,
+    currentOriginTimeZone,
     currentStartDate,
     currentEndDate,
   ]);
@@ -357,8 +384,7 @@ export function TripForm({
           </Text>
           <br />
           <Text weight="light" size="1">
-            Where you're travelling from. Used to auto-fill your origin currency
-            and to geocode your departure transport.
+            Where you're travelling from. To auto-populate origin currency.
           </Text>
         </Text>
         <Select.Root
@@ -381,6 +407,24 @@ export function TripForm({
             })}
           </Select.Content>
         </Select.Root>
+
+        <Text as="label" htmlFor={idOriginTimeZone}>
+          Origin's time zone{' '}
+          <Text weight="light" size="1">
+            (optional)
+          </Text>
+          <br />
+          <Text weight="light" size="1">
+            Time zone of where you're travelling from.
+          </Text>
+        </Text>
+        <TimeZoneSelect
+          name="originTimeZone"
+          id={idOriginTimeZone}
+          value={currentOriginTimeZone}
+          isFormLoading={isFormLoading}
+          handleChange={handleOriginTimeZoneChange}
+        />
 
         <Text as="label" htmlFor={idTimeZone}>
           Destination's default time zone{' '}

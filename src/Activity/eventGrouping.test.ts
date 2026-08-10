@@ -19,6 +19,7 @@ describe('Trip', () => {
     currency: 'GBP',
     originCurrency: 'USD',
     originRegion: 'US',
+    originTimeZone: 'America/New_York',
     region: 'GB',
     activityIds: [],
     accommodationIds: [],
