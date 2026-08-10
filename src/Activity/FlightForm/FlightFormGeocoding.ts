@@ -37,7 +37,7 @@ export async function airportGeocodingRequest(
       const res = await geocoding.forward(q, options);
       console.log('Airport geocoding response:', res);
       const feature = res?.features[0];
-      if (feature) {
+      if (feature?.center) {
         [lng, lat] = feature.center ?? [];
         zoom = calculateZoomFromFeature(feature);
         return true;

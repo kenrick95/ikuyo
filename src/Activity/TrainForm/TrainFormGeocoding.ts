@@ -37,7 +37,7 @@ export async function stationGeocodingRequest(
       const res = await geocoding.forward(q, options);
       console.log('Station geocoding response:', res);
       const feature = res?.features[0];
-      if (feature) {
+      if (feature?.center) {
         [lng, lat] = feature.center ?? [];
         zoom = calculateZoomFromFeature(feature);
         return true;
