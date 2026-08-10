@@ -10,6 +10,8 @@ import {
 import { useCallback, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useCurrentUser } from '../../Auth/hooks';
+import { DateTimePicker } from '../../common/DatePicker2/DateTimePicker';
+import { DateTimePickerMode } from '../../common/DatePicker2/DateTimePickerMode';
 import { CommonLargeDialogMaxWidth } from '../../Dialog/ui';
 import { useBoundStore } from '../../data/store';
 import { RouteTrip } from '../../Routes/routes';
@@ -36,6 +38,17 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
   const clearDialogs = useBoundStore((state) => state.clearDialogs);
 
   const [title, setTitle] = useState(`${trip.title} (copy)`);
+  const [startDate, setStartDate] = useState<Temporal.PlainDate | undefined>(
+    Temporal.Instant.fromEpochMilliseconds(trip.timestampStart)
+      .toZonedDateTimeISO(trip.timeZone)
+      .toPlainDate(),
+  );
+  const [endDate, setEndDate] = useState<Temporal.PlainDate | undefined>(
+    Temporal.Instant.fromEpochMilliseconds(trip.timestampEnd)
+      .toZonedDateTimeISO(trip.timeZone)
+      .toPlainDate()
+      .subtract({ days: 1 }),
+  );
   const [includes, setIncludes] = useState({
     includeActivities: true,
     includeMacroplans: true,
@@ -86,11 +99,19 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
 
   const handleDuplicate = useCallback(() => {
     if (!user) return;
+    if (!startDate || !endDate) return;
+    if (Temporal.PlainDate.compare(startDate, endDate) > 0) return;
     setIsSubmitting(true);
     void dbDuplicateTrip(
       trip.id,
       {
         title: title.trim(),
+        startDateMs: startDate.toZonedDateTime(trip.timeZone).toInstant()
+          .epochMilliseconds,
+        endDateMs: endDate
+          .add({ days: 1 })
+          .toZonedDateTime(trip.timeZone)
+          .toInstant().epochMilliseconds,
         includeActivities: includes.includeActivities,
         includeMacroplans: includes.includeMacroplans,
         includeAccommodations: includes.includeAccommodations,
@@ -118,9 +139,24 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
         });
         setIsSubmitting(false);
       });
-  }, [user, trip.id, title, includes, publishToast, clearDialogs, setLocation]);
+  }, [
+    user,
+    trip.id,
+    trip.timeZone,
+    title,
+    startDate,
+    endDate,
+    includes,
+    publishToast,
+    clearDialogs,
+    setLocation,
+  ]);
 
   const isTitleEmpty = title.trim().length === 0;
+  const datesInvalid =
+    !startDate ||
+    !endDate ||
+    Temporal.PlainDate.compare(startDate, endDate) > 0;
 
   return (
     <Dialog.Root open>
@@ -145,6 +181,52 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
             disabled={isSubmitting}
           />
         </Box>
+
+        <Flex direction="column" gap="3" mb="4">
+          <Text size="2" weight="medium">
+            Dates (in {trip.timeZone})
+          </Text>
+          <Flex gap="3">
+            <Flex direction="column" gap="1" style={{ flex: 1 }}>
+              <Text size="2">Start date</Text>
+              <DateTimePicker
+                value={startDate}
+                onChange={(date) => {
+                  if (date instanceof Temporal.PlainDateTime) {
+                    setStartDate(date.toPlainDate());
+                  } else {
+                    setStartDate(date);
+                  }
+                }}
+                mode={DateTimePickerMode.Date}
+                disabled={isSubmitting}
+                placeholder="Select start date"
+              />
+            </Flex>
+            <Flex direction="column" gap="1" style={{ flex: 1 }}>
+              <Text size="2">End date</Text>
+              <DateTimePicker
+                value={endDate}
+                onChange={(date) => {
+                  if (date instanceof Temporal.PlainDateTime) {
+                    setEndDate(date.toPlainDate());
+                  } else {
+                    setEndDate(date);
+                  }
+                }}
+                mode={DateTimePickerMode.Date}
+                disabled={isSubmitting}
+                min={startDate}
+                placeholder="Select end date"
+              />
+            </Flex>
+          </Flex>
+          {datesInvalid ? (
+            <Text size="1" color="red">
+              Start date cannot be after end date.
+            </Text>
+          ) : null}
+        </Flex>
 
         <Flex direction="column" gap="3" mb="4">
           <Text size="2" weight="medium">
@@ -181,7 +263,7 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
           <Button
             variant="solid"
             onClick={handleDuplicate}
-            disabled={isSubmitting || isTitleEmpty}
+            disabled={isSubmitting || isTitleEmpty || datesInvalid}
           >
             Duplicate
           </Button>
