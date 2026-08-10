@@ -24,8 +24,7 @@ type DuplicateSection = {
     | 'includeMacroplans'
     | 'includeAccommodations'
     | 'includeExpenses'
-    | 'includeTasks'
-    | 'includeComments';
+    | 'includeTasks';
   label: string;
   count: number;
 };
@@ -55,7 +54,6 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
     includeAccommodations: true,
     includeExpenses: true,
     includeTasks: true,
-    includeComments: true,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -82,11 +80,6 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
         count: trip.expenseIds.length,
       },
       { key: 'includeTasks', label: 'Tasks', count: trip.taskListIds.length },
-      {
-        key: 'includeComments',
-        label: 'Comments',
-        count: trip.commentGroupIds.length,
-      },
     ];
   }, [
     trip.activityIds,
@@ -94,7 +87,6 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
     trip.accommodationIds,
     trip.expenseIds,
     trip.taskListIds,
-    trip.commentGroupIds,
   ]);
 
   const handleDuplicate = useCallback(() => {
@@ -117,7 +109,6 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
         includeAccommodations: includes.includeAccommodations,
         includeExpenses: includes.includeExpenses,
         includeTasks: includes.includeTasks,
-        includeComments: includes.includeComments,
       },
       { userId: user.id },
     )
@@ -226,6 +217,10 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
               Start date cannot be after end date.
             </Text>
           ) : null}
+          <Text size="1" color="gray">
+            Activities, accommodations, and day plans will be shifted to match
+            the new start date.
+          </Text>
         </Flex>
 
         <Flex direction="column" gap="3" mb="4">

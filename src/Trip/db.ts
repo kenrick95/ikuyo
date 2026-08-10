@@ -165,16 +165,13 @@ export type TripDuplicateOptions = {
   includeAccommodations: boolean;
   includeExpenses: boolean;
   includeTasks: boolean;
-  includeComments: boolean;
 };
 
 /**
  * Duplicate a trip into a new trip owned by `userId`.
  *
  * The new trip is created as private (sharingLevel 0). Only the sections
- * selected via `options` are copied. Comments are only copied for objects
- * that are themselves copied (i.e. a comment on an activity is skipped when
- * activities are not selected).
+ * selected via `options` are copied.
  *
  * When the start/end date differs from the source trip, the timestamps of
  * activities, accommodations, and day plans are shifted by the same day offset
@@ -197,17 +194,6 @@ export async function dbDuplicateTrip(
       macroplan: {},
       expense: {},
       taskList: { task: {} },
-      commentGroup: {
-        comment: { user: {} },
-        object: {
-          activity: {},
-          accommodation: {},
-          expense: {},
-          trip: {},
-          macroplan: {},
-          task: {},
-        },
-      },
     },
   });
 
@@ -253,17 +239,9 @@ export async function dbDuplicateTrip(
       }),
   ];
 
-  // old id -> new id, per copied object. Only populated for selected sections.
-  const activityIdMap = new Map<string, string>();
-  const accommodationIdMap = new Map<string, string>();
-  const macroplanIdMap = new Map<string, string>();
-  const expenseIdMap = new Map<string, string>();
-  const taskIdMap = new Map<string, string>();
-
   for (const activity of sourceTrip.activity ?? []) {
     if (!options.includeActivities) break;
     const newId = id();
-    activityIdMap.set(activity.id, newId);
     transactions.push(
       db.tx.activity[newId]
         .update({
@@ -301,7 +279,6 @@ export async function dbDuplicateTrip(
   for (const accommodation of sourceTrip.accommodation ?? []) {
     if (!options.includeAccommodations) break;
     const newId = id();
-    accommodationIdMap.set(accommodation.id, newId);
     transactions.push(
       db.tx.accommodation[newId]
         .update({
@@ -328,7 +305,6 @@ export async function dbDuplicateTrip(
   for (const macroplan of sourceTrip.macroplan ?? []) {
     if (!options.includeMacroplans) break;
     const newId = id();
-    macroplanIdMap.set(macroplan.id, newId);
     transactions.push(
       db.tx.macroplan[newId]
         .update({
@@ -350,7 +326,6 @@ export async function dbDuplicateTrip(
   for (const expense of sourceTrip.expense ?? []) {
     if (!options.includeExpenses) break;
     const newId = id();
-    expenseIdMap.set(expense.id, newId);
     transactions.push(
       db.tx.expense[newId]
         .update({
@@ -389,7 +364,6 @@ export async function dbDuplicateTrip(
       );
       for (const task of taskList.task ?? []) {
         const newTaskId = id();
-        taskIdMap.set(task.id, newTaskId);
         transactions.push(
           db.tx.task[newTaskId]
             .update({
@@ -404,80 +378,6 @@ export async function dbDuplicateTrip(
             })
             .link({
               taskList: newTaskListId,
-            }),
-        );
-      }
-    }
-  }
-
-  if (options.includeComments) {
-    for (const commentGroup of sourceTrip.commentGroup ?? []) {
-      const object = commentGroup.object;
-      if (!object?.type) continue;
-
-      // Resolve the new object id this comment group should attach to.
-      let newObjectId: string | undefined;
-      switch (object.type) {
-        case 'trip':
-          newObjectId = newTripId;
-          break;
-        case 'activity':
-          newObjectId = activityIdMap.get(object.activity?.[0]?.id ?? '');
-          break;
-        case 'accommodation':
-          newObjectId = accommodationIdMap.get(
-            object.accommodation?.[0]?.id ?? '',
-          );
-          break;
-        case 'macroplan':
-          newObjectId = macroplanIdMap.get(object.macroplan?.[0]?.id ?? '');
-          break;
-        case 'expense':
-          newObjectId = expenseIdMap.get(object.expense?.[0]?.id ?? '');
-          break;
-        case 'task':
-          newObjectId = taskIdMap.get(object.task?.[0]?.id ?? '');
-          break;
-      }
-      // Skip comments whose object was not copied (follow copied objects only).
-      if (!newObjectId) continue;
-
-      const newCommentGroupId = id();
-      transactions.push(
-        db.tx.commentGroup[newCommentGroupId]
-          .update({
-            status: commentGroup.status,
-            createdAt: now,
-            lastUpdatedAt: now,
-          })
-          .link({
-            trip: newTripId,
-            object: newCommentGroupId,
-          }),
-        db.tx.commentGroupObject[newCommentGroupId]
-          .update({
-            type: object.type,
-            createdAt: now,
-            lastUpdatedAt: now,
-          })
-          .link({
-            commentGroup: newCommentGroupId,
-            [object.type]: newObjectId,
-          }),
-      );
-
-      for (const comment of commentGroup.comment ?? []) {
-        const newCommentId = id();
-        transactions.push(
-          db.tx.comment[newCommentId]
-            .update({
-              content: comment.content,
-              createdAt: now,
-              lastUpdatedAt: now,
-            })
-            .link({
-              group: newCommentGroupId,
-              user: comment.user?.id,
             }),
         );
       }
