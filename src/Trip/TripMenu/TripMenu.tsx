@@ -148,9 +148,9 @@ export function TripMenu() {
           </DropdownMenu.Item>
 
           <DropdownMenu.Item
-            disabled={!userCanModifyTrip}
+            disabled={!user}
             onClick={
-              userCanModifyTrip
+              user
                 ? () => {
                     if (trip) {
                       pushDialog(TripDuplicateDialog, { trip });

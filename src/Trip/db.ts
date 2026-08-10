@@ -156,6 +156,10 @@ export async function dbUpdateTrip(
 }
 export type TripDuplicateOptions = {
   title: string;
+  /** ms of day of the new trip's start */
+  startDateMs: number;
+  /** ms of day _after_ of the new trip's end */
+  endDateMs: number;
   includeActivities: boolean;
   includeMacroplans: boolean;
   includeAccommodations: boolean;
@@ -171,6 +175,10 @@ export type TripDuplicateOptions = {
  * selected via `options` are copied. Comments are only copied for objects
  * that are themselves copied (i.e. a comment on an activity is skipped when
  * activities are not selected).
+ *
+ * When the start/end date differs from the source trip, the timestamps of
+ * activities, accommodations, and day plans are shifted by the same day offset
+ * so they keep their relative position within the new trip.
  */
 export async function dbDuplicateTrip(
   sourceTripId: string,
@@ -212,12 +220,16 @@ export async function dbDuplicateTrip(
   const newTripId = id();
   const newTripUserId = id();
 
+  // Shift timestamps of copied children by the change in the trip's start date,
+  // preserving each item's relative day offset from the start of the trip.
+  const timestampOffset = options.startDateMs - sourceTrip.timestampStart;
+
   // biome-ignore lint/suspicious/noExplicitAny: The type should be generic
   const transactions: TransactionChunk<any, any>[] = [
     db.tx.trip[newTripId].update({
       title: options.title,
-      timestampStart: sourceTrip.timestampStart,
-      timestampEnd: sourceTrip.timestampEnd,
+      timestampStart: options.startDateMs,
+      timestampEnd: options.endDateMs,
       timeZone: sourceTrip.timeZone,
       region: sourceTrip.region,
       currency: sourceTrip.currency,
@@ -265,8 +277,14 @@ export async function dbDuplicateTrip(
           locationDestinationLat: activity.locationDestinationLat,
           locationDestinationLng: activity.locationDestinationLng,
           locationDestinationZoom: activity.locationDestinationZoom,
-          timestampStart: activity.timestampStart,
-          timestampEnd: activity.timestampEnd,
+          timestampStart:
+            activity.timestampStart == null
+              ? activity.timestampStart
+              : activity.timestampStart + timestampOffset,
+          timestampEnd:
+            activity.timestampEnd == null
+              ? activity.timestampEnd
+              : activity.timestampEnd + timestampOffset,
           timeZoneStart: activity.timeZoneStart,
           timeZoneEnd: activity.timeZoneEnd,
           flags: activity.flags,
@@ -289,8 +307,8 @@ export async function dbDuplicateTrip(
         .update({
           name: accommodation.name,
           address: accommodation.address,
-          timestampCheckIn: accommodation.timestampCheckIn,
-          timestampCheckOut: accommodation.timestampCheckOut,
+          timestampCheckIn: accommodation.timestampCheckIn + timestampOffset,
+          timestampCheckOut: accommodation.timestampCheckOut + timestampOffset,
           timeZoneCheckIn: accommodation.timeZoneCheckIn,
           timeZoneCheckOut: accommodation.timeZoneCheckOut,
           phoneNumber: accommodation.phoneNumber,
@@ -316,8 +334,8 @@ export async function dbDuplicateTrip(
         .update({
           name: macroplan.name,
           notes: macroplan.notes,
-          timestampStart: macroplan.timestampStart,
-          timestampEnd: macroplan.timestampEnd,
+          timestampStart: macroplan.timestampStart + timestampOffset,
+          timestampEnd: macroplan.timestampEnd + timestampOffset,
           timeZoneStart: macroplan.timeZoneStart,
           timeZoneEnd: macroplan.timeZoneEnd,
           createdAt: now,
