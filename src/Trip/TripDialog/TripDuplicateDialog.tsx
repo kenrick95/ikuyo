@@ -222,7 +222,8 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
           ) : null}
           <Text size="1" color="gray">
             Activities, accommodations, and day plans will be shifted to match
-            the new start date.
+            the new start date. Expenses and tasks keep their original dates;
+            copied tasks are reset to not done.
           </Text>
         </Flex>
 
