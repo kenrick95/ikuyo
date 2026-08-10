@@ -16,6 +16,7 @@ import { RouteAccount, RouteLogin, RouteTrips } from '../../Routes/routes';
 import { TripUserRole } from '../../User/TripUserRole';
 import { useCurrentTrip } from '../store/hooks';
 import { TripDeleteDialog } from '../TripDialog/TripDeleteDialog';
+import { TripDuplicateDialog } from '../TripDialog/TripDuplicateDialog';
 import { TripEditDialog } from '../TripDialog/TripEditDialog';
 import { TripSharingDialog } from '../TripDialog/TripSharingDialog';
 import { printTrip, tripToHtml } from './print';
@@ -144,6 +145,21 @@ export function TripMenu() {
             }
           >
             Edit trip
+          </DropdownMenu.Item>
+
+          <DropdownMenu.Item
+            disabled={!userCanModifyTrip}
+            onClick={
+              userCanModifyTrip
+                ? () => {
+                    if (trip) {
+                      pushDialog(TripDuplicateDialog, { trip });
+                    }
+                  }
+                : undefined
+            }
+          >
+            Duplicate trip
           </DropdownMenu.Item>
 
           <DropdownMenu.Item

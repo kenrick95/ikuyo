@@ -154,6 +154,326 @@ export async function dbUpdateTrip(
 
   return db.transact(transactions);
 }
+export type TripDuplicateOptions = {
+  title: string;
+  includeActivities: boolean;
+  includeMacroplans: boolean;
+  includeAccommodations: boolean;
+  includeExpenses: boolean;
+  includeTasks: boolean;
+  includeComments: boolean;
+};
+
+/**
+ * Duplicate a trip into a new trip owned by `userId`.
+ *
+ * The new trip is created as private (sharingLevel 0). Only the sections
+ * selected via `options` are copied. Comments are only copied for objects
+ * that are themselves copied (i.e. a comment on an activity is skipped when
+ * activities are not selected).
+ */
+export async function dbDuplicateTrip(
+  sourceTripId: string,
+  options: TripDuplicateOptions,
+  { userId }: { userId: string },
+) {
+  const tripData = await db.queryOnce({
+    trip: {
+      $: {
+        where: {
+          id: sourceTripId,
+        },
+      },
+      activity: {},
+      accommodation: {},
+      macroplan: {},
+      expense: {},
+      taskList: { task: {} },
+      commentGroup: {
+        comment: { user: {} },
+        object: {
+          activity: {},
+          accommodation: {},
+          expense: {},
+          trip: {},
+          macroplan: {},
+          task: {},
+        },
+      },
+    },
+  });
+
+  const sourceTrip = tripData.data.trip[0];
+  if (!sourceTrip) {
+    throw new Error(`Trip with id ${sourceTripId} not found`);
+  }
+
+  const now = Date.now();
+  const newTripId = id();
+  const newTripUserId = id();
+
+  // biome-ignore lint/suspicious/noExplicitAny: The type should be generic
+  const transactions: TransactionChunk<any, any>[] = [
+    db.tx.trip[newTripId].update({
+      title: options.title,
+      timestampStart: sourceTrip.timestampStart,
+      timestampEnd: sourceTrip.timestampEnd,
+      timeZone: sourceTrip.timeZone,
+      region: sourceTrip.region,
+      currency: sourceTrip.currency,
+      originCurrency: sourceTrip.originCurrency,
+      originRegion: sourceTrip.originRegion,
+      originTimeZone: sourceTrip.originTimeZone,
+      // A duplicated trip is always private and owned by the duplicating user
+      sharingLevel: 0,
+      createdAt: now,
+      lastUpdatedAt: now,
+    }),
+    db.tx.tripUser[newTripUserId]
+      .update({
+        createdAt: now,
+        lastUpdatedAt: now,
+        role: TripUserRole.Owner,
+      })
+      .link({
+        user: userId,
+        trip: newTripId,
+      }),
+  ];
+
+  // old id -> new id, per copied object. Only populated for selected sections.
+  const activityIdMap = new Map<string, string>();
+  const accommodationIdMap = new Map<string, string>();
+  const macroplanIdMap = new Map<string, string>();
+  const expenseIdMap = new Map<string, string>();
+  const taskIdMap = new Map<string, string>();
+
+  for (const activity of sourceTrip.activity ?? []) {
+    if (!options.includeActivities) break;
+    const newId = id();
+    activityIdMap.set(activity.id, newId);
+    transactions.push(
+      db.tx.activity[newId]
+        .update({
+          title: activity.title,
+          description: activity.description,
+          location: activity.location,
+          locationLat: activity.locationLat,
+          locationLng: activity.locationLng,
+          locationZoom: activity.locationZoom,
+          locationDestination: activity.locationDestination,
+          locationDestinationLat: activity.locationDestinationLat,
+          locationDestinationLng: activity.locationDestinationLng,
+          locationDestinationZoom: activity.locationDestinationZoom,
+          timestampStart: activity.timestampStart,
+          timestampEnd: activity.timestampEnd,
+          timeZoneStart: activity.timeZoneStart,
+          timeZoneEnd: activity.timeZoneEnd,
+          flags: activity.flags,
+          icon: activity.icon,
+          createdAt: now,
+          lastUpdatedAt: now,
+        })
+        .link({
+          trip: newTripId,
+        }),
+    );
+  }
+
+  for (const accommodation of sourceTrip.accommodation ?? []) {
+    if (!options.includeAccommodations) break;
+    const newId = id();
+    accommodationIdMap.set(accommodation.id, newId);
+    transactions.push(
+      db.tx.accommodation[newId]
+        .update({
+          name: accommodation.name,
+          address: accommodation.address,
+          timestampCheckIn: accommodation.timestampCheckIn,
+          timestampCheckOut: accommodation.timestampCheckOut,
+          timeZoneCheckIn: accommodation.timeZoneCheckIn,
+          timeZoneCheckOut: accommodation.timeZoneCheckOut,
+          phoneNumber: accommodation.phoneNumber,
+          notes: accommodation.notes,
+          locationLat: accommodation.locationLat,
+          locationLng: accommodation.locationLng,
+          locationZoom: accommodation.locationZoom,
+          createdAt: now,
+          lastUpdatedAt: now,
+        })
+        .link({
+          trip: newTripId,
+        }),
+    );
+  }
+
+  for (const macroplan of sourceTrip.macroplan ?? []) {
+    if (!options.includeMacroplans) break;
+    const newId = id();
+    macroplanIdMap.set(macroplan.id, newId);
+    transactions.push(
+      db.tx.macroplan[newId]
+        .update({
+          name: macroplan.name,
+          notes: macroplan.notes,
+          timestampStart: macroplan.timestampStart,
+          timestampEnd: macroplan.timestampEnd,
+          timeZoneStart: macroplan.timeZoneStart,
+          timeZoneEnd: macroplan.timeZoneEnd,
+          createdAt: now,
+          lastUpdatedAt: now,
+        })
+        .link({
+          trip: newTripId,
+        }),
+    );
+  }
+
+  for (const expense of sourceTrip.expense ?? []) {
+    if (!options.includeExpenses) break;
+    const newId = id();
+    expenseIdMap.set(expense.id, newId);
+    transactions.push(
+      db.tx.expense[newId]
+        .update({
+          title: expense.title,
+          description: expense.description,
+          timestampIncurred: expense.timestampIncurred,
+          currency: expense.currency,
+          amount: expense.amount,
+          currencyConversionFactor: expense.currencyConversionFactor,
+          amountInOriginCurrency: expense.amountInOriginCurrency,
+          timeZoneIncurred: expense.timeZoneIncurred,
+          createdAt: now,
+          lastUpdatedAt: now,
+        })
+        .link({
+          trip: newTripId,
+        }),
+    );
+  }
+
+  if (options.includeTasks) {
+    for (const taskList of sourceTrip.taskList ?? []) {
+      const newTaskListId = id();
+      transactions.push(
+        db.tx.taskList[newTaskListId]
+          .update({
+            title: taskList.title,
+            index: taskList.index,
+            status: taskList.status,
+            createdAt: now,
+            lastUpdatedAt: now,
+          })
+          .link({
+            trip: newTripId,
+          }),
+      );
+      for (const task of taskList.task ?? []) {
+        const newTaskId = id();
+        taskIdMap.set(task.id, newTaskId);
+        transactions.push(
+          db.tx.task[newTaskId]
+            .update({
+              title: task.title,
+              description: task.description,
+              index: task.index,
+              status: task.status,
+              dueAt: task.dueAt,
+              completedAt: task.completedAt,
+              createdAt: now,
+              lastUpdatedAt: now,
+            })
+            .link({
+              taskList: newTaskListId,
+            }),
+        );
+      }
+    }
+  }
+
+  if (options.includeComments) {
+    for (const commentGroup of sourceTrip.commentGroup ?? []) {
+      const object = commentGroup.object;
+      if (!object?.type) continue;
+
+      // Resolve the new object id this comment group should attach to.
+      let newObjectId: string | undefined;
+      switch (object.type) {
+        case 'trip':
+          newObjectId = newTripId;
+          break;
+        case 'activity':
+          newObjectId = activityIdMap.get(object.activity?.[0]?.id ?? '');
+          break;
+        case 'accommodation':
+          newObjectId = accommodationIdMap.get(
+            object.accommodation?.[0]?.id ?? '',
+          );
+          break;
+        case 'macroplan':
+          newObjectId = macroplanIdMap.get(object.macroplan?.[0]?.id ?? '');
+          break;
+        case 'expense':
+          newObjectId = expenseIdMap.get(object.expense?.[0]?.id ?? '');
+          break;
+        case 'task':
+          newObjectId = taskIdMap.get(object.task?.[0]?.id ?? '');
+          break;
+      }
+      // Skip comments whose object was not copied (follow copied objects only).
+      if (!newObjectId) continue;
+
+      const newCommentGroupId = id();
+      transactions.push(
+        db.tx.commentGroup[newCommentGroupId]
+          .update({
+            status: commentGroup.status,
+            createdAt: now,
+            lastUpdatedAt: now,
+          })
+          .link({
+            trip: newTripId,
+            object: newCommentGroupId,
+          }),
+        db.tx.commentGroupObject[newCommentGroupId]
+          .update({
+            type: object.type,
+            createdAt: now,
+            lastUpdatedAt: now,
+          })
+          .link({
+            commentGroup: newCommentGroupId,
+            [object.type]: newObjectId,
+          }),
+      );
+
+      for (const comment of commentGroup.comment ?? []) {
+        const newCommentId = id();
+        transactions.push(
+          db.tx.comment[newCommentId]
+            .update({
+              content: comment.content,
+              createdAt: now,
+              lastUpdatedAt: now,
+            })
+            .link({
+              group: newCommentGroupId,
+              user: comment.user?.id,
+            }),
+        );
+      }
+    }
+  }
+
+  const result = await db.transact(transactions);
+
+  return {
+    id: newTripId,
+    result,
+  };
+}
+
 export async function dbUpdateTripSharingLevel(
   tripId: string,
   sharingLevel: TripSharingLevelType,
