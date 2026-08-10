@@ -1,4 +1,5 @@
 // Backfill trips that are missing originRegion / originTimeZone.
+/** biome-ignore-all lint/complexity/useLiteralKeys: one-time use only, no need much effort */
 // originRegion is derived from originCurrency (for currencies shared by multiple
 // regions, the first region in REGION_TO_CURRENCY_MAP wins) and originTimeZone is
 // derived from the resulting originRegion.
@@ -357,7 +358,9 @@ async function main() {
     const timeZone = REGION_TO_TIMEZONE_MAP[region];
     if (!timeZone) {
       skippedNoMatch += 1;
-      console.log(`No time zone found for region "${region}" (trip ${trip.id})`);
+      console.log(
+        `No time zone found for region "${region}" (trip ${trip.id})`,
+      );
       continue;
     }
     await db.transact([
