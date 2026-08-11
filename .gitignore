@@ -15,4 +15,6 @@ dist/
 .keys/
 .env
 
-/config.php
+# PHP metadata service
+config.php
+cache/
