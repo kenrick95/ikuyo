@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { shiftTimestampToTripDate } from './duplicateTripDateShift';
 
 const TZ = 'America/New_York';
@@ -25,7 +25,7 @@ function localDateTime(epochMs: number) {
 }
 
 describe('shiftTimestampToTripDate', () => {
-  it('returns null/undefined unchanged', () => {
+  test('returns null/undefined unchanged', () => {
     expect(
       shiftTimestampToTripDate(null, ms(2026, 3, 1), ms(2026, 3, 2), TZ),
     ).toBeNull();
@@ -34,14 +34,14 @@ describe('shiftTimestampToTripDate', () => {
     ).toBeUndefined();
   });
 
-  it('keeps timestamps unchanged when the start date is unchanged', () => {
+  test('keeps timestamps unchanged when the start date is unchanged', () => {
     const item = ms(2026, 3, 5, 10, 30);
     expect(
       shiftTimestampToTripDate(item, ms(2026, 3, 1), ms(2026, 3, 1), TZ),
     ).toBe(item);
   });
 
-  it('shifts forward by +1 calendar day, preserving local time', () => {
+  test('shifts forward by +1 calendar day, preserving local time', () => {
     const result = shiftTimestampToTripDate(
       ms(2026, 3, 3, 10, 30),
       ms(2026, 3, 1),
@@ -54,7 +54,7 @@ describe('shiftTimestampToTripDate', () => {
     ]);
   });
 
-  it('shifts backward by -1 calendar day, preserving local time', () => {
+  test('shifts backward by -1 calendar day, preserving local time', () => {
     const result = shiftTimestampToTripDate(
       ms(2026, 3, 3, 10, 30),
       ms(2026, 3, 1),
@@ -67,7 +67,7 @@ describe('shiftTimestampToTripDate', () => {
     ]);
   });
 
-  it('preserves local time across the spring-forward DST transition', () => {
+  test('preserves local time across the spring-forward DST transition', () => {
     // DST begins 2026-03-08 02:00 in New York (EST -> EDT).
     const sourceStart = ms(2026, 3, 1);
     const newStart = ms(2026, 3, 8);
@@ -85,7 +85,7 @@ describe('shiftTimestampToTripDate', () => {
     expect(result).not.toBe(naive);
   });
 
-  it('preserves local time across the fall-back DST transition', () => {
+  test('preserves local time across the fall-back DST transition', () => {
     // DST ends 2026-11-01 02:00 in New York (EDT -> EST).
     const sourceStart = ms(2026, 10, 25);
     const newStart = ms(2026, 11, 1);
@@ -103,7 +103,7 @@ describe('shiftTimestampToTripDate', () => {
     expect(result).not.toBe(naive);
   });
 
-  it('maps an item on the start date to the new start date', () => {
+  test('maps an item on the start date to the new start date', () => {
     const sourceStart = ms(2026, 3, 1);
     const newStart = ms(2026, 3, 8);
     expect(
