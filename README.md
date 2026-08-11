@@ -44,15 +44,16 @@ everything else. Static assets are still served directly by the web server.
    - `INSTANT_APP_ID`
    - `INSTANT_ADMIN_TOKEN` (server-side secret, never exposed to clients)
    - `SITE_URL` (e.g. `https://ikuyo.kenrick95.org`)
-   - optionally `INDEX_HTML`, `CACHE_DIR`, `INSTANT_API_URI`
+   - optionally `INDEX_HTML`, `INSTANT_API_URI`
 2. Deploy `index.php`, `config.php`, and `.htaccess` at the web root, next to
    the built `dist/` contents (so `index.html` sits beside `index.php`).
 3. Ensure `.htaccess` rewrites SPA routes to `index.php` (already configured)
    while keeping static files served directly.
-4. The `cache/` directory (per-trip metadata cache) and `config.php` are
-   gitignored; create them on the server with proper write permissions.
+4. `config.php` is gitignored; create it on the server.
 
 > ⚠️ The InstantDB admin API bypasses permission checks. `index.php` only
 > emits trip-specific metadata when the trip's `sharingLevel >= 2` (public), so
-> private trip titles/dates are never leaked through the preview path.
+> private trip titles/dates are never leaked through the preview path. Trip
+> metadata responses are served with `Cache-Control: no-store` so a trip that
+> becomes private is never served stale by a shared cache.
 
