@@ -17,4 +17,3 @@ dist/
 
 # PHP metadata service
 config.php
-cache/

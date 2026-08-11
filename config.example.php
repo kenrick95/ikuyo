@@ -14,7 +14,7 @@ return [
     // InstantDB app id (matches INSTANT_APP_ID).
     'INSTANT_APP_ID' => '',
 
-    // InstantDB admin token (matches INSTANT_APP_ADMIN_TOKEN).
+    // InstantDB admin token (matches INSTANT_ADMIN_TOKEN / INSTANT_APP_ADMIN_TOKEN).
     // Keep secret; used to query the admin API.
     'INSTANT_ADMIN_TOKEN' => '',
 
@@ -28,7 +28,4 @@ return [
 
     // Path to the built SPA index.html. Defaults to <dir>/index.html.
     'INDEX_HTML' => '',
-
-    // Directory for the per-trip metadata cache. Defaults to <dir>/cache.
-    'CACHE_DIR' => '',
 ];

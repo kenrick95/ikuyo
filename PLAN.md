@@ -124,8 +124,8 @@ built `index.html` / static assets).
    - Inject `<meta>` tags into `<head>` (string replace on a sentinel, e.g.
      before `</head>`), escape all dynamic values.
    - Fall back to serving `index.html` as-is otherwise.
-   - Set sensible `Cache-Control` (e.g. `public, s-maxage=300`) for the trip
-     metadata pages.
+   - Set `Cache-Control: no-store` for the trip metadata pages so a trip that
+     becomes private is never served stale by a shared cache/CDN.
 2. **`.htaccess`** — route SPA requests through `index.php` instead of
    `index.html` while preserving static-file serving:
    ```
@@ -138,12 +138,14 @@ built `index.html` / static assets).
    - `INSTANT_APP_ID`, `INSTANT_ADMIN_TOKEN`, optional `INSTANT_API_URI`.
    - Root HTML path constant.
    - Provide `getenv()`/dotenv-style overrides so secrets stay out of git.
-4. **`.gitignore`**: add `config.php`, and a cache dir (e.g. `cache/`).
-5. **Per-trip cache** (short TTL, e.g. 60–300s) keyed by trip id storing
-   `{ lastUpdatedAt, meta }`; bust when `lastUpdatedAt` changes. Avoids hitting
-   InstantDB on every social-scraper hit.
-6. **Docs**: update README / deploy notes with placement of `index.php`,
+4. **`.gitignore`**: add `config.php`.
+5. **Docs**: update README / deploy notes with placement of `index.php`,
    `config.php`, and the `.htaccess` change.
+
+> Note: an initial per-trip file cache was considered and removed during review.
+> Because the admin API bypasses permissions, caching trip metadata risks serving
+> stale (now-private) trip data. Each preview re-fetches the trip and validates
+> `sharingLevel >= 2`, and responses are `Cache-Control: no-store`.
 
 ## Verification
 

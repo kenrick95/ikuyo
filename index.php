@@ -19,8 +19,6 @@ declare(strict_types=1);
 // ---------------------------------------------------------------------------
 
 const DEFAULT_INDEX_HTML = __DIR__ . '/index.html';
-const DEFAULT_CACHE_DIR = __DIR__ . '/cache';
-const CACHE_TTL_SECONDS = 300; // 5 minutes
 
 /**
  * InstantDB Admin HTTP API. Requires an admin token and bypasses permissions,
@@ -34,7 +32,7 @@ const PUBLIC_SHARING_LEVEL = 2;
 
 function config(string $key, string $default = ''): string
 {
-    // Prefer real environment variables, then a values.php file (gitignored).
+    // Prefer real environment variables, then a config.php file (gitignored).
     static $file;
     if ($file === null) {
         $file = [];
@@ -54,7 +52,12 @@ function appId(): string
 
 function adminToken(): string
 {
-    return config('INSTANT_ADMIN_TOKEN');
+    // Accept both the PHP config key and the .env-style name for convenience.
+    $token = config('INSTANT_ADMIN_TOKEN');
+    if ($token === '') {
+        $token = config('INSTANT_APP_ADMIN_TOKEN');
+    }
+    return $token;
 }
 
 function apiUri(): string
@@ -88,9 +91,13 @@ function tripIdFromPath(string $path): ?string
         return null;
     }
     $id = $matches[1];
-    // Trip IDs are InstantDB UUIDs; be conservative about what we forward to
-    // the admin API and what we embed in the URL.
-    return preg_match('/^[a-zA-Z0-9\-]{1,64}$/', $id) ? $id : null;
+    // Trip IDs are InstantDB UUIDs. Tighten validation to UUID format so that
+    // non-trip subroutes like /trip/public or /trip/new don't trigger a needless
+    // admin query, and so nothing unexpected is forwarded to the API.
+    if (!preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $id)) {
+        return null;
+    }
+    return $id;
 }
 
 // ---------------------------------------------------------------------------
@@ -222,51 +229,6 @@ function fetchPublicTripMeta(string $tripId): ?array
 }
 
 // ---------------------------------------------------------------------------
-// Cache
-// ---------------------------------------------------------------------------
-
-function cachePath(string $tripId): string
-{
-    return rtrim(config('CACHE_DIR', DEFAULT_CACHE_DIR), '/') . '/' . $tripId . '.json';
-}
-
-function readCachedMeta(string $tripId): ?array
-{
-    $path = cachePath($tripId);
-    if (!is_file($path)) {
-        return null;
-    }
-    if (time() - filemtime($path) > CACHE_TTL_SECONDS) {
-        return null;
-    }
-    $data = json_decode((string) file_get_contents($path), true);
-    return is_array($data) ? $data : null;
-}
-
-function writeCachedMeta(string $tripId, array $meta): void
-{
-    $path = cachePath($tripId);
-    $dir = dirname($path);
-    if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
-        return;
-    }
-    @file_put_contents($path, json_encode($meta, JSON_UNESCAPED_SLASHES), LOCK_EX);
-}
-
-function publicTripMeta(string $tripId): ?array
-{
-    $cached = readCachedMeta($tripId);
-    if ($cached !== null) {
-        return $cached;
-    }
-    $meta = fetchPublicTripMeta($tripId);
-    if ($meta !== null) {
-        writeCachedMeta($tripId, $meta);
-    }
-    return $meta;
-}
-
-// ---------------------------------------------------------------------------
 // Metadata + HTML
 // ---------------------------------------------------------------------------
 
@@ -287,16 +249,17 @@ function formatDateRange(array $meta): string
     $end = (new DateTimeImmutable())->setTimestamp(intdiv($meta['timestampEnd'], 1000))->setTimezone($tz)
         ->modify('-1 day');
 
-    $startStr = $start->format('j M Y');
-    $endStr = $end->format('j M Y');
+    // Match the app's full month names (Temporal "LLLL"), not abbreviated.
+    $startStr = $start->format('j F Y');
+    $endStr = $end->format('j F Y');
     if ($startStr === $endStr) {
         return $endStr;
     }
-    if ($start->format('M Y') === $end->format('M Y')) {
+    if ($start->format('F Y') === $end->format('F Y')) {
         return $start->format('j') . '–' . $endStr;
     }
     if ($start->format('Y') === $end->format('Y')) {
-        return $start->format('j M') . '–' . $endStr;
+        return $start->format('j F') . '–' . $endStr;
     }
     return $startStr . '–' . $endStr;
 }
@@ -304,6 +267,14 @@ function formatDateRange(array $meta): string
 function buildMetaTags(array $meta): array
 {
     $site = rtrim(config('SITE_URL', ''), '/');
+    if ($site === '') {
+        // Fall back to the request host so og:url/og:image are always absolute.
+        $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? '';
+        if ($host !== '') {
+            $site = $scheme . '://' . $host;
+        }
+    }
     $url = $site . '/trip/' . rawurlencode($meta['id']);
     $image = $site . '/ikuyo-512.png';
 
@@ -414,9 +385,11 @@ function run(): void
     }
 
     if ($tripId !== null) {
-        $meta = publicTripMeta($tripId);
+        $meta = fetchPublicTripMeta($tripId);
         if ($meta !== null) {
-            header('Cache-Control: public, max-age=60, s-maxage=' . CACHE_TTL_SECONDS);
+            // No caching (and no `public`) so a trip that becomes private is never
+            // served stale via a shared cache/CDN.
+            header('Cache-Control: no-store');
             header('Content-Type: text/html; charset=UTF-8');
             echo injectMetaInto($html, buildMetaTags($meta));
             return;
