@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 const { queryOnceMock, transactMock } = vi.hoisted(() => ({
   queryOnceMock: vi.fn(),
@@ -67,7 +67,7 @@ describe('dbDuplicateTrip authorization', () => {
     transactMock.mockReset();
   });
 
-  it('does not duplicate a trip the user cannot read', async () => {
+  test('does not duplicate a trip the user cannot read', async () => {
     // Simulates InstantDB read permissions returning nothing for an
     // inaccessible (e.g. private) trip.
     queryOnceMock.mockResolvedValue({ data: { trip: [] } });
@@ -78,7 +78,7 @@ describe('dbDuplicateTrip authorization', () => {
     expect(transactMock).not.toHaveBeenCalled();
   });
 
-  it('duplicates a readable / public trip', async () => {
+  test('duplicates a readable / public trip', async () => {
     queryOnceMock.mockResolvedValue({ data: { trip: [sourceTrip()] } });
 
     const res = await dbDuplicateTrip('public-accessible', baseOptions, {

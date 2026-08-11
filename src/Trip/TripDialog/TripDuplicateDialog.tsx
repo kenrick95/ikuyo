@@ -242,6 +242,7 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
                   }));
                 }}
                 disabled={isSubmitting}
+                aria-label={`Copy ${section.label}`}
               />
               <Text size="2">
                 {section.label} ({section.count})
@@ -255,6 +256,7 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
                 setRemoveActivityDates(checked === true);
               }}
               disabled={isSubmitting || !includes.includeActivities}
+              aria-label="Remove dates from activities"
             />
             <Text size="2">Remove dates from activities</Text>
           </Flex>
