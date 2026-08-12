@@ -1,0 +1,16 @@
+{
+  "worktree": {
+    "setup": "pnpm install"
+  },
+  "metadataGeneration": {
+    "branchName": {
+      "instructions": "Prefix with feat/ or fix/"
+    },
+    "commitMessage": {
+      "instructions": "Use conventional commits with scope"
+    },
+    "pullRequest": {
+      "instructions": "Summarize: why, what, how"
+    }
+  }
+}
