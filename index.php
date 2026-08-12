@@ -30,6 +30,64 @@ const INSTANT_ADMIN_QUERY_PATH = '/admin/query';
 // Public sharing levels >= 2 are link-shareable (PublicUnlisted / PublicListed).
 const PUBLIC_SHARING_LEVEL = 2;
 
+/**
+ * Title/metadata for known non-trip SPA routes, keyed by exact request path.
+ * `noindex` marks the page as not-for-search-engines (login, private user and
+ * tool pages), which enriches the served <head> with <meta name="robots">.
+ */
+const STATIC_PAGES = [
+    '/' => [
+        'title' => 'Ikuyo!',
+        'description' => 'Plan your next trip!',
+        'noindex' => false,
+    ],
+    '/landing' => [
+        'title' => 'Ikuyo!',
+        'description' => 'Plan your next trip!',
+        'noindex' => false,
+    ],
+    '/login' => [
+        'title' => 'Login',
+        'description' => 'Log in to Ikuyo to plan and share your trips.',
+        'noindex' => true,
+    ],
+    '/trip' => [
+        'title' => 'Trips',
+        'description' => 'Your trips on Ikuyo.',
+        'noindex' => true,
+    ],
+    '/trip/public' => [
+        'title' => 'Public Trips',
+        'description' => 'Discover public trips shared on Ikuyo.',
+        'noindex' => false,
+    ],
+    '/trip/new' => [
+        'title' => 'Plan a Trip',
+        'description' => 'Plan a new trip on Ikuyo.',
+        'noindex' => true,
+    ],
+    '/account/edit' => [
+        'title' => 'Account',
+        'description' => 'Manage your Ikuyo account.',
+        'noindex' => true,
+    ],
+    '/account/upgrade' => [
+        'title' => 'Upgrade Account',
+        'description' => 'Upgrade your Ikuyo account.',
+        'noindex' => true,
+    ],
+    '/privacy' => [
+        'title' => 'Privacy Policy',
+        'description' => 'Read the Ikuyo Privacy Policy.',
+        'noindex' => false,
+    ],
+    '/terms' => [
+        'title' => 'Terms of Service',
+        'description' => 'Read the Ikuyo Terms of Service.',
+        'noindex' => false,
+    ],
+];
+
 function config(string $key, string $default = ''): string
 {
     // Prefer real environment variables, then a config.php file (gitignored).
@@ -264,20 +322,8 @@ function formatDateRange(array $meta): string
     return $startStr . '–' . $endStr;
 }
 
-function buildMetaTags(array $meta): array
+function buildTripMetaTags(array $meta): array
 {
-    $site = rtrim(config('SITE_URL', ''), '/');
-    if ($site === '') {
-        // Fall back to the request host so og:url/og:image are always absolute.
-        $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-        $host = $_SERVER['HTTP_HOST'] ?? '';
-        if ($host !== '') {
-            $site = $scheme . '://' . $host;
-        }
-    }
-    $url = $site . '/trip/' . rawurlencode($meta['id']);
-    $image = $site . '/ikuyo-512.png';
-
     $title = $meta['title'] !== '' ? $meta['title'] : 'Ikuyo!';
     $parts = [];
     $range = formatDateRange($meta);
@@ -295,12 +341,65 @@ function buildMetaTags(array $meta): array
         $description = 'A public trip on Ikuyo!';
     }
 
-    return [
+    return buildBaseTags([
         'title' => $title,
         'description' => $description,
-        'url' => $url,
-        'image' => $image,
+        'path' => '/trip/' . rawurlencode($meta['id']),
+    ]);
+}
+
+/**
+ * Site origin (scheme + host), from SITE_URL config or the request host, so
+ * og:url/og:image are always absolute.
+ */
+function siteUrl(): string
+{
+    $site = rtrim(config('SITE_URL', ''), '/');
+    if ($site === '') {
+        $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? '';
+        if ($host !== '') {
+            $site = $scheme . '://' . $host;
+        }
+    }
+    return $site;
+}
+
+function pageUrl(string $path): string
+{
+    return siteUrl() . ($path === '/' ? '/' : '/' . ltrim($path, '/'));
+}
+
+function defaultImage(): string
+{
+    return siteUrl() . '/ikuyo-512.png';
+}
+
+/** Normalize a set of overrides into a unified tag array with sane defaults. */
+function buildBaseTags(array $overrides): array
+{
+    $title = $overrides['title'] ?? 'Ikuyo!';
+    if ($title === '') {
+        $title = 'Ikuyo!';
+    }
+    return [
+        'title' => $title,
+        'description' => $overrides['description'] ?? '',
+        'url' => $overrides['url'] ?? pageUrl($overrides['path'] ?? '/'),
+        'image' => $overrides['image'] ?? defaultImage(),
+        'robots' => $overrides['robots'] ?? '',
     ];
+}
+
+/** Build metadata tags for a known static (non-trip) route. */
+function buildStaticMetaTags(array $page): array
+{
+    return buildBaseTags([
+        'title' => $page['title'] ?? 'Ikuyo!',
+        'description' => $page['description'] ?? '',
+        'path' => $page['path'] ?? '/',
+        'robots' => !empty($page['noindex']) ? 'noindex, nofollow' : '',
+    ]);
 }
 
 function escapeHtml(string $value): string
@@ -315,7 +414,7 @@ function metaHtml(array $tags): string
     $u = escapeHtml($tags['url']);
     $i = escapeHtml($tags['image']);
 
-    return implode("\n    ", [
+    $lines = [
         '<meta name="description" content="' . $d . '" />',
         '<meta name="twitter:card" content="summary" />',
         '<meta name="twitter:title" content="' . $t . '" />',
@@ -326,7 +425,13 @@ function metaHtml(array $tags): string
         '<meta property="og:description" content="' . $d . '" />',
         '<meta property="og:url" content="' . $u . '" />',
         '<meta property="og:image" content="' . $i . '" />',
-    ]);
+    ];
+
+    if (!empty($tags['robots'])) {
+        array_unshift($lines, '<meta name="robots" content="' . escapeHtml($tags['robots']) . '" />');
+    }
+
+    return implode("\n    ", $lines);
 }
 
 /** Read the built SPA index.html. */
@@ -341,6 +446,15 @@ function injectMetaInto(string $html, array $tags): string
 {
     $meta = metaHtml($tags);
 
+    // Update the <title> so the served document carries the real page title
+    // (the SPA's own <title> would otherwise be the generic "Ikuyo!").
+    $html = preg_replace(
+        '/<title[^>]*>.*?<\/title>/is',
+        '<title>' . escapeHtml($tags['title']) . '</title>',
+        $html,
+        1,
+    );
+
     // Remove conflicting generic social/description tags so we don't emit both
     // trip-specific and fallback metadata (scrapers take the first occurrence).
     $html = preg_replace(
@@ -349,7 +463,7 @@ function injectMetaInto(string $html, array $tags): string
         $html,
     );
 
-    // Point canonical at the trip URL.
+    // Point canonical at the page URL.
     $html = preg_replace(
         '/<link rel="canonical"[^>]*>/i',
         '<link rel="canonical" href="' . escapeHtml($tags['url']) . '" />',
@@ -371,6 +485,17 @@ function injectMetaInto(string $html, array $tags): string
 // Main
 // ---------------------------------------------------------------------------
 
+function staticPageMeta(string $path): ?array
+{
+    $page = STATIC_PAGES[$path] ?? null;
+    if ($page === null) {
+        return null;
+    }
+    // Carry the matched path so og:url / canonical point at the page itself.
+    $page['path'] = $path;
+    return $page;
+}
+
 function run(): void
 {
     $path = requestPath();
@@ -391,12 +516,23 @@ function run(): void
             // served stale via a shared cache/CDN.
             header('Cache-Control: no-store');
             header('Content-Type: text/html; charset=UTF-8');
-            echo injectMetaInto($html, buildMetaTags($meta));
+            echo injectMetaInto($html, buildTripMetaTags($meta));
             return;
         }
     }
 
-    // Non-trip routes, or private/missing trips: serve the SPA as-is.
+    // Known non-trip routes (login, landing, privacy, terms, account, tool
+    // pages): serve the SPA with page-specific title/metadata. Pages flagged
+    // `noindex` get a robots meta and no <a rel="canonical">-style indexation.
+    $page = staticPageMeta($path);
+    if ($page !== null) {
+        header('Cache-Control: no-cache');
+        header('Content-Type: text/html; charset=UTF-8');
+        echo injectMetaInto($html, buildStaticMetaTags($page));
+        return;
+    }
+
+    // Unknown routes, or private/missing trips: serve the SPA as-is.
     header('Cache-Control: no-cache');
     header('Content-Type: text/html; charset=UTF-8');
     echo $html;
