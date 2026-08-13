@@ -117,30 +117,40 @@ built `index.html` / static assets).
 
 ## Implementation steps
 
-1. **`index.php`** — front controller:
-   - Parse the request path; detect `/trip/<id>`.
-   - Read the built `index.html` from a configurable path (deployment root).
-   - If a trip route: call InstantDB admin query via cURL; validate `sharingLevel >= 2`.
-   - Inject `<meta>` tags into `<head>` (string replace on a sentinel, e.g.
-     before `</head>`), escape all dynamic values.
-   - Fall back to serving `index.html` as-is otherwise.
-   - Set `Cache-Control: no-store` for the trip metadata pages so a trip that
-     becomes private is never served stale by a shared cache/CDN.
-2. **`.htaccess`** — route SPA requests through `index.php` instead of
+1. **`index.php`** — thin PSR-4 bootstrap: registers an autoloader for the
+   `App\` namespace (files under `app/`), passes through static files under the
+   built-in dev server, then delegates to `FrontController::boot()->handle()`.
+   Everything else lives in small `app/` classes.
+2. **`app/Routing/FrontController`** — front controller: reads the built
+   `index.html` from a configurable path, detects `/trip/<id>` (UUID-validated),
+   queries InstantDB via the admin API, and injects `<meta>` tags into `<head>`
+   (escape all dynamic values). Known non-trip routes get page metadata; unknown
+   routes fall back to serving `index.html` as-is. Trip pages set
+   `Cache-Control: no-store` so a trip that becomes private is never served
+   stale by a shared cache/CDN.
+3. **`app/Routing/Path`** — request-path parsing + UUID validation.
+4. **`app/Pages/StaticPages`** — catalog of non-trip routes and their
+   title/description/noindex flags.
+5. **`app/Metadata/*`** — `Tags` (DTO), `DateRange` (full-month date range like
+   the frontend), `TagFactory` (builds tags, SITE_URL fallback), `Renderer`
+   (meta HTML + injection). 
+6. **`app/Trip/*`** — `TripMeta` (DTO), `PublicTrip` (admin query + `sharingLevel >= 2`
+   guard), `SharingLevel` (enum). 
+7. **`app/Config/Settings`** — named config: `INSTANT_APP_ID`, `INSTANT_ADMIN_TOKEN`
+   (accepts both key spellings), optional `INSTANT_API_URI`, `SITE_URL`, index path;
+   `getenv()`/dotenv-style overrides so secrets stay out of git.
+8. **`app/Http/InstantApi`** — InstantDB admin query client (cURL with stream
+   fallback).
+9. **`.htaccess`** — route SPA requests through `index.php` instead of
    `index.html` while preserving static-file serving:
    ```
    RewriteCond %{REQUEST_FILENAME} !-f
    RewriteCond %{REQUEST_FILENAME} !-d
    RewriteRule . /index.php [L]
    ```
-   Keep the existing `index.html` ETag/no-cache handling (or move to `index.php`).
-3. **`config.example.php`** + gitignored **`config.php`**:
-   - `INSTANT_APP_ID`, `INSTANT_ADMIN_TOKEN`, optional `INSTANT_API_URI`.
-   - Root HTML path constant.
-   - Provide `getenv()`/dotenv-style overrides so secrets stay out of git.
-4. **`.gitignore`**: add `config.php`.
-5. **Docs**: update README / deploy notes with placement of `index.php`,
-   `config.php`, and the `.htaccess` change.
+10. **`config.example.php`** (committed template) + gitignored **`config.php`**;
+    **`.gitignore`** adds `config.php`; **docs** updated with placement of
+    `index.php`, `config.php`, and the `.htaccess` change.
 
 > Note: an initial per-trip file cache was considered and removed during review.
 > Because the admin API bypasses permissions, caching trip metadata risks serving
