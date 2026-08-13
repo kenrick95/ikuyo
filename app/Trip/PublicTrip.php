@@ -28,7 +28,7 @@ final class PublicTrip
 
     public function find(string $tripId): ?TripMeta
     {
-        $trip = $this->api->query([
+        $result = $this->api->query([
             'trip' => [
                 '$' => (object) ['where' => ['id' => $tripId]],
                 'tripUser' => [
@@ -38,8 +38,11 @@ final class PublicTrip
                 'activity' => (object) [],
             ],
         ]);
+        if ($result === null) {
+            return null;
+        }
 
-        $trip = $trip['trip'][0] ?? null;
+        $trip = $result['trip'][0] ?? null;
         if (!is_array($trip) || !SharingLevel::fromInt((int) ($trip['sharingLevel'] ?? 0))->isShareable()) {
             return null;
         }
@@ -61,9 +64,10 @@ final class PublicTrip
             if (!is_array($tu)) {
                 continue;
             }
-            $handle = $tu['user'][0]['handle'] ?? null;
-            if (is_string($handle) && $handle !== '') {
-                return $handle;
+            $firstUser = $tu['user'][0] ?? null;
+            $handle = is_array($firstUser) ? ($firstUser['handle'] ?? '') : '';
+            if ($handle !== '') {
+                return (string) $handle;
             }
         }
         return null;

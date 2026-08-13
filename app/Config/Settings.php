@@ -15,6 +15,9 @@ final readonly class Settings
 
     public function __construct(?string $dir = null)
     {
+        // Web root = two levels up from app/Config (repo root; dist root in the
+        // deploy layout where app/ lives at <webroot>/app). config.php sits
+        // beside index.php at the web root.
         $dir ??= dirname(__DIR__, 2);
         $file = [];
         $configPath = $dir . '/config.php';

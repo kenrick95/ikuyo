@@ -17,7 +17,7 @@ namespace App\Pages;
  */
 final readonly class StaticPages
 {
-    /** @var array<string, string>|null */
+    /** @var array<string, array{title: string, description: string, noindex: bool}>|null */
     private ?array $json;
 
     public function __construct()

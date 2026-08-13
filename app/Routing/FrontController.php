@@ -64,12 +64,14 @@ final readonly class FrontController
         $page = $this->staticPages->all()[$path] ?? null;
         if ($page !== null) {
             $page['path'] = $path; // canonical points at the page itself
-            $this->serve($html, $this->tags->forStaticPage($page), 'no-cache');
+            $this->serve($html, $this->tags->forStaticPage($page), 'no-store, must-revalidate');
             return;
         }
 
         // Unknown routes, or private/missing trips: serve the SPA as-is.
-        $this->serve($html, null, 'no-cache');
+        // `no-store, must-revalidate` matches the previous .htaccess policy for
+        // index.html, so a deploy can't serve stale HTML/asset URLs.
+        $this->serve($html, null, 'no-store, must-revalidate');
     }
 
     private function serve(string $html, ?Tags $tags, string $cacheControl): void
