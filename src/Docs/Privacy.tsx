@@ -1,6 +1,11 @@
+import { DocTitle } from '../Nav/DocTitle';
+import { pageTitle } from '../Nav/pageMeta';
+import { RoutePrivacy } from '../Routes/routes';
+
 export default function Privacy() {
   return (
     <>
+      <DocTitle title={pageTitle(RoutePrivacy.routePath)} />
       <h1>Privacy Policy</h1>
       <p>Last updated: 10 November 2024</p>
       <p>

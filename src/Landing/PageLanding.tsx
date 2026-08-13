@@ -25,7 +25,13 @@ import { Link } from 'wouter';
 import { useCurrentUser } from '../Auth/hooks';
 import imgUrl from '../logo/ikuyo.svg';
 import { DocTitle } from '../Nav/DocTitle';
-import { RouteLogin, RouteTrips, RouteTripsPublic } from '../Routes/routes';
+import { pageTitle } from '../Nav/pageMeta';
+import {
+  RouteLanding,
+  RouteLogin,
+  RouteTrips,
+  RouteTripsPublic,
+} from '../Routes/routes';
 import ScreenshotTripCommentAvif from './assets/ScreenshotTripComment_resized.avif';
 import ScreenshotTripComment from './assets/ScreenshotTripComment_resized.png';
 import ScreenshotTripCommentWebp from './assets/ScreenshotTripComment_resized.webp';
@@ -64,7 +70,7 @@ export function PageLanding() {
 
   return (
     <Box>
-      <DocTitle title="" />
+      <DocTitle title={pageTitle(RouteLanding.routePath)} />
       {/* Hero Section */}
       <Section size="3" className={s.heroSection}>
         <Container size="3">

@@ -20,5 +20,5 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": ["src", "vitest.setup.ts"]
+  "include": ["src", "shared", "vitest.setup.ts"]
 }

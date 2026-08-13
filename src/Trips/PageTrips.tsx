@@ -16,9 +16,11 @@ import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
 import { useBoundStore, useDeepBoundStore } from '../data/store';
 import { DocTitle } from '../Nav/DocTitle';
 import { Navbar } from '../Nav/Navbar';
+import { pageTitle } from '../Nav/pageMeta';
 import {
   RouteAccountUpgrade,
   RouteTripNew,
+  RouteTrips,
   RouteTripsPublic,
 } from '../Routes/routes';
 import { TripGroup, type TripGroupType } from '../Trip/TripGroup';
@@ -49,7 +51,7 @@ export function PageTrips(_props: RouteComponentProps) {
 
   return (
     <>
-      <DocTitle title={'Trips'} />
+      <DocTitle title={pageTitle(RouteTrips.routePath)} />
       <Navbar
         leftItems={[
           <Heading as="h2" size="5" key="trips">

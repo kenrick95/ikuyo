@@ -16,6 +16,8 @@ import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
 import { useBoundStore, useDeepBoundStore } from '../data/store';
 import { DocTitle } from '../Nav/DocTitle';
 import { Navbar } from '../Nav/Navbar';
+import { pageTitle } from '../Nav/pageMeta';
+import { RouteTripsPublic } from '../Routes/routes';
 import s from './PageTripsPublic.module.css';
 import { TripPublicCard } from './TripPublicCard';
 
@@ -45,7 +47,7 @@ export function PageTripsPublic(_props: RouteComponentProps) {
 
   return (
     <>
-      <DocTitle title={'Public Trips'} />
+      <DocTitle title={pageTitle(RouteTripsPublic.routePath)} />
       <Navbar
         leftItems={[
           <Heading as="h2" size="5" key="trips">

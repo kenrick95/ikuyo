@@ -19,7 +19,9 @@ import { toFormat } from '../../common/dateTime/temporalFormatter';
 import { TimeZoneSelect } from '../../common/TimeZoneSelect/TimeZoneSelect';
 import { REGIONS_LIST } from '../../data/intl/regions';
 import { useBoundStore } from '../../data/store';
-import { RouteTrip, RouteTrips } from '../../Routes/routes';
+import { DocTitle } from '../../Nav/DocTitle';
+import { pageTitle } from '../../Nav/pageMeta';
+import { RouteTrip, RouteTripNew, RouteTrips } from '../../Routes/routes';
 import { dbAddTrip } from '../db';
 import { TripSharingLevel } from '../tripSharingLevel';
 import { FlightSubform } from './FlightSubform';
@@ -443,6 +445,7 @@ export default function PageTripNew() {
   if (state.step === 1) {
     return (
       <div className={s.page}>
+        <DocTitle title={pageTitle(RouteTripNew.routePath)} />
         <WizardProgressDots step={1} />
         <Heading size="5" mb="4">
           Plan a new trip
@@ -558,6 +561,7 @@ export default function PageTripNew() {
   if (state.step === 2) {
     return (
       <div className={s.page}>
+        <DocTitle title={pageTitle(RouteTripNew.routePath)} />
         <WizardProgressDots step={2} />
         <Heading size="5" mb="4">
           Trip details
@@ -652,6 +656,7 @@ export default function PageTripNew() {
 
   return (
     <div className={s.page}>
+      <DocTitle title={pageTitle(RouteTripNew.routePath)} />
       <WizardProgressDots step={3} />
       <Heading size="5" mb="4">
         How are you getting there?
