@@ -22,7 +22,11 @@ import imgUrl from '../logo/ikuyo.svg';
 import { DocTitle } from '../Nav/DocTitle';
 import { Navbar } from '../Nav/Navbar';
 import { pageTitle } from '../Nav/pageMeta';
-import { RouteAccount, RouteTrips } from '../Routes/routes';
+import {
+  RouteAccount,
+  RouteAccountUpgrade,
+  RouteTrips,
+} from '../Routes/routes';
 import { isEmailTakenByOtherUser } from '../User/emailCheck';
 import s from './PageAccountUpgrade.module.css';
 
@@ -75,7 +79,7 @@ export function PageAccountUpgrade(_props: RouteComponentProps) {
 
   return (
     <>
-      <DocTitle title={pageTitle(RouteAccount.routePath)} />
+      <DocTitle title={pageTitle(RouteAccountUpgrade.routePath)} />
       <Navbar
         leftItems={[
           <Heading as="h1" key="title" size={{ initial: '3', xs: '5' }}>

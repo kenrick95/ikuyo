@@ -70,8 +70,12 @@ final class Renderer
             $needle = '</head>';
             $pos = strpos($html, $needle);
         }
+        if ($pos === false) {
+            // No insertion point found: don't corrupt the document.
+            return $html . "\n" . $this->metaHtml($tags);
+        }
         $block = $this->metaHtml($tags) . "\n    " . $needle;
-        return substr_replace($html, $block, $pos === false ? 0 : $pos, strlen($needle));
+        return substr_replace($html, $block, $pos, strlen($needle));
     }
 
     private function esc(string $value): string
