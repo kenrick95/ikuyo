@@ -21,6 +21,7 @@ import { useBoundStore } from '../data/store';
 import imgUrl from '../logo/ikuyo.svg';
 import { DocTitle } from '../Nav/DocTitle';
 import { Navbar } from '../Nav/Navbar';
+import { pageTitle } from '../Nav/pageMeta';
 import { RouteAccount, RouteTrips } from '../Routes/routes';
 import { isEmailTakenByOtherUser } from '../User/emailCheck';
 import s from './PageAccountUpgrade.module.css';
@@ -74,7 +75,7 @@ export function PageAccountUpgrade(_props: RouteComponentProps) {
 
   return (
     <>
-      <DocTitle title={'Upgrade Account'} />
+      <DocTitle title={pageTitle(RouteAccount.routePath)} />
       <Navbar
         leftItems={[
           <Heading as="h1" key="title" size={{ initial: '3', xs: '5' }}>

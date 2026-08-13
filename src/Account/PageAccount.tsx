@@ -19,6 +19,8 @@ import { REGIONS_LIST } from '../data/intl/regions';
 import { useBoundStore, useDeepBoundStore } from '../data/store';
 import { DocTitle } from '../Nav/DocTitle';
 import { Navbar } from '../Nav/Navbar';
+import { pageTitle } from '../Nav/pageMeta';
+import { RouteAccount } from '../Routes/routes';
 import { getOriginCurrencyFromLocale } from '../Trip/TripNew/wizardUtils';
 import { dbUpdateUser, dbUpdateUserPreferences } from '../User/db';
 
@@ -150,7 +152,7 @@ export function PageAccount(_props: RouteComponentProps) {
 
   return (
     <>
-      <DocTitle title={'Account'} />
+      <DocTitle title={pageTitle(RouteAccount.routePath)} />
       <Navbar
         leftItems={[
           <Heading as="h1" key="title" size={{ initial: '3', xs: '5' }}>

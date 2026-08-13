@@ -1,6 +1,11 @@
+import { DocTitle } from '../Nav/DocTitle';
+import { pageTitle } from '../Nav/pageMeta';
+import { RouteTerms } from '../Routes/routes';
+
 export default function Terms() {
   return (
     <>
+      <DocTitle title={pageTitle(RouteTerms.routePath)} />
       <h1>Terms of Service</h1>
       <p>Last updated: 27 May 2025</p>
 

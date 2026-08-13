@@ -17,7 +17,8 @@ import { db } from '../data/db';
 import { useBoundStore } from '../data/store';
 import imgUrl from '../logo/ikuyo.svg';
 import { DocTitle } from '../Nav/DocTitle';
-import { RouteTrips } from '../Routes/routes';
+import { pageTitle } from '../Nav/pageMeta';
+import { RouteLogin, RouteTrips } from '../Routes/routes';
 import s from './Auth.module.css';
 import { useAuthUser, useCurrentUser } from './hooks';
 
@@ -56,7 +57,7 @@ export function PageLogin(_props: RouteComponentProps) {
 
   return (
     <>
-      <DocTitle title={'Login'} />
+      <DocTitle title={pageTitle(RouteLogin.routePath)} />
       <Grid className={s.grid}>
         <Box maxWidth={CommonDialogMaxWidth} mx="2" px="2">
           {authUserLoading ? (
