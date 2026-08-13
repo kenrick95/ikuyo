@@ -1,11 +1,15 @@
 import {
   ArrowRightIcon,
   CalendarIcon,
+  ChatBubbleIcon,
+  CheckCircledIcon,
   CheckIcon,
   GlobeIcon,
   HomeIcon,
+  LayersIcon,
   ListBulletIcon,
   MixIcon,
+  PaperPlaneIcon,
   QuoteIcon,
   Share2Icon,
 } from '@radix-ui/react-icons';
@@ -206,9 +210,58 @@ export function PageLanding() {
                   </Box>
                   <Heading size="4">Multiple Views</Heading>
                   <Text color="gray">
-                    Switch between timetable, list, and map views to see your
-                    trip from different perspectives and find the planning style
-                    that works best.
+                    Switch between overview, timetable, list, and map views to
+                    see your trip from different perspectives and find the
+                    planning style that works best.
+                  </Text>
+                </Flex>
+              </Card>
+              <Card>
+                <Flex direction="column" gap="3" p="4">
+                  <Box className={s.iconBox}>
+                    <CheckCircledIcon width="32" height="32" />
+                  </Box>
+                  <Heading size="4">Task Management</Heading>
+                  <Text color="gray">
+                    Keep a shared to-do list for your trip. Assign, prioritize,
+                    and tick off tasks so nothing slips through the cracks.
+                  </Text>
+                </Flex>
+              </Card>
+              <Card>
+                <Flex direction="column" gap="3" p="4">
+                  <Box className={s.iconBox}>
+                    <ChatBubbleIcon width="32" height="32" />
+                  </Box>
+                  <Heading size="4">Trip Discussion</Heading>
+                  <Text color="gray">
+                    Leave comments and chat with your travel companions right
+                    alongside your itinerary, keeping every decision in one
+                    place.
+                  </Text>
+                </Flex>
+              </Card>
+              <Card>
+                <Flex direction="column" gap="3" p="4">
+                  <Box className={s.iconBox}>
+                    <LayersIcon width="32" height="32" />
+                  </Box>
+                  <Heading size="4">Day Plans</Heading>
+                  <Text color="gray">
+                    Bundle activities into themed day plans or macro plans, so
+                    you can organize longer, multi-part experiences with ease.
+                  </Text>
+                </Flex>
+              </Card>
+              <Card>
+                <Flex direction="column" gap="3" p="4">
+                  <Box className={s.iconBox}>
+                    <PaperPlaneIcon width="32" height="32" />
+                  </Box>
+                  <Heading size="4">Transport & Export</Heading>
+                  <Text color="gray">
+                    Log flights and trains, then export your itinerary to ICS
+                    for your calendar or print a shareable copy.
                   </Text>
                 </Flex>
               </Card>
