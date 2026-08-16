@@ -11,6 +11,10 @@
  */
 
 return [
+    // Application environment: 'development'/'local' enables verbose request
+    // handling logs (trip resolution, matched route, fallback). Omitted on prod.
+    'APP_ENV' => '',
+
     // InstantDB app id (matches INSTANT_APP_ID).
     'INSTANT_APP_ID' => '',
 
