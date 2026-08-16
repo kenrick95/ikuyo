@@ -83,7 +83,9 @@ final class InstantApi
         ]);
         $response = @file_get_contents($this->queryUrl, false, $context);
         if ($response === false) {
-            error_log('[ikuyo-meta] InstantDB request failed via stream context');
+            $err = error_get_last();
+            $reason = is_array($err) ? ($err['message'] ?? 'unknown error') : 'unknown error';
+            error_log("[ikuyo-meta] InstantDB request failed via stream context: {$reason}");
             return null;
         }
         return $response;

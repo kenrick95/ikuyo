@@ -31,4 +31,15 @@ final class Path
         $isUuid = preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $id) === 1;
         return $isUuid ? $id : null;
     }
+
+    /**
+     * Whether the path is (very likely) a static asset rather than a document.
+     *
+     * Used to skip verbose dev logging for JS/CSS/image/font requests, which are
+     * expected to hit the fallback branch and would otherwise create noise.
+     */
+    public static function isStaticAsset(string $path): bool
+    {
+        return preg_match('/\.(?:js|mjs|cjs|css|png|jpe?g|gif|svg|webp|avif|ico|woff2?|ttf|otf|eot|map|webmanifest|json)$/i', $path) === 1;
+    }
 }

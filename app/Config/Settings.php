@@ -60,4 +60,18 @@ final readonly class Settings
     {
         return $this->get('INDEX_HTML', dirname(__DIR__, 2) . '/index.html');
     }
+
+    /**
+     * Whether to emit verbose request-handling logs.
+     *
+     * Enabled when `APP_ENV` is `development` or `local`, or when running under
+     * the built-in dev server (`php -S`).
+     */
+    public function debug(): bool
+    {
+        $env = strtolower($this->get('APP_ENV'));
+        return PHP_SAPI === 'cli-server'
+            || $env === 'development'
+            || $env === 'local';
+    }
 }
