@@ -61,11 +61,15 @@ final class InstantApi
         ]);
         $response = curl_exec($ch);
         $error = curl_error($ch);
+        $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         curl_close($ch);
 
         if ($response === false) {
             error_log("[ikuyo-meta] InstantDB request failed: {$error}");
             return null;
+        }
+        if ($status < 200 || $status >= 300) {
+            error_log("[ikuyo-meta] InstantDB admin query returned HTTP {$status}");
         }
         return $response;
     }
