@@ -1,7 +1,7 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /
-    <FilesMatch "index.html">
+    <FilesMatch "^index\.(html|php)$">
         FileETag None
         Header unset ETag
         Header set Cache-Control "max-age=0, no-cache, no-store, must-revalidate"
@@ -11,7 +11,7 @@
     <IfModule LiteSpeed>
         RewriteRule ^index\.html$ - [E=Cache-Control:no-cache]
     </IfModule>
-    RewriteRule ^index\.html$ - [L]
+    RewriteRule ^index\.php$ - [L]
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule . /index.php [L]
