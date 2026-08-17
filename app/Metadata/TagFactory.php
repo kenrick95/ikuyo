@@ -23,7 +23,7 @@ final class TagFactory
 
     public function forTrip(TripMeta $trip): Tags
     {
-        $title = $trip->title !== '' ? $trip->title : 'Ikuyo!';
+        $title = $trip->title !== '' ? $trip->title . ' | Ikuyo!' : 'Ikuyo!';
         $details = (new DateRange())($trip->timestampStart, $trip->timestampEnd, $trip->timeZone);
 
         $parts = [];
