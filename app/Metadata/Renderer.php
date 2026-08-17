@@ -63,16 +63,22 @@ final class Renderer
             1,
         );
 
-        // Inject the meta block right before canonical (or </head> as fallback).
+        // Inject the meta block right before canonical (or a later valid
+        // insertion point, then </head>/</body>/</html>).
         $needle = '<link rel="canonical"';
         $pos = strpos($html, $needle);
         if ($pos === false) {
-            $needle = '</head>';
-            $pos = strpos($html, $needle);
+            foreach (['</head>', '</body>', '</html>'] as $tag) {
+                $pos = strpos($html, $tag);
+                if ($pos !== false) {
+                    $needle = $tag;
+                    break;
+                }
+            }
         }
         if ($pos === false) {
-            // No insertion point found: don't corrupt the document.
-            return $html . "\n" . $this->metaHtml($tags);
+            // No safe insertion point: don't corrupt the document.
+            return $html;
         }
         $block = $this->metaHtml($tags) . "\n    " . $needle;
         return substr_replace($html, $block, $pos, strlen($needle));

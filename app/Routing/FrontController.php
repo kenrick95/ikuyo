@@ -40,24 +40,25 @@ final readonly class FrontController
 
     public function handle(): void
     {
-        $this->debug('handle:start', ['method' => $_SERVER['REQUEST_METHOD'] ?? 'GET']);
+        $path = Path::requestPath();
+
+        $this->debug('handle:start', $path, ['method' => $_SERVER['REQUEST_METHOD'] ?? 'GET']);
 
         $html = $this->loadIndexHtml();
         if ($html === null) {
-            $this->debug('handle:missing-index-html');
+            $this->debug('handle:missing-index-html', $path);
             $this->fail(503, 'Missing index.html');
             return;
         }
 
-        $path = Path::requestPath();
-        $this->debug('handle:path', ['path' => $path]);
+        $this->debug('handle:path', $path);
 
         // Public trip routes get live trip metadata.
         $tripId = Path::tripIdFromPath($path);
-        $this->debug('handle:trip-id', ['tripId' => $tripId ?? 'null']);
+        $this->debug('handle:trip-id', $path, ['tripId' => $tripId ?? 'null']);
         if ($tripId !== null) {
             $trip = $this->publicTrip->find($tripId);
-            $this->debug('handle:trip-resolved', ['tripId' => $tripId, 'found' => $trip !== null]);
+            $this->debug('handle:trip-resolved', $path, ['tripId' => $tripId, 'found' => $trip !== null]);
             if ($trip !== null) {
                 // No caching (and no `public`) so a trip that becomes private is
                 // never served stale via a shared cache/CDN.
@@ -68,7 +69,7 @@ final readonly class FrontController
 
         // Known non-trip pages get their own title/metadata.
         $page = $this->staticPages->all()[$path] ?? null;
-        $this->debug('handle:static-page', ['path' => $path, 'found' => $page !== null]);
+        $this->debug('handle:static-page', $path, ['found' => $page !== null]);
         if ($page !== null) {
             $page['path'] = $path; // canonical points at the page itself
             $this->serve($html, $this->tags->forStaticPage($page), 'no-store, must-revalidate');
@@ -78,21 +79,17 @@ final readonly class FrontController
         // Unknown routes, or private/missing trips: serve the SPA as-is.
         // `no-store, must-revalidate` matches the previous .htaccess policy for
         // index.html, so a deploy can't serve stale HTML/asset URLs.
-        $this->debug('handle:fallback', ['path' => $path]);
+        $this->debug('handle:fallback', $path);
         $this->serve($html, null, 'no-store, must-revalidate');
     }
 
     /** Emit a structured, single-line log entry when in development mode. */
-    private function debug(string $event, array $context = []): void
+    private function debug(string $event, string $path, array $context = []): void
     {
-        if (!$this->settings->debug()) {
+        if (!$this->settings->debug() || Path::isStaticAsset($path)) {
             return;
         }
-        // Static assets hit the fallback branch every time; don't log them.
-        if (Path::isStaticAsset(Path::requestPath())) {
-            return;
-        }
-        $data = ['ts' => date('c'), 'event' => $event] + $context;
+        $data = ['ts' => date('c'), 'event' => $event, 'path' => $path] + $context;
         $line = '[ikuyo] ' . json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         @error_log($line);
     }

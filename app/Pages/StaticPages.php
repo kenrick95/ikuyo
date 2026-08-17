@@ -43,8 +43,13 @@ final readonly class StaticPages
         return $result;
     }
 
-    /** @return array<string, array{title: string, description: string, noindex: bool}> */
-    private function fallback(): array
+    /**
+     * The built-in catalog used when `shared/pages.json` is unavailable.
+     * Public so callers (e.g. a consistency check) can compare it to the file.
+     *
+     * @return array<string, array{title: string, description: string, noindex: bool}>
+     */
+    public function fallback(): array
     {
         return [
             '/' => ['title' => '', 'description' => 'Plan your next trip!', 'noindex' => false],

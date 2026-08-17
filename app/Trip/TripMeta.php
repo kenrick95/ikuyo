@@ -19,17 +19,4 @@ final readonly class TripMeta
         public int $activityCount,
     ) {
     }
-
-    public function toArray(): array
-    {
-        return [
-            'id' => $this->id,
-            'title' => $this->title,
-            'timestampStart' => $this->timestampStart,
-            'timestampEnd' => $this->timestampEnd,
-            'timeZone' => $this->timeZone,
-            'ownerHandle' => $this->ownerHandle,
-            'activityCount' => $this->activityCount,
-        ];
-    }
 }

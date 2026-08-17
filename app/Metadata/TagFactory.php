@@ -65,7 +65,7 @@ final class TagFactory
             title: $title !== '' ? $title : 'Ikuyo!',
             description: $description,
             url: $this->absoluteUrl($path),
-            image: $this->siteUrl() . '/ikuyo-512.png',
+            image: $this->siteUrl() . '/ikuyo-og-image.jpg',
             robots: $robots,
         );
     }

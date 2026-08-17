@@ -109,7 +109,7 @@ built `index.html` / static assets).
     (same day-count logic as `src/Trip/time.ts` `formatTripDateRange`).
   - Activity count: `activity` link length.
 - `og:url` / `twitter:card`: canonical `https://<host>/trip/<id>`, card `summary`.
-- `og:image` / `twitter:image`: `https://<host>/ikuyo-512.png` (or `ikuyo-192.png`).
+- `og:image` / `twitter:image`: `https://<host>/ikuyo-og-image.jpg`.
 - `og:type`: `website` (or `article` if a theme exists). Keep simple: `website`.
 - Preserve the existing generic base tags (`og:title` "Ikuyo", description
   "Plan your next trip!", canonical, theme-color) as fallback for non-trip and

@@ -92,6 +92,21 @@ final class InstantApi
             error_log("[ikuyo-meta] InstantDB request failed via stream context: {$reason}");
             return null;
         }
+        $status = $this->streamStatus($http_response_header ?? []);
+        if ($status !== 0 && ($status < 200 || $status >= 300)) {
+            error_log("[ikuyo-meta] InstantDB admin query returned HTTP {$status}");
+        }
         return $response;
+    }
+
+    /** Extract the final HTTP status code from a response header list, or 0. */
+    private function streamStatus(array $headers): int
+    {
+        foreach ($headers as $line) {
+            if (preg_match('#^HTTP/\S+\s+(\d{3})#i', (string) $line, $m)) {
+                return (int) $m[1];
+            }
+        }
+        return 0;
     }
 }
