@@ -37,7 +37,7 @@ export function SwapDayDialog({
       const dateTime = Temporal.Instant.fromEpochMilliseconds(
         day.startMs,
       ).toZonedDateTimeISO(trip.timeZone);
-      return `Day ${dayIndex + 1} — ${toFormat('ccc, d LLL yyyy', dateTime)}`;
+      return `Day ${dayIndex + 1} (${toFormat('ccc, d LLL yyyy', dateTime)})`;
     },
     [days, trip.timeZone],
   );
@@ -119,7 +119,7 @@ export function SwapDayDialog({
         onEscapeKeyDown={popDialog}
         onInteractOutside={popDialog}
       >
-        <Dialog.Title>Swap activities to another day</Dialog.Title>
+        <Dialog.Title>Swap Activities to Another Day</Dialog.Title>
         <Dialog.Description size="2">
           {sourceDay
             ? `Move all activities from ${dayLabel(sourceDay.dayIndex)} to another day. Activities already on the target day will be moved to ${dayLabel(sourceDay.dayIndex)} in exchange.`
