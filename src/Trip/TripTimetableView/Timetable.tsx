@@ -60,7 +60,7 @@ import {
   useTripMacroplans,
   useTripTimetableDragging,
 } from '../store/hooks';
-import type { TripSliceTrip } from '../store/types';
+import type { TripSliceActivity, TripSliceTrip } from '../store/types';
 import { TripViewMode } from '../TripViewMode';
 import {
   generateAccommodationGridTemplateColumns,
@@ -295,6 +295,11 @@ export function Timetable() {
       trip?.currentUserRole === TripUserRole.Editor
     );
   }, [trip?.currentUserRole]);
+
+  // Days available for the day-swap context menu (derived once, not per header).
+  const tripDays = useMemo(() => {
+    return trip ? dayGroupsFromTrip(trip) : [];
+  }, [trip]);
 
   // Handle dropping activities on the timetable
   const handleDrop = useCallback(
@@ -559,6 +564,9 @@ export function Timetable() {
               isActive={isCurrentDay}
               dayIndex={i}
               userCanModifyTrip={userCanModifyTrip}
+              trip={trip}
+              activities={activities}
+              tripDays={tripDays}
             />
           );
         })}
@@ -724,6 +732,9 @@ function TimetableDayHeaderInner({
   isActive,
   dayIndex,
   userCanModifyTrip,
+  trip,
+  activities,
+  tripDays,
 }: {
   dateString: string;
   gridColumnStart: string;
@@ -731,9 +742,10 @@ function TimetableDayHeaderInner({
   isActive?: boolean;
   dayIndex: number;
   userCanModifyTrip: boolean;
+  trip: TripSliceTrip | undefined;
+  activities: TripSliceActivity[];
+  tripDays: Array<{ dayIndex: number; startMs: number }>;
 }) {
-  const { trip } = useCurrentTrip();
-  const activities = useTripActivities(trip?.activityIds ?? []);
   const pushDialog = useBoundStore((state) => state.pushDialog);
 
   const style = useMemo(() => {
@@ -744,17 +756,16 @@ function TimetableDayHeaderInner({
   }, [gridColumnStart, gridColumnEnd]);
 
   const handleSwapDay = useCallback(() => {
-    if (!trip) return;
-    const days = dayGroupsFromTrip(trip);
-    const sourceDay = days.find((day) => day.dayIndex === dayIndex);
+    if (!trip || tripDays.length < 2) return;
+    const sourceDay = tripDays.find((day) => day.dayIndex === dayIndex);
     if (!sourceDay) return;
     pushDialog(SwapDayDialog, {
       trip,
       activities,
       sourceDayIndex: dayIndex,
-      days,
+      days: tripDays,
     });
-  }, [activities, dayIndex, pushDialog, trip]);
+  }, [activities, dayIndex, pushDialog, trip, tripDays]);
 
   const header = (
     <Text
@@ -775,13 +786,15 @@ function TimetableDayHeaderInner({
     return header;
   }
 
+  const canSwap = tripDays.length >= 2;
+
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger>{header}</ContextMenu.Trigger>
       <ContextMenu.Content>
         <ContextMenu.Item
           onClick={handleSwapDay}
-          disabled={activities.length === 0}
+          disabled={activities.length === 0 || !canSwap}
         >
           Swap activities with another day…
         </ContextMenu.Item>
@@ -820,7 +833,10 @@ const TimetableDayHeader = memo(
       prevProps.gridColumnEnd === nextProps.gridColumnEnd &&
       prevProps.isActive === nextProps.isActive &&
       prevProps.dayIndex === nextProps.dayIndex &&
-      prevProps.userCanModifyTrip === nextProps.userCanModifyTrip
+      prevProps.userCanModifyTrip === nextProps.userCanModifyTrip &&
+      prevProps.trip === nextProps.trip &&
+      prevProps.activities === nextProps.activities &&
+      prevProps.tripDays === nextProps.tripDays
     );
   },
 );

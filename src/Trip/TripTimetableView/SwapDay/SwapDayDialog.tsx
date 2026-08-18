@@ -70,8 +70,8 @@ export function SwapDayDialog({
         title: {
           children:
             movedCount > 0
-              ? `Swapped activities from ${sourceLabel} to ${targetLabel}`
-              : `No activities to swap on ${sourceLabel}`,
+              ? `Swapped ${sourceLabel} and ${targetLabel}`
+              : `No activities to swap on ${sourceLabel} or ${targetLabel}`,
         },
         action:
           movedCount > 0
@@ -83,7 +83,9 @@ export function SwapDayDialog({
                   resetToast();
                   publishToast({
                     root: {},
-                    title: { children: `Undone swap of ${sourceLabel}` },
+                    title: {
+                      children: `Undone swap of ${sourceLabel} and ${targetLabel}`,
+                    },
                     close: {},
                   });
                 },
@@ -113,7 +115,7 @@ export function SwapDayDialog({
   ]);
 
   return (
-    <Dialog.Root open onOpenChange={popDialog}>
+    <Dialog.Root open>
       <Dialog.Content
         maxWidth="480px"
         onEscapeKeyDown={popDialog}
