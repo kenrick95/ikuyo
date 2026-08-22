@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ContentController;
+use App\Http\Controllers\Api\CommentController;
 use App\Http\Controllers\Api\TaskController;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\TripController;
 use Illuminate\Support\Facades\Route;
 
@@ -66,4 +68,26 @@ Route::middleware('web')->group(function (): void {
         ->middleware(['auth', 'trip.access:edit']);
     Route::post('/trips/{trip}/tasks/{task}/move', [TaskController::class, 'moveTask'])
         ->middleware(['auth', 'trip.access:edit']);
+
+    Route::post('/trips/{trip}/comment-groups', [CommentController::class, 'store'])
+        ->middleware(['auth', 'trip.access:edit']);
+    Route::patch('/trips/{trip}/comment-groups/{group}/status', [CommentController::class, 'updateStatus'])
+        ->middleware(['auth', 'trip.access:edit']);
+    Route::put('/trips/{trip}/comment-groups/{group}/comments/{comment}', [CommentController::class, 'update'])
+        ->middleware(['auth', 'trip.access:edit']);
+    Route::delete('/trips/{trip}/comment-groups/{group}/comments/{comment}', [CommentController::class, 'destroy'])
+        ->middleware(['auth', 'trip.access:edit']);
+
+    Route::get('/users/me', [UserController::class, 'me'])->middleware('auth');
+    Route::get('/users/by-handle/{handle}', [UserController::class, 'byHandle']);
+    Route::post('/users/check-email', [UserController::class, 'checkEmail']);
+    Route::post('/users/generate-handle', [UserController::class, 'generateHandle']);
+    Route::put('/users/me/preferences', [UserController::class, 'updatePreferences'])->middleware('auth');
+    Route::patch('/users/me', [UserController::class, 'update'])->middleware('auth');
+    Route::post('/trips/{trip}/members', [UserController::class, 'addMember'])
+        ->middleware(['auth', 'trip.access:manage']);
+    Route::patch('/trips/{trip}/members/{member}', [UserController::class, 'updateMember'])
+        ->middleware(['auth', 'trip.access:manage']);
+    Route::delete('/trips/{trip}/members/{member}', [UserController::class, 'removeMember'])
+        ->middleware(['auth', 'trip.access:manage']);
 });
