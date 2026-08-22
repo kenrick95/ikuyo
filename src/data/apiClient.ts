@@ -70,7 +70,17 @@ export async function mutate<T>(
 ): Promise<T> {
   const headers = new Headers(init.headers);
   headers.set('X-CSRF-TOKEN', await getCsrfToken());
-  return request<T>(path, { ...init, headers });
+  try {
+    return await request<T>(path, { ...init, headers });
+  } catch (error) {
+    // A login/session rotation can invalidate the cached token; refresh once.
+    if (error instanceof ApiError && error.status === 419) {
+      csrfToken = undefined;
+      headers.set('X-CSRF-TOKEN', await getCsrfToken());
+      return request<T>(path, { ...init, headers });
+    }
+    throw error;
+  }
 }
 
 export function postMutation<T>(path: string, body: unknown): Promise<T> {
@@ -89,8 +99,11 @@ export function deleteMutation<T>(path: string): Promise<T> {
   return mutate<T>(path, { method: 'DELETE' });
 }
 
+let csrfToken: string | undefined;
+
 export async function getCsrfToken(): Promise<string> {
-  return (await get<{ token: string }>('/api/csrf-token')).token;
+  csrfToken ??= (await get<{ token: string }>('/api/csrf-token')).token;
+  return csrfToken;
 }
 
 export { request as apiRequest };
