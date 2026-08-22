@@ -103,6 +103,9 @@ export default defineConfig({
       'process.env.IKUYO_BACKEND_TRIP_WRITES': JSON.stringify(
         process.env.IKUYO_BACKEND_TRIP_WRITES === 'true',
       ),
+      'process.env.IKUYO_BACKEND_TRIP_READS': JSON.stringify(
+        process.env.IKUYO_BACKEND_TRIP_READS === 'true',
+      ),
       'process.env.INSTANT_API_URI': JSON.stringify(INSTANT_API_URI || ''),
       'process.env.INSTANT_WEBSOCKET_URI': JSON.stringify(
         INSTANT_WEBSOCKET_URI || '',

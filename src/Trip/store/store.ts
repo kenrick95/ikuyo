@@ -1,6 +1,7 @@
 import type { StateCreator } from 'zustand';
 import { get as apiGet } from '../../data/apiClient';
 import { mapApiTrip } from '../../data/apiTrip';
+import { backendTripReads } from '../../data/backendConfig';
 import { db } from '../../data/db';
 import type { BoundStoreType } from '../../data/store';
 import {
@@ -198,6 +199,7 @@ export const createTripSlice: StateCreator<
       );
     },
     subscribeTrip: (tripId: string) => {
+      if (!backendTripReads) return get().subscribeTripInstant(tripId);
       let disposed = false;
       set((state) => ({
         tripMeta: {

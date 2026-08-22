@@ -381,6 +381,7 @@ export interface TripSlice {
   ) => void;
 
   /** return: unsubscribe function */
+  subscribeTripInstant: (id: string) => () => void;
   subscribeTrip: (id: string) => () => void;
 
   getTrip: (id: string | undefined) => TripSliceTrip | undefined;
