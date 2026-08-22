@@ -1,4 +1,6 @@
 import { id } from '@instantdb/core';
+import { deleteMutation, postMutation, putMutation } from '../data/apiClient';
+import { backendContentWrites } from '../data/backendConfig';
 import { db } from '../data/db';
 import type { DbTrip } from '../Trip/db';
 
@@ -31,6 +33,13 @@ export async function dbAddExpense(
   newExpense: Omit<DbExpense, 'id' | 'createdAt' | 'lastUpdatedAt' | 'trip'>,
   { tripId }: { tripId: string },
 ) {
+  if (backendContentWrites) {
+    const result = await postMutation<{ id: string }>(
+      `/api/trips/${encodeURIComponent(tripId)}/expenses`,
+      newExpense,
+    );
+    return { id: result.id, result };
+  }
   const newId = id();
   return {
     id: newId,
@@ -50,6 +59,11 @@ export async function dbAddExpense(
 export async function dbUpdateExpense(
   expense: Omit<DbExpense, 'createdAt' | 'lastUpdatedAt' | 'trip'>,
 ) {
+  if (backendContentWrites)
+    return putMutation(
+      `/api/expenses/${encodeURIComponent(expense.id)}`,
+      expense,
+    );
   return db.transact(
     db.tx.expense[expense.id].merge({
       ...expense,
@@ -58,6 +72,8 @@ export async function dbUpdateExpense(
   );
 }
 export async function dbDeleteExpense(expenseId: string) {
+  if (backendContentWrites)
+    return deleteMutation(`/api/expenses/${encodeURIComponent(expenseId)}`);
   const commentGroups = await db.queryOnce({
     commentGroup: {
       comment: { $: { fields: ['id'] } },

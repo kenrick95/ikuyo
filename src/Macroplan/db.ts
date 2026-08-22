@@ -1,4 +1,6 @@
 import { id } from '@instantdb/core';
+import { deleteMutation, postMutation, putMutation } from '../data/apiClient';
+import { backendContentWrites } from '../data/backendConfig';
 import { db } from '../data/db';
 import type { DbTrip, DbTripWithMacroplan } from '../Trip/db';
 
@@ -48,6 +50,18 @@ export async function dbAddMacroplan(
   >,
   { tripId }: { tripId: string },
 ) {
+  if (backendContentWrites) {
+    const result = await postMutation<{ id: string }>(
+      `/api/trips/${encodeURIComponent(tripId)}/macroplans`,
+      newMacroplan,
+    );
+    return {
+      id: result.id,
+      transaction: result,
+      undo: async () =>
+        deleteMutation(`/api/macroplans/${encodeURIComponent(result.id)}`),
+    };
+  }
   const newMacroplanId = id();
   const transaction = await db.transact([
     db.tx.macroplan[newMacroplanId]
@@ -72,6 +86,13 @@ export async function dbAddMacroplan(
 export async function dbUpdateMacroplan(
   macroplan: Omit<DbMacroplan, 'createdAt' | 'lastUpdatedAt' | 'trip'>,
 ) {
+  if (backendContentWrites) {
+    const result = await putMutation<DbMacroplan>(
+      `/api/macroplans/${encodeURIComponent(macroplan.id)}`,
+      macroplan,
+    );
+    return { transaction: result, undo: async () => undefined };
+  }
   const snapshot = await db.queryOnce({
     macroplan: {
       $: {
@@ -99,6 +120,8 @@ export async function dbUpdateMacroplan(
 }
 
 export async function dbDeleteMacroplan(macroplanId: string) {
+  if (backendContentWrites)
+    return deleteMutation(`/api/macroplans/${encodeURIComponent(macroplanId)}`);
   const commentGroups = await db.queryOnce({
     commentGroup: {
       comment: { $: { fields: ['id'] } },
