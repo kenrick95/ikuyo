@@ -103,6 +103,34 @@ class ApiMigrationTest extends TestCase
         $this->actingAs($viewer)->putJson('/api/trips/' . $trip->id, ['title' => 'Nope'])->assertForbidden();
     }
 
+    public function test_activity_api_accepts_frontend_camel_case_fields(): void
+    {
+        $user = $this->user();
+        $trip = Trip::create([
+            'id' => (string) Str::uuid(), 'title' => 'Activity API', 'region' => 'JP', 'currency' => 'JPY',
+            'timezone' => 'Asia/Tokyo', 'timestamp_start_ms' => 1, 'timestamp_end_ms' => 2,
+            'sharing_level' => 0,
+        ]);
+        $trip->users()->attach($user->id, ['id' => (string) Str::uuid(), 'role' => 0, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
+
+        $response = $this->actingAs($user)->postJson('/api/trips/' . $trip->id . '/activities', [
+            'title' => 'Fushimi Inari',
+            'location' => 'Kyoto',
+            'description' => 'Torii gates',
+            'timestampStart' => 1700000000000,
+            'timestampEnd' => 1700003600000,
+            'locationLat' => 34.9671,
+            'locationLng' => 135.7727,
+        ]);
+
+        $response->assertCreated()->assertJsonPath('timestamp_start_ms', 1700000000000);
+        $this->assertDatabaseHas('activities', [
+            'trip_id' => $trip->id,
+            'timestamp_start_ms' => 1700000000000,
+            'location_lat' => 34.9671,
+        ]);
+    }
+
     public function test_public_section_visibility_hides_expenses_from_anonymous_users(): void
     {
         $trip = Trip::create([
