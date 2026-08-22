@@ -1,5 +1,5 @@
 import type { StateCreator } from 'zustand';
-import { db } from '../data/db';
+import { type CursorPage, get } from '../data/apiClient';
 import type { BoundStoreType } from '../data/store';
 import { TripGroup, type TripGroupType } from '../Trip/TripGroup';
 
@@ -13,9 +13,7 @@ export type TripsSliceTrip = {
   lastUpdatedAt: number;
 };
 export type TripsSlice = {
-  trips: {
-    [queryKey: string]: TripsSliceTrip[];
-  };
+  trips: { [queryKey: string]: TripsSliceTrip[] };
   tripsLoading: boolean;
   tripsError: string | null;
   subscribeTrips: (currentUserId: string, now: number) => () => void;
@@ -27,178 +25,115 @@ export type TripsSlice = {
   tripsLoadMore: undefined | (() => void);
   tripsLoadingMore: null | boolean;
 };
+
+type ApiTrip = {
+  id: string;
+  title: string;
+  timestampStart: number;
+  timestampEnd: number;
+  timeZone: string;
+  createdAt: number;
+  lastUpdatedAt: number;
+};
+
 export const createTripsSlice: StateCreator<
   BoundStoreType,
   [],
   [],
   TripsSlice
-> = (set, get) => {
-  return {
-    trips: {},
-    tripsLoading: true,
-    tripsError: null,
-    tripsHasMore: null,
-    tripsLoadMore: undefined,
-    tripsLoadingMore: null,
-    subscribeTrips: (currentUserId: string, now: number) => {
-      const queryKey = getQueryKey(currentUserId);
-      const PAGE_SIZE = 10;
+> = (set, getState) => ({
+  trips: {},
+  tripsLoading: true,
+  tripsError: null,
+  tripsHasMore: null,
+  tripsLoadMore: undefined,
+  tripsLoadingMore: null,
+  subscribeTrips: (currentUserId, now) => {
+    const queryKey = getQueryKey(currentUserId);
+    let disposed = false;
+    let pastCursor: string | null = null;
+    let activeTrips: TripsSliceTrip[] = [];
+    let pastTrips: TripsSliceTrip[] = [];
 
-      // Internal caches — merged into `trips` whenever either subscription fires
-      let activeTrips: TripsSliceTrip[] = [];
-      let pastTrips: TripsSliceTrip[] = [];
-      let activeLoaded = false;
-      let pastLoaded = false;
-
-      const mergeAndSet = () => {
-        if (!activeLoaded || !pastLoaded) return;
-        set((state) => ({
-          trips: {
-            ...state.trips,
-            [queryKey]: [...activeTrips, ...pastTrips],
-          },
-          tripsLoading: false,
-        }));
-      };
-
-      // Subscription 1: active trips (ongoing + upcoming) — load all, no pagination
-      const unsubscribeActive = db.subscribeQuery(
-        {
-          trip: {
-            $: {
-              where: {
-                'tripUser.user.id': currentUserId,
-                timestampEnd: { $gte: now },
-              },
-            },
-          },
-        },
-        ({ data, error }) => {
-          if (error) {
-            console.error('subscribeTrips (active) error', error);
-            set(() => ({
-              tripsLoading: false,
-              tripsError: error.message,
-            }));
-            return;
-          }
-          activeTrips =
-            data?.trip?.map((trip) => ({
-              id: trip.id,
-              title: trip.title,
-              timestampStart: trip.timestampStart,
-              timestampEnd: trip.timestampEnd,
-              timeZone: trip.timeZone,
-              createdAt: trip.createdAt,
-              lastUpdatedAt: trip.lastUpdatedAt,
-            })) ?? [];
-          activeLoaded = true;
-          mergeAndSet();
-        },
-      );
-
-      // Subscription 2: past trips — paginated
-      const pastQuery = db.subscribeInfiniteQuery(
-        {
-          trip: {
-            $: {
-              limit: PAGE_SIZE,
-              order: {
-                timestampEnd: 'desc',
-              },
-              where: {
-                'tripUser.user.id': currentUserId,
-                timestampEnd: { $lt: now },
-              },
-            },
-          },
-        },
-        ({ data, error, canLoadNextPage }) => {
-          if (error) {
-            console.error('subscribeTrips (past) error', error);
-            set(() => ({
-              tripsLoading: false,
-              tripsError: error.message,
-              tripsHasMore: null,
-              tripsLoadingMore: null,
-            }));
-            return;
-          }
-          pastTrips =
-            data?.trip?.map((trip) => ({
-              id: trip.id,
-              title: trip.title,
-              timestampStart: trip.timestampStart,
-              timestampEnd: trip.timestampEnd,
-              timeZone: trip.timeZone,
-              createdAt: trip.createdAt,
-              lastUpdatedAt: trip.lastUpdatedAt,
-            })) ?? [];
-          pastLoaded = true;
-          set(() => ({
-            tripsHasMore: canLoadNextPage ?? null,
-            tripsLoadingMore: false,
-          }));
-          mergeAndSet();
-        },
-      );
-
-      set(() => ({
-        tripsLoadMore: () => {
-          set(() => ({ tripsLoadingMore: true }));
-          pastQuery.loadNextPage();
-        },
+    const toTrip = (trip: ApiTrip): TripsSliceTrip => ({ ...trip });
+    const merge = () => {
+      if (disposed) return;
+      set((state) => ({
+        trips: { ...state.trips, [queryKey]: [...activeTrips, ...pastTrips] },
+        tripsLoading: false,
       }));
-
-      return () => {
-        unsubscribeActive();
-        pastQuery.unsubscribe();
-      };
-    },
-    getTripsGrouped: (currentUserId: string | undefined, now: number) => {
-      const groups: Record<TripGroupType, TripsSliceTrip[]> = {
-        [TripGroup.Upcoming]: [],
-        [TripGroup.Ongoing]: [],
-        [TripGroup.Past]: [],
-      };
-      if (!currentUserId) {
-        return groups;
+    };
+    const load = async (append = false): Promise<void> => {
+      try {
+        const params = new URLSearchParams({
+          now: String(now),
+          status: append ? 'past' : 'active',
+          limit: '10',
+        });
+        if (append && pastCursor) params.set('cursor', pastCursor);
+        const page = await get<CursorPage<ApiTrip>>(`/api/trips?${params}`);
+        if (disposed) return;
+        if (append) pastTrips = [...pastTrips, ...page.data.map(toTrip)];
+        else activeTrips = page.data.map(toTrip);
+        pastCursor = page.nextCursor;
+        set(() => ({ tripsHasMore: page.hasMore, tripsLoadingMore: false }));
+        merge();
+      } catch (error) {
+        if (disposed) return;
+        set(() => ({
+          tripsLoading: false,
+          tripsLoadingMore: false,
+          tripsError:
+            error instanceof Error ? error.message : 'Unable to load trips',
+        }));
       }
+    };
 
-      const state = get();
-      const queryKey = getQueryKey(currentUserId);
-      const trips = state.trips[queryKey] ?? [];
-      for (const trip of trips) {
-        if (trip.timestampStart > now) {
-          groups[TripGroup.Upcoming].push(trip);
-        } else if (trip.timestampEnd < now) {
-          groups[TripGroup.Past].push(trip);
-        } else {
-          groups[TripGroup.Ongoing].push(trip);
-        }
-      }
-
-      groups[TripGroup.Upcoming].sort(sortTripFn);
-      groups[TripGroup.Ongoing].sort(sortTripFn);
-      groups[TripGroup.Past].sort(sortTripFn).reverse();
-
-      return groups;
-    },
-  };
-};
+    set(() => ({
+      tripsLoading: true,
+      tripsError: null,
+      tripsLoadingMore: false,
+    }));
+    // Load active and first past page concurrently.
+    void Promise.all([load(false), load(true)]);
+    set(() => ({
+      tripsLoadMore: () => {
+        const state = getState();
+        if (state.tripsLoadingMore || !state.tripsHasMore) return;
+        set(() => ({ tripsLoadingMore: true }));
+        void load(true);
+      },
+    }));
+    return () => {
+      disposed = true;
+      set(() => ({ tripsLoadMore: undefined }));
+    };
+  },
+  getTripsGrouped: (currentUserId, now) => {
+    const groups: Record<TripGroupType, TripsSliceTrip[]> = {
+      [TripGroup.Upcoming]: [],
+      [TripGroup.Ongoing]: [],
+      [TripGroup.Past]: [],
+    };
+    if (!currentUserId) return groups;
+    const trips = getState().trips[getQueryKey(currentUserId)] ?? [];
+    for (const trip of trips) {
+      if (trip.timestampStart > now) groups[TripGroup.Upcoming].push(trip);
+      else if (trip.timestampEnd < now) groups[TripGroup.Past].push(trip);
+      else groups[TripGroup.Ongoing].push(trip);
+    }
+    groups[TripGroup.Upcoming].sort(sortTripFn);
+    groups[TripGroup.Ongoing].sort(sortTripFn);
+    groups[TripGroup.Past].sort(sortTripFn).reverse();
+    return groups;
+  },
+});
 
 function getQueryKey(currentUserId: string): string {
-  return JSON.stringify({
-    tripUser: currentUserId,
-  });
+  return JSON.stringify({ tripUser: currentUserId });
 }
-
-function sortTripFn(tripA: TripsSliceTrip, tripB: TripsSliceTrip): number {
-  if (tripA.timestampStart === tripB.timestampStart) {
-    if (tripA.timestampEnd === tripB.timestampEnd) {
-      return 0;
-    }
-    return tripA.timestampEnd - tripB.timestampEnd;
-  }
-  return tripA.timestampStart - tripB.timestampStart;
+function sortTripFn(a: TripsSliceTrip, b: TripsSliceTrip): number {
+  if (a.timestampStart === b.timestampStart)
+    return a.timestampEnd - b.timestampEnd;
+  return a.timestampStart - b.timestampStart;
 }
