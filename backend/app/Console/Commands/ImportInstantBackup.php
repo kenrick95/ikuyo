@@ -193,10 +193,30 @@ class ImportInstantBackup extends Command
             'taskList' => $this->child($source, $created, $updated, ['title','index','status'], []),
             'task' => $this->child($source, $created, $updated, ['index','title','description','status','dueAt'=>'due_at_ms','completedAt'=>'completed_at_ms'], []),
             'commentGroup' => $this->child($source, $created, $updated, ['status'], []),
-            'commentGroupObject' => $this->child($source, $created, $updated, ['type'=>'object_type'], []),
+            'commentGroupObject' => $this->mapCommentObject($source, $created, $updated),
             'comment' => $this->child($source, $created, $updated, ['content'], []),
             default => [],
         };
+    }
+
+    private function mapCommentObject(array $source, int $created, int $updated): array
+    {
+        $row = [
+            'id' => (string) $source['id'],
+            'comment_group_id' => $this->linkId($source['commentGroup'] ?? null) ?? (string) $source['id'],
+            'object_type' => isset($source['type']) ? $this->objectType((string) $source['type']) : 0,
+            'object_id' => null,
+            'created_at_ms' => $created,
+            'updated_at_ms' => $updated,
+        ];
+        foreach (['trip', 'activity', 'accommodation', 'macroplan', 'expense', 'task'] as $type) {
+            if (array_key_exists($type, $source)) {
+                $row['object_type'] = $this->objectType($type);
+                $row['object_id'] = $this->linkId($source[$type]);
+                break;
+            }
+        }
+        return $row;
     }
 
     private function child(array $source, int $created, int $updated, array $fields, array $mapped): array
@@ -211,7 +231,6 @@ class ImportInstantBackup extends Command
             if (array_key_exists($link, $source)) $row[$column] = $this->linkId($source[$link]);
         }
         if (array_key_exists('object', $source)) $row['comment_group_id'] = $this->linkId($source['object']);
-        if (array_key_exists('type', $source) && isset($source['type']) && is_string($source['type'])) $row['object_type'] = $this->objectType($source['type']);
         return $row;
     }
 
