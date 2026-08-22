@@ -1,6 +1,13 @@
 import { id } from '@instantdb/core';
 import type { DbAccommodation } from '../Accommodation/db';
 import type { DbActivity } from '../Activity/db';
+import {
+  deleteMutation,
+  patchMutation,
+  postMutation,
+  putMutation,
+} from '../data/apiClient';
+import { backendContentWrites } from '../data/backendConfig';
 import { db } from '../data/db';
 import type { DbUser } from '../data/types';
 import type { DbExpense } from '../Expense/db';
@@ -90,6 +97,17 @@ export async function dbAddComment<ObjectType extends DbCommentGroupObjectType>(
     groupId?: string;
   },
 ) {
+  if (backendContentWrites) {
+    return postMutation<{ id: string; result: unknown }>(
+      `/api/trips/${encodeURIComponent(tripId)}/comment-groups`,
+      {
+        content: newComment.content,
+        objectType: objectTypeNumber(objectType),
+        objectId,
+        groupId: commentGroupId,
+      },
+    );
+  }
   const transactions = [];
   const now = Date.now();
   if (!commentGroupId) {
@@ -139,10 +157,27 @@ export async function dbAddComment<ObjectType extends DbCommentGroupObjectType>(
   };
 }
 
+function objectTypeNumber(type: DbCommentGroupObjectType): number {
+  return {
+    trip: 0,
+    activity: 1,
+    accommodation: 2,
+    macroplan: 3,
+    expense: 4,
+    task: 5,
+  }[type];
+}
+
 export async function dbUpdateCommentGroupStatus(
   commentGroupId: string,
   status: CommentGroupStatus,
 ) {
+  if (backendContentWrites) {
+    return patchMutation(
+      `/api/comment-groups/${encodeURIComponent(commentGroupId)}/status`,
+      { status },
+    );
+  }
   const now = Date.now();
   return db.transact(
     db.tx.commentGroup[commentGroupId].merge({
@@ -160,6 +195,11 @@ export async function dbUpdateComment<
     'createdAt' | 'lastUpdatedAt' | 'group' | 'user'
   >,
 ) {
+  if (backendContentWrites) {
+    return putMutation(`/api/comments/${encodeURIComponent(comment.id)}`, {
+      content: comment.content,
+    });
+  }
   const now = Date.now();
   const transactions = [
     db.tx.comment[comment.id].merge({
@@ -177,6 +217,9 @@ export async function dbDeleteComment(
 ) {
   if (!commentGroupId) {
     throw new Error('Comment group id is required to delete comment');
+  }
+  if (backendContentWrites) {
+    return deleteMutation(`/api/comments/${encodeURIComponent(commentId)}`);
   }
   const transactions = [
     db.tx.commentGroup[commentGroupId].unlink({

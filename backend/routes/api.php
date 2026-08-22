@@ -103,6 +103,13 @@ Route::middleware('web')->group(function (): void {
     Route::post('/trips/{trip}/tasks/{task}/move', [TaskController::class, 'moveTask'])
         ->middleware(['auth', 'trip.access:edit']);
 
+    Route::patch('/comment-groups/{group}/status', [CommentController::class, 'updateStatusById'])
+        ->middleware('auth');
+    Route::put('/comments/{comment}', [CommentController::class, 'updateById'])
+        ->middleware('auth');
+    Route::delete('/comments/{comment}', [CommentController::class, 'destroyById'])
+        ->middleware('auth');
+
     Route::post('/trips/{trip}/comment-groups', [CommentController::class, 'store'])
         ->middleware(['auth', 'trip.access:edit']);
     Route::patch('/trips/{trip}/comment-groups/{group}/status', [CommentController::class, 'updateStatus'])

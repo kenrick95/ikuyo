@@ -49,6 +49,32 @@ class CommentController extends Controller
         return response()->json($comment->load('user'), 201);
     }
 
+    public function updateStatusById(Request $request, string $group): JsonResponse
+    {
+        $record = CommentGroup::with('trip')->findOrFail($group);
+        abort_unless($request->user() && app(\App\Services\TripAccessService::class)->canEdit($record->trip, $request->user()), 403);
+        $record->update($request->validate(['status' => ['required', 'integer', 'in:0,1']]));
+        return response()->json($record);
+    }
+
+    public function updateById(Request $request, string $comment): JsonResponse
+    {
+        $record = Comment::with('commentGroup.trip')->findOrFail($comment);
+        abort_unless($request->user() && app(\App\Services\TripAccessService::class)->canEdit($record->commentGroup->trip, $request->user()), 403);
+        abort_unless($record->user_id === $request->user()->id || app(\App\Services\TripAccessService::class)->canManage($record->commentGroup->trip, $request->user()), 403);
+        $record->update($request->validate(['content' => ['required', 'string']]));
+        return response()->json($record->fresh('user'));
+    }
+
+    public function destroyById(Request $request, string $comment): JsonResponse
+    {
+        $record = Comment::with('commentGroup.trip')->findOrFail($comment);
+        abort_unless($request->user() && app(\App\Services\TripAccessService::class)->canEdit($record->commentGroup->trip, $request->user()), 403);
+        abort_unless($record->user_id === $request->user()->id || app(\App\Services\TripAccessService::class)->canManage($record->commentGroup->trip, $request->user()), 403);
+        $record->delete();
+        return response()->json(['ok' => true]);
+    }
+
     public function updateStatus(Request $request, Trip $trip, string $group): JsonResponse
     {
         $record = $trip->commentGroups()->whereKey($group)->firstOrFail();
