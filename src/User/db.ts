@@ -1,4 +1,6 @@
 import { id } from '@instantdb/core';
+import { patchMutation, putMutation } from '../data/apiClient';
+import { backendAuthEnabled } from '../data/backendConfig';
 import { db } from '../data/db';
 
 export type DbUser = {
@@ -25,6 +27,13 @@ export async function dbUpdateUserPreferences({
   currency?: string;
   timeZone?: string;
 }) {
+  if (backendAuthEnabled) {
+    return putMutation(`/api/users/me/preferences`, {
+      region,
+      currency,
+      timeZone,
+    });
+  }
   const attrs: Record<string, unknown> = {
     lastUpdatedAt: Date.now(),
   };
@@ -80,6 +89,9 @@ export async function dbUpdateUser({
   defaultUserNamespaceId: string;
   lastLoginAt: number | undefined;
 }) {
+  if (backendAuthEnabled) {
+    return patchMutation<{ id: string }>(`/api/users/me`, { email, handle });
+  }
   const attrs: Record<string, unknown> = {
     handle,
     activated,
