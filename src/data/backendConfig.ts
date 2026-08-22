@@ -7,3 +7,4 @@ export const backendContentWrites =
 export const backendTaskWrites = process.env.IKUYO_BACKEND_TASK_WRITES === true;
 export const backendSharingWrites =
   process.env.IKUYO_BACKEND_SHARING_WRITES === true;
+export const backendTripWrites = process.env.IKUYO_BACKEND_TRIP_WRITES === true;
