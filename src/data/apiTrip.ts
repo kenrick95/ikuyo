@@ -52,10 +52,13 @@ export function mapApiTrip(trip: ApiTrip): DbTripQueryReturnType {
       ...map(list),
       task: (list.task ?? list.tasks ?? []).map(map),
     })),
-    tripUser: (trip.tripUser ?? []).map((member: ApiTrip) => ({
-      ...map(member),
-      user: member.user ? map(member.user) : undefined,
-    })),
+    tripUser: (trip.tripUser ?? trip.tripUsers ?? []).map(
+      (member: ApiTrip) => ({
+        ...map(member),
+        role: roleName(member.role),
+        user: member.user ? [map(member.user)] : [],
+      }),
+    ),
     commentGroup: (trip.commentGroup ?? trip.commentGroups ?? []).map(
       (group: ApiTrip) => ({
         ...map(group),
@@ -65,8 +68,40 @@ export function mapApiTrip(trip: ApiTrip): DbTripQueryReturnType {
             user: comment.user ? map(comment.user) : undefined,
           }),
         ),
-        object: group.object ? map(group.object) : undefined,
+        object: group.object ? mapCommentObject(group.object) : undefined,
       }),
     ),
   } as DbTripQueryReturnType;
+}
+
+function roleName(role: unknown): string {
+  if (role === 0 || role === '0') return 'owner';
+  if (role === 1 || role === '1') return 'editor';
+  return 'viewer';
+}
+
+function mapCommentObject(object: ApiTrip): ApiTrip {
+  const type =
+    typeof object.type === 'string'
+      ? object.type
+      : objectTypeName(object.object_type);
+  const target = object.object_id
+    ? { id: object.object_id, title: object.title ?? object.name ?? '' }
+    : undefined;
+  return {
+    ...object,
+    id: object.id,
+    createdAt: object.createdAt ?? object.created_at_ms,
+    lastUpdatedAt: object.lastUpdatedAt ?? object.updated_at_ms,
+    type,
+    [type]: target ? [target] : [],
+  };
+}
+
+function objectTypeName(value: unknown): string {
+  return (
+    ['trip', 'activity', 'accommodation', 'macroplan', 'expense', 'task'][
+      Number(value)
+    ] ?? 'trip'
+  );
 }
