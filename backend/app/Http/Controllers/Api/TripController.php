@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Services\TripAccessService;
 
 class TripController extends Controller
 {
@@ -200,7 +201,7 @@ class TripController extends Controller
         return response()->json(['id' => $newTrip->id], 201);
     }
 
-    public function show(Trip $trip): JsonResponse
+    public function show(Request $request, Trip $trip, TripAccessService $access): JsonResponse
     {
         $trip->load([
             'activities',
@@ -213,7 +214,9 @@ class TripController extends Controller
             'commentGroups.object',
         ]);
 
-        return response()->json($this->serializeTrip($trip));
+        $role = $access->role($trip, $request->user());
+        abort_unless($access->canView($trip, $request->user()), $request->user() ? 403 : 401);
+        return response()->json($this->serializeTrip($trip, $role));
     }
 
     private function nowMs(): int
@@ -245,8 +248,12 @@ class TripController extends Controller
         return $row;
     }
 
-    private function serializeTrip(Trip $trip): array
+    private function serializeTrip(Trip $trip, ?int $role = null): array
     {
+        $isPublicVisitor = $role === null && $trip->sharing_level >= 2;
+        $showExpenses = $isPublicVisitor ? $trip->public_show_expenses !== false : ($role !== 2 || $trip->viewer_show_expenses !== false);
+        $showTasks = $isPublicVisitor ? $trip->public_show_tasks !== false : ($role !== 2 || $trip->viewer_show_tasks !== false);
+        $showComments = $isPublicVisitor ? $trip->public_show_comments !== false : ($role !== 2 || $trip->viewer_show_comments !== false);
         return [
             'id' => $trip->id,
             'title' => $trip->title,
@@ -255,6 +262,9 @@ class TripController extends Controller
             'timeZone' => $trip->timezone,
             'region' => $trip->region,
             'currency' => $trip->currency,
+            'originCurrency' => $trip->origin_currency,
+            'originRegion' => $trip->origin_region,
+            'originTimeZone' => $trip->origin_timezone,
             'sharingLevel' => $trip->sharing_level,
             'publicShowExpenses' => $trip->public_show_expenses,
             'publicShowTasks' => $trip->public_show_tasks,
@@ -267,14 +277,14 @@ class TripController extends Controller
             'activity' => $trip->activities,
             'accommodation' => $trip->accommodations,
             'macroplan' => $trip->macroPlans,
-            'expense' => $trip->expenses,
-            'taskList' => $trip->taskLists,
+            'expense' => $showExpenses ? $trip->expenses : [],
+            'taskList' => $showTasks ? $trip->taskLists : [],
             'tripUser' => $trip->users->map(fn ($user): array => [
                 'id' => $user->pivot->id ?? null,
                 'role' => $user->pivot->role,
                 'user' => $user->only(['id', 'handle', 'activated', 'email']),
             ])->values(),
-            'commentGroup' => $trip->commentGroups,
+            'commentGroup' => $showComments ? $trip->commentGroups : [],
         ];
     }
 }
