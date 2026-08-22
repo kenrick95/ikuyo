@@ -13,7 +13,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Initial auth requests cannot carry a session CSRF token yet.
+        // All authenticated mutations remain CSRF-protected.
+        $middleware->validateCsrfTokens(except: [
+            'api/auth/login',
+            'api/auth/guest',
+            'api/auth/forgot',
+            'api/auth/reset',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

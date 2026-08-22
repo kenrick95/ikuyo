@@ -7,9 +7,10 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['comment_group_id', 'user_id', 'content', 'created_at_ms', 'updated_at_ms'])]
 class Comment extends Model
 {
+    protected $guarded = [];
+
     use HasMsTimestamps;
 
     public $incrementing = false;
