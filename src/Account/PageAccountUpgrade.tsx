@@ -16,6 +16,7 @@ import { type RouteComponentProps, useLocation } from 'wouter';
 import { useAuthUser, useCurrentUser } from '../Auth/hooks';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
 import { CommonDialogMaxWidth } from '../Dialog/ui';
+import { backendAuthEnabled } from '../data/backendConfig';
 import { db } from '../data/db';
 import { useBoundStore } from '../data/store';
 import imgUrl from '../logo/ikuyo.svg';
@@ -28,6 +29,7 @@ import {
   RouteTrips,
 } from '../Routes/routes';
 import { isEmailTakenByOtherUser } from '../User/emailCheck';
+import { BackendAccountUpgrade } from './BackendAccountUpgrade';
 import s from './PageAccountUpgrade.module.css';
 
 export default PageAccountUpgrade;
@@ -93,7 +95,9 @@ export function PageAccountUpgrade(_props: RouteComponentProps) {
       <Container p="2" my="2">
         <Grid className={s.grid}>
           <Box maxWidth={CommonDialogMaxWidth} mx="2" px="2">
-            {screen === UpgradeScreen.Selection ? (
+            {backendAuthEnabled ? (
+              <BackendAccountUpgrade />
+            ) : screen === UpgradeScreen.Selection ? (
               <UpgradeSelection
                 setScreen={setScreen}
                 googleAuthUrl={googleAuthUrl}
