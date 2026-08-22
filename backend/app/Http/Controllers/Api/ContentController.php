@@ -63,7 +63,7 @@ class ContentController extends Controller
     public function index(Trip $trip, string $entity): JsonResponse
     {
         $this->model($entity);
-        return response()->json($trip->getRelationValue(self::RELATIONS[$entity]));
+        return response()->json($trip->{self::RELATIONS[$entity]}()->get());
     }
 
     public function store(Request $request, Trip $trip, string $entity): JsonResponse
