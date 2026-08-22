@@ -49,6 +49,17 @@ These map directly onto the Instant graph:
 - `commentable_type/commentable_id` ⇄ Instant `commentGroupObject` polymorphic
 - ms-Epoch `BIGINT` timestamps kept as-is (not MySQL `datetime`)
 
+## Deploying on shared hosting
+
+1. Copy `.env.mysql.example` to `.env`, set real database/mail values, and run `php artisan key:generate` once.
+2. Upload the repository without `vendor/`; run `composer install --no-dev --optimize-autoloader --prefer-dist` over SSH.
+3. Point the hosting document root at `backend/public` (never expose the project root or `.env`).
+4. Ensure `storage/` and `bootstrap/cache/` are writable.
+5. Run `php artisan migrate --force` and optionally `php artisan optimize`.
+6. Confirm `APP_DEBUG=false`, HTTPS, secure cookies, and the `/up` health route.
+
+For the current React app, deploy its static build separately and route `/api/*` to Laravel. Keep the existing SEO front-controller behavior for non-API SPA routes until that code is repointed to MySQL.
+
 ## Layout (Laravel 13)
 
 ```
