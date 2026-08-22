@@ -6,9 +6,11 @@ use App\Models\Concerns\HasMsTimestamps;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['trip_id', 'title', 'location', 'location_lat', 'location_lng', 'location_zoom', 'location_destination', 'location_destination_lat', 'location_destination_lng', 'location_destination_zoom', 'description', 'timestamp_start_ms', 'timestamp_end_ms', 'timezone_start', 'timezone_end', 'flags', 'icon', 'created_at_ms', 'updated_at_ms'])]
-class Activity extends Model
+#[Fillable(['trip_id', 'status', 'created_at_ms', 'updated_at_ms'])]
+class CommentGroup extends Model
 {
     use HasMsTimestamps;
 
@@ -19,5 +21,15 @@ class Activity extends Model
     public function trip(): BelongsTo
     {
         return $this->belongsTo(Trip::class);
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class);
+    }
+
+    public function object(): HasOne
+    {
+        return $this->hasOne(CommentGroupObject::class);
     }
 }

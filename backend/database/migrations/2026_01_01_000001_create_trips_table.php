@@ -8,31 +8,39 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Mirrors the plan's `trips` table (Instant `trip` entity).
         Schema::create('trips', function (Blueprint $table): void {
-            $table->id();
+            $table->string('id', 40)->primary();
             $table->string('title');
             $table->string('region', 8);
             $table->string('currency', 8);
             $table->string('timezone', 64);
-            // Instant stores unix-millisecond ints; keep them as BIGINT, not datetime.
             $table->bigInteger('timestamp_start_ms');
             $table->bigInteger('timestamp_end_ms');
             // 0 private, 2 public-unlisted, 3 public-listed
             $table->tinyInteger('sharing_level')->default(0);
             $table->boolean('public_show_expenses')->nullable();
-            $table->bigInteger('created_at_ms')->nullable();
-            $table->bigInteger('updated_at_ms')->nullable();
-            $table->timestamps();
+            $table->boolean('public_show_tasks')->nullable();
+            $table->boolean('public_show_comments')->nullable();
+            $table->boolean('viewer_show_expenses')->nullable();
+            $table->boolean('viewer_show_tasks')->nullable();
+            $table->boolean('viewer_show_comments')->nullable();
+            $table->bigInteger('created_at_ms');
+            $table->bigInteger('updated_at_ms');
         });
 
-        // The N:N join with an extra column (`role`) lives on the pivot.
+        // N:N trip <-> user with the role attribute on the pivot.
+        // NOTE: ids are string(40), so the FK columns must be string(40) too —
+        // not `foreignId()` which assumes bigint autoincrement ids.
         Schema::create('trip_user', function (Blueprint $table): void {
-            $table->id();
-            $table->foreignId('trip_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->string('role', 10)->default('viewer'); // owner|editor|viewer
-            $table->timestamps();
+            $table->string('id', 40)->primary();
+            $table->string('trip_id', 40);
+            $table->string('user_id', 40);
+            $table->tinyInteger('role'); // 0 owner / 1 editor / 2 viewer
+            $table->bigInteger('created_at_ms');
+            $table->bigInteger('updated_at_ms');
+            $table->unique(['trip_id', 'user_id']);
+            $table->foreign('trip_id')->references('id')->on('trips')->cascadeOnDelete();
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
         });
     }
 
