@@ -70,6 +70,9 @@ Flag:
 IKUYO_BACKEND_AUTH=false
 ```
 
+Full-trip reads are controlled independently by `IKUYO_BACKEND_TRIP_READS`; it defaults
+false and falls back to InstantDB subscriptions. This makes read cutover reversible.
+
 ### Authorization
 
 - `TripAccessService` evaluates public/member/editor/owner access.
@@ -115,6 +118,7 @@ Flag:
 ```env
 IKUYO_BACKEND_TRIP_WRITES=false
 IKUYO_BACKEND_SHARING_WRITES=false
+IKUYO_BACKEND_TRIP_READS=false
 ```
 
 ### Content writes
@@ -299,9 +303,8 @@ IKUYO_BACKEND_SHARING_WRITES=true
 IKUYO_BACKEND_TRIP_READS=true
 ```
 
-`IKUYO_BACKEND_TRIP_READS` currently has not been wired as a flag; the trip read
-adapter is active in the current code. This must be corrected before any production
-rollout so InstantDB remains a reliable read fallback.
+`IKUYO_BACKEND_TRIP_READS` is now wired. When false, full-trip detail uses the existing
+InstantDB subscription path; when true, it uses the Laravel HTTP API.
 
 ## Recommended implementation order from here
 
