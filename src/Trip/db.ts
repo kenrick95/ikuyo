@@ -6,6 +6,8 @@ import type {
 } from '../Accommodation/db';
 import type { DbActivity, DbActivityWithTrip } from '../Activity/db';
 import type { DbCommentGroup, DbCommentGroupObjectType } from '../Comment/db';
+import { patchMutation } from '../data/apiClient';
+import { backendSharingWrites } from '../data/backendConfig';
 import { db } from '../data/db';
 import type { DbUser } from '../data/types';
 import type { DbMacroplan, DbMacroplanWithTrip } from '../Macroplan/db';
@@ -431,6 +433,11 @@ export async function dbUpdateTripSharingLevel(
   tripId: string,
   sharingLevel: TripSharingLevelType,
 ) {
+  if (backendSharingWrites) {
+    return patchMutation(`/api/trips/${encodeURIComponent(tripId)}/sharing`, {
+      sharingLevel,
+    });
+  }
   const transactionTimestamp = Date.now();
   return db.transact([
     db.tx.trip[tripId].merge({
@@ -665,6 +672,13 @@ export async function dbUpdateTripSectionVisibility(
     >
   >,
 ): Promise<void> {
+  if (backendSharingWrites) {
+    await patchMutation(
+      `/api/trips/${encodeURIComponent(tripId)}/sections`,
+      fields,
+    );
+    return;
+  }
   await db.transact(
     db.tx.trip[tripId].merge({ ...fields, lastUpdatedAt: Date.now() }),
   );

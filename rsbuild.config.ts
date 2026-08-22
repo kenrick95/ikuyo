@@ -94,6 +94,9 @@ export default defineConfig({
       'process.env.IKUYO_BACKEND_TASK_WRITES': JSON.stringify(
         process.env.IKUYO_BACKEND_TASK_WRITES === 'true',
       ),
+      'process.env.IKUYO_BACKEND_SHARING_WRITES': JSON.stringify(
+        process.env.IKUYO_BACKEND_SHARING_WRITES === 'true',
+      ),
       'process.env.IKUYO_BACKEND_ACTIVITY_WRITES': JSON.stringify(
         process.env.IKUYO_BACKEND_ACTIVITY_WRITES === 'true',
       ),
