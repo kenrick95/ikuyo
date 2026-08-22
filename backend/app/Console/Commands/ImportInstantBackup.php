@@ -14,7 +14,8 @@ class ImportInstantBackup extends Command
         {backup : Path to an Instant backup ZIP or extracted directory}
         {--dry-run : Parse and report counts without writing}
         {--truncate : Empty application tables before importing}
-        {--json : Print parsed entity counts as JSON}';
+        {--json : Print parsed entity counts as JSON}
+        {--verify-config : Compare counts with config.json and fail on mismatch}';
 
     protected $description = 'Import an InstantDB backup JSONL export into MySQL';
 
@@ -49,9 +50,22 @@ class ImportInstantBackup extends Command
             $counts[$entity] = count($records);
         }
 
-        $this->table(['entity', 'rows'], collect($counts)->map(fn ($count, $entity) => [$entity, $count])->values()->all());
+        $expected = $this->readConfigCounts($directory);
+        $verification = [];
+        foreach ($counts as $entity => $actual) {
+            $verification[$entity] = [
+                'expected' => $expected[$entity] ?? null,
+                'actual' => $actual,
+                'ok' => !isset($expected[$entity]) || $expected[$entity] === $actual,
+            ];
+        }
+        $this->table(['entity', 'expected', 'actual', 'status'], collect($verification)->map(fn ($row, $entity) => [$entity, $row['expected'] ?? '-', $row['actual'], $row['ok'] ? 'ok' : 'MISMATCH'])->values()->all());
         if ($this->option('json')) {
-            $this->line(json_encode(['counts' => $counts], JSON_THROW_ON_ERROR));
+            $this->line(json_encode(['counts' => $counts, 'verification' => $verification], JSON_THROW_ON_ERROR));
+        }
+        if ($this->option('verify-config') && collect($verification)->contains(fn (array $row): bool => !$row['ok'])) {
+            $this->error('Entity counts do not match config.json.');
+            return self::FAILURE;
         }
 
         if ($this->option('dry-run')) {
@@ -244,6 +258,21 @@ class ImportInstantBackup extends Command
         Schema::disableForeignKeyConstraints();
         foreach (array_reverse(array_values(self::TABLES)) as $table) DB::table($table)->truncate();
         Schema::enableForeignKeyConstraints();
+    }
+
+    /** @return array<string, int> */
+    private function readConfigCounts(string $directory): array
+    {
+        $file = $directory . '/config.json';
+        if (!is_file($file)) return [];
+        $config = json_decode((string) file_get_contents($file), true, 512, JSON_THROW_ON_ERROR);
+        $candidates = $config['entityCounts'] ?? $config['entities'] ?? $config['counts'] ?? [];
+        $counts = [];
+        foreach ($candidates as $name => $value) {
+            if (is_int($value) || is_float($value)) $counts[(string) $name] = (int) $value;
+            elseif (is_array($value) && isset($value['count'])) $counts[(string) $name] = (int) $value['count'];
+        }
+        return $counts;
     }
 
     /** @return list<array{entity: array<string, mixed>, createdAt?: mixed}> */
