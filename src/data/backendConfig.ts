@@ -4,3 +4,4 @@ export const backendActivityWrites =
   process.env.IKUYO_BACKEND_ACTIVITY_WRITES === true;
 export const backendContentWrites =
   process.env.IKUYO_BACKEND_CONTENT_WRITES === true;
+export const backendTaskWrites = process.env.IKUYO_BACKEND_TASK_WRITES === true;

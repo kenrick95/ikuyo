@@ -18,6 +18,11 @@ class TaskList extends Model
     protected $keyType = 'string';
     public $timestamps = false;
 
+    public function trip(): BelongsTo
+    {
+        return $this->belongsTo(Trip::class);
+    }
+
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);

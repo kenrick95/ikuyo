@@ -1,4 +1,6 @@
 import { id } from '@instantdb/core';
+import { deleteMutation, postMutation } from '../data/apiClient';
+import { backendTaskWrites } from '../data/backendConfig';
 import { db } from '../data/db';
 export type DbTask = {
   id: string;
@@ -24,6 +26,13 @@ export async function dbAddTaskList(
   newTaskList: Omit<DbTaskList, 'id' | 'createdAt' | 'lastUpdatedAt' | 'task'>,
   { tripId }: { tripId: string },
 ) {
+  if (backendTaskWrites) {
+    const result = await postMutation<{ id: string }>(
+      `/api/trips/${encodeURIComponent(tripId)}/task-lists`,
+      newTaskList,
+    );
+    return { id: result.id, result };
+  }
   const newId = id();
   return {
     id: newId,
@@ -51,6 +60,8 @@ export async function dbUpdateTaskList(
   );
 }
 export async function dbDeleteTaskList(taskListId: string) {
+  if (backendTaskWrites)
+    return deleteMutation(`/api/task-lists/${encodeURIComponent(taskListId)}`);
   const tasks = await db.queryOnce({
     task: {
       $: {
@@ -101,6 +112,13 @@ export async function dbAddTask(
   newTask: Omit<DbTask, 'id' | 'createdAt' | 'lastUpdatedAt'>,
   { taskListId }: { taskListId: string },
 ) {
+  if (backendTaskWrites) {
+    const result = await postMutation<{ id: string }>(
+      `/api/task-lists/${encodeURIComponent(taskListId)}/tasks`,
+      newTask,
+    );
+    return { id: result.id, result };
+  }
   const newId = id();
   return {
     id: newId,
@@ -128,6 +146,8 @@ export async function dbUpdateTask(
   );
 }
 export async function dbDeleteTask(taskId: string, taskListId: string) {
+  if (backendTaskWrites)
+    return deleteMutation(`/api/tasks/${encodeURIComponent(taskId)}`);
   const commentGroups = await db.queryOnce({
     commentGroup: {
       comment: { $: { fields: ['id'] } },
