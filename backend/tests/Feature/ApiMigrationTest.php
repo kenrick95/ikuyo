@@ -88,6 +88,23 @@ class ApiMigrationTest extends TestCase
             ->assertJsonPath('changes.0.entity', 'trips');
     }
 
+    public function test_metadata_endpoint_exposes_only_public_trip_metadata(): void
+    {
+        $public = Trip::create([
+            'id' => (string) Str::uuid(), 'title' => 'Public metadata', 'region' => 'JP', 'currency' => 'JPY',
+            'timezone' => 'Asia/Tokyo', 'timestamp_start_ms' => 1, 'timestamp_end_ms' => 2,
+            'sharing_level' => 2,
+        ]);
+        $private = Trip::create([
+            'id' => (string) Str::uuid(), 'title' => 'Private metadata', 'region' => 'JP', 'currency' => 'JPY',
+            'timezone' => 'Asia/Tokyo', 'timestamp_start_ms' => 1, 'timestamp_end_ms' => 2,
+            'sharing_level' => 0,
+        ]);
+
+        $this->getJson('/api/metadata/trips/' . $public->id)->assertOk()->assertJsonPath('title', 'Public metadata');
+        $this->getJson('/api/metadata/trips/' . $private->id)->assertNotFound();
+    }
+
     public function test_viewer_cannot_modify_a_trip(): void
     {
         $owner = $this->user();
