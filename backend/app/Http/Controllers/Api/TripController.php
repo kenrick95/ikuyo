@@ -61,7 +61,11 @@ class TripController extends Controller
             'activityCount' => $trip->activities_count,
         ]);
 
-        return response()->json($trips);
+        return response()->json([
+            'data' => $trips->items(),
+            'nextCursor' => $trips->nextCursor()?->encode(),
+            'hasMore' => $trips->hasMorePages(),
+        ]);
     }
 
     public function store(Request $request): JsonResponse

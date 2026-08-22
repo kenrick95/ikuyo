@@ -1,9 +1,20 @@
 import type { StateCreator } from 'zustand';
-import { db } from '../data/db';
+import { type CursorPage, get } from '../data/apiClient';
 import type { BoundStoreType } from '../data/store';
-import { TripSharingLevel } from '../Trip/tripSharingLevel';
 
 export type TripsPublicSliceTrip = {
+  id: string;
+  title: string;
+  timestampStart: number;
+  timestampEnd: number;
+  timeZone: string;
+  createdAt: number;
+  lastUpdatedAt: number;
+  ownerHandle: string | null;
+  activityCount: number;
+};
+
+type ApiPublicTrip = {
   id: string;
   title: string;
   timestampStart: number;
@@ -32,7 +43,7 @@ export const createTripsPublicSlice: StateCreator<
   [],
   [],
   TripsPublicSlice
-> = (set, get) => {
+> = (set, getState) => {
   return {
     tripsPublic: [],
     tripsPublicLoading: true,
@@ -41,70 +52,63 @@ export const createTripsPublicSlice: StateCreator<
     tripsPublicLoadMore: undefined,
     tripsPublicLoadingMore: null,
     subscribeTripsPublic: () => {
-      const query = db.subscribeInfiniteQuery(
-        {
-          trip: {
-            $: {
-              limit: PAGE_SIZE,
-              order: {
-                serverCreatedAt: 'desc',
-              },
-              where: {
-                sharingLevel: TripSharingLevel.PublicListed,
-                'activity.id': { $isNull: false },
-              },
-            },
-            tripUser: {
-              $: { where: { role: 'owner' } },
-              user: {},
-            },
-            activity: {},
-          },
-        },
-        ({ data, error, canLoadNextPage }) => {
-          if (error) {
-            console.error('subscribeTripsPublic error', error);
-            set(() => ({
-              tripsPublicLoading: false,
-              tripsPublicError: error.message,
-              tripsPublicHasMore: null,
-              tripsPublicLoadingMore: null,
-            }));
-            return;
-          }
-          const trips = (data?.trip ?? []).map((trip) => ({
-            id: trip.id,
-            title: trip.title,
-            timestampStart: trip.timestampStart,
-            timestampEnd: trip.timestampEnd,
-            timeZone: trip.timeZone,
-            createdAt: trip.createdAt,
-            lastUpdatedAt: trip.lastUpdatedAt,
-            ownerHandle: trip.tripUser?.[0]?.user?.[0]?.handle ?? null,
-            activityCount: trip.activity?.length ?? 0,
-          }));
-          set(() => ({
-            tripsPublic: trips,
-            tripsPublicLoading: false,
-            tripsPublicHasMore: canLoadNextPage ?? null,
-            tripsPublicLoadingMore: false,
-          }));
-        },
-      );
+      let disposed = false;
+      let nextCursor: string | null = null;
 
+      const load = async (append: boolean): Promise<void> => {
+        if (disposed) return;
+        set(() => ({
+          ...(append
+            ? { tripsPublicLoadingMore: true }
+            : { tripsPublicLoading: true, tripsPublicError: null }),
+        }));
+        try {
+          const query = new URLSearchParams({ limit: String(PAGE_SIZE) });
+          if (nextCursor) query.set('cursor', nextCursor);
+          const page = await get<
+            | CursorPage<ApiPublicTrip>
+            | { data: ApiPublicTrip[]; next_page_url?: string | null }
+          >(`/api/trips/public?${query.toString()}`);
+          if (disposed) return;
+          const rows = page.data.map((trip) => ({ ...trip }));
+          const hasMore =
+            'hasMore' in page ? page.hasMore : Boolean(page.next_page_url);
+          nextCursor = 'nextCursor' in page ? page.nextCursor : null;
+          set((state) => ({
+            tripsPublic: append ? [...state.tripsPublic, ...rows] : rows,
+            tripsPublicLoading: false,
+            tripsPublicLoadingMore: false,
+            tripsPublicHasMore: hasMore,
+          }));
+        } catch (error) {
+          if (disposed) return;
+          set(() => ({
+            tripsPublicLoading: false,
+            tripsPublicLoadingMore: false,
+            tripsPublicHasMore: null,
+            tripsPublicError:
+              error instanceof Error
+                ? error.message
+                : 'Unable to load public trips',
+          }));
+        }
+      };
+
+      void load(false);
       set(() => ({
         tripsPublicLoadMore: () => {
-          const tripsPublicHasMore = get().tripsPublicHasMore;
-          if (!tripsPublicHasMore) return; // No more pages to load
-          const tripsPublicLoadingMore = get().tripsPublicLoadingMore;
-          if (tripsPublicLoadingMore) return; // Prevent multiple simultaneous loadMore
-          set(() => ({ tripsPublicLoadingMore: true }));
-          query.loadNextPage();
+          if (
+            getState().tripsPublicLoadingMore ||
+            !getState().tripsPublicHasMore
+          )
+            return;
+          void load(true);
         },
       }));
 
       return () => {
-        query.unsubscribe();
+        disposed = true;
+        set(() => ({ tripsPublicLoadMore: undefined }));
       };
     },
   };
