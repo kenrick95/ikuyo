@@ -15,7 +15,7 @@ Route::middleware('web')->get('/csrf-token', fn () => response()->json([
     'token' => csrf_token(),
 ]));
 
-Route::middleware('web')->prefix('auth')->group(function (): void {
+Route::middleware(['web', 'throttle:60,1'])->prefix('auth')->group(function (): void {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/guest', [AuthController::class, 'guest']);
@@ -27,8 +27,8 @@ Route::middleware('web')->prefix('auth')->group(function (): void {
 
 Route::middleware('web')->group(function (): void {
     Route::get('/trips/public', [TripController::class, 'publicIndex']);
-    Route::get('/metadata/trips/{trip}', [MetadataController::class, 'trip']);
-    Route::get('/sync', SyncController::class)->middleware('auth');
+    Route::get('/metadata/trips/{trip}', [MetadataController::class, 'trip'])->middleware('throttle:120,1');
+    Route::get('/sync', SyncController::class)->middleware(['auth', 'throttle:120,1']);
     Route::get('/trips', [TripController::class, 'index'])->middleware('auth');
     Route::get('/trips/{trip}', [TripController::class, 'show'])
         ->middleware('trip.access:view');
