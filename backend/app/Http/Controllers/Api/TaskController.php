@@ -97,6 +97,26 @@ class TaskController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    public function destroyById(Request $request, Task $task): JsonResponse
+    {
+        abort_unless($request->user(), 401);
+        $task->load('taskList.trip');
+        $access = app(\App\Services\TripAccessService::class);
+        abort_unless($access->canEdit($task->taskList->trip, $request->user()), 403);
+        $task->delete();
+        return response()->json(['ok' => true]);
+    }
+
+    public function destroyListById(Request $request, TaskList $taskList): JsonResponse
+    {
+        abort_unless($request->user(), 401);
+        $taskList->load('trip');
+        $access = app(\App\Services\TripAccessService::class);
+        abort_unless($access->canEdit($taskList->trip, $request->user()), 403);
+        $taskList->delete();
+        return response()->json(['ok' => true]);
+    }
+
     public function reorderTasks(Request $request, Trip $trip): JsonResponse
     {
         $items = $request->validate(['tasks' => ['required', 'array'], 'tasks.*.id' => ['required', 'string'], 'tasks.*.index' => ['required', 'integer', 'min:0']])['tasks'];
@@ -115,6 +135,17 @@ class TaskController extends Controller
             TaskList::whereKey($item['id'])->where('trip_id', $trip->id)->update(['index' => $item['index'], 'updated_at_ms' => nowMs()]);
         }
         return response()->json(['ok' => true]);
+    }
+
+    public function updateById(Request $request, Task $task): JsonResponse
+    {
+        abort_unless($request->user(), 401);
+        $task->load('taskList.trip');
+        $access = app(\App\Services\TripAccessService::class);
+        abort_unless($access->canEdit($task->taskList->trip, $request->user()), 403);
+        $data = $request->validate(['title' => ['sometimes', 'string', 'max:255'], 'description' => ['nullable', 'string'], 'index' => ['sometimes', 'integer', 'min:0'], 'status' => ['sometimes', 'integer'], 'dueAt' => ['nullable', 'integer'], 'completedAt' => ['nullable', 'integer']]);
+        $task->update(['title' => $data['title'] ?? $task->title, 'description' => $data['description'] ?? $task->description, 'index' => $data['index'] ?? $task->index, 'status' => $data['status'] ?? $task->status, 'due_at_ms' => $data['dueAt'] ?? $task->due_at_ms, 'completed_at_ms' => $data['completedAt'] ?? $task->completed_at_ms]);
+        return response()->json($task->fresh());
     }
 
     public function moveTask(Request $request, Trip $trip, string $task): JsonResponse

@@ -71,6 +71,13 @@ Route::middleware('web')->group(function (): void {
     Route::post('/trips/{trip}/activities/{activity}/duplicate', [ContentController::class, 'activityDuplicate'])
         ->middleware(['auth', 'trip.access:edit']);
 
+    Route::put('/tasks/{task}', [TaskController::class, 'updateById'])
+        ->middleware('auth');
+    Route::delete('/tasks/{task}', [TaskController::class, 'destroyById'])
+        ->middleware('auth');
+    Route::delete('/task-lists/{taskList}', [TaskController::class, 'destroyListById'])
+        ->middleware('auth');
+
     Route::post('/trips/{trip}/task-lists', [TaskController::class, 'storeList'])
         ->middleware(['auth', 'trip.access:edit']);
     Route::put('/trips/{trip}/task-lists/{taskList}', [TaskController::class, 'updateList'])
