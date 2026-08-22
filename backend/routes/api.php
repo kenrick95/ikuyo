@@ -73,6 +73,10 @@ Route::middleware('web')->group(function (): void {
 
     Route::put('/task-lists/{taskList}', [TaskController::class, 'updateListById'])
         ->middleware('auth');
+    Route::patch('/tasks/{task}/index', [TaskController::class, 'reorderById'])
+        ->middleware('auth');
+    Route::post('/tasks/{task}/move', [TaskController::class, 'moveById'])
+        ->middleware('auth');
     Route::put('/tasks/{task}', [TaskController::class, 'updateById'])
         ->middleware('auth');
     Route::delete('/tasks/{task}', [TaskController::class, 'destroyById'])

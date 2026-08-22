@@ -148,6 +148,29 @@ class TaskController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    public function reorderById(Request $request, Task $task): JsonResponse
+    {
+        abort_unless($request->user(), 401);
+        $task->load('taskList.trip');
+        $access = app(\App\Services\TripAccessService::class);
+        abort_unless($access->canEdit($task->taskList->trip, $request->user()), 403);
+        $data = $request->validate(['index' => ['required', 'integer', 'min:0']]);
+        $task->update(['index' => $data['index']]);
+        return response()->json($task->fresh());
+    }
+
+    public function moveById(Request $request, Task $task): JsonResponse
+    {
+        abort_unless($request->user(), 401);
+        $task->load('taskList.trip');
+        $access = app(\App\Services\TripAccessService::class);
+        abort_unless($access->canEdit($task->taskList->trip, $request->user()), 403);
+        $data = $request->validate(['toTaskListId' => ['required', 'string'], 'newIndex' => ['required', 'integer', 'min:0']]);
+        $target = $task->taskList->trip->taskLists()->whereKey($data['toTaskListId'])->firstOrFail();
+        $task->update(['task_list_id' => $target->id, 'index' => $data['newIndex']]);
+        return response()->json($task->fresh());
+    }
+
     public function updateById(Request $request, Task $task): JsonResponse
     {
         abort_unless($request->user(), 401);

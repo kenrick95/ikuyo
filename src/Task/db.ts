@@ -1,5 +1,10 @@
 import { id } from '@instantdb/core';
-import { deleteMutation, postMutation, putMutation } from '../data/apiClient';
+import {
+  deleteMutation,
+  patchMutation,
+  postMutation,
+  putMutation,
+} from '../data/apiClient';
 import { backendTaskWrites } from '../data/backendConfig';
 import { db } from '../data/db';
 export type DbTask = {
@@ -194,6 +199,15 @@ export async function dbDeleteTask(taskId: string, taskListId: string) {
 export async function dbUpdateTaskIndexes(
   tasks: Array<{ id: string; index: number }>,
 ) {
+  if (backendTaskWrites) {
+    return Promise.all(
+      tasks.map((task) =>
+        patchMutation(`/api/tasks/${encodeURIComponent(task.id)}/index`, {
+          index: task.index,
+        }),
+      ),
+    );
+  }
   const transactions = tasks.map((task) =>
     db.tx.task[task.id].merge({
       index: task.index,
@@ -209,6 +223,12 @@ export async function dbMoveTaskToTaskList(
   newTaskListId: string,
   newIndex: number,
 ) {
+  if (backendTaskWrites) {
+    return postMutation(`/api/tasks/${encodeURIComponent(taskId)}/move`, {
+      toTaskListId: newTaskListId,
+      newIndex,
+    });
+  }
   return db.transact([
     db.tx.taskList[currentTaskListId].unlink({ task: taskId }),
     db.tx.task[taskId]
