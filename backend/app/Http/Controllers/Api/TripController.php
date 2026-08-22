@@ -35,7 +35,19 @@ class TripController extends Controller
         $trips = $query->orderBy('timestamp_end_ms', 'desc')
             ->cursorPaginate(min($request->integer('limit', 50), 100));
 
-        return response()->json($trips);
+        return response()->json([
+            'data' => collect($trips->items())->map(fn (Trip $trip): array => [
+                'id' => $trip->id,
+                'title' => $trip->title,
+                'timestampStart' => $trip->timestamp_start_ms,
+                'timestampEnd' => $trip->timestamp_end_ms,
+                'timeZone' => $trip->timezone,
+                'createdAt' => $trip->created_at_ms,
+                'lastUpdatedAt' => $trip->updated_at_ms,
+            ])->values(),
+            'nextCursor' => $trips->nextCursor()?->encode(),
+            'hasMore' => $trips->hasMorePages(),
+        ]);
     }
 
     public function publicIndex(Request $request): JsonResponse
