@@ -122,6 +122,10 @@ Route::middleware('web')->group(function (): void {
         ->middleware(['auth', 'trip.access:manage']);
     Route::patch('/trips/{trip}/members/{member}', [UserController::class, 'updateMember'])
         ->middleware(['auth', 'trip.access:manage']);
+    Route::post('/trips/{trip}/members/update', [UserController::class, 'updateMemberByEmail'])
+        ->middleware(['auth', 'trip.access:manage']);
+    Route::delete('/members/{member}', [UserController::class, 'removeMemberById'])
+        ->middleware('auth');
     Route::delete('/trips/{trip}/members/{member}', [UserController::class, 'removeMember'])
         ->middleware(['auth', 'trip.access:manage']);
 });

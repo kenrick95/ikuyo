@@ -6,7 +6,7 @@ import type {
 } from '../Accommodation/db';
 import type { DbActivity, DbActivityWithTrip } from '../Activity/db';
 import type { DbCommentGroup, DbCommentGroupObjectType } from '../Comment/db';
-import { patchMutation } from '../data/apiClient';
+import { deleteMutation, patchMutation, postMutation } from '../data/apiClient';
 import { backendSharingWrites } from '../data/backendConfig';
 import { db } from '../data/db';
 import type { DbUser } from '../data/types';
@@ -522,6 +522,12 @@ export async function dbAddUserToTrip({
   userEmail: string;
   userRole: TripUserRole;
 }) {
+  if (backendSharingWrites) {
+    return postMutation(`/api/trips/${encodeURIComponent(tripId)}/members`, {
+      email: userEmail,
+      role: roleNumber(userRole),
+    });
+  }
   const lastUpdatedAt = Date.now();
   // biome-ignore lint/suspicious/noExplicitAny: The type should be generic
   const transactions: TransactionChunk<any, any>[] = [];
@@ -608,6 +614,12 @@ export async function dbUpdateUserFromTrip({
   previousUserRole: TripUserRole;
   userRole: TripUserRole;
 }) {
+  if (backendSharingWrites) {
+    return postMutation(
+      `/api/trips/${encodeURIComponent(tripId)}/members/update`,
+      { email: userEmail, role: roleNumber(userRole) },
+    );
+  }
   const lastUpdatedAt = Date.now();
   // biome-ignore lint/suspicious/noExplicitAny: The type should be generic
   const transactions: TransactionChunk<any, any>[] = [];
@@ -656,7 +668,13 @@ export async function dbUpdateUserFromTrip({
   return db.transact(transactions);
 }
 export async function dbRemoveUserFromTrip(tripUserId: string) {
+  if (backendSharingWrites)
+    return deleteMutation(`/api/members/${encodeURIComponent(tripUserId)}`);
   return db.transact([db.tx.tripUser[tripUserId].delete()]);
+}
+
+function roleNumber(role: TripUserRole): number {
+  return role === TripUserRole.Owner ? 0 : role === TripUserRole.Editor ? 1 : 2;
 }
 export async function dbUpdateTripSectionVisibility(
   tripId: string,

@@ -90,6 +90,24 @@ class UserController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    public function updateMemberByEmail(Request $request, Trip $trip): JsonResponse
+    {
+        $data = $request->validate(['email' => ['required', 'email'], 'role' => ['required', 'integer', 'in:1,2']]);
+        $member = $trip->users()->where('email', $data['email'])->firstOrFail();
+        $trip->users()->updateExistingPivot($member->id, ['role' => $data['role'], 'updated_at_ms' => nowMs()]);
+        return response()->json(['ok' => true]);
+    }
+
+    public function removeMemberById(Request $request, string $member): JsonResponse
+    {
+        abort_unless($request->user(), 401);
+        $membership = \App\Models\TripUser::with('trip')->whereKey($member)->firstOrFail();
+        $access = app(\App\Services\TripAccessService::class);
+        abort_unless($access->canManage($membership->trip, $request->user()), 403);
+        $membership->delete();
+        return response()->json(['ok' => true]);
+    }
+
     public function removeMember(Trip $trip, string $member): JsonResponse
     {
         $trip->users()->detach($member);
