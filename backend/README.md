@@ -81,4 +81,8 @@ errors on `/api/*` render as JSON (`bootstrap/app.php` → `shouldRenderJsonWhen
   migration (see `docs/migration/php-mysql-migration.md`).
 - MySQL config — it uses SQLite now so it runs with zero setup. To switch, edit
   `.env` `DB_CONNECTION=mysql` + credentials; the schema is driver-agnostic.
+- **Composer is the only dependency step.** The default `package.json`/Vite/Tailwind
+  scaffold was removed because this is a JSON-only API with no Blade views to
+  compile — `npm install`/`npm run build` are never needed. Visiting `/` returns a
+  small JSON hello instead of the Vite-backed welcome page.
 - WebSockets/SSE — not needed (no realtime).
