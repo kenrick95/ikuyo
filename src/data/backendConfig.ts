@@ -2,3 +2,5 @@
 export const backendAuthEnabled = process.env.IKUYO_BACKEND_AUTH === true;
 export const backendActivityWrites =
   process.env.IKUYO_BACKEND_ACTIVITY_WRITES === true;
+export const backendContentWrites =
+  process.env.IKUYO_BACKEND_CONTENT_WRITES === true;

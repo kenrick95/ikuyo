@@ -1,4 +1,6 @@
 import { id } from '@instantdb/core';
+import { deleteMutation, postMutation, putMutation } from '../data/apiClient';
+import { backendContentWrites } from '../data/backendConfig';
 import { db } from '../data/db';
 import type { DbTrip, DbTripWithAccommodation } from '../Trip/db';
 
@@ -44,6 +46,18 @@ export async function dbAddAccommodation(
     tripId: string;
   },
 ) {
+  if (backendContentWrites) {
+    const result = await postMutation<{ id: string }>(
+      `/api/trips/${encodeURIComponent(tripId)}/accommodations`,
+      newAccommodation,
+    );
+    return {
+      id: result.id,
+      transaction: result,
+      undo: async () =>
+        deleteMutation(`/api/accommodations/${encodeURIComponent(result.id)}`),
+    };
+  }
   const newAccommodationId = id();
   const transaction = await db.transact([
     db.tx.accommodation[newAccommodationId]
@@ -70,6 +84,13 @@ export async function dbAddAccommodation(
 export async function dbUpdateAccommodation(
   accommodation: Omit<DbAccommodation, 'createdAt' | 'lastUpdatedAt' | 'trip'>,
 ) {
+  if (backendContentWrites) {
+    const result = await putMutation<DbAccommodation>(
+      `/api/accommodations/${encodeURIComponent(accommodation.id)}`,
+      accommodation,
+    );
+    return { transaction: result, undo: async () => undefined };
+  }
   const snapshot = await db.queryOnce({
     accommodation: {
       $: {
@@ -97,6 +118,10 @@ export async function dbUpdateAccommodation(
 }
 
 export async function dbDeleteAccommodation(accommodationId: string) {
+  if (backendContentWrites)
+    return deleteMutation(
+      `/api/accommodations/${encodeURIComponent(accommodationId)}`,
+    );
   const commentGroups = await db.queryOnce({
     commentGroup: {
       comment: { $: { fields: ['id'] } },

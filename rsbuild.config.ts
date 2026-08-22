@@ -88,6 +88,9 @@ export default defineConfig({
       'process.env.IKUYO_BACKEND_AUTH': JSON.stringify(
         process.env.IKUYO_BACKEND_AUTH === 'true',
       ),
+      'process.env.IKUYO_BACKEND_CONTENT_WRITES': JSON.stringify(
+        process.env.IKUYO_BACKEND_CONTENT_WRITES === 'true',
+      ),
       'process.env.IKUYO_BACKEND_ACTIVITY_WRITES': JSON.stringify(
         process.env.IKUYO_BACKEND_ACTIVITY_WRITES === 'true',
       ),
