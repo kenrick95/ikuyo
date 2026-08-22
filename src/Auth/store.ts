@@ -1,6 +1,8 @@
 import type { User as InstantdbUser } from '@instantdb/core';
 import { setUser } from '@sentry/react';
 import type { StateCreator } from 'zustand';
+import { get as apiGet } from '../data/apiClient';
+import { backendAuthEnabled } from '../data/backendConfig';
 import { db } from '../data/db';
 import type { BoundStoreType } from '../data/store';
 import { type DbUser, dbCreateUser, dbUpdateUser } from '../User/db';
@@ -31,6 +33,37 @@ export const createUserSlice: StateCreator<
 
     currentUser: undefined,
     subscribeUser: () => {
+      if (backendAuthEnabled) {
+        let disposed = false;
+        void apiGet<{ user: DbUser | null }>('/api/auth/me')
+          .then(({ user }) => {
+            if (disposed) return;
+            set(() => ({
+              authUser: user
+                ? ({ id: user.id, email: user.email ?? null } as InstantdbUser)
+                : undefined,
+              currentUser: user ?? undefined,
+              authUserLoading: false,
+              authUserError: null,
+            }));
+          })
+          .catch((error: unknown) => {
+            if (disposed) return;
+            set(() => ({
+              authUser: undefined,
+              currentUser: undefined,
+              authUserLoading: false,
+              authUserError:
+                error instanceof Error
+                  ? error.message
+                  : 'Unable to load session',
+            }));
+          });
+        return () => {
+          disposed = true;
+        };
+      }
+
       let userUnsubscribe: (() => void) | null = null;
 
       const authUnsubscribe = db.subscribeAuth(async (authResult) => {

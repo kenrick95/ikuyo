@@ -82,6 +82,12 @@ export default defineConfig({
     },
     define: {
       'process.env.INSTANT_APP_ID': JSON.stringify(INSTANT_APP_ID),
+      'process.env.IKUYO_API_URL': JSON.stringify(
+        process.env.IKUYO_API_URL || '',
+      ),
+      'process.env.IKUYO_BACKEND_AUTH': JSON.stringify(
+        process.env.IKUYO_BACKEND_AUTH === 'true',
+      ),
       'process.env.INSTANT_API_URI': JSON.stringify(INSTANT_API_URI || ''),
       'process.env.INSTANT_WEBSOCKET_URI': JSON.stringify(
         INSTANT_WEBSOCKET_URI || '',
