@@ -13,7 +13,8 @@ class ImportInstantBackup extends Command
     protected $signature = 'instant:import
         {backup : Path to an Instant backup ZIP or extracted directory}
         {--dry-run : Parse and report counts without writing}
-        {--truncate : Empty application tables before importing}';
+        {--truncate : Empty application tables before importing}
+        {--json : Print parsed entity counts as JSON}';
 
     protected $description = 'Import an InstantDB backup JSONL export into MySQL';
 
@@ -49,6 +50,9 @@ class ImportInstantBackup extends Command
         }
 
         $this->table(['entity', 'rows'], collect($counts)->map(fn ($count, $entity) => [$entity, $count])->values()->all());
+        if ($this->option('json')) {
+            $this->line(json_encode(['counts' => $counts], JSON_THROW_ON_ERROR));
+        }
 
         if ($this->option('dry-run')) {
             $this->info('Dry run complete; no rows written.');
