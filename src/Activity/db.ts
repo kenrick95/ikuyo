@@ -1,5 +1,7 @@
 import { id } from '@instantdb/core';
 import type { DbCommentGroup } from '../Comment/db';
+import { deleteMutation, postMutation } from '../data/apiClient';
+import { backendActivityWrites } from '../data/backendConfig';
 import { db } from '../data/db';
 import type { DbTrip, DbTripWithActivity } from '../Trip/db';
 import { ActivityFlag, updateActivityFlag } from './activityFlag';
@@ -63,6 +65,21 @@ export async function dbAddActivity(
     tripId: string;
   },
 ) {
+  if (backendActivityWrites) {
+    const result = await postMutation<{ id: string }>(
+      `/api/trips/${encodeURIComponent(tripId)}/activities`,
+      newActivity,
+    );
+    return {
+      transaction: result,
+      id: result.id,
+      undo: async () =>
+        deleteMutation(
+          `/api/trips/${encodeURIComponent(tripId)}/activities/${encodeURIComponent(result.id)}`,
+        ),
+    };
+  }
+
   const newId = id();
   const transaction = await db.transact(
     db.tx.activity[newId]
