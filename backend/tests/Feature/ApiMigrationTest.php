@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Trip;
 use App\Models\User;
+use App\Mail\PasswordResetMail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -21,6 +23,20 @@ class ApiMigrationTest extends TestCase
             'password_hash' => password_hash('secret-password', PASSWORD_DEFAULT),
             'activated' => true,
         ], $overrides));
+    }
+
+    public function test_forgot_password_queues_a_reset_mail_without_enumeration(): void
+    {
+        Mail::fake();
+        $user = $this->user(['email' => 'reset@example.com']);
+
+        $this->postJson('/api/auth/forgot', ['email' => $user->email])
+            ->assertOk()->assertJson(['ok' => true]);
+        Mail::assertQueued(PasswordResetMail::class, fn (PasswordResetMail $mail): bool => $mail->user->is($user));
+
+        $this->postJson('/api/auth/forgot', ['email' => 'missing@example.com'])
+            ->assertOk()->assertJson(['ok' => true]);
+        Mail::assertQueuedCount(1);
     }
 
     public function test_authenticated_user_can_create_a_trip(): void

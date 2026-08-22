@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\PasswordResetMail;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -92,11 +93,11 @@ class AuthController extends Controller
                 'reset_token' => hash('sha256', $rawToken),
                 'reset_token_at' => now()->addHour()->getTimestampMs(),
             ])->save();
-            // Replace this log with a Laravel Notification/Mailable in production.
-            logger()->info('Password reset link generated', [
-                'user_id' => $user->id,
-                'reset_token' => $rawToken,
-            ]);
+            $frontendUrl = rtrim((string) config('app.url'), '/');
+            Mail::to($user->email)->queue(new PasswordResetMail(
+                $user,
+                $frontendUrl . '/login?reset_token=' . urlencode($rawToken),
+            ));
         }
 
         // Deliberately identical for existing and unknown email addresses.
