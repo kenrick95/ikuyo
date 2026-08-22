@@ -13,7 +13,6 @@ import type React from 'react';
 import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { type RouteComponentProps, useLocation } from 'wouter';
 import { CommonDialogMaxWidth } from '../Dialog/ui';
-import { post } from '../data/apiClient';
 import { backendAuthEnabled } from '../data/backendConfig';
 import { db } from '../data/db';
 import { useBoundStore } from '../data/store';
@@ -22,6 +21,7 @@ import { DocTitle } from '../Nav/DocTitle';
 import { pageTitle } from '../Nav/pageMeta';
 import { RouteLogin, RouteTrips } from '../Routes/routes';
 import s from './Auth.module.css';
+import { BackendLogin } from './BackendLogin';
 import { useAuthUser, useCurrentUser } from './hooks';
 
 export default PageLogin;
@@ -88,6 +88,8 @@ export function PageLogin(_props: RouteComponentProps) {
   );
 }
 
+/* The backend auth UI lives in BackendLogin.tsx. */
+/*
 function BackendLogin() {
   const publishToast = useBoundStore((state) => state.publishToast);
   const [mode, setMode] = useState<'login' | 'guest'>('login');
@@ -164,6 +166,9 @@ function BackendLogin() {
     </form>
   );
 }
+
+}
+*/
 
 function LoginViaGoogle({
   setScreen,
