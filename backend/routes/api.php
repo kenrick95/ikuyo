@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ContentController;
+use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TripController;
 use Illuminate\Support\Facades\Route;
 
@@ -45,5 +46,24 @@ Route::middleware('web')->group(function (): void {
         ->middleware(['auth', 'trip.access:edit']);
     Route::delete('/trips/{trip}/{entity}/{entityId}', [ContentController::class, 'destroy'])
         ->whereIn('entity', ['activities', 'accommodations', 'macroplans', 'expenses'])
+        ->middleware(['auth', 'trip.access:edit']);
+
+    Route::post('/trips/{trip}/task-lists', [TaskController::class, 'storeList'])
+        ->middleware(['auth', 'trip.access:edit']);
+    Route::put('/trips/{trip}/task-lists/{taskList}', [TaskController::class, 'updateList'])
+        ->middleware(['auth', 'trip.access:edit']);
+    Route::delete('/trips/{trip}/task-lists/{taskList}', [TaskController::class, 'destroyList'])
+        ->middleware(['auth', 'trip.access:edit']);
+    Route::post('/trips/{trip}/task-lists/{taskList}/tasks', [TaskController::class, 'storeTask'])
+        ->middleware(['auth', 'trip.access:edit']);
+    Route::put('/trips/{trip}/task-lists/{taskList}/tasks/{task}', [TaskController::class, 'updateTask'])
+        ->middleware(['auth', 'trip.access:edit']);
+    Route::delete('/trips/{trip}/task-lists/{taskList}/tasks/{task}', [TaskController::class, 'destroyTask'])
+        ->middleware(['auth', 'trip.access:edit']);
+    Route::patch('/trips/{trip}/tasks/reorder', [TaskController::class, 'reorderTasks'])
+        ->middleware(['auth', 'trip.access:edit']);
+    Route::patch('/trips/{trip}/task-lists/reorder', [TaskController::class, 'reorderLists'])
+        ->middleware(['auth', 'trip.access:edit']);
+    Route::post('/trips/{trip}/tasks/{task}/move', [TaskController::class, 'moveTask'])
         ->middleware(['auth', 'trip.access:edit']);
 });
