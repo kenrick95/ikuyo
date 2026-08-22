@@ -103,6 +103,16 @@ class ApiMigrationTest extends TestCase
         $this->actingAs($viewer)->putJson('/api/trips/' . $trip->id, ['title' => 'Nope'])->assertForbidden();
     }
 
+    public function test_public_section_visibility_hides_expenses_from_anonymous_users(): void
+    {
+        $trip = Trip::create([
+            'id' => (string) Str::uuid(), 'title' => 'Public expenses hidden', 'region' => 'JP', 'currency' => 'JPY',
+            'timezone' => 'Asia/Tokyo', 'timestamp_start_ms' => 1, 'timestamp_end_ms' => 2,
+            'sharing_level' => 2, 'public_show_expenses' => false,
+        ]);
+        $this->getJson('/api/trips/' . $trip->id)->assertOk()->assertJsonPath('expense', []);
+    }
+
     public function test_public_trip_is_visible_to_anonymous_user(): void
     {
         $trip = Trip::create([
