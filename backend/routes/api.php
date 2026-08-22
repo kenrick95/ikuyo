@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ContentController;
 use App\Http\Controllers\Api\CommentController;
+use App\Http\Controllers\Api\MetadataController;
 use App\Http\Controllers\Api\SyncController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\UserController;
@@ -26,6 +27,7 @@ Route::middleware('web')->prefix('auth')->group(function (): void {
 
 Route::middleware('web')->group(function (): void {
     Route::get('/trips/public', [TripController::class, 'publicIndex']);
+    Route::get('/metadata/trips/{trip}', [MetadataController::class, 'trip']);
     Route::get('/sync', SyncController::class)->middleware('auth');
     Route::get('/trips', [TripController::class, 'index'])->middleware('auth');
     Route::get('/trips/{trip}', [TripController::class, 'show'])
