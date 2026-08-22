@@ -206,7 +206,7 @@ export function TripTaskList() {
                 index,
               }));
 
-              await dbUpdateTaskListIndexes(taskListUpdates);
+              await dbUpdateTaskListIndexes(taskListUpdates, trip.id);
             }
           }
           return;
@@ -267,7 +267,7 @@ export function TripTaskList() {
                 index,
               }));
 
-              await dbUpdateTaskIndexes(taskUpdates);
+              await dbUpdateTaskIndexes(taskUpdates, trip.id);
             }
           } else {
             // Different lists - move to the position of the over task
@@ -299,7 +299,7 @@ export function TripTaskList() {
               }));
 
             if (updatesNeeded.length > 0) {
-              await dbUpdateTaskIndexes(updatesNeeded);
+              await dbUpdateTaskIndexes(updatesNeeded, trip.id);
             }
           }
         }

@@ -198,14 +198,12 @@ export async function dbDeleteTask(taskId: string, taskListId: string) {
 
 export async function dbUpdateTaskIndexes(
   tasks: Array<{ id: string; index: number }>,
+  tripId?: string,
 ) {
-  if (backendTaskWrites) {
-    return Promise.all(
-      tasks.map((task) =>
-        patchMutation(`/api/tasks/${encodeURIComponent(task.id)}/index`, {
-          index: task.index,
-        }),
-      ),
+  if (backendTaskWrites && tripId) {
+    return patchMutation(
+      `/api/trips/${encodeURIComponent(tripId)}/tasks/reorder`,
+      { tasks },
     );
   }
   const transactions = tasks.map((task) =>
@@ -244,7 +242,14 @@ export async function dbMoveTaskToTaskList(
 
 export async function dbUpdateTaskListIndexes(
   taskLists: Array<{ id: string; index: number }>,
+  tripId?: string,
 ) {
+  if (backendTaskWrites && tripId) {
+    return patchMutation(
+      `/api/trips/${encodeURIComponent(tripId)}/task-lists/reorder`,
+      { taskLists },
+    );
+  }
   const transactions = taskLists.map((taskList) =>
     db.tx.taskList[taskList.id].merge({
       index: taskList.index,
