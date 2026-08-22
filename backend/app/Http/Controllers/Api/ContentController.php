@@ -11,6 +11,7 @@ use App\Models\Trip;
 use App\Services\TripAccessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ContentController extends Controller
@@ -30,6 +31,27 @@ class ContentController extends Controller
         return response()->json($activity->fresh());
     }
 
+    public function activityBatchUpdate(Request $request, Trip $trip, TripAccessService $access): JsonResponse
+    {
+        abort_unless($request->user() && $access->canEdit($trip, $request->user()), 403);
+        $updates = $request->validate([
+            'activities' => ['required', 'array', 'max:1000'],
+            'activities.*.id' => ['required', 'string'],
+            'activities.*.timestampStart' => ['nullable', 'integer'],
+            'activities.*.timestampEnd' => ['nullable', 'integer'],
+        ])['activities'];
+        DB::transaction(function () use ($trip, $updates): void {
+            foreach ($updates as $update) {
+                $activity = $trip->activities()->whereKey($update['id'])->firstOrFail();
+                $activity->update([
+                    'timestamp_start_ms' => $update['timestampStart'] ?? null,
+                    'timestamp_end_ms' => $update['timestampEnd'] ?? null,
+                ]);
+            }
+        });
+        return response()->json(['ok' => true, 'movedCount' => count($updates)]);
+    }
+
     public function byIdUpdate(Request $request, string $entity, string $entityId, TripAccessService $access): JsonResponse
     {
         $record = $this->recordById($entity, $entityId);
@@ -46,6 +68,7 @@ class ContentController extends Controller
         $record->delete();
         return response()->json(['ok' => true]);
     }
+
     private const MODELS = [
         'activities' => Activity::class,
         'accommodations' => Accommodation::class,
@@ -91,28 +114,6 @@ class ContentController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    public function activityDragEnd(Request $request, Trip $trip, string $activity): JsonResponse
-    {
-        $record = $trip->activities()->whereKey($activity)->firstOrFail();
-        $data = $request->validate(['timestampStart' => ['nullable', 'integer'], 'timestampEnd' => ['nullable', 'integer']]);
-        $record->update(['timestamp_start_ms' => $data['timestampStart'] ?? null, 'timestamp_end_ms' => $data['timestampEnd'] ?? null, 'flags' => ((int) $record->flags) & ~1]);
-        return response()->json($record->fresh());
-    }
-
-    public function activityDuplicate(Request $request, Trip $trip, string $activity): JsonResponse
-    {
-        $record = $trip->activities()->whereKey($activity)->firstOrFail();
-        $data = $request->validate(['timestampStart' => ['nullable', 'integer'], 'timestampEnd' => ['nullable', 'integer']]);
-        $copy = $record->replicate();
-        $copy->id = (string) Str::uuid();
-        $copy->trip_id = $trip->id;
-        $copy->timestamp_start_ms = $data['timestampStart'] ?? null;
-        $copy->timestamp_end_ms = $data['timestampEnd'] ?? null;
-        $copy->flags = ((int) $record->flags) & ~1;
-        $copy->save();
-        return response()->json(['id' => $copy->id], 201);
-    }
-
     private function mapFields(array $data): array
     {
         $map = [
@@ -133,12 +134,6 @@ class ContentController extends Controller
         return $data;
     }
 
-    private function recordById(string $entity, string $id): Activity|Accommodation|MacroPlan|Expense
-    {
-        $model = $this->model($entity);
-        return $model::with('trip')->whereKey($id)->firstOrFail();
-    }
-
     private function model(string $entity): string
     {
         abort_unless(isset(self::MODELS[$entity]), 404, 'Unknown content type.');
@@ -147,7 +142,12 @@ class ContentController extends Controller
 
     private function record(Trip $trip, string $entity, string $id): Activity|Accommodation|MacroPlan|Expense
     {
+        return $trip->{self::RELATIONS[$entity]}()->whereKey($id)->firstOrFail();
+    }
+
+    private function recordById(string $entity, string $id): Activity|Accommodation|MacroPlan|Expense
+    {
         $model = $this->model($entity);
-        return $trip->getRelationValue(self::RELATIONS[$entity])->whereKey($id)->firstOrFail();
+        return $model::with('trip')->whereKey($id)->firstOrFail();
     }
 }

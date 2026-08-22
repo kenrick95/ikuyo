@@ -57,6 +57,8 @@ Route::middleware('web')->group(function (): void {
     Route::get('/trips/{trip}/{entity}', [ContentController::class, 'index'])
         ->whereIn('entity', ['activities', 'accommodations', 'macroplans', 'expenses'])
         ->middleware('trip.access:view');
+    Route::patch('/trips/{trip}/activities/batch', [ContentController::class, 'activityBatchUpdate'])
+        ->middleware(['auth', 'trip.access:edit']);
     Route::post('/trips/{trip}/{entity}', [ContentController::class, 'store'])
         ->whereIn('entity', ['activities', 'accommodations', 'macroplans', 'expenses'])
         ->middleware(['auth', 'trip.access:edit']);
