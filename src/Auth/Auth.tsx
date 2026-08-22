@@ -13,6 +13,8 @@ import type React from 'react';
 import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { type RouteComponentProps, useLocation } from 'wouter';
 import { CommonDialogMaxWidth } from '../Dialog/ui';
+import { post } from '../data/apiClient';
+import { backendAuthEnabled } from '../data/backendConfig';
 import { db } from '../data/db';
 import { useBoundStore } from '../data/store';
 import imgUrl from '../logo/ikuyo.svg';
@@ -62,6 +64,8 @@ export function PageLogin(_props: RouteComponentProps) {
         <Box maxWidth={CommonDialogMaxWidth} mx="2" px="2">
           {authUserLoading ? (
             <Spinner m="3" />
+          ) : backendAuthEnabled ? (
+            <BackendLogin />
           ) : error ? (
             `Error: ${error}`
           ) : screen === AuthScreen.LoginSelection ? (
@@ -81,6 +85,83 @@ export function PageLogin(_props: RouteComponentProps) {
         </Box>
       </Grid>
     </>
+  );
+}
+
+function BackendLogin() {
+  const publishToast = useBoundStore((state) => state.publishToast);
+  const [mode, setMode] = useState<'login' | 'guest'>('login');
+  const [loading, setLoading] = useState(false);
+  const submit = useCallback(
+    async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      setLoading(true);
+      const form = new FormData(event.currentTarget);
+      try {
+        const path = mode === 'guest' ? '/api/auth/guest' : '/api/auth/login';
+        await post(
+          path,
+          mode === 'guest'
+            ? {}
+            : {
+                email: String(form.get('email') ?? '')
+                  .trim()
+                  .toLowerCase(),
+                password: String(form.get('password') ?? ''),
+              },
+        );
+        window.location.assign(RouteTrips.asRootRoute());
+      } catch (error) {
+        publishToast({
+          root: { duration: Number.POSITIVE_INFINITY },
+          title: { children: 'Unable to sign in' },
+          description: {
+            children: error instanceof Error ? error.message : 'Unknown error',
+          },
+          close: {},
+        });
+      } finally {
+        setLoading(false);
+      }
+    },
+    [mode, publishToast],
+  );
+
+  return (
+    <form onSubmit={submit}>
+      <Flex direction="column" gap="2">
+        <Heading>
+          <img src={imgUrl} className={s.logo} alt="Ikuyo!" /> Ikuyo!
+        </Heading>
+        {mode === 'login' && (
+          <>
+            <TextField.Root
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              required
+            />
+            <TextField.Root
+              name="password"
+              type="password"
+              placeholder="Password"
+              required
+              minLength={8}
+            />
+          </>
+        )}
+        <Button type="submit" loading={loading}>
+          {mode === 'guest' ? 'Continue as guest' : 'Log in'}
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => setMode(mode === 'login' ? 'guest' : 'login')}
+        >
+          {mode === 'login' ? 'Try as guest' : 'Log in with email'}
+        </Button>
+      </Flex>
+    </form>
   );
 }
 
