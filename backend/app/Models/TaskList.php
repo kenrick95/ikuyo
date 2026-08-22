@@ -8,9 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['trip_id', 'title', 'index', 'status', 'created_at_ms', 'updated_at_ms'])]
 class TaskList extends Model
 {
+    protected $guarded = [];
+
     use HasMsTimestamps;
 
     public $incrementing = false;

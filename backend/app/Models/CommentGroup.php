@@ -9,9 +9,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['trip_id', 'status', 'created_at_ms', 'updated_at_ms'])]
 class CommentGroup extends Model
 {
+    protected $guarded = [];
+
     use HasMsTimestamps;
 
     public $incrementing = false;

@@ -8,9 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['title', 'region', 'currency', 'origin_region', 'origin_currency', 'origin_timezone', 'timezone', 'timestamp_start_ms', 'timestamp_end_ms', 'sharing_level', 'public_show_expenses', 'public_show_tasks', 'public_show_comments', 'viewer_show_expenses', 'viewer_show_tasks', 'viewer_show_comments', 'created_at_ms', 'updated_at_ms'])]
 class Trip extends Model
 {
+    protected $guarded = [];
+
     use HasMsTimestamps;
 
     public $incrementing = false;
