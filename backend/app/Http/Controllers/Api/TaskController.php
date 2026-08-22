@@ -97,6 +97,17 @@ class TaskController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    public function updateListById(Request $request, TaskList $taskList): JsonResponse
+    {
+        abort_unless($request->user(), 401);
+        $taskList->load('trip');
+        $access = app(\App\Services\TripAccessService::class);
+        abort_unless($access->canEdit($taskList->trip, $request->user()), 403);
+        $data = $request->validate(['title' => ['sometimes', 'string', 'max:255'], 'index' => ['sometimes', 'integer', 'min:0'], 'status' => ['sometimes', 'integer']]);
+        $taskList->update($data);
+        return response()->json($taskList->fresh('tasks'));
+    }
+
     public function destroyById(Request $request, Task $task): JsonResponse
     {
         abort_unless($request->user(), 401);
