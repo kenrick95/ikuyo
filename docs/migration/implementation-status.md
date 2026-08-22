@@ -209,8 +209,9 @@ matrix should still exercise every role/resource combination:
 
 ### 3. Import validation against a real Instant backup
 
-The importer needs to be tested against an actual downloaded production backup. Before
-go-live it must handle and verify:
+The importer now supports `--dry-run --json --verify-config` and the synthetic complete
+entity graph is covered by regression tests. The remaining validation requires the
+actual downloaded production backup. Before go-live it must handle and verify:
 
 - `$users.jsonl` identity links.
 - `$files.jsonl` decision and any actual file blobs.
@@ -219,7 +220,7 @@ go-live it must handle and verify:
 - Existing duplicate handles/emails.
 - Date-string and numeric timestamp variants.
 - Polymorphic `commentGroupObject` links.
-- Real entity counts from `config.json`.
+- Real entity counts from `config.json` (the command now fails on mismatches).
 - Re-running imports safely and idempotently.
 - A staging MySQL import, not only SQLite.
 
@@ -315,7 +316,7 @@ InstantDB subscription path; when true, it uses the Laravel HTTP API.
 
 1. Add a real API contract/serializer layer and complete full-trip response tests.
 2. Finish authorization tests for every resource.
-3. Make the importer pass against a real backup and staging MySQL.
+3. Run the now-tested importer against a real backup and staging MySQL.
 4. Complete frontend auth/store read fallback and periodic refresh behavior.
 5. Repoint SEO metadata to Laravel/MySQL.
 6. Deploy Laravel + MySQL to shared-host staging.
