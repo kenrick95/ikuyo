@@ -24,15 +24,14 @@ Route::middleware('web')->prefix('auth')->group(function (): void {
 });
 
 Route::middleware('web')->group(function (): void {
+    Route::get('/trips/public', [TripController::class, 'publicIndex']);
+    Route::get('/trips', [TripController::class, 'index'])->middleware('auth');
     Route::get('/trips/{trip}', [TripController::class, 'show'])
         ->middleware('trip.access:view');
-    Route::get('/trips', [TripController::class, 'index'])->middleware('auth');
-    Route::get('/trips/public', [TripController::class, 'publicIndex']);
 
-    Route::middleware(['auth', 'trip.access:manage'])->group(function (): void {
-        Route::post('/trips', [TripController::class, 'store']);
-        Route::delete('/trips/{trip}', [TripController::class, 'destroy']);
-    });
+    Route::post('/trips', [TripController::class, 'store'])->middleware('auth');
+    Route::delete('/trips/{trip}', [TripController::class, 'destroy'])
+        ->middleware(['auth', 'trip.access:manage']);
 
     Route::put('/trips/{trip}', [TripController::class, 'update'])
         ->middleware(['auth', 'trip.access:edit']);

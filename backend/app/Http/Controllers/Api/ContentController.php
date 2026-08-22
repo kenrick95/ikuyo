@@ -37,7 +37,7 @@ class ContentController extends Controller
     public function store(Request $request, Trip $trip, string $entity): JsonResponse
     {
         $model = $this->model($entity);
-        $data = $request->except(['id', 'trip_id', 'created_at_ms', 'updated_at_ms']);
+        $data = $this->mapFields($request->except(['id', 'trip_id', 'created_at_ms', 'updated_at_ms']));
         $record = new $model($data);
         $record->id = (string) Str::uuid();
         $record->trip_id = $trip->id;
@@ -48,7 +48,7 @@ class ContentController extends Controller
     public function update(Request $request, Trip $trip, string $entity, string $entityId): JsonResponse
     {
         $record = $this->record($trip, $entity, $entityId);
-        $record->fill($request->except(['id', 'trip_id', 'created_at_ms', 'updated_at_ms']));
+        $record->fill($this->mapFields($request->except(['id', 'trip_id', 'created_at_ms', 'updated_at_ms'])));
         $record->save();
         return response()->json($record->fresh());
     }
@@ -57,6 +57,26 @@ class ContentController extends Controller
     {
         $this->record($trip, $entity, $entityId)->delete();
         return response()->json(['ok' => true]);
+    }
+
+    private function mapFields(array $data): array
+    {
+        $map = [
+            'timestampStart' => 'timestamp_start_ms', 'timestampEnd' => 'timestamp_end_ms',
+            'timeZoneStart' => 'timezone_start', 'timeZoneEnd' => 'timezone_end',
+            'locationLat' => 'location_lat', 'locationLng' => 'location_lng', 'locationZoom' => 'location_zoom',
+            'locationDestination' => 'location_destination', 'locationDestinationLat' => 'location_destination_lat',
+            'locationDestinationLng' => 'location_destination_lng', 'locationDestinationZoom' => 'location_destination_zoom',
+            'timestampCheckIn' => 'check_in_ms', 'timestampCheckOut' => 'check_out_ms',
+            'timeZoneCheckIn' => 'tz_check_in', 'timeZoneCheckOut' => 'tz_check_out',
+            'phoneNumber' => 'phone_number', 'amountInOriginCurrency' => 'amount_in_origin_currency',
+            'currencyConversionFactor' => 'currency_conversion_factor', 'timestampIncurred' => 'incurred_at_ms',
+            'timeZoneIncurred' => 'timezone_incurred',
+        ];
+        foreach ($map as $from => $to) {
+            if (array_key_exists($from, $data)) { $data[$to] = $data[$from]; unset($data[$from]); }
+        }
+        return $data;
     }
 
     private function model(string $entity): string
