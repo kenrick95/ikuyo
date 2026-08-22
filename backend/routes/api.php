@@ -30,6 +30,10 @@ Route::middleware('web')->group(function (): void {
     Route::get('/trips', [TripController::class, 'index'])->middleware('auth');
     Route::get('/trips/{trip}', [TripController::class, 'show'])
         ->middleware('trip.access:view');
+    Route::put('/activities/{activity}', [ContentController::class, 'activityUpdate'])
+        ->middleware('auth');
+    Route::delete('/activities/{activity}', [ContentController::class, 'activityDestroy'])
+        ->middleware('auth');
 
     Route::post('/trips', [TripController::class, 'store'])->middleware('auth');
     Route::delete('/trips/{trip}', [TripController::class, 'destroy'])
@@ -55,6 +59,10 @@ Route::middleware('web')->group(function (): void {
         ->middleware(['auth', 'trip.access:edit']);
     Route::delete('/trips/{trip}/{entity}/{entityId}', [ContentController::class, 'destroy'])
         ->whereIn('entity', ['activities', 'accommodations', 'macroplans', 'expenses'])
+        ->middleware(['auth', 'trip.access:edit']);
+    Route::post('/trips/{trip}/activities/{activity}/drag-end', [ContentController::class, 'activityDragEnd'])
+        ->middleware(['auth', 'trip.access:edit']);
+    Route::post('/trips/{trip}/activities/{activity}/duplicate', [ContentController::class, 'activityDuplicate'])
         ->middleware(['auth', 'trip.access:edit']);
 
     Route::post('/trips/{trip}/task-lists', [TaskController::class, 'storeList'])
