@@ -147,6 +147,59 @@ class TripController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    public function sharing(Request $request, Trip $trip): JsonResponse
+    {
+        $trip->update(['sharing_level' => $request->validate(['sharingLevel' => ['required', 'integer', 'in:0,2,3']])['sharingLevel']]);
+        return response()->json($this->serializeTrip($trip->fresh()));
+    }
+
+    public function sections(Request $request, Trip $trip): JsonResponse
+    {
+        $data = $request->validate([
+            'publicShowExpenses' => ['sometimes', 'nullable', 'boolean'],
+            'publicShowTasks' => ['sometimes', 'nullable', 'boolean'],
+            'publicShowComments' => ['sometimes', 'nullable', 'boolean'],
+            'viewerShowExpenses' => ['sometimes', 'nullable', 'boolean'],
+            'viewerShowTasks' => ['sometimes', 'nullable', 'boolean'],
+            'viewerShowComments' => ['sometimes', 'nullable', 'boolean'],
+        ]);
+        $map = ['publicShowExpenses' => 'public_show_expenses', 'publicShowTasks' => 'public_show_tasks', 'publicShowComments' => 'public_show_comments', 'viewerShowExpenses' => 'viewer_show_expenses', 'viewerShowTasks' => 'viewer_show_tasks', 'viewerShowComments' => 'viewer_show_comments'];
+        $trip->update(array_combine(array_map(fn ($key) => $map[$key], array_keys($data)), array_values($data)));
+        return response()->json($this->serializeTrip($trip->fresh()));
+    }
+
+    public function duplicate(Request $request, Trip $trip): JsonResponse
+    {
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'startDateMs' => ['required', 'integer'],
+            'endDateMs' => ['required', 'integer'],
+            'includeActivities' => ['boolean'], 'includeAccommodations' => ['boolean'],
+            'includeMacroplans' => ['boolean'], 'includeExpenses' => ['boolean'],
+            'includeTasks' => ['boolean'], 'removeActivityDates' => ['boolean'],
+        ]);
+        $user = $request->user();
+        $now = $this->nowMs();
+        $trip->load(['activities', 'accommodations', 'macroPlans', 'expenses']);
+        $newTrip = DB::transaction(function () use ($trip, $data, $user, $now): Trip {
+            $copy = Trip::create([
+                'id' => (string) Str::uuid(), 'title' => $data['title'],
+                'timestamp_start_ms' => $data['startDateMs'], 'timestamp_end_ms' => $data['endDateMs'],
+                'timezone' => $trip->timezone, 'region' => $trip->region, 'currency' => $trip->currency,
+                'origin_currency' => $trip->origin_currency, 'origin_region' => $trip->origin_region,
+                'origin_timezone' => $trip->origin_timezone, 'sharing_level' => 0,
+            ]);
+            $copy->users()->attach($user->id, ['id' => (string) Str::uuid(), 'role' => 0, 'created_at_ms' => $now, 'updated_at_ms' => $now]);
+            $dayShift = $data['startDateMs'] - $trip->timestamp_start_ms;
+            if ($data['includeActivities'] ?? false) foreach ($trip->activities as $item) $copy->activities()->create($this->copyActivity($item, $data['removeActivityDates'] ?? false, $dayShift));
+            if ($data['includeAccommodations'] ?? false) foreach ($trip->accommodations as $item) $copy->accommodations()->create($this->copyAccommodation($item, $dayShift));
+            if ($data['includeMacroplans'] ?? false) foreach ($trip->macroPlans as $item) $copy->macroPlans()->create($this->copyMacroPlan($item, $dayShift));
+            if ($data['includeExpenses'] ?? false) foreach ($trip->expenses as $item) $copy->expenses()->create($item->only(['amount', 'amount_in_origin_currency', 'currency', 'currency_conversion_factor', 'title', 'description', 'incurred_at_ms', 'timezone_incurred']));
+            return $copy;
+        });
+        return response()->json(['id' => $newTrip->id], 201);
+    }
+
     public function show(Trip $trip): JsonResponse
     {
         $trip->load([
@@ -161,6 +214,35 @@ class TripController extends Controller
         ]);
 
         return response()->json($this->serializeTrip($trip));
+    }
+
+    private function nowMs(): int
+    {
+        return (int) round(microtime(true) * 1000);
+    }
+
+    private function copyActivity($item, bool $removeDates, int $shift): array
+    {
+        $row = $item->only(['title', 'location', 'location_lat', 'location_lng', 'location_zoom', 'location_destination', 'location_destination_lat', 'location_destination_lng', 'location_destination_zoom', 'description', 'timezone_start', 'timezone_end', 'flags', 'icon']);
+        $row['timestamp_start_ms'] = $removeDates || $item->timestamp_start_ms === null ? null : $item->timestamp_start_ms + $shift;
+        $row['timestamp_end_ms'] = $removeDates || $item->timestamp_end_ms === null ? null : $item->timestamp_end_ms + $shift;
+        return $row;
+    }
+
+    private function copyAccommodation($item, int $shift): array
+    {
+        $row = $item->only(['name', 'address', 'phone_number', 'notes', 'tz_check_in', 'tz_check_out', 'location_lat', 'location_lng', 'location_zoom']);
+        $row['check_in_ms'] = $item->check_in_ms + $shift;
+        $row['check_out_ms'] = $item->check_out_ms + $shift;
+        return $row;
+    }
+
+    private function copyMacroPlan($item, int $shift): array
+    {
+        $row = $item->only(['name', 'notes', 'timezone_start', 'timezone_end']);
+        $row['timestamp_start_ms'] = $item->timestamp_start_ms + $shift;
+        $row['timestamp_end_ms'] = $item->timestamp_end_ms + $shift;
+        return $row;
     }
 
     private function serializeTrip(Trip $trip): array
