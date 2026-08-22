@@ -21,10 +21,17 @@ class ContentController extends Controller
         'expenses' => Expense::class,
     ];
 
+    private const RELATIONS = [
+        'activities' => 'activities',
+        'accommodations' => 'accommodations',
+        'macroplans' => 'macroPlans',
+        'expenses' => 'expenses',
+    ];
+
     public function index(Trip $trip, string $entity): JsonResponse
     {
-        $model = $this->model($entity);
-        return response()->json($trip->{str()->camel($entity)}()->get());
+        $this->model($entity);
+        return response()->json($trip->getRelationValue(self::RELATIONS[$entity]));
     }
 
     public function store(Request $request, Trip $trip, string $entity): JsonResponse
@@ -61,6 +68,6 @@ class ContentController extends Controller
     private function record(Trip $trip, string $entity, string $id): Activity|Accommodation|MacroPlan|Expense
     {
         $model = $this->model($entity);
-        return $trip->{str()->camel($entity)}()->whereKey($id)->firstOrFail();
+        return $trip->getRelationValue(self::RELATIONS[$entity])->whereKey($id)->firstOrFail();
     }
 }
