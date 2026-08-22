@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use App\Http\Middleware\AuthorizeTripAccess;
 use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -15,6 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Initial auth requests cannot carry a session CSRF token yet.
         // All authenticated mutations remain CSRF-protected.
+        $middleware->alias([
+            'trip.access' => AuthorizeTripAccess::class,
+        ]);
+
         $middleware->validateCsrfTokens(except: [
             'api/auth/login',
             'api/auth/guest',

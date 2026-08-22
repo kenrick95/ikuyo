@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Trip;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class TripController extends Controller
 {
@@ -60,6 +62,73 @@ class TripController extends Controller
         ]);
 
         return response()->json($trips);
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user, 401);
+
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'timestampStart' => ['required', 'integer'],
+            'timestampEnd' => ['required', 'integer'],
+            'timeZone' => ['required', 'string', 'max:64'],
+            'region' => ['required', 'string', 'max:8'],
+            'currency' => ['required', 'string', 'max:8'],
+            'originCurrency' => ['required', 'string', 'max:8'],
+            'originRegion' => ['nullable', 'string', 'max:8'],
+            'originTimeZone' => ['nullable', 'string', 'max:64'],
+        ]);
+
+        $trip = DB::transaction(function () use ($data, $user): Trip {
+            $trip = Trip::create([
+                'id' => (string) Str::uuid(),
+                'title' => $data['title'],
+                'timestamp_start_ms' => $data['timestampStart'],
+                'timestamp_end_ms' => $data['timestampEnd'],
+                'timezone' => $data['timeZone'],
+                'region' => $data['region'],
+                'currency' => $data['currency'],
+                'origin_currency' => $data['originCurrency'],
+                'origin_region' => $data['originRegion'] ?? null,
+                'origin_timezone' => $data['originTimeZone'] ?? null,
+                'sharing_level' => 0,
+            ]);
+            $trip->users()->attach($user->id, [
+                'id' => (string) Str::uuid(),
+                'role' => 0,
+                'created_at_ms' => (int) round(microtime(true) * 1000),
+                'updated_at_ms' => (int) round(microtime(true) * 1000),
+            ]);
+            return $trip;
+        });
+
+        return response()->json($this->serializeTrip($trip->load('users')), 201);
+    }
+
+    public function update(Request $request, Trip $trip): JsonResponse
+    {
+        $data = $request->validate([
+            'title' => ['sometimes', 'string', 'max:255'],
+            'timestampStart' => ['sometimes', 'integer'],
+            'timestampEnd' => ['sometimes', 'integer'],
+            'timeZone' => ['sometimes', 'string', 'max:64'],
+            'region' => ['sometimes', 'string', 'max:8'],
+            'currency' => ['sometimes', 'string', 'max:8'],
+            'originCurrency' => ['sometimes', 'string', 'max:8'],
+            'originRegion' => ['nullable', 'string', 'max:8'],
+            'originTimeZone' => ['nullable', 'string', 'max:64'],
+        ]);
+        $map = ['title' => 'title', 'timestampStart' => 'timestamp_start_ms', 'timestampEnd' => 'timestamp_end_ms', 'timeZone' => 'timezone', 'region' => 'region', 'currency' => 'currency', 'originCurrency' => 'origin_currency', 'originRegion' => 'origin_region', 'originTimeZone' => 'origin_timezone'];
+        $trip->update(array_combine(array_map(fn ($key) => $map[$key], array_keys($data)), array_values($data)));
+        return response()->json($this->serializeTrip($trip->fresh('users')));
+    }
+
+    public function destroy(Trip $trip): JsonResponse
+    {
+        $trip->delete();
+        return response()->json(['ok' => true]);
     }
 
     public function show(Trip $trip): JsonResponse
