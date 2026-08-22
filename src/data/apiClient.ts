@@ -64,6 +64,31 @@ export function del<T>(path: string): Promise<T> {
   return request<T>(path, { method: 'DELETE' });
 }
 
+export async function mutate<T>(
+  path: string,
+  init: RequestInit = {},
+): Promise<T> {
+  const headers = new Headers(init.headers);
+  headers.set('X-CSRF-TOKEN', await getCsrfToken());
+  return request<T>(path, { ...init, headers });
+}
+
+export function postMutation<T>(path: string, body: unknown): Promise<T> {
+  return mutate<T>(path, { method: 'POST', body: JSON.stringify(body) });
+}
+
+export function putMutation<T>(path: string, body: unknown): Promise<T> {
+  return mutate<T>(path, { method: 'PUT', body: JSON.stringify(body) });
+}
+
+export function patchMutation<T>(path: string, body: unknown): Promise<T> {
+  return mutate<T>(path, { method: 'PATCH', body: JSON.stringify(body) });
+}
+
+export function deleteMutation<T>(path: string): Promise<T> {
+  return mutate<T>(path, { method: 'DELETE' });
+}
+
 export async function getCsrfToken(): Promise<string> {
   return (await get<{ token: string }>('/api/csrf-token')).token;
 }
