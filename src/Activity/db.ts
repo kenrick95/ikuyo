@@ -185,6 +185,18 @@ export async function dbDuplicateActivityDragEnd(
     timestampEnd: number;
   },
 ) {
+  if (backendActivityWrites) {
+    const result = await postMutation<{ id: string }>(
+      `/api/activities/${encodeURIComponent(activityId)}/duplicate`,
+      { timestampStart, timestampEnd },
+    );
+    return {
+      id: result.id,
+      transaction: result,
+      undo: async () =>
+        deleteMutation(`/api/activities/${encodeURIComponent(result.id)}`),
+    };
+  }
   const res = await db.queryOnce({
     activity: {
       $: {
@@ -240,6 +252,13 @@ export async function dbUpdateActivityDragEnd(
     timestampEnd: number;
   },
 ) {
+  if (backendActivityWrites) {
+    const result = await postMutation<DbActivity>(
+      `/api/activities/${encodeURIComponent(activityId)}/drag-end`,
+      { timestampStart, timestampEnd },
+    );
+    return { transaction: result, undo: async () => undefined };
+  }
   const res = await db.queryOnce({
     activity: {
       $: {
