@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['comment_group_id', 'user_id', 'content', 'created_at_ms', 'updated_at_ms'])]
-class Comment extends Model
+#[Fillable(['task_list_id', 'index', 'title', 'description', 'status', 'due_at_ms', 'completed_at_ms', 'created_at_ms', 'updated_at_ms'])]
+class Task extends Model
 {
     use HasMsTimestamps;
 
@@ -16,13 +16,8 @@ class Comment extends Model
     protected $keyType = 'string';
     public $timestamps = false;
 
-    public function commentGroup(): BelongsTo
+    public function taskList(): BelongsTo
     {
-        return $this->belongsTo(CommentGroup::class);
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(TaskList::class);
     }
 }

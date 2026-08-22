@@ -7,14 +7,16 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['trip_id', 'title', 'location', 'location_lat', 'location_lng', 'location_zoom', 'location_destination', 'location_destination_lat', 'location_destination_lng', 'location_destination_zoom', 'description', 'timestamp_start_ms', 'timestamp_end_ms', 'timezone_start', 'timezone_end', 'flags', 'icon', 'created_at_ms', 'updated_at_ms'])]
-class Activity extends Model
+#[Fillable(['trip_id', 'name', 'notes', 'timestamp_start_ms', 'timestamp_end_ms', 'timezone_start', 'timezone_end', 'created_at_ms', 'updated_at_ms'])]
+class MacroPlan extends Model
 {
     use HasMsTimestamps;
 
     public $incrementing = false;
     protected $keyType = 'string';
     public $timestamps = false;
+
+    protected $table = 'macro_plans';
 
     public function trip(): BelongsTo
     {

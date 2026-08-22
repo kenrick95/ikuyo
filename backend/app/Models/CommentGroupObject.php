@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['comment_group_id', 'user_id', 'content', 'created_at_ms', 'updated_at_ms'])]
-class Comment extends Model
+#[Fillable(['comment_group_id', 'object_type', 'object_id', 'created_at_ms', 'updated_at_ms'])]
+class CommentGroupObject extends Model
 {
     use HasMsTimestamps;
 
@@ -19,10 +19,5 @@ class Comment extends Model
     public function commentGroup(): BelongsTo
     {
         return $this->belongsTo(CommentGroup::class);
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
     }
 }
