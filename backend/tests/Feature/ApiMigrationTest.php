@@ -88,6 +88,21 @@ class ApiMigrationTest extends TestCase
             ->assertJsonPath('changes.0.entity', 'trips');
     }
 
+    public function test_viewer_cannot_modify_a_trip(): void
+    {
+        $owner = $this->user();
+        $viewer = $this->user();
+        $trip = Trip::create([
+            'id' => (string) Str::uuid(), 'title' => 'Private', 'region' => 'JP', 'currency' => 'JPY',
+            'timezone' => 'Asia/Tokyo', 'timestamp_start_ms' => 1, 'timestamp_end_ms' => 2,
+            'sharing_level' => 0,
+        ]);
+        $trip->users()->attach($owner->id, ['id' => (string) Str::uuid(), 'role' => 0, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
+        $trip->users()->attach($viewer->id, ['id' => (string) Str::uuid(), 'role' => 2, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
+
+        $this->actingAs($viewer)->putJson('/api/trips/' . $trip->id, ['title' => 'Nope'])->assertForbidden();
+    }
+
     public function test_public_trip_is_visible_to_anonymous_user(): void
     {
         $trip = Trip::create([
