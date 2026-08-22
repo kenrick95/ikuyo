@@ -52,6 +52,27 @@ class ApiMigrationTest extends TestCase
         $this->getJson('/api/trips/' . $trip->id)->assertUnauthorized();
     }
 
+    public function test_owner_can_change_sharing_and_duplicate_a_trip(): void
+    {
+        $user = $this->user();
+        $trip = Trip::create([
+            'id' => (string) Str::uuid(), 'title' => 'Original', 'region' => 'JP', 'currency' => 'JPY',
+            'timezone' => 'Asia/Tokyo', 'timestamp_start_ms' => 1000, 'timestamp_end_ms' => 2000,
+            'sharing_level' => 0,
+        ]);
+        $trip->users()->attach($user->id, ['id' => (string) Str::uuid(), 'role' => 0, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
+
+        $this->actingAs($user)->patchJson('/api/trips/' . $trip->id . '/sharing', ['sharingLevel' => 2])
+            ->assertOk()->assertJsonPath('sharingLevel', 2);
+        $this->actingAs($user)->postJson('/api/trips/' . $trip->id . '/duplicate', [
+            'title' => 'Copy', 'startDateMs' => 3000, 'endDateMs' => 4000,
+            'includeActivities' => false, 'includeAccommodations' => false,
+            'includeMacroplans' => false, 'includeExpenses' => false,
+            'includeTasks' => false, 'removeActivityDates' => false,
+        ])->assertCreated()->assertJsonStructure(['id']);
+        $this->assertDatabaseHas('trips', ['title' => 'Copy', 'sharing_level' => 0]);
+    }
+
     public function test_public_trip_is_visible_to_anonymous_user(): void
     {
         $trip = Trip::create([

@@ -35,6 +35,12 @@ Route::middleware('web')->group(function (): void {
 
     Route::put('/trips/{trip}', [TripController::class, 'update'])
         ->middleware(['auth', 'trip.access:edit']);
+    Route::post('/trips/{trip}/duplicate', [TripController::class, 'duplicate'])
+        ->middleware(['auth', 'trip.access:view']);
+    Route::patch('/trips/{trip}/sharing', [TripController::class, 'sharing'])
+        ->middleware(['auth', 'trip.access:manage']);
+    Route::patch('/trips/{trip}/sections', [TripController::class, 'sections'])
+        ->middleware(['auth', 'trip.access:manage']);
 
     Route::get('/trips/{trip}/{entity}', [ContentController::class, 'index'])
         ->whereIn('entity', ['activities', 'accommodations', 'macroplans', 'expenses'])
