@@ -6,8 +6,13 @@ import type {
 } from '../Accommodation/db';
 import type { DbActivity, DbActivityWithTrip } from '../Activity/db';
 import type { DbCommentGroup, DbCommentGroupObjectType } from '../Comment/db';
-import { deleteMutation, patchMutation, postMutation } from '../data/apiClient';
-import { backendSharingWrites } from '../data/backendConfig';
+import {
+  deleteMutation,
+  patchMutation,
+  postMutation,
+  putMutation,
+} from '../data/apiClient';
+import { backendSharingWrites, backendTripWrites } from '../data/backendConfig';
 import { db } from '../data/db';
 import type { DbUser } from '../data/types';
 import type { DbMacroplan, DbMacroplanWithTrip } from '../Macroplan/db';
@@ -110,6 +115,10 @@ export async function dbAddTrip(
     userId: string;
   },
 ) {
+  if (backendTripWrites) {
+    const result = await postMutation<{ id: string }>('/api/trips', newTrip);
+    return { id: result.id, result };
+  }
   const newTripId = id();
   const newTripUserId = id();
   return {
@@ -145,6 +154,9 @@ export async function dbUpdateTrip(
     | 'commentGroup'
   >,
 ) {
+  if (backendTripWrites) {
+    return putMutation(`/api/trips/${encodeURIComponent(trip.id)}`, trip);
+  }
   const tripId = trip.id;
 
   const transactionTimestamp = Date.now();
@@ -189,6 +201,13 @@ export async function dbDuplicateTrip(
   options: TripDuplicateOptions,
   { userId }: { userId: string },
 ) {
+  if (backendTripWrites) {
+    const result = await postMutation<{ id: string }>(
+      `/api/trips/${encodeURIComponent(sourceTripId)}/duplicate`,
+      options,
+    );
+    return { id: result.id, result };
+  }
   const tripData = await db.queryOnce({
     trip: {
       $: {
@@ -448,6 +467,9 @@ export async function dbUpdateTripSharingLevel(
 }
 
 export async function dbDeleteTrip(trip: TripSliceTrip) {
+  if (backendTripWrites) {
+    return deleteMutation(`/api/trips/${encodeURIComponent(trip.id)}`);
+  }
   const tripData = await db.queryOnce({
     trip: {
       $: {
