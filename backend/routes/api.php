@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ContentController;
 use App\Http\Controllers\Api\TripController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,5 +32,18 @@ Route::middleware('web')->group(function (): void {
     });
 
     Route::put('/trips/{trip}', [TripController::class, 'update'])
+        ->middleware(['auth', 'trip.access:edit']);
+
+    Route::get('/trips/{trip}/{entity}', [ContentController::class, 'index'])
+        ->whereIn('entity', ['activities', 'accommodations', 'macroplans', 'expenses'])
+        ->middleware('trip.access:view');
+    Route::post('/trips/{trip}/{entity}', [ContentController::class, 'store'])
+        ->whereIn('entity', ['activities', 'accommodations', 'macroplans', 'expenses'])
+        ->middleware(['auth', 'trip.access:edit']);
+    Route::put('/trips/{trip}/{entity}/{entityId}', [ContentController::class, 'update'])
+        ->whereIn('entity', ['activities', 'accommodations', 'macroplans', 'expenses'])
+        ->middleware(['auth', 'trip.access:edit']);
+    Route::delete('/trips/{trip}/{entity}/{entityId}', [ContentController::class, 'destroy'])
+        ->whereIn('entity', ['activities', 'accommodations', 'macroplans', 'expenses'])
         ->middleware(['auth', 'trip.access:edit']);
 });
