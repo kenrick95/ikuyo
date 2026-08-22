@@ -73,6 +73,21 @@ class ApiMigrationTest extends TestCase
         $this->assertDatabaseHas('trips', ['title' => 'Copy', 'sharing_level' => 0]);
     }
 
+    public function test_authenticated_trip_sync_returns_incremental_changes(): void
+    {
+        $user = $this->user();
+        $trip = Trip::create([
+            'id' => (string) Str::uuid(), 'title' => 'Sync trip', 'region' => 'JP', 'currency' => 'JPY',
+            'timezone' => 'Asia/Tokyo', 'timestamp_start_ms' => 1, 'timestamp_end_ms' => 2,
+            'sharing_level' => 0,
+        ]);
+        $trip->users()->attach($user->id, ['id' => (string) Str::uuid(), 'role' => 0, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
+
+        $this->actingAs($user)->getJson('/api/sync?since=0&tripId=' . $trip->id)
+            ->assertOk()->assertJsonStructure(['changes', 'nextCursor'])
+            ->assertJsonPath('changes.0.entity', 'trips');
+    }
+
     public function test_public_trip_is_visible_to_anonymous_user(): void
     {
         $trip = Trip::create([
