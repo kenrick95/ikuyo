@@ -13,6 +13,9 @@ return new class extends Migration
             $table->string('title');
             $table->string('region', 8);
             $table->string('currency', 8);
+            $table->string('origin_region', 8)->nullable();
+            $table->string('origin_currency', 8)->nullable();
+            $table->string('origin_timezone', 64)->nullable();
             $table->string('timezone', 64);
             $table->bigInteger('timestamp_start_ms');
             $table->bigInteger('timestamp_end_ms');
