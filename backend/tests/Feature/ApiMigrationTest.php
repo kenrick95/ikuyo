@@ -25,6 +25,14 @@ class ApiMigrationTest extends TestCase
         ], $overrides));
     }
 
+    public function test_sensitive_api_routes_have_rate_limits(): void
+    {
+        $routes = collect(app('router')->getRoutes()->getRoutes())->keyBy(fn ($route) => $route->uri());
+        $authMiddleware = $routes['api/auth/login']->middleware();
+        $this->assertTrue(collect($authMiddleware)->contains(fn (string $item): bool => str_starts_with($item, 'throttle:')));
+        $this->assertTrue(collect($routes['api/sync']->middleware())->contains(fn (string $item): bool => str_starts_with($item, 'throttle:')));
+    }
+
     public function test_forgot_password_queues_a_reset_mail_without_enumeration(): void
     {
         Mail::fake();

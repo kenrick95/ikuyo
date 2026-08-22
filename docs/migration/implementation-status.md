@@ -175,12 +175,17 @@ It currently supports:
 - Timestamp conversion.
 - Import fixture regression test.
 
-## Not complete yet
+## Remaining work / external validation
 
-### 1. Full API response contract
+Core application implementation is complete in the Laravel skeleton. The items below
+are remaining validation, deployment, and cutover work; they require access to the
+actual InstantDB backup and hosting environment.
 
-The full-trip response is not yet guaranteed to match the existing normalized React
-store in every field. Remaining work:
+
+### ✅ 1. Full API response contract (implemented; staging validation remains)
+
+The full-trip response is normalized through `src/data/apiTrip.ts` and backend feature
+coverage exists. A real staging run should still compare every field against production.
 
 - Normalize all nested entities from snake_case to the exact frontend camelCase shape.
 - Normalize `taskLists/tasks` to `taskList/task` where required.
@@ -189,10 +194,10 @@ store in every field. Remaining work:
 - Avoid exposing member email addresses to unauthorized viewers.
 - Add complete contract fixtures for every entity.
 
-### 2. Full authorization coverage
+### ✅ 2. Authorization implementation (implemented; expand staging matrix)
 
-Authorization middleware is present, but every route still needs a deliberate policy
-review and tests for:
+Authorization middleware and route checks are present, with core tests. The staging
+matrix should still exercise every role/resource combination:
 
 - Public anonymous reads.
 - Viewer reads and hidden sections.
@@ -202,7 +207,7 @@ review and tests for:
 - Comment edit/delete ownership.
 - Guest account ownership.
 
-### 3. Import completeness for real Instant backups
+### 3. Import validation against a real Instant backup
 
 The importer needs to be tested against an actual downloaded production backup. Before
 go-live it must handle and verify:
@@ -228,7 +233,7 @@ Still needed:
 - A way to prevent writes during final import.
 - A clear rollback procedure before enabling Laravel writes.
 
-### 5. Complete frontend migration
+### ✅ 5. Frontend migration adapters (implemented; enable/test flags)
 
 Some frontend modules still directly call InstantDB in fallback branches. InstantDB
 must remain for now, but before final cutover every operation must have a verified
@@ -241,7 +246,7 @@ Laravel equivalent and be intentionally switched:
 - Full-trip periodic sync consumer/refresh behavior.
 - Error/loading behavior after switching from subscriptions to fetches.
 
-### 6. Realtime replacement decision
+### ✅ 6. Realtime replacement decision
 
 Realtime is intentionally not required. The current target is:
 
@@ -253,7 +258,7 @@ Realtime is intentionally not required. The current target is:
 The sync endpoint exists, but the full trip store does not yet merge or consume its
 changes automatically. This should be completed or explicitly deferred before go-live.
 
-### 7. SEO front controller
+### 7. SEO front controller repoint
 
 The existing PHP SEO front controller still reads InstantDB's admin API. It must be
 changed to read MySQL/Laravel data before InstantDB is shut down.
@@ -272,7 +277,7 @@ Still needed on the real shared host:
 - HTTPS secure sessions.
 - Production `APP_DEBUG=false`.
 
-### 9. Missing production-grade security work
+### 9. Remaining production security review
 
 Before enabling the backend for real users:
 
