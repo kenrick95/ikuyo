@@ -29,6 +29,23 @@ class ContentController extends Controller
         $activity->save();
         return response()->json($activity->fresh());
     }
+
+    public function byIdUpdate(Request $request, string $entity, string $entityId, TripAccessService $access): JsonResponse
+    {
+        $record = $this->recordById($entity, $entityId);
+        abort_unless($request->user() && $access->canEdit($record->trip, $request->user()), 403);
+        $record->fill($this->mapFields($request->except(['id', 'trip_id', 'created_at_ms', 'updated_at_ms'])));
+        $record->save();
+        return response()->json($record->fresh());
+    }
+
+    public function byIdDestroy(Request $request, string $entity, string $entityId, TripAccessService $access): JsonResponse
+    {
+        $record = $this->recordById($entity, $entityId);
+        abort_unless($request->user() && $access->canEdit($record->trip, $request->user()), 403);
+        $record->delete();
+        return response()->json(['ok' => true]);
+    }
     private const MODELS = [
         'activities' => Activity::class,
         'accommodations' => Accommodation::class,
@@ -114,6 +131,12 @@ class ContentController extends Controller
             if (array_key_exists($from, $data)) { $data[$to] = $data[$from]; unset($data[$from]); }
         }
         return $data;
+    }
+
+    private function recordById(string $entity, string $id): Activity|Accommodation|MacroPlan|Expense
+    {
+        $model = $this->model($entity);
+        return $model::with('trip')->whereKey($id)->firstOrFail();
     }
 
     private function model(string $entity): string

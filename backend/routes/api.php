@@ -34,6 +34,12 @@ Route::middleware('web')->group(function (): void {
         ->middleware('auth');
     Route::delete('/activities/{activity}', [ContentController::class, 'activityDestroy'])
         ->middleware('auth');
+    Route::put('/{entity}/{entityId}', [ContentController::class, 'byIdUpdate'])
+        ->whereIn('entity', ['activities', 'accommodations', 'macroplans', 'expenses'])
+        ->middleware('auth');
+    Route::delete('/{entity}/{entityId}', [ContentController::class, 'byIdDestroy'])
+        ->whereIn('entity', ['activities', 'accommodations', 'macroplans', 'expenses'])
+        ->middleware('auth');
 
     Route::post('/trips', [TripController::class, 'store'])->middleware('auth');
     Route::delete('/trips/{trip}', [TripController::class, 'destroy'])
