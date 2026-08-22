@@ -1,6 +1,6 @@
 import { id } from '@instantdb/core';
 import type { DbCommentGroup } from '../Comment/db';
-import { deleteMutation, postMutation } from '../data/apiClient';
+import { deleteMutation, postMutation, putMutation } from '../data/apiClient';
 import { backendActivityWrites } from '../data/backendConfig';
 import { db } from '../data/db';
 import type { DbTrip, DbTripWithActivity } from '../Trip/db';
@@ -102,6 +102,9 @@ export async function dbAddActivity(
   };
 }
 export async function dbDeleteActivity(activityId: string) {
+  if (backendActivityWrites) {
+    return deleteMutation(`/api/activities/${encodeURIComponent(activityId)}`);
+  }
   const commentGroups = await db.queryOnce({
     commentGroup: {
       comment: { $: { fields: ['id'] } },
@@ -136,6 +139,14 @@ export async function dbDeleteActivity(activityId: string) {
 export async function dbUpdateActivity(
   activity: Omit<DbActivity, 'createdAt' | 'lastUpdatedAt' | 'trip'>,
 ) {
+  if (backendActivityWrites) {
+    const result = await putMutation<DbActivity>(
+      `/api/activities/${encodeURIComponent(activity.id)}`,
+      activity,
+    );
+    return { transaction: result, undo: async () => undefined };
+  }
+
   const snapshot = await db.queryOnce({
     activity: {
       $: {

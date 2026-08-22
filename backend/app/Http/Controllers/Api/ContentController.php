@@ -8,12 +8,27 @@ use App\Models\Activity;
 use App\Models\Expense;
 use App\Models\MacroPlan;
 use App\Models\Trip;
+use App\Services\TripAccessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class ContentController extends Controller
 {
+    public function activityDestroy(Request $request, Activity $activity, TripAccessService $access): JsonResponse
+    {
+        abort_unless($request->user() && $access->canEdit($activity->trip, $request->user()), 403);
+        $activity->delete();
+        return response()->json(['ok' => true]);
+    }
+
+    public function activityUpdate(Request $request, Activity $activity, TripAccessService $access): JsonResponse
+    {
+        abort_unless($request->user() && $access->canEdit($activity->trip, $request->user()), 403);
+        $activity->fill($this->mapFields($request->except(['id', 'trip_id', 'created_at_ms', 'updated_at_ms'])));
+        $activity->save();
+        return response()->json($activity->fresh());
+    }
     private const MODELS = [
         'activities' => Activity::class,
         'accommodations' => Accommodation::class,
@@ -57,6 +72,28 @@ class ContentController extends Controller
     {
         $this->record($trip, $entity, $entityId)->delete();
         return response()->json(['ok' => true]);
+    }
+
+    public function activityDragEnd(Request $request, Trip $trip, string $activity): JsonResponse
+    {
+        $record = $trip->activities()->whereKey($activity)->firstOrFail();
+        $data = $request->validate(['timestampStart' => ['nullable', 'integer'], 'timestampEnd' => ['nullable', 'integer']]);
+        $record->update(['timestamp_start_ms' => $data['timestampStart'] ?? null, 'timestamp_end_ms' => $data['timestampEnd'] ?? null, 'flags' => ((int) $record->flags) & ~1]);
+        return response()->json($record->fresh());
+    }
+
+    public function activityDuplicate(Request $request, Trip $trip, string $activity): JsonResponse
+    {
+        $record = $trip->activities()->whereKey($activity)->firstOrFail();
+        $data = $request->validate(['timestampStart' => ['nullable', 'integer'], 'timestampEnd' => ['nullable', 'integer']]);
+        $copy = $record->replicate();
+        $copy->id = (string) Str::uuid();
+        $copy->trip_id = $trip->id;
+        $copy->timestamp_start_ms = $data['timestampStart'] ?? null;
+        $copy->timestamp_end_ms = $data['timestampEnd'] ?? null;
+        $copy->flags = ((int) $record->flags) & ~1;
+        $copy->save();
+        return response()->json(['id' => $copy->id], 201);
     }
 
     private function mapFields(array $data): array
