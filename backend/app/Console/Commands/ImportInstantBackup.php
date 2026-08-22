@@ -148,7 +148,7 @@ class ImportInstantBackup extends Command
                 'preferred_timezone' => $entity['preferredTimeZone'] ?? null,
                 'last_login_at' => $this->timestampMs($entity['lastLoginAt'] ?? null),
                 'created_at_ms' => $this->timestampMs($entity['createdAt'] ?? $record['createdAt'] ?? null),
-                'updated_at_ms' => $this->timestampMs($entity['lastUpdatedAt'] ?? null) ?? $this->timestampMs($entity['createdAt'] ?? null),
+                'updated_at_ms' => $this->timestampMs($entity['lastUpdatedAt'] ?? null) ?? $this->timestampMs($entity['createdAt'] ?? $record['createdAt'] ?? null) ?? 0,
             ]);
         }
     }
