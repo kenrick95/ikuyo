@@ -60,6 +60,25 @@ These map directly onto the Instant graph:
 
 For the current React app, deploy its static build separately and route `/api/*` to Laravel. Keep the existing SEO front-controller behavior for non-API SPA routes until that code is repointed to MySQL.
 
+### Staging verification checklist
+
+Run these on a staging database, not the local SQLite playground:
+
+```bash
+cp .env.mysql.example .env
+# Set DB_* and mail values in .env
+php artisan key:generate
+php artisan migrate:fresh
+php artisan instant:import /path/to/instant-backup.zip --dry-run --json
+php artisan instant:import /path/to/instant-backup.zip --truncate
+php artisan test
+php artisan route:list --path=api
+```
+
+Verify row counts against Instant `config.json`, then test one public trip, one private
+trip, one viewer/editor account, guest upgrade, password reset, CRUD, task movement,
+comments, and the SEO metadata endpoint. Do not run `migrate:fresh` against production.
+
 ## Layout (Laravel 13)
 
 ```
