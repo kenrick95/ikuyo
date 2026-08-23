@@ -159,6 +159,7 @@ class ImportInstantBackup extends Command
         foreach ($users as $record) {
             $entity = $record['entity'];
             $this->collectTripUserLink($entity['tripUser'] ?? null, 'user_id', $entity['id']);
+            $this->collectCommentLink($entity['comment'] ?? null, 'user_id', $entity['id']);
             $authId = $this->linkId($entity['$users'] ?? null);
             $auth = $authId ? ($authById[$authId] ?? []) : [];
             $this->upsert('users', [
@@ -194,7 +195,17 @@ class ImportInstantBackup extends Command
         }
         foreach ($this->records($directory, 'commentGroup') as $record) {
             $entity = $record['entity'];
-            $this->collectOneSideLink('comment', $entity['comment'] ?? null, $entity['id']);
+            $this->collectCommentLink($entity['comment'] ?? null, 'comment_group_id', $entity['id']);
+        }
+    }
+
+    private function collectCommentLink(mixed $ids, string $column, string $parentId): void
+    {
+        if ($ids === null) return;
+        foreach ((array) $ids as $id) {
+            $commentId = $this->linkId($id);
+            if ($commentId === null) continue;
+            $this->commentLinks[$commentId][$column] = $parentId;
         }
     }
 
@@ -242,8 +253,8 @@ class ImportInstantBackup extends Command
                 $this->warn($this->treeSkipped($entity, $row, 'task_list_id'));
                 continue;
             }
-            if ($entity === 'comment' && ($row['comment_group_id'] ?? null) === null) {
-                $this->warn($this->treeSkipped($entity, $row, 'comment_group_id'));
+            if ($entity === 'comment' && (($row['comment_group_id'] ?? null) === null || ($row['user_id'] ?? null) === null)) {
+                $this->warn($this->treeSkipped($entity, $row, ($row['comment_group_id'] ?? null) === null ? 'comment_group_id' : 'user_id'));
                 continue;
             }
 
@@ -264,7 +275,11 @@ class ImportInstantBackup extends Command
             $row['user_id'] = $row['user_id'] ?? $links['user_id'] ?? null;
         }
         if ($entity === 'task') $row['task_list_id'] = $row['task_list_id'] ?? $this->parentChildLinks['task'][$row['id']] ?? null;
-        if ($entity === 'comment') $row['comment_group_id'] = $row['comment_group_id'] ?? $this->parentChildLinks['comment'][$row['id']] ?? null;
+        if ($entity === 'comment') {
+            $links = $this->commentLinks[$row['id']] ?? [];
+            $row['comment_group_id'] = $row['comment_group_id'] ?? $links['comment_group_id'] ?? null;
+            $row['user_id'] = $row['user_id'] ?? $links['user_id'] ?? null;
+        }
     }
 
     private function requiresFk(string $entity, array $row): bool
@@ -301,15 +316,15 @@ class ImportInstantBackup extends Command
                 'created_at_ms' => $created, 'updated_at_ms' => $updated,
             ],
             'tripUser' => ['id' => $id, 'trip_id' => $this->linkId($source['trip'] ?? null), 'user_id' => $this->linkId($source['user'] ?? null), 'role' => $this->role($source['role'] ?? null), 'created_at_ms' => $created, 'updated_at_ms' => $updated],
-            'activity' => $this->child($source, $created, $updated, ['title','location','description','flags','icon'], ['timestampStart'=>'timestamp_start_ms','timestampEnd'=>'timestamp_end_ms','timeZoneStart'=>'timezone_start','timeZoneEnd'=>'timezone_end','locationLat'=>'location_lat','locationLng'=>'location_lng','locationZoom'=>'location_zoom','locationDestination'=>'location_destination','locationDestinationLat'=>'location_destination_lat','locationDestinationLng'=>'location_destination_lng','locationDestinationZoom'=>'location_destination_zoom']),
-            'accommodation' => $this->child($source, $created, $updated, ['name','address','phoneNumber'=>'phone_number','notes'], ['timestampCheckIn'=>'check_in_ms','timestampCheckOut'=>'check_out_ms','timeZoneCheckIn'=>'tz_check_in','timeZoneCheckOut'=>'tz_check_out','locationLat'=>'location_lat','locationLng'=>'location_lng','locationZoom'=>'location_zoom']),
-            'macroplan' => $this->child($source, $created, $updated, ['name','notes'], ['timestampStart'=>'timestamp_start_ms','timestampEnd'=>'timestamp_end_ms','timeZoneStart'=>'timezone_start','timeZoneEnd'=>'timezone_end']),
-            'expense' => $this->child($source, $created, $updated, ['amount','amountInOriginCurrency'=>'amount_in_origin_currency','currency','currencyConversionFactor'=>'currency_conversion_factor','title','description'], ['timestampIncurred'=>'incurred_at_ms','timeZoneIncurred'=>'timezone_incurred']),
-            'taskList' => $this->child($source, $created, $updated, ['title','index','status'], []),
-            'task' => $this->child($source, $created, $updated, ['index','title','description','status','dueAt'=>'due_at_ms','completedAt'=>'completed_at_ms'], []),
-            'commentGroup' => $this->child($source, $created, $updated, ['status'], []),
+            'activity' => $this->child($source, $created, $updated, ['title','location','description','flags','icon'], ['timestampStart'=>'timestamp_start_ms','timestampEnd'=>'timestamp_end_ms','timeZoneStart'=>'timezone_start','timeZoneEnd'=>'timezone_end','locationLat'=>'location_lat','locationLng'=>'location_lng','locationZoom'=>'location_zoom','locationDestination'=>'location_destination','locationDestinationLat'=>'location_destination_lat','locationDestinationLng'=>'location_destination_lng','locationDestinationZoom'=>'location_destination_zoom'], 'trip'),
+            'accommodation' => $this->child($source, $created, $updated, ['name','address','phoneNumber'=>'phone_number','notes'], ['timestampCheckIn'=>'check_in_ms','timestampCheckOut'=>'check_out_ms','timeZoneCheckIn'=>'tz_check_in','timeZoneCheckOut'=>'tz_check_out','locationLat'=>'location_lat','locationLng'=>'location_lng','locationZoom'=>'location_zoom'], 'trip'),
+            'macroplan' => $this->child($source, $created, $updated, ['name','notes'], ['timestampStart'=>'timestamp_start_ms','timestampEnd'=>'timestamp_end_ms','timeZoneStart'=>'timezone_start','timeZoneEnd'=>'timezone_end'], 'trip'),
+            'expense' => $this->child($source, $created, $updated, ['amount','amountInOriginCurrency'=>'amount_in_origin_currency','currency','currencyConversionFactor'=>'currency_conversion_factor','title','description'], ['timestampIncurred'=>'incurred_at_ms','timeZoneIncurred'=>'timezone_incurred'], 'trip'),
+            'taskList' => $this->child($source, $created, $updated, ['title','index','status'], [], 'trip'),
+            'task' => $this->child($source, $created, $updated, ['index','title','description','status','dueAt'=>'due_at_ms','completedAt'=>'completed_at_ms'], [], 'taskList'),
+            'commentGroup' => $this->child($source, $created, $updated, ['status'], [], 'trip'),
             'commentGroupObject' => $this->mapCommentObject($source, $created, $updated),
-            'comment' => $this->child($source, $created, $updated, ['content'], []),
+            'comment' => $this->child($source, $created, $updated, ['content'], [], 'commentGroup'),
             default => [],
         };
     }
@@ -334,7 +349,7 @@ class ImportInstantBackup extends Command
         return $row;
     }
 
-    private function child(array $source, int $created, int $updated, array $fields, array $mapped): array
+    private function child(array $source, int $created, int $updated, array $fields, array $mapped, ?string $parentLink): array
     {
         $row = ['id' => (string) $source['id'], 'created_at_ms' => $created, 'updated_at_ms' => $updated];
         foreach ($fields as $from => $to) {
@@ -342,10 +357,10 @@ class ImportInstantBackup extends Command
             $row[$to] = $source[$from] ?? null;
         }
         foreach ($mapped as $from => $to) $row[$to] = $source[$from] ?? null;
-        foreach (['trip_id' => 'trip', 'task_list_id' => 'taskList', 'comment_group_id' => 'commentGroup', 'user_id' => 'user'] as $column => $link) {
-            if (array_key_exists($link, $source)) $row[$column] = $this->linkId($source[$link]);
+        $linkColumn = ['trip' => 'trip_id', 'taskList' => 'task_list_id', 'commentGroup' => 'comment_group_id'][$parentLink ?? ''] ?? null;
+        if ($linkColumn !== null && array_key_exists($parentLink, $source)) {
+            $row[$linkColumn] = $this->linkId($source[$parentLink]);
         }
-        if (array_key_exists('object', $source)) $row['comment_group_id'] = $this->linkId($source['object']);
         return $row;
     }
 
@@ -365,6 +380,8 @@ class ImportInstantBackup extends Command
     private array $parentChildLinks = [];
     /** @var array<string, array{trip_id?: string, user_id?: string}> tripUserId => resolved links */
     private array $tripUserLinks = [];
+    /** @var array<string, array{comment_group_id?: string, user_id?: string}> commentId => resolved links */
+    private array $commentLinks = [];
     private int $orphanedTripUsers = 0;
     private int $orphanedChildren = 0;
 

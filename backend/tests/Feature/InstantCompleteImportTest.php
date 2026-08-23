@@ -15,7 +15,7 @@ class InstantCompleteImportTest extends TestCase
         $dir = storage_path('framework/testing/instant-complete-' . uniqid());
         File::ensureDirectoryExists($dir . '/entities');
         $records = [
-            'user' => ['id' => 'u1', 'handle' => 'alice', 'email' => 'alice@example.com', 'activated' => true, 'tripUser' => ['tu1']],
+            'user' => ['id' => 'u1', 'handle' => 'alice', 'email' => 'alice@example.com', 'activated' => true, 'tripUser' => ['tu1'], 'comment' => ['c1']],
             'trip' => ['id' => 'tr1', 'title' => 'Trip', 'region' => 'JP', 'currency' => 'JPY', 'originCurrency' => 'USD', 'timeZone' => 'Asia/Tokyo', 'timestampStart' => 1000, 'timestampEnd' => 2000, 'sharingLevel' => 3, 'tripUser' => ['tu1'], 'accommodation' => ['ac1'], 'activity' => ['a1'], 'macroplan' => ['m1'], 'expense' => ['e1'], 'taskList' => ['tl1'], 'commentGroup' => ['cg1']],
             'tripUser' => ['id' => 'tu1', 'role' => 'owner'],
             'activity' => ['id' => 'a1', 'title' => 'Activity', 'location' => 'Kyoto', 'description' => 'Walk'],
