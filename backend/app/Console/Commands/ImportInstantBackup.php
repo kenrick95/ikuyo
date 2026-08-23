@@ -176,6 +176,14 @@ class ImportInstantBackup extends Command
         foreach ($this->records($directory, $entity) as $record) {
             $source = $record['entity'];
             $row = $this->mapEntity($entity, $source, $record['createdAt'] ?? null);
+            if ($entity === 'tripUser' && ($row['trip_id'] ?? null) === null || $entity === 'tripUser' && ($row['user_id'] ?? null) === null) {
+                throw new RuntimeException(
+                    'Unresolved tripUser link for ' . $source['id']
+                    . '\n  trip = ' . json_encode($source['trip'] ?? null, JSON_UNESCAPED_UNICODE)
+                    . '\n  user = ' . json_encode($source['user'] ?? null, JSON_UNESCAPED_UNICODE)
+                    . '\n  raw entity = ' . json_encode($source, JSON_UNESCAPED_UNICODE)
+                );
+            }
             if ($row !== []) $this->upsert(self::TABLES[$entity], $row);
         }
     }
