@@ -52,7 +52,10 @@ class ImportInstantBackup extends Command
 
         $expected = $this->readConfigCounts($directory);
         $verification = [];
-        foreach ($counts as $entity => $actual) {
+        // Iterate both tables-with-files and expected config entities, so a missing
+        // JSONL file still fails verification instead of silently passing.
+        foreach (array_unique([...array_keys(self::TABLES), ...array_keys($expected)]) as $entity) {
+            $actual = $counts[$entity] ?? 0;
             $verification[$entity] = [
                 'expected' => $expected[$entity] ?? null,
                 'actual' => $actual,

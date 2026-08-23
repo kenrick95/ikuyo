@@ -19,13 +19,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'trip.access' => AuthorizeTripAccess::class,
         ]);
-
-        $middleware->validateCsrfTokens(except: [
-            'api/auth/login',
-            'api/auth/guest',
-            'api/auth/forgot',
-            'api/auth/reset',
-        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

@@ -1,5 +1,7 @@
 import type { StateCreator } from 'zustand';
 import { type CursorPage, get } from '../data/apiClient';
+import { backendTripReads } from '../data/backendConfig';
+import { db } from '../data/db';
 import type { BoundStoreType } from '../data/store';
 
 export type TripsPublicSliceTrip = {
@@ -52,6 +54,9 @@ export const createTripsPublicSlice: StateCreator<
     tripsPublicLoadMore: undefined,
     tripsPublicLoadingMore: null,
     subscribeTripsPublic: () => {
+      if (!backendTripReads) {
+        return subscribeTripsPublicInstant(set);
+      }
       let disposed = false;
       let nextCursor: string | null = null;
 
@@ -65,20 +70,18 @@ export const createTripsPublicSlice: StateCreator<
         try {
           const query = new URLSearchParams({ limit: String(PAGE_SIZE) });
           if (nextCursor) query.set('cursor', nextCursor);
-          const page = await get<
-            | CursorPage<ApiPublicTrip>
-            | { data: ApiPublicTrip[]; next_page_url?: string | null }
-          >(`/api/trips/public?${query.toString()}`);
+          const page = await get<CursorPage<ApiPublicTrip>>(
+            `/api/trips/public?${query.toString()}`,
+          );
           if (disposed) return;
-          const rows = page.data.map((trip) => ({ ...trip }));
-          const hasMore =
-            'hasMore' in page ? page.hasMore : Boolean(page.next_page_url);
-          nextCursor = 'nextCursor' in page ? page.nextCursor : null;
+          nextCursor = page.nextCursor;
           set((state) => ({
-            tripsPublic: append ? [...state.tripsPublic, ...rows] : rows,
+            tripsPublic: append
+              ? [...state.tripsPublic, ...page.data]
+              : page.data,
             tripsPublicLoading: false,
             tripsPublicLoadingMore: false,
-            tripsPublicHasMore: hasMore,
+            tripsPublicHasMore: page.hasMore,
           }));
         } catch (error) {
           if (disposed) return;
@@ -105,7 +108,6 @@ export const createTripsPublicSlice: StateCreator<
           void load(true);
         },
       }));
-
       return () => {
         disposed = true;
         set(() => ({ tripsPublicLoadMore: undefined }));
@@ -113,3 +115,57 @@ export const createTripsPublicSlice: StateCreator<
     },
   };
 };
+
+/** Original InstantDB-backed public-trip directory (default when backend reads are disabled). */
+function subscribeTripsPublicInstant(
+  set: (fn: (state: any) => Partial<TripsPublicSlice>) => void,
+): () => void {
+  const query = db.subscribeInfiniteQuery(
+    {
+      trip: {
+        $: {
+          limit: PAGE_SIZE,
+          order: { serverCreatedAt: 'desc' },
+          where: { sharingLevel: 3 },
+        },
+        tripUser: { $: { where: { role: 'owner' } }, user: {} },
+        activity: {},
+      },
+    },
+    ({ data, error, canLoadNextPage }) => {
+      if (error) {
+        set(() => ({
+          tripsPublicLoading: false,
+          tripsPublicError: error.message,
+          tripsPublicHasMore: null,
+          tripsPublicLoadingMore: null,
+        }));
+        return;
+      }
+      const trips = (data?.trip ?? []).map((trip) => ({
+        id: trip.id,
+        title: trip.title,
+        timestampStart: trip.timestampStart,
+        timestampEnd: trip.timestampEnd,
+        timeZone: trip.timeZone,
+        createdAt: trip.createdAt,
+        lastUpdatedAt: trip.lastUpdatedAt,
+        ownerHandle: trip.tripUser?.[0]?.user?.[0]?.handle ?? null,
+        activityCount: trip.activity?.length ?? 0,
+      }));
+      set(() => ({
+        tripsPublic: trips,
+        tripsPublicLoading: false,
+        tripsPublicHasMore: canLoadNextPage ?? null,
+        tripsPublicLoadingMore: false,
+      }));
+    },
+  );
+  set(() => ({
+    tripsPublicLoadMore: () => {
+      set(() => ({ tripsPublicLoadingMore: true }));
+      query.loadNextPage();
+    },
+  }));
+  return () => query.unsubscribe();
+}

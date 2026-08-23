@@ -180,8 +180,9 @@ class TripController extends Controller
             'includeTasks' => ['boolean'], 'removeActivityDates' => ['boolean'],
         ]);
         $user = $request->user();
+        abort_unless($user, 401);
         $now = $this->nowMs();
-        $trip->load(['activities', 'accommodations', 'macroPlans', 'expenses']);
+        $trip->load(['activities', 'accommodations', 'macroPlans', 'expenses', 'taskLists.tasks']);
         $newTrip = DB::transaction(function () use ($trip, $data, $user, $now): Trip {
             $copy = Trip::create([
                 'id' => (string) Str::uuid(), 'title' => $data['title'],
@@ -191,11 +192,16 @@ class TripController extends Controller
                 'origin_timezone' => $trip->origin_timezone, 'sharing_level' => 0,
             ]);
             $copy->users()->attach($user->id, ['id' => (string) Str::uuid(), 'role' => 0, 'created_at_ms' => $now, 'updated_at_ms' => $now]);
-            $dayShift = $data['startDateMs'] - $trip->timestamp_start_ms;
-            if ($data['includeActivities'] ?? false) foreach ($trip->activities as $item) $copy->activities()->create($this->copyActivity($item, $data['removeActivityDates'] ?? false, $dayShift));
-            if ($data['includeAccommodations'] ?? false) foreach ($trip->accommodations as $item) $copy->accommodations()->create($this->copyAccommodation($item, $dayShift));
-            if ($data['includeMacroplans'] ?? false) foreach ($trip->macroPlans as $item) $copy->macroPlans()->create($this->copyMacroPlan($item, $dayShift));
+            if ($data['includeActivities'] ?? false) foreach ($trip->activities as $item) $copy->activities()->create($this->copyActivity($item, $data['removeActivityDates'] ?? false, $trip, $data['startDateMs']));
+            if ($data['includeAccommodations'] ?? false) foreach ($trip->accommodations as $item) $copy->accommodations()->create($this->copyAccommodation($item, $trip, $data['startDateMs']));
+            if ($data['includeMacroplans'] ?? false) foreach ($trip->macroPlans as $item) $copy->macroPlans()->create($this->copyMacroPlan($item, $trip, $data['startDateMs']));
             if ($data['includeExpenses'] ?? false) foreach ($trip->expenses as $item) $copy->expenses()->create($item->only(['amount', 'amount_in_origin_currency', 'currency', 'currency_conversion_factor', 'title', 'description', 'incurred_at_ms', 'timezone_incurred']));
+            if ($data['includeTasks'] ?? false) foreach ($trip->taskLists as $list) {
+                $copyList = $copy->taskLists()->create(['title' => $list->title, 'index' => $list->index, 'status' => $list->status]);
+                foreach ($list->items as $item) {
+                    $copyList->tasks()->create(['title' => $item->title, 'description' => $item->description, 'index' => $item->index, 'status' => 0, 'due_at_ms' => $item->due_at_ms, 'completed_at_ms' => null]);
+                }
+            }
             return $copy;
         });
         return response()->json(['id' => $newTrip->id], 201);
@@ -224,36 +230,47 @@ class TripController extends Controller
         return (int) round(microtime(true) * 1000);
     }
 
-    private function copyActivity($item, bool $removeDates, int $shift): array
+    private function copyActivity($item, bool $removeDates, $trip, int $newStartMs): array
     {
         $row = $item->only(['title', 'location', 'location_lat', 'location_lng', 'location_zoom', 'location_destination', 'location_destination_lat', 'location_destination_lng', 'location_destination_zoom', 'description', 'timezone_start', 'timezone_end', 'flags', 'icon']);
-        $row['timestamp_start_ms'] = $removeDates || $item->timestamp_start_ms === null ? null : $item->timestamp_start_ms + $shift;
-        $row['timestamp_end_ms'] = $removeDates || $item->timestamp_end_ms === null ? null : $item->timestamp_end_ms + $shift;
+        $row['timestamp_start_ms'] = $removeDates || $item->timestamp_start_ms === null ? null : $this->shiftCalendarDays((int) $item->timestamp_start_ms, (int) $trip->timestamp_start_ms, $newStartMs, (string) ($item->timezone_start ?? $trip->timezone));
+        $row['timestamp_end_ms'] = $removeDates || $item->timestamp_end_ms === null ? null : $this->shiftCalendarDays((int) $item->timestamp_end_ms, (int) $trip->timestamp_start_ms, $newStartMs, (string) ($item->timezone_end ?? $trip->timezone));
         return $row;
     }
 
-    private function copyAccommodation($item, int $shift): array
+    private function copyAccommodation($item, $trip, int $newStartMs): array
     {
         $row = $item->only(['name', 'address', 'phone_number', 'notes', 'tz_check_in', 'tz_check_out', 'location_lat', 'location_lng', 'location_zoom']);
-        $row['check_in_ms'] = $item->check_in_ms + $shift;
-        $row['check_out_ms'] = $item->check_out_ms + $shift;
+        $row['check_in_ms'] = $this->shiftCalendarDays((int) $item->check_in_ms, (int) $trip->timestamp_start_ms, $newStartMs, (string) ($item->tz_check_in ?? $trip->timezone));
+        $row['check_out_ms'] = $this->shiftCalendarDays((int) $item->check_out_ms, (int) $trip->timestamp_start_ms, $newStartMs, (string) ($item->tz_check_out ?? $trip->timezone));
         return $row;
     }
 
-    private function copyMacroPlan($item, int $shift): array
+    private function copyMacroPlan($item, $trip, int $newStartMs): array
     {
         $row = $item->only(['name', 'notes', 'timezone_start', 'timezone_end']);
-        $row['timestamp_start_ms'] = $item->timestamp_start_ms + $shift;
-        $row['timestamp_end_ms'] = $item->timestamp_end_ms + $shift;
+        $row['timestamp_start_ms'] = $this->shiftCalendarDays((int) $item->timestamp_start_ms, (int) $trip->timestamp_start_ms, $newStartMs, (string) ($item->timezone_start ?? $trip->timezone));
+        $row['timestamp_end_ms'] = $this->shiftCalendarDays((int) $item->timestamp_end_ms, (int) $trip->timestamp_start_ms, $newStartMs, (string) ($item->timezone_end ?? $trip->timezone));
         return $row;
+    }
+
+    /** Move a timestamp by the calendar-day difference between two trip starts, in the target timezone (DST-safe). */
+    private function shiftCalendarDays(int $timestampMs, int $fromStartMs, int $toStartMs, string $tz): int
+    {
+        $fromStart = \Illuminate\Support\Carbon::createFromTimestampMs($fromStartMs, $tz)->startOfDay();
+        $toStart = \Illuminate\Support\Carbon::createFromTimestampMs($toStartMs, $tz)->startOfDay();
+        $days = $toStart->diffInDays($fromStart);
+        return \Illuminate\Support\Carbon::createFromTimestampMs($timestampMs, $tz)->addDays($days)->getTimestampMs();
     }
 
     private function serializeTrip(Trip $trip, ?int $role = null): array
     {
         $isPublicVisitor = $role === null && $trip->sharing_level >= 2;
+        $isMemberOrOwner = $role !== null;
         $showExpenses = $isPublicVisitor ? $trip->public_show_expenses !== false : ($role !== 2 || $trip->viewer_show_expenses !== false);
         $showTasks = $isPublicVisitor ? $trip->public_show_tasks !== false : ($role !== 2 || $trip->viewer_show_tasks !== false);
         $showComments = $isPublicVisitor ? $trip->public_show_comments !== false : ($role !== 2 || $trip->viewer_show_comments !== false);
+
         return [
             'id' => $trip->id,
             'title' => $trip->title,
@@ -279,12 +296,78 @@ class TripController extends Controller
             'macroplan' => $trip->macroPlans,
             'expense' => $showExpenses ? $trip->expenses : [],
             'taskList' => $showTasks ? $trip->taskLists : [],
-            'tripUser' => $trip->users->map(fn ($user): array => [
-                'id' => $user->pivot->id ?? null,
-                'role' => $user->pivot->role,
-                'user' => $user->only(['id', 'handle', 'activated', 'email']),
-            ])->values(),
-            'commentGroup' => $showComments ? $trip->commentGroups : [],
+            'tripUser' => $trip->users->map(function ($user) use ($isMemberOrOwner): array {
+                $userArr = ['id' => $user->id, 'handle' => $user->handle, 'activated' => (bool) $user->activated];
+                // Email is only exposed to authenticated members, matching instant.perms.ts.
+                if ($isMemberOrOwner) $userArr['email'] = $user->email;
+                return ['id' => $user->pivot?->id, 'role' => $user->pivot?->role, 'user' => $userArr];
+            })->values(),
+            'commentGroup' => $showComments ? $trip->commentGroups->map(fn ($group): array => $this->serializeCommentGroup($group))->values() : [],
         ];
+    }
+
+    private function serializeCommentGroup($group): array
+    {
+        $comments = ($group->comments ?? collect())->map(function ($comment): array {
+            $commentUser = $comment->user;
+            return [
+                'id' => $comment->id,
+                'content' => $comment->content,
+                'createdAt' => $comment->created_at_ms,
+                'lastUpdatedAt' => $comment->updated_at_ms,
+                'user' => [
+                    'id' => $commentUser?->id,
+                    'handle' => $commentUser?->handle,
+                    'activated' => (bool) ($commentUser?->activated ?? false),
+                ],
+            ];
+        })->values();
+
+        $object = null;
+        if ($group->object) {
+            $type = $this->objectTypeName((int) $group->object->object_type);
+            $objectArr = [
+                'id' => $group->object->id,
+                'type' => $type,
+                'createdAt' => $group->object->created_at_ms,
+                'lastUpdatedAt' => $group->object->updated_at_ms,
+            ];
+            $target = $this->resolveCommentTarget((int) $group->object->object_type, $group->object->object_id);
+            $objectArr[$type] = $target ? [$target] : [];
+            $object = $objectArr;
+        }
+
+        return [
+            'id' => $group->id,
+            'status' => $group->status,
+            'createdAt' => $group->created_at_ms,
+            'lastUpdatedAt' => $group->updated_at_ms,
+            'comment' => $comments,
+            'object' => $object,
+        ];
+    }
+
+    private function resolveCommentTarget(int $type, ?string $objectId): ?array
+    {
+        if ($objectId === null) return null;
+        $model = match ($type) {
+            0 => \App\Models\Trip::class,
+            1 => \App\Models\Activity::class,
+            2 => \App\Models\Accommodation::class,
+            3 => \App\Models\MacroPlan::class,
+            4 => \App\Models\Expense::class,
+            5 => \App\Models\Task::class,
+            default => null,
+        };
+        if (!$model) return null;
+        $record = $model::withTrashed()->whereKey($objectId)->first();
+        if (!$record) return ['id' => $objectId];
+        $name = method_exists($record, 'name') ? $record->name : ($record->title ?? '');
+        return ['id' => $record->id, 'title' => $name];
+    }
+
+    private function objectTypeName(int $type): string
+    {
+        return ['trip', 'activity', 'accommodation', 'macroplan', 'expense', 'task'][$type] ?? 'trip';
     }
 }

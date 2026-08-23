@@ -2,6 +2,13 @@ import type { DbTripQueryReturnType } from '../Trip/store/types';
 
 type ApiTrip = Record<string, any>;
 
+/** MySQL DECIMAL/BIGINT values can arrive as strings; coerce to numbers. */
+const toNum = (value: unknown): number | undefined => {
+  if (value === null || value === undefined || value === '') return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+};
+
 /** Convert Laravel's resource names/columns into the existing trip-store shape. */
 export function mapApiTrip(trip: ApiTrip): DbTripQueryReturnType {
   const map = (row: ApiTrip): ApiTrip => ({
@@ -10,33 +17,39 @@ export function mapApiTrip(trip: ApiTrip): DbTripQueryReturnType {
     taskListId: row.task_list_id,
     commentGroupId: row.comment_group_id,
     userId: row.user_id,
-    timestampStart: row.timestampStart ?? row.timestamp_start_ms,
-    timestampEnd: row.timestampEnd ?? row.timestamp_end_ms,
+    timestampStart: toNum(row.timestampStart ?? row.timestamp_start_ms),
+    timestampEnd: toNum(row.timestampEnd ?? row.timestamp_end_ms),
     timeZone: row.timeZone ?? row.timezone,
-    createdAt: row.createdAt ?? row.created_at_ms,
-    lastUpdatedAt: row.lastUpdatedAt ?? row.updated_at_ms,
-    timestampCheckIn: row.timestampCheckIn ?? row.check_in_ms,
-    timestampCheckOut: row.timestampCheckOut ?? row.check_out_ms,
+    createdAt: toNum(row.createdAt ?? row.created_at_ms),
+    lastUpdatedAt: toNum(row.lastUpdatedAt ?? row.updated_at_ms),
+    timestampCheckIn: toNum(row.timestampCheckIn ?? row.check_in_ms),
+    timestampCheckOut: toNum(row.timestampCheckOut ?? row.check_out_ms),
     timeZoneCheckIn: row.timeZoneCheckIn ?? row.tz_check_in,
     timeZoneCheckOut: row.timeZoneCheckOut ?? row.tz_check_out,
     phoneNumber: row.phoneNumber ?? row.phone_number,
-    locationLat: row.locationLat ?? row.location_lat,
-    locationLng: row.locationLng ?? row.location_lng,
-    locationZoom: row.locationZoom ?? row.location_zoom,
+    locationLat: toNum(row.locationLat ?? row.location_lat),
+    locationLng: toNum(row.locationLng ?? row.location_lng),
+    locationZoom: toNum(row.locationZoom ?? row.location_zoom),
     locationDestination: row.locationDestination ?? row.location_destination,
-    locationDestinationLat:
+    locationDestinationLat: toNum(
       row.locationDestinationLat ?? row.location_destination_lat,
-    locationDestinationLng:
+    ),
+    locationDestinationLng: toNum(
       row.locationDestinationLng ?? row.location_destination_lng,
-    locationDestinationZoom:
+    ),
+    locationDestinationZoom: toNum(
       row.locationDestinationZoom ?? row.location_destination_zoom,
+    ),
     timeZoneStart: row.timeZoneStart ?? row.timezone_start,
     timeZoneEnd: row.timeZoneEnd ?? row.timezone_end,
-    amountInOriginCurrency:
+    amountInOriginCurrency: toNum(
       row.amountInOriginCurrency ?? row.amount_in_origin_currency,
-    currencyConversionFactor:
+    ),
+    currencyConversionFactor: toNum(
       row.currencyConversionFactor ?? row.currency_conversion_factor,
-    timestampIncurred: row.timestampIncurred ?? row.incurred_at_ms,
+    ),
+    amount: toNum(row.amount),
+    timestampIncurred: toNum(row.timestampIncurred ?? row.incurred_at_ms),
     timeZoneIncurred: row.timeZoneIncurred ?? row.timezone_incurred,
     dueAt: row.dueAt ?? row.due_at_ms,
     completedAt: row.completedAt ?? row.completed_at_ms,
