@@ -10,8 +10,11 @@ import {
   useSubscribeUser,
 } from './Auth/hooks';
 import { DialogRoot } from './Dialog/DialogRoot';
+import { maintenanceMode, readOnlyMode } from './data/backendConfig';
 import { useBoundStore } from './data/store';
 import { withLoading } from './Loading/withLoading';
+import { PageMaintenance } from './Maintenance/PageMaintenance';
+import { ReadOnlyBanner } from './Maintenance/ReadOnlyBanner';
 import {
   RouteAccount,
   RouteAccountUpgrade,
@@ -127,9 +130,22 @@ function App() {
     [clearDialogs],
   );
 
+  // Full-site maintenance mode replaces the router + auth UI entirely. All hooks
+  // above still run unconditionally (React rule), but no routes are rendered and
+  // no writes can happen. `maintenanceMode` is a build-time constant, so this
+  // branch is stable across renders for a given build.
+  if (maintenanceMode) {
+    return (
+      <Theme appearance={theme} accentColor="red">
+        <PageMaintenance />
+      </Theme>
+    );
+  }
+
   return (
     <>
       <Theme appearance={theme} accentColor="red">
+        {readOnlyMode ? <ReadOnlyBanner /> : null}
         <Router aroundNav={aroundNav}>
           <Switch>
             {import.meta.env.DEV ? (

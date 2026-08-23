@@ -16,7 +16,7 @@ import { type RouteComponentProps, useLocation } from 'wouter';
 import { useAuthUser, useCurrentUser } from '../Auth/hooks';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
 import { CommonDialogMaxWidth } from '../Dialog/ui';
-import { backendAuthEnabled } from '../data/backendConfig';
+import { assertWritable, backendAuthEnabled } from '../data/backendConfig';
 import { db } from '../data/db';
 import { useBoundStore } from '../data/store';
 import imgUrl from '../logo/ikuyo.svg';
@@ -228,8 +228,11 @@ function UpgradeEmailInput({
             return;
           }
 
-          db.auth
-            .sendMagicCode({ email })
+          Promise.resolve()
+            // Linking an email (and later verifying its magic code) writes to the
+            // user record, so both are barred during the read-only freeze window.
+            .then(() => assertWritable('linking an email to your account'))
+            .then(() => db.auth.sendMagicCode({ email }))
             .then(() => {
               setSentEmail(email);
               setScreen(UpgradeScreen.EmailVerify);
@@ -244,13 +247,13 @@ function UpgradeEmailInput({
             })
             .catch((err: unknown) => {
               setSentEmail('');
+              const message =
+                (err as { body?: { message?: string } })?.body?.message ??
+                (err instanceof Error ? err.message : undefined);
               publishToast({
                 root: { duration: Number.POSITIVE_INFINITY },
                 title: { children: `Error sending email to ${email}` },
-                description: {
-                  children: (err as { body?: { message?: string } }).body
-                    ?.message,
-                },
+                description: { children: message },
                 close: {},
               });
             })
@@ -352,16 +355,17 @@ function UpgradeEmailVerify({
             return;
           }
 
-          db.auth
-            .signInWithMagicCode({ email: sentEmail, code })
+          Promise.resolve()
+            .then(() => assertWritable('verifying your email link'))
+            .then(() => db.auth.signInWithMagicCode({ email: sentEmail, code }))
             .catch((err: unknown) => {
+              const message =
+                (err as { body?: { message?: string } })?.body?.message ??
+                (err instanceof Error ? err.message : undefined);
               publishToast({
                 root: { duration: Number.POSITIVE_INFINITY },
                 title: { children: 'Error verifying code' },
-                description: {
-                  children: (err as { body?: { message?: string } }).body
-                    ?.message,
-                },
+                description: { children: message },
                 close: {},
               });
             })

@@ -1,3 +1,5 @@
+import { assertWritable } from './backendConfig';
+
 const API_BASE_URL = (process.env.IKUYO_API_URL ?? '').replace(/\/$/, '');
 
 export class ApiError extends Error {
@@ -84,18 +86,22 @@ export async function mutate<T>(
 }
 
 export function postMutation<T>(path: string, body: unknown): Promise<T> {
+  assertWritable('this operation');
   return mutate<T>(path, { method: 'POST', body: JSON.stringify(body) });
 }
 
 export function putMutation<T>(path: string, body: unknown): Promise<T> {
+  assertWritable('this operation');
   return mutate<T>(path, { method: 'PUT', body: JSON.stringify(body) });
 }
 
 export function patchMutation<T>(path: string, body: unknown): Promise<T> {
+  assertWritable('this operation');
   return mutate<T>(path, { method: 'PATCH', body: JSON.stringify(body) });
 }
 
 export function deleteMutation<T>(path: string): Promise<T> {
+  assertWritable('this operation');
   return mutate<T>(path, { method: 'DELETE' });
 }
 

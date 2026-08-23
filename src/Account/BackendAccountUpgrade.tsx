@@ -3,6 +3,7 @@ import type React from 'react';
 import { useCallback, useState } from 'react';
 import { useLocation } from 'wouter';
 import { post } from '../data/apiClient';
+import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
 import { RouteAccount } from '../Routes/routes';
 
@@ -17,6 +18,8 @@ export function BackendAccountUpgrade() {
       setLoading(true);
       const form = new FormData(event.currentTarget);
       try {
+        // Linking an email/password writes to the user record.
+        assertWritable('upgrading your guest account');
         await post('/api/auth/upgrade', {
           email: String(form.get('email') ?? '')
             .trim()

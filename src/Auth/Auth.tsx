@@ -13,7 +13,7 @@ import type React from 'react';
 import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { type RouteComponentProps, useLocation } from 'wouter';
 import { CommonDialogMaxWidth } from '../Dialog/ui';
-import { backendAuthEnabled } from '../data/backendConfig';
+import { assertWritable, backendAuthEnabled } from '../data/backendConfig';
 import { db } from '../data/db';
 import { useBoundStore } from '../data/store';
 import imgUrl from '../logo/ikuyo.svg';
@@ -101,6 +101,9 @@ function BackendLogin() {
       const form = new FormData(event.currentTarget);
       try {
         const path = mode === 'guest' ? '/api/auth/guest' : '/api/auth/login';
+        if (mode === 'guest') {
+          assertWritable('creating a guest account');
+        }
         await post(
           path,
           mode === 'guest'
@@ -278,8 +281,12 @@ function Email({
         .trim()
         .toLowerCase();
 
-      db.auth
-        .sendMagicCode({ email })
+      Promise.resolve()
+        // Magic-link auth provisions a user/session, so it's barred during the
+        // read-only freeze window. Logging the error through the existing
+        // `.catch` keeps the toast consistent with other auth failures.
+        .then(() => assertWritable('creating or changing your account'))
+        .then(() => db.auth.sendMagicCode({ email }))
         .then(() => {
           setSentEmail(email);
           setScreen(AuthScreen.LoginViaEmailVerify);
@@ -292,12 +299,13 @@ function Email({
         })
         .catch((err: unknown) => {
           setSentEmail('');
+          const message =
+            (err as { body?: { message?: string } })?.body?.message ??
+            (err instanceof Error ? err.message : undefined);
           publishToast({
             root: { duration: Number.POSITIVE_INFINITY },
             title: { children: `Error sending email to ${email}` },
-            description: {
-              children: (err as { body?: { message?: string } }).body?.message,
-            },
+            description: { children: message },
             close: {},
           });
         })
@@ -366,15 +374,19 @@ function MagicCode({
       }
       const formData = new FormData(elForm);
       const code = (formData.get('code') as string | null) ?? '';
-      db.auth
-        .signInWithMagicCode({ email: sentEmail, code })
+      Promise.resolve()
+        // Verifying a magic-code sign-in provisions a user/session, so it's
+        // barred during the read-only freeze window.
+        .then(() => assertWritable('creating or signing in to your account'))
+        .then(() => db.auth.signInWithMagicCode({ email: sentEmail, code }))
         .catch((err: unknown) => {
+          const message =
+            (err as { body?: { message?: string } })?.body?.message ??
+            (err instanceof Error ? err.message : undefined);
           publishToast({
             root: { duration: Number.POSITIVE_INFINITY },
             title: { children: 'Error signing in' },
-            description: {
-              children: (err as { body?: { message?: string } }).body?.message,
-            },
+            description: { children: message },
             close: {},
           });
         })
