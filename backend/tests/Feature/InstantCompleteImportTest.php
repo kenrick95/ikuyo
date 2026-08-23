@@ -17,7 +17,7 @@ class InstantCompleteImportTest extends TestCase
         $records = [
             'user' => ['id' => 'u1', 'handle' => 'alice', 'email' => 'alice@example.com', 'activated' => true],
             'trip' => ['id' => 'tr1', 'title' => 'Trip', 'region' => 'JP', 'currency' => 'JPY', 'originCurrency' => 'USD', 'timeZone' => 'Asia/Tokyo', 'timestampStart' => 1000, 'timestampEnd' => 2000, 'sharingLevel' => 3],
-            'tripUser' => ['id' => 'tu1', 'role' => 'owner', 'trip' => 'tr1', 'user' => 'u1'],
+            'tripUser' => ['id' => 'tu1', 'role' => 'owner', 'trip' => ['tr1'], 'user' => ['u1','other-null']],
             'activity' => ['id' => 'a1', 'title' => 'Activity', 'location' => 'Kyoto', 'description' => 'Walk', 'trip' => 'tr1'],
             'accommodation' => ['id' => 'ac1', 'name' => 'Hotel', 'address' => 'Kyoto', 'trip' => 'tr1', 'timestampCheckIn' => 1000, 'timestampCheckOut' => 2000],
             'macroplan' => ['id' => 'm1', 'name' => 'North', 'notes' => '', 'trip' => 'tr1', 'timestampStart' => 1000, 'timestampEnd' => 2000],
@@ -25,8 +25,8 @@ class InstantCompleteImportTest extends TestCase
             'taskList' => ['id' => 'tl1', 'title' => 'Todo', 'index' => 0, 'status' => 0, 'trip' => 'tr1'],
             'task' => ['id' => 't1', 'title' => 'Book', 'description' => '', 'index' => 0, 'status' => 0, 'taskList' => 'tl1'],
             'commentGroup' => ['id' => 'cg1', 'status' => 0, 'trip' => 'tr1'],
-            'commentGroupObject' => ['id' => 'cgo1', 'commentGroup' => 'cg1', 'type' => 'activity', 'activity' => 'a1'],
-            'comment' => ['id' => 'c1', 'content' => 'Early start', 'commentGroup' => 'cg1', 'user' => 'u1'],
+            'commentGroupObject' => ['id' => 'cgo1', 'commentGroup' => ['cg1'], 'type' => 'activity', 'activity' => ['a1']],
+            'comment' => ['id' => 'c1', 'content' => 'Early start', 'commentGroup' => ['cg1'], 'user' => ['u1']],
         ];
         foreach ($records as $entity => $data) {
             File::put($dir . '/entities/' . $entity . '.jsonl', json_encode(['entity' => $data, 'createdAt' => 1700000000000]) . "\n");
