@@ -3,9 +3,12 @@
 This plan covers the work still required before the InstantDB → Laravel/MySQL cutover.
 InstantDB is intentionally retained until the final verification period.
 
-## 1. Durable sync events and delete tombstones
+## ✅ 1. Durable sync events and delete tombstones
 
 **Goal:** Make periodic sync converge after updates, membership changes, and hard deletes.
+
+**Status:** Implemented in `backend/app/Models/SyncEvent.php`, `SyncEventService`,
+`SyncableObserver`, and `GET /api/sync`. Delete-tombstone regression coverage exists.
 
 Implementation:
 
@@ -23,7 +26,10 @@ Implementation:
 5. Return delete tombstones with `op: delete` and no payload.
 6. Keep a retention policy; weekly MySQL backups remain the recovery mechanism.
 
-## 2. Full API contract and authorization matrix
+## ✅ 2. Full API contract and authorization matrix
+
+Implemented core serializer normalization and contract tests. Continue expanding the
+matrix during staging.
 
 1. Create API Resources/serializers for each frontend entity.
 2. Ensure snake_case DB fields become the exact existing camelCase Zustand shape.

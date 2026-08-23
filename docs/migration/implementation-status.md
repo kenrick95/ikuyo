@@ -186,12 +186,14 @@ actual InstantDB backup and hosting environment.
 
 A durable `sync_events` table, `SyncEventService`, model observer, and event-ID cursor
 are implemented. Updates and deletes have a durable event path; the frontend hook uses
-the event cursor. Staging should still exercise long-running sync behavior.
+the event cursor. Delete-tombstone regression coverage passes. Staging should still
+exercise long-running sync behavior.
 
 ### ✅ 2. Full API response contract (implemented; staging validation remains)
 
-The full-trip response is normalized through `src/data/apiTrip.ts` and backend feature
-coverage exists. A real staging run should still compare every field against production.
+The full-trip response is normalized through `src/data/apiTrip.ts`; backend serializer
+coverage and a full-trip contract test now exist. A real staging run should still compare
+every field against production.
 
 - Normalize all nested entities from snake_case to the exact frontend camelCase shape.
 - Normalize `taskLists/tasks` to `taskList/task` where required.
