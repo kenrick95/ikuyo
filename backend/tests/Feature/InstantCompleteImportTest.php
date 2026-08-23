@@ -39,4 +39,19 @@ class InstantCompleteImportTest extends TestCase
         $this->assertDatabaseHas('comment_group_objects', ['object_type' => 1, 'object_id' => 'a1']);
         File::deleteDirectory($dir);
     }
+
+    public function test_orphaned_trip_user_is_skipped_without_failing(): void
+    {
+        $dir = storage_path('framework/testing/instant-orphan-' . uniqid());
+        File::ensureDirectoryExists($dir . '/entities');
+        File::put($dir . '/entities/user.jsonl', json_encode(['entity' => ['id' => 'u1', 'handle' => 'alice', 'activated' => true, 'tripUser' => ['tu-valid', 'tu-only-user']], 'createdAt' => 1700000000000]) . "\n");
+        File::put($dir . '/entities/trip.jsonl', json_encode(['entity' => ['id' => 'tr1', 'title' => 'Trip', 'region' => 'JP', 'currency' => 'JPY', 'timeZone' => 'Asia/Tokyo', 'timestampStart' => 1, 'timestampEnd' => 2, 'sharingLevel' => 0, 'tripUser' => ['tu-valid', 'tu-only-trip']], 'createdAt' => 1700000000000]) . "\n");
+        File::put($dir . '/entities/tripUser.jsonl', json_encode(['entity' => ['id' => 'tu-valid', 'role' => 'owner'], 'createdAt' => 1700000000000]) . "\n" . json_encode(['entity' => ['id' => 'tu-only-user', 'role' => 'viewer'], 'createdAt' => 1700000000000]) . "\n" . json_encode(['entity' => ['id' => 'tu-only-trip', 'role' => 'viewer'], 'createdAt' => 1700000000000]) . "\n");
+
+        $this->artisan('instant:import', ['backup' => $dir])->assertExitCode(0);
+        $this->assertDatabaseHas('trip_user', ['id' => 'tu-valid', 'trip_id' => 'tr1', 'user_id' => 'u1']);
+        $this->assertDatabaseMissing('trip_user', ['id' => 'tu-only-user']);
+        $this->assertDatabaseMissing('trip_user', ['id' => 'tu-only-trip']);
+        File::deleteDirectory($dir);
+    }
 }
