@@ -284,9 +284,18 @@ class ImportInstantBackup extends Command
 
     private function linkId(mixed $value): ?string
     {
+        if ($value === null || $value === '') return null;
         if (is_string($value)) return $value;
-        if (is_array($value) && isset($value['id'])) return (string) $value['id'];
-        if (is_array($value) && count($value) === 1) return $this->linkId(array_values($value)[0]);
+        if (is_int($value) || is_float($value)) return (string) $value;
+        if (is_array($value)) {
+            // has-one link shaped as {"id": "..."}
+            if (array_key_exists('id', $value)) return $this->linkId($value['id']);
+            // has-many link: an array of ids and/or {"id": ...} objects.
+            foreach ($value as $item) {
+                $resolved = $this->linkId($item);
+                if ($resolved !== null) return $resolved;
+            }
+        }
         return null;
     }
 
