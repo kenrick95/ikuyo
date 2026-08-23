@@ -98,6 +98,9 @@ class ImportInstantBackup extends Command
             $this->importEntity($directory, 'comment');
         });
 
+        if ($this->orphanedTripUsers > 0) {
+            $this->warn('Skipped ' . $this->orphanedTripUsers . ' orphaned tripUser membership(s).');
+        }
         $this->info('Import complete.');
         return self::SUCCESS;
     }
@@ -200,6 +203,18 @@ class ImportInstantBackup extends Command
                 $links = $this->tripUserLinks[$row['id']] ?? [];
                 $row['trip_id'] = $row['trip_id'] ?? $links['trip_id'] ?? null;
                 $row['user_id'] = $row['user_id'] ?? $links['user_id'] ?? null;
+                // Real production backups can contain one-sided/orphaned memberships
+                // (the user-side link exists but the trip-side reverse link is missing).
+                // Skip those rather than aborting the whole import.
+                if ($row['trip_id'] === null || $row['user_id'] === null) {
+                    $this->orphanedTripUsers++;
+                    if ($this->orphanedTripUsers <= 50) {
+                        $this->warn('Skipping orphaned tripUser ' . $row['id']
+                            . ' (trip_id=' . ($row['trip_id'] ?? 'null')
+                            . ', user_id=' . ($row['user_id'] ?? 'null') . ')');
+                    }
+                    continue;
+                }
             }
             if ($row !== []) $this->upsert(self::TABLES[$entity], $row);
         }
@@ -287,6 +302,7 @@ class ImportInstantBackup extends Command
 
     /** @var array<string, array{trip_id?: string, user_id?: string}> tripUserId => resolved links */
     private array $tripUserLinks = [];
+    private int $orphanedTripUsers = 0;
 
     /** @return array<string, int> */
     private function readConfigCounts(string $directory): array
