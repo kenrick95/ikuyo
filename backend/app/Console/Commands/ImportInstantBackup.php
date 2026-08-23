@@ -101,6 +101,9 @@ class ImportInstantBackup extends Command
         if ($this->orphanedTripUsers > 0) {
             $this->warn('Skipped ' . $this->orphanedTripUsers . ' orphaned tripUser membership(s).');
         }
+        if ($this->orphanedChildren > 0) {
+            $this->warn('Skipped ' . $this->orphanedChildren . ' orphaned child record(s).');
+        }
         $this->info('Import complete.');
         return self::SUCCESS;
     }
@@ -155,7 +158,7 @@ class ImportInstantBackup extends Command
 
         foreach ($users as $record) {
             $entity = $record['entity'];
-            $this->collectTripUserLinks($entity['tripUser'] ?? null, 'user_id', $entity['id']);
+            $this->collectTripUserLink($entity['tripUser'] ?? null, 'user_id', $entity['id']);
             $authId = $this->linkId($entity['$users'] ?? null);
             $auth = $authId ? ($authById[$authId] ?? []) : [];
             $this->upsert('users', [
@@ -180,11 +183,32 @@ class ImportInstantBackup extends Command
     {
         foreach ($this->records($directory, 'trip') as $record) {
             $entity = $record['entity'];
-            $this->collectTripUserLinks($entity['tripUser'] ?? null, 'trip_id', $entity['id']);
+            foreach (['activity', 'accommodation', 'macroplan', 'expense', 'taskList', 'commentGroup'] as $child) {
+                $this->collectOneSideLink($child, $entity[$child] ?? null, $entity['id']);
+            }
+            $this->collectTripUserLink($entity['tripUser'] ?? null, 'trip_id', $entity['id']);
+        }
+        foreach ($this->records($directory, 'taskList') as $record) {
+            $entity = $record['entity'];
+            $this->collectOneSideLink('task', $entity['task'] ?? null, $entity['id']);
+        }
+        foreach ($this->records($directory, 'commentGroup') as $record) {
+            $entity = $record['entity'];
+            $this->collectOneSideLink('comment', $entity['comment'] ?? null, $entity['id']);
         }
     }
 
-    private function collectTripUserLinks(mixed $ids, string $column, string $parentId): void
+    private function collectOneSideLink(string $child, mixed $ids, string $parentId): void
+    {
+        if ($ids === null) return;
+        foreach ((array) $ids as $id) {
+            $childId = $this->linkId($id);
+            if ($childId === null) continue;
+            $this->parentChildLinks[$child][$childId] = $parentId;
+        }
+    }
+
+    private function collectTripUserLink(mixed $ids, string $column, string $parentId): void
     {
         if ($ids === null) return;
         foreach ((array) $ids as $id) {
@@ -199,25 +223,62 @@ class ImportInstantBackup extends Command
         foreach ($this->records($directory, $entity) as $record) {
             $source = $record['entity'];
             $row = $this->mapEntity($entity, $source, $record['createdAt'] ?? null);
-            if ($entity === 'tripUser') {
-                $links = $this->tripUserLinks[$row['id']] ?? [];
-                $row['trip_id'] = $row['trip_id'] ?? $links['trip_id'] ?? null;
-                $row['user_id'] = $row['user_id'] ?? $links['user_id'] ?? null;
-                // Real production backups can contain one-sided/orphaned memberships
-                // (the user-side link exists but the trip-side reverse link is missing).
-                // Skip those rather than aborting the whole import.
-                if ($row['trip_id'] === null || $row['user_id'] === null) {
-                    $this->orphanedTripUsers++;
-                    if ($this->orphanedTripUsers <= 50) {
-                        $this->warn('Skipping orphaned tripUser ' . $row['id']
-                            . ' (trip_id=' . ($row['trip_id'] ?? 'null')
-                            . ', user_id=' . ($row['user_id'] ?? 'null') . ')');
-                    }
-                    continue;
-                }
+
+            // The real backup stores parent-side has-many arrays, so a child's FK may
+            // not appear on the child itself. Resolve from the collected parent maps
+            // (and from the child's own field when present), then skip orphans.
+            $this->resolveChildFk($entity, $row);
+
+            if ($entity === 'tripUser' && ($row['trip_id'] === null || $row['user_id'] === null)) {
+                $this->warn($this->treeSkipped($entity, $row, $row['trip_id'] === null ? 'trip_id' : 'user_id'));
+                continue;
             }
+            if ($this->requiresFk($entity, $row) && ($row['trip_id'] ?? null) === null) {
+                // trip child missing its trip link
+                $this->warn($this->treeSkipped($entity, $row, 'trip_id'));
+                continue;
+            }
+            if ($entity === 'task' && ($row['task_list_id'] ?? null) === null) {
+                $this->warn($this->treeSkipped($entity, $row, 'task_list_id'));
+                continue;
+            }
+            if ($entity === 'comment' && ($row['comment_group_id'] ?? null) === null) {
+                $this->warn($this->treeSkipped($entity, $row, 'comment_group_id'));
+                continue;
+            }
+
             if ($row !== []) $this->upsert(self::TABLES[$entity], $row);
         }
+    }
+
+    private function resolveChildFk(string $entity, array &$row): void
+    {
+        $ownerMap = ['activity' => 'trip_id', 'accommodation' => 'trip_id', 'macroplan' => 'trip_id', 'expense' => 'trip_id', 'taskList' => 'trip_id', 'commentGroup' => 'trip_id'];
+        if (isset($ownerMap[$entity])) {
+            $col = $ownerMap[$entity];
+            $row[$col] = $row[$col] ?? $this->parentChildLinks[$entity][$row['id']] ?? null;
+        }
+        if ($entity === 'tripUser') {
+            $links = $this->tripUserLinks[$row['id']] ?? [];
+            $row['trip_id'] = $row['trip_id'] ?? $links['trip_id'] ?? null;
+            $row['user_id'] = $row['user_id'] ?? $links['user_id'] ?? null;
+        }
+        if ($entity === 'task') $row['task_list_id'] = $row['task_list_id'] ?? $this->parentChildLinks['task'][$row['id']] ?? null;
+        if ($entity === 'comment') $row['comment_group_id'] = $row['comment_group_id'] ?? $this->parentChildLinks['comment'][$row['id']] ?? null;
+    }
+
+    private function requiresFk(string $entity, array $row): bool
+    {
+        return in_array($entity, ['tripUser', 'activity', 'accommodation', 'macroplan', 'expense', 'taskList', 'commentGroup'], true);
+    }
+
+    private function treeSkipped(string $entity, array $row, string $field): string
+    {
+        $this->orphanedChildren++;
+        if ($this->orphanedChildren <= 50) {
+            return 'Skipping orphaned ' . $entity . ' ' . $row['id'] . ' (' . $field . '=null)';
+        }
+        return '';
     }
 
     /** @return array<string, mixed> */
@@ -300,9 +361,12 @@ class ImportInstantBackup extends Command
         Schema::enableForeignKeyConstraints();
     }
 
+    /** @var array<string, array<string, string>> single-parent childEntity => childId => parentId */
+    private array $parentChildLinks = [];
     /** @var array<string, array{trip_id?: string, user_id?: string}> tripUserId => resolved links */
     private array $tripUserLinks = [];
     private int $orphanedTripUsers = 0;
+    private int $orphanedChildren = 0;
 
     /** @return array<string, int> */
     private function readConfigCounts(string $directory): array
