@@ -363,3 +363,409 @@ Do not attempt the production migration until all of these are true:
 - Public SEO metadata reads MySQL.
 - Shared-host deployment works with production-like HTTPS and SMTP.
 - InstantDB is still available as rollback until the final verification period ends.
+
+---
+
+# ▶ NEXT STEPS — EXACT RUNBOOK
+
+This is the precise order to follow to get from "backend implemented" to "production
+migration done". Each step states the folder, the environment, the exact command, and
+what it achieves. **Work top to bottom.** Do not remove InstantDB until step 9.
+
+---
+
+## Step 0 — Records live status and branch
+
+Work from: **local**, on branch `feat/backend-migration`.
+
+```bash
+cd /home/dietpi/dev/ikuyo
+git fetch origin
+git checkout feat/backend-migration
+git pull
+git status --short   # expect: clean, on feat/backend-migration
+```
+
+The two runnable codebases are **separate folders**:
+
+| folder | what it is | environment it runs on |
+|---|---|---|
+| `/home/dietpi/dev/ikuyo` (repo root) | React SPA + existing PHP SEO front-controller (`index.php`, `app/`, `config.example.php`) | shared web host (LiteSpeed/Apache) |
+| `/home/dietpi/dev/ikuyo/backend` | Laravel 13 JSON API + MySQL schema + importer | shared host (PHP 8.4 + MySQL) OR local SQLite for dev |
+
+---
+
+## Step 1 — CONFIRM the local dev backend runs (local, SQLite)
+
+**Folder:** `backend/` — **environment:** local dev machine.
+
+```bash
+cd backend
+cp .env.example .env          # dev defaults: sqlite + log mail
+composer install
+php artisan key:generate
+php artisan migrate:fresh --seed
+php artisan test              # expect: 16 tests / 57 assertions passed
+```
+
+Serves:
+
+```bash
+php artisan serve --port=8999
+```
+
+Then open:
+
+```bash
+# health (no auth)
+http://127.0.0.1:8999/up
+# start a session + CSRF token, then use it for every authed call
+http://127.0.0.1:8999/api/csrf-token
+# public / metadata / health
+http://127.0.0.1:8999/api/trips/public
+http://127.0.0.1:8999/api/metadata/trips/{publicTripId}
+```
+
+**What it proves:** the whole Laravel app boots, migrations run, and API routes respond
+locally. If `php artisan test` fails, stop and fix before proceeding.
+
+---
+
+## Step 2 — RUN THE IMPORTER AGAINST THE REAL BACKUP (local, SQLite)
+
+**Folder:** `backend/` **Environment:** local dev machine (SQLite is fine for a dry
+run + validation; final import must be MySQL).
+
+Put your Instant export on the machine, e.g. `D:\Dev\ikuyo\instant-backup-*.zip`.
+
+```bash
+cd backend
+# Dry-run + verify counts against config.json WITHOUT writing:
+php artisan instant:import D:/Dev/ikuyo/instant-backup-*.zip --dry-run --verify-config --json
+```
+
+Expect the output we saw: every entity `expected == actual == ok`. Then do a real
+import into the local SQLite dev DB:
+
+```bash
+php artisan instant:import D:/Dev/ikuyo/instant-backup-*.zip --truncate
+```
+
+After `Import complete`, the command prints a **post-import verification table**
+(`config` vs `imported` vs `diff`). Expect the diff to be only genuine orphans
+(orphaned tripUser / task / comment), with **all 265 comments imported** with authors.
+
+```bash
+# Confirm counts query (local SQLite):
+php artisan tinker
+# inside tinker:
+DB::table('users')->count();   # etc.
+```
+
+**What it proves:** your actual production data imports correctly into the schema,
+all FKs resolve, and the only skips are genuine orphaned rows. This is the single
+most important validation gate before cutover.
+
+---
+
+## Step 3 — SWITCH THE BACKEND TO MYSQL (staging / shared host)
+
+**Folder:** `backend/` **Environment:** shared host where the real MySQL DB lives.
+
+Laravel dev uses SQLite for convenience. Point the same code at MySQL with a real
+`.env`:
+
+1. Copy the MySQL template:
+   ```bash
+   cp .env.mysql.example .env
+   ```
+2. Edit `.env` and fill real values:
+   ```dotenv
+   APP_ENV=production
+   APP_DEBUG=false
+   DB_CONNECTION=mysql
+   DB_HOST=<mysql host, usually 127.0.0.1>
+   DB_PORT=3306
+   DB_DATABASE=ikuyo        # create this DB in your host's MySQL panel first
+   DB_USERNAME=<mysql user>
+   DB_PASSWORD=<mysql pass>
+   MAIL_MAILER=smtp         # for password-reset emails
+   MAIL_HOST=<smtp host>
+   MAIL_PORT=587
+   MAIL_USERNAME=<smtp user>
+   MAIL_PASSWORD=<smtp pass>
+   MAIL_FROM_ADDRESS=noreply@yourdomain.com
+   ```
+3. Generate the app key (once) and run migrations + import on MySQL:
+   ```bash
+   git pull
+   composer install --no-dev --optimize-autoloader --prefer-dist
+   php artisan key:generate
+   php artisan migrate:fresh          # WARNING: only on a fresh/empty DB
+   php artisan instant:import /path/to/instant-backup-*.zip --truncate
+   php artisan test
+   ```
+
+**What it does:** validates the identical code + schema against **real MySQL** and
+imports the real data into it. If PHPUnit passes under MySQL too, production DB
+compat is proven.
+
+---
+
+## Step 4 — SHARED-HOST PHP SETUP (deploy the Laravel app)
+
+**Folder:** `backend/` **Environment:** shared hosting webroot (the host must give
+you SSH + Composer; you already have this).
+
+Requirements to confirm on the host:
+
+```bash
+php -v                 # should be PHP 8.4
+composer --version     # Composer installed
+php -m | grep mysqli   # pdo_mysql present
+```
+
+Deployment layout on the host:
+
+```text
+public_html/
+├── index.php, index.html, app/, public/, config.php   ← existing SPA + SEO front controller
+└── backend/                                            ← Laravel
+    ├── public/index.php   (document root for /api/*)
+    ├── .env
+    └── ...
+```
+
+Document root behavior you must keep working:
+
+- **SPA + SEO:** host `index.php` / `index.html` (repo root). It serves the React app
+  and trip preview OG meta.
+- **API:** the host must route `/api/*` to `backend/public/index.php`.
+- LitedSpeed/Apache `RewriteRule` for `/api/*` → Laravel, everything else → SPA front
+  controller. (Put the `/api` block **above** the generic SPA rewrite rule.)
+
+Set writables:
+
+```bash
+php artisan optimize
+# ensure backend/storage and backend/bootstrap/cache are writable
+```
+
+---
+
+## Step 5 — REPOINT SEO METADATA FROM INSTANTDB TO MYSQL/LARAVEL
+
+**Folder:** repo root (`index.php`, `app/`) **Environment:** shared host.
+
+Today the root `index.php` queries **InstantDB's admin HTTP API** for public-trip
+metadata (see `index.php` → `queryTrip()`). Before InstantDB turns off, point this at
+MySQL instead.
+
+There is already a Laravel endpoint:
+
+```bash
+GET /api/metadata/trips/{tripId}
+```
+
+Returns public-trip metadata and returns `404` for private trips (no leak). Two options:
+
+**Option A (recommended):** change `queryTrip()` in the root `index.php` to call the
+Laravel metadata endpoint via cURL instead of the InstantDB admin API. The shape is
+almost identical.
+
+**Option B:** until you script a rewrite, keep the SEO controller reading a cached
+copy of public-trip metadata from MySQL via a tiny PDO query. This avoids depending on
+the Laravel HTTP path during the transition.
+
+**Never do:** let the SEO controller serve private-trip titles/dates. The Laravel
+endpoint already enforces `sharing_level >= 2`.
+
+---
+
+## Step 6 — BUILD THE REACT FRONTEND WITH THE BACKEND FLAGS **ON**
+
+**Folder:** repo root **Environment:** local / staging.
+
+Each `IKUYO_BACKEND_*` flag switches one slice from InstantDB to Laravel. Build the
+frontend once with flags on, then run the SPA against Laravel in the same process as
+Backend step.
+
+```dotenv
+# .env (repo root)
+IKUYO_API_URL=            # e.g. https://yourhost.com  (or blank = same origin)
+IKUYO_BACKEND_TRIP_READS=true
+IKUYO_BACKEND_AUTH=true
+IKUYO_BACKEND_TRIP_WRITES=true
+IKUYO_BACKEND_ACTIVITY_WRITES=true
+IKUYO_BACKEND_CONTENT_WRITES=true
+IKUYO_BACKEND_TASK_WRITES=true
+IKUYO_BACKEND_SHARING_WRITES=true
+```
+
+```bash
+cd /home/dietpi/dev/ikuyo
+pnpm exec tsc --noEmit              # typecheck
+pnpm build                          # build the SPA (needs INSTANT_APP_ID etc.)
+```
+
+Then serve the React SPA with Laravel in backend mode:
+
+```bash
+# Start Laravel
+cd backend && php artisan serve --port=8999 &
+
+# Serve the built SPA output (dist) pointed at *:8999/api for the API
+```
+
+**What it does:** exercises **every** read + write path through Laravel with InstantDB
+OFF, proving the frontend+backend integration end-to-end. This is the pre-cutover test.
+
+---
+
+## Step 7 — FULL E2E FUNCTIONAL TEST MATRIX (manual script)
+
+With flags on and both processes running, walk through every item:
+
+| area | what to do | what proves it |
+|---|---|---|
+| Auth | log in with email/password, create guest, upgrade guest | session persists; upgrade works |
+| Password recovery | hit forgot → reset email → reset link | valid reset; no enumeration (`ok:true` for unknown too) |
+| Trips | create, edit, share (owner/viewer/editor), delete | only owner can delete |
+| Public share | share a public trip, view anonymous | OG/social preview reads MySQL |
+| Activities | create, edit, drag/resize, duplicate, swap days | batch endpoint; drag-end works |
+| Accommodations/Macro/Expenses | CRUD | persisted, no orphan |
+| Tasks | list CRUD, reorder, move | reorder path works |
+| Comments | add, edit, delete, resolve | delete cleans group/object |
+| Sync | second tab edits a trip | first tab picks it up in ~30s |
+
+For every row STOP if it fails and fix that route before proceeding.
+
+---
+
+## Step 8 — PRODUCTION CONTROL / FREEZE WINDOW (final backup)
+
+**Folder:** repo root **Environment:** production documented.
+
+The frontend already has a maintenance/read-only gate (see `IKUYO_MAINTENANCE_MODE`,
+`IKUYO_READ_ONLY_MODE`). Before cutover:
+
+```dotenv
+IKUYO_READ_ONLY_MODE=true    # app readable; all writes rejected
+```
+
+Then take the **final** InstantDB backup:
+
+```bash
+npx instant-cli@latest backup download --latest
+```
+
+Import that **final** zip into the MySQL staging/production DB (Step 3). After this,
+no more InstantDB writes occur.
+
+---
+
+## Step 9 — CUTOVER & VERIFY (KEEPING InstantDB as rollback)
+
+Switch production to Laravel (the React app already reads Laravel when the flags are
+on; the shared hosting routes `/api/*` to Laravel). Run through the Step 7 matrix once
+more on production HTTPS/SMTP.
+
+**Do NOT delete InstantDB code/deps yet.** Keep `@instantdb/*`, `instant.schema.ts`,
+`instant.perms.ts`, and the Instant env vars so you can roll back for at least a week
+of stable operation.
+
+---
+
+## Step 10 — DECOMMISSION InstantDB (only after stable)
+
+Only when Step 9 has run stable (no rollback in N days):
+
+- Remove `@instantdb/*` from `package.json` (`pnpm install`)
+- Remove the `INSTANT_APP_*` / `INSTANT_*` env vars
+- Archive `instant.schema.ts` / `instant.perms.ts` as docs
+- Stop the Instant app
+
+---
+
+# ENV VAR REFERENCE
+
+## Repo root `.env` (React SPA + build; built-time)
+
+| var | default | meaning |
+|---|---|---|
+| `INSTANT_APP_ID` | required | InstantID app id (still present until step 10) |
+| `INSTANT_API_URI` | blank → default | InstantID API base |
+| `INSTANT_WEBSOCKET_URI` | blank → default | InstantID realtime socket |
+| `MAPTILER_API_KEY` | required | map tile key |
+| `MAPTILER_MAP_STYLE_LIGHT` / `_DARK` | preset map styles | dark/light style |
+| `SENTRY_ENABLED` | true | sentry on/off |
+| `SENTRY_DSN` | required in prod | sentry DSN |
+| `SENTRY_RELEASE` | blank | sentry release id |
+| `NODE_ENV` | development | `production`/`development` |
+| `IKUYO_API_URL` | blank = same-origin | Laravel API base |
+| `IKUYO_BACKEND_TRIP_READS` | false | read trip detail via Laravel (else InstantID) |
+| `IKUYO_BACKEND_AUTH` | false | use Laravel auth pages (else InstantID) |
+| `IKUYO_BACKEND_TRIP_WRITES` | false | write trips (create/update/delete/duplicate) via Laravel |
+| `IKUYO_BACKEND_ACTIVITY_WRITES` | false | write activities via Laravel |
+| `IKUYO_BACKEND_CONTENT_WRITES` | false | write accommodations/macros/expenses/comments via Laravel |
+| `IKUYO_BACKEND_TASK_WRITES` | false | write tasks/task-lists via Laravel |
+| `IKUYO_BACKEND_SHARING_WRITES` | false | write sharing/members via Laravel |
+| `IKUYO_MAINTENANCE_MODE` | false | whole app replaced with maintenance page |
+| `IKUYO_READ_ONLY_MODE` | false | block writes but let reads work (freeze) |
+
+## `backend/.env` (Laravel; from `.env.example` or `.env.mysql.example`)
+
+Core:
+
+| var | example | meaning |
+|---|---|---|
+| `APP_ENV` | `local` / `production` | env name |
+| `APP_DEBUG` | `true` local, `false` prod | debug output |
+| `APP_URL` | `http://localhost:8000` / real | base URL |
+
+Database (SQLite vs MySQL is the `DB_CONNECTION` switch):
+
+| var | example | meaning |
+|---|---|---|
+| `DB_CONNECTION` | `sqlite` (dev) / `mysql` (prod) | driver |
+| `DB_HOST` | `127.0.0.1` | host |
+| `DB_PORT` | `3306` | port |
+| `DB_DATABASE` | `laravel` / `ikuyo` | DB name |
+| `DB_USERNAME` / `DB_PASSWORD` | mysql user/pass | credentials |
+
+Session / mail:
+
+| var | example | meaning |
+|---|---|---|
+| `SESSION_DRIVER` | `database` | session store |
+| `SESSION_LIFETIME` | `43200` (12h) | minutes |
+| `SESSION_SECURE_COOKIE` | `true` prod | https-only cookie |
+| `SESSION_HTTP_ONLY` / `SESSION_SAME_SITE` | `true` / `lax` | cookie flags |
+| `MAIL_MAILER` | `log` dev / `smtp` prod | mail driver |
+| `MAIL_HOST`/`MAIL_PORT`/`MAIL_USERNAME`/`MAIL_PASSWORD` | smtp creds | SMTP |
+| `MAIL_ENCRYPTION` | `tls` | SMTP encryption |
+| `MAIL_FROM_ADDRESS` | `noreply@...` | from address |
+
+## `config.php` (repo-root SEO front controller; copy from `config.example.php`)
+
+| key | meaning |
+|---|---|
+| `APP_ENV` | dev logging toggle |
+| `INSTANT_APP_ID` | InstantID app id (currently used to read metadata) |
+| `INSTANT_ADMIN_TOKEN` | InstantID admin token (read metadata) |
+| `INSTANT_API_URI` | InstantID API override |
+| `SITE_URL` | absolute public site URL, no trailing slash |
+| `INDEX_HTML` | path to built SPA index.html |
+
+> After Step 5, the SEO `index.php` no longer needs `INSTANT_APP_ID` /
+> `INSTANT_ADMIN_TOKEN`; it reads metadata from Laravel/MySQL instead.
+
+## Notes on ordering
+
+1. Do **Step 2** (importer against real backup, local SQLite) as the **highest-priority
+   single validation**. If that passes (it did), the import pipeline is proven.
+2. Do **Step 3/4** (MySQL + shared-host deploy) before any flag-based
+   frontend/end-to-end testing, because the SPA needs `/api/*` reachable.
+3. Add flags incrementally in read → auth → write order, not all at once, so each is
+   verifiable and reversible.
+4. Keep InstantID fully available as rollback until the post-cutover window closes.
