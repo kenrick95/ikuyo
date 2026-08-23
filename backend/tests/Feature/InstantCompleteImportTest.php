@@ -15,9 +15,9 @@ class InstantCompleteImportTest extends TestCase
         $dir = storage_path('framework/testing/instant-complete-' . uniqid());
         File::ensureDirectoryExists($dir . '/entities');
         $records = [
-            'user' => ['id' => 'u1', 'handle' => 'alice', 'email' => 'alice@example.com', 'activated' => true],
-            'trip' => ['id' => 'tr1', 'title' => 'Trip', 'region' => 'JP', 'currency' => 'JPY', 'originCurrency' => 'USD', 'timeZone' => 'Asia/Tokyo', 'timestampStart' => 1000, 'timestampEnd' => 2000, 'sharingLevel' => 3],
-            'tripUser' => ['id' => 'tu1', 'role' => 'owner', 'trip' => ['tr1'], 'user' => ['u1','other-null']],
+            'user' => ['id' => 'u1', 'handle' => 'alice', 'email' => 'alice@example.com', 'activated' => true, 'tripUser' => ['tu1']],
+            'trip' => ['id' => 'tr1', 'title' => 'Trip', 'region' => 'JP', 'currency' => 'JPY', 'originCurrency' => 'USD', 'timeZone' => 'Asia/Tokyo', 'timestampStart' => 1000, 'timestampEnd' => 2000, 'sharingLevel' => 3, 'tripUser' => ['tu1']],
+            'tripUser' => ['id' => 'tu1', 'role' => 'owner'],
             'activity' => ['id' => 'a1', 'title' => 'Activity', 'location' => 'Kyoto', 'description' => 'Walk', 'trip' => 'tr1'],
             'accommodation' => ['id' => 'ac1', 'name' => 'Hotel', 'address' => 'Kyoto', 'trip' => 'tr1', 'timestampCheckIn' => 1000, 'timestampCheckOut' => 2000],
             'macroplan' => ['id' => 'm1', 'name' => 'North', 'notes' => '', 'trip' => 'tr1', 'timestampStart' => 1000, 'timestampEnd' => 2000],

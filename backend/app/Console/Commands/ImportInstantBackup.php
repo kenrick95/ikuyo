@@ -85,6 +85,7 @@ class ImportInstantBackup extends Command
             // Parents before foreign-key children.
             $this->importUsers($directory);
             $this->importEntity($directory, 'trip');
+            $this->collectTripLinksFromParents($directory);
             $this->importEntity($directory, 'tripUser');
             $this->importEntity($directory, 'activity');
             $this->importEntity($directory, 'accommodation');
@@ -151,6 +152,7 @@ class ImportInstantBackup extends Command
 
         foreach ($users as $record) {
             $entity = $record['entity'];
+            $this->collectTripUserLinks($entity['tripUser'] ?? null, 'user_id', $entity['id']);
             $authId = $this->linkId($entity['$users'] ?? null);
             $auth = $authId ? ($authById[$authId] ?? []) : [];
             $this->upsert('users', [
@@ -171,18 +173,33 @@ class ImportInstantBackup extends Command
         }
     }
 
+    private function collectTripLinksFromParents(string $directory): void
+    {
+        foreach ($this->records($directory, 'trip') as $record) {
+            $entity = $record['entity'];
+            $this->collectTripUserLinks($entity['tripUser'] ?? null, 'trip_id', $entity['id']);
+        }
+    }
+
+    private function collectTripUserLinks(mixed $ids, string $column, string $parentId): void
+    {
+        if ($ids === null) return;
+        foreach ((array) $ids as $id) {
+            $tripUserId = $this->linkId($id);
+            if ($tripUserId === null) continue;
+            $this->tripUserLinks[$tripUserId][$column] = $parentId;
+        }
+    }
+
     private function importEntity(string $directory, string $entity): void
     {
         foreach ($this->records($directory, $entity) as $record) {
             $source = $record['entity'];
             $row = $this->mapEntity($entity, $source, $record['createdAt'] ?? null);
-            if ($entity === 'tripUser' && ($row['trip_id'] ?? null) === null || $entity === 'tripUser' && ($row['user_id'] ?? null) === null) {
-                throw new RuntimeException(
-                    'Unresolved tripUser link for ' . $source['id']
-                    . '\n  trip = ' . json_encode($source['trip'] ?? null, JSON_UNESCAPED_UNICODE)
-                    . '\n  user = ' . json_encode($source['user'] ?? null, JSON_UNESCAPED_UNICODE)
-                    . '\n  raw entity = ' . json_encode($source, JSON_UNESCAPED_UNICODE)
-                );
+            if ($entity === 'tripUser') {
+                $links = $this->tripUserLinks[$row['id']] ?? [];
+                $row['trip_id'] = $row['trip_id'] ?? $links['trip_id'] ?? null;
+                $row['user_id'] = $row['user_id'] ?? $links['user_id'] ?? null;
             }
             if ($row !== []) $this->upsert(self::TABLES[$entity], $row);
         }
@@ -267,6 +284,9 @@ class ImportInstantBackup extends Command
         foreach (array_reverse(array_values(self::TABLES)) as $table) DB::table($table)->truncate();
         Schema::enableForeignKeyConstraints();
     }
+
+    /** @var array<string, array{trip_id?: string, user_id?: string}> tripUserId => resolved links */
+    private array $tripUserLinks = [];
 
     /** @return array<string, int> */
     private function readConfigCounts(string $directory): array
