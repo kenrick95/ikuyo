@@ -40,11 +40,11 @@ class ApiMigrationTest extends TestCase
 
         $this->postJson('/api/auth/forgot', ['email' => $user->email])
             ->assertOk()->assertJson(['ok' => true]);
-        Mail::assertQueued(PasswordResetMail::class, fn (PasswordResetMail $mail): bool => $mail->user->is($user));
+        Mail::assertSent(PasswordResetMail::class, fn (PasswordResetMail $mail): bool => $mail->user->is($user));
 
         $this->postJson('/api/auth/forgot', ['email' => 'missing@example.com'])
             ->assertOk()->assertJson(['ok' => true]);
-        Mail::assertQueuedCount(1);
+        Mail::assertSentCount(1);
     }
 
     public function test_authenticated_user_can_create_a_trip(): void

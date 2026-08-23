@@ -94,7 +94,9 @@ class AuthController extends Controller
                 'reset_token_at' => now()->addHour()->getTimestampMs(),
             ])->save();
             $frontendUrl = rtrim((string) config('app.url'), '/');
-            Mail::to($user->email)->queue(new PasswordResetMail(
+            // Shared hosting has no persistent queue worker; send synchronously so
+            // the reset email is delivered even when only PHP/cron is available.
+            Mail::to($user->email)->send(new PasswordResetMail(
                 $user,
                 $frontendUrl . '/login?reset_token=' . urlencode($rawToken),
             ));

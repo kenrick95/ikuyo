@@ -59,10 +59,12 @@ export const createTripsSlice: StateCreator<
     let pastCursor: string | null = null;
     let activeTrips: TripsSliceTrip[] = [];
     let pastTrips: TripsSliceTrip[] = [];
+    let activeLoaded = false;
+    let pastLoaded = false;
 
     const toTrip = (trip: ApiTrip): TripsSliceTrip => ({ ...trip });
     const merge = () => {
-      if (disposed) return;
+      if (disposed || !activeLoaded || !pastLoaded) return;
       set((state) => ({
         trips: { ...state.trips, [queryKey]: [...activeTrips, ...pastTrips] },
         tripsLoading: false,
@@ -73,20 +75,25 @@ export const createTripsSlice: StateCreator<
         const params = new URLSearchParams({
           now: String(now),
           status: append ? 'past' : 'active',
-          limit: '10',
+          limit: append ? '10' : '100',
         });
         if (append && pastCursor) params.set('cursor', pastCursor);
         const page = await get<CursorPage<ApiTrip>>(`/api/trips?${params}`);
         if (disposed) return;
-        if (append) pastTrips = [...pastTrips, ...page.data.map(toTrip)];
-        else activeTrips = page.data.map(toTrip);
-        pastCursor = page.nextCursor;
-        set(() => ({ tripsHasMore: page.hasMore, tripsLoadingMore: false }));
+        if (append) {
+          pastTrips = [...pastTrips, ...page.data.map(toTrip)];
+          pastCursor = page.nextCursor;
+          pastLoaded = true;
+          set(() => ({ tripsHasMore: page.hasMore, tripsLoadingMore: false }));
+        } else {
+          activeTrips = page.data.map(toTrip);
+          activeLoaded = true;
+        }
         merge();
       } catch (error) {
         if (disposed) return;
         set(() => ({
-          tripsLoading: false,
+          tripsLoading: activeLoaded && pastLoaded ? false : false,
           tripsLoadingMore: false,
           tripsError:
             error instanceof Error ? error.message : 'Unable to load trips',

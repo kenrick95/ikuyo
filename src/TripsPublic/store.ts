@@ -120,6 +120,8 @@ export const createTripsPublicSlice: StateCreator<
 function subscribeTripsPublicInstant(
   set: (fn: (state: any) => Partial<TripsPublicSlice>) => void,
 ): () => void {
+  let loadingMore = false;
+  let hasMore = false;
   const query = db.subscribeInfiniteQuery(
     {
       trip: {
@@ -153,16 +155,20 @@ function subscribeTripsPublicInstant(
         ownerHandle: trip.tripUser?.[0]?.user?.[0]?.handle ?? null,
         activityCount: trip.activity?.length ?? 0,
       }));
+      hasMore = canLoadNextPage ?? false;
+      loadingMore = false;
       set(() => ({
         tripsPublic: trips,
         tripsPublicLoading: false,
-        tripsPublicHasMore: canLoadNextPage ?? null,
+        tripsPublicHasMore: hasMore,
         tripsPublicLoadingMore: false,
       }));
     },
   );
   set(() => ({
     tripsPublicLoadMore: () => {
+      if (loadingMore || !hasMore) return;
+      loadingMore = true;
       set(() => ({ tripsPublicLoadingMore: true }));
       query.loadNextPage();
     },

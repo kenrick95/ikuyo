@@ -31,6 +31,7 @@ return new class extends Migration
             $table->bigInteger('created_at_ms');
             $table->bigInteger('updated_at_ms');
             $table->foreign('task_list_id')->references('id')->on('task_lists')->cascadeOnDelete();
+            $table->index(['task_list_id', 'updated_at_ms', 'id']);
         });
 
         Schema::create('comment_groups', function (Blueprint $table): void {
@@ -50,6 +51,7 @@ return new class extends Migration
             $table->bigInteger('created_at_ms');
             $table->bigInteger('updated_at_ms');
             $table->foreign('comment_group_id')->references('id')->on('comment_groups')->cascadeOnDelete();
+            $table->index(['comment_group_id', 'updated_at_ms', 'id']);
         });
 
         Schema::create('comments', function (Blueprint $table): void {
@@ -61,6 +63,7 @@ return new class extends Migration
             $table->bigInteger('updated_at_ms');
             $table->foreign('comment_group_id')->references('id')->on('comment_groups')->cascadeOnDelete();
             $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
+            $table->index(['comment_group_id', 'updated_at_ms', 'id']);
         });
     }
 

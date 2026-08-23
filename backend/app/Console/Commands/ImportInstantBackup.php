@@ -41,7 +41,7 @@ class ImportInstantBackup extends Command
         $directory = $this->prepareSource($source);
         $counts = [];
 
-        foreach (self::TABLES as $entity => $table) {
+        foreach (array_unique([...array_keys(self::TABLES), '$users']) as $entity) {
             $file = $directory . '/entities/' . $entity . '.jsonl';
             if (!is_file($file)) {
                 continue;
@@ -54,7 +54,7 @@ class ImportInstantBackup extends Command
         $verification = [];
         // Iterate both tables-with-files and expected config entities, so a missing
         // JSONL file still fails verification instead of silently passing.
-        foreach (array_unique([...array_keys(self::TABLES), ...array_keys($expected)]) as $entity) {
+        foreach (array_unique([...array_keys(self::TABLES), '$users', ...array_keys($expected)]) as $entity) {
             $actual = $counts[$entity] ?? 0;
             $verification[$entity] = [
                 'expected' => $expected[$entity] ?? null,
@@ -110,6 +110,7 @@ class ImportInstantBackup extends Command
         $this->info('Import complete.');
 
         $this->printPostImportReport($directory);
+        $this->cleanupExtractedSource($source, $directory);
         return self::SUCCESS;
     }
 
@@ -130,6 +131,13 @@ class ImportInstantBackup extends Command
         $this->newLine();
         $this->info('Post-import verification:');
         $this->table(['entity', 'config', 'imported', 'diff'], $rows);
+    }
+
+    private function cleanupExtractedSource(string $source, string $directory): void
+    {
+        if (is_file($source) && str_starts_with($directory, storage_path('app/instant-import/'))) {
+            \Illuminate\Support\Facades\File::deleteDirectory($directory);
+        }
     }
 
     private function prepareSource(string $source): string
