@@ -105,7 +105,28 @@ class ImportInstantBackup extends Command
             $this->warn('Skipped ' . $this->orphanedChildren . ' orphaned child record(s).');
         }
         $this->info('Import complete.');
+
+        $this->printPostImportReport($directory);
         return self::SUCCESS;
+    }
+
+    private function printPostImportReport(string $directory): void
+    {
+        $expected = $this->readConfigCounts($directory);
+        $rows = [];
+        foreach (self::TABLES as $entity => $table) {
+            $actual = DB::table($table)->count();
+            $exp = $expected[$entity] ?? null;
+            $rows[] = [
+                $entity,
+                $exp === null ? '-' : (string) $exp,
+                (string) $actual,
+                $exp === null ? '-' : (string) ($exp - $actual) . ' skipped',
+            ];
+        }
+        $this->newLine();
+        $this->info('Post-import verification:');
+        $this->table(['entity', 'config', 'imported', 'diff'], $rows);
     }
 
     private function prepareSource(string $source): string
