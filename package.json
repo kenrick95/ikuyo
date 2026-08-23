@@ -11,6 +11,7 @@
     "build": "rsbuild build",
     "dev:rsdoctor": "cross-env RSDOCTOR=true rsbuild dev",
     "dev": "rsbuild dev --open",
+    "dev:backend": "cd backend && php artisan serve --port=8999",
     "preview": "rsbuild preview",
     "test": "vitest",
     "typecheck": "tsc --noEmit",

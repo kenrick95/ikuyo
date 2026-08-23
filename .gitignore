@@ -17,3 +17,4 @@ dist/
 
 # PHP metadata service
 config.php
+instant-*.zip
