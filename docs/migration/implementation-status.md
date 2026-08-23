@@ -288,8 +288,9 @@ Realtime is intentionally not required. The current target is:
 - Refetch on navigation and browser focus.
 - Optional `GET /api/sync` polling every 30–60 seconds.
 
-The sync endpoint exists, but the full trip store does not yet merge or consume its
-changes automatically. This should be completed or explicitly deferred before go-live.
+The durable sync endpoint and frontend polling hook exist. The hook triggers refresh
+callbacks; the full trip store still needs the final UI-level merge/refetch wiring in
+staging.
 
 ### 8. SEO front controller repoint
 
@@ -312,17 +313,15 @@ Still needed on the real shared host:
 
 ### 10. Remaining production security review
 
-Before enabling the backend for real users:
+Core password-reset mail delivery, rate limiting, CSRF handling, and authorization
+coverage are implemented. Before enabling production, perform this final review:
 
-- Use Laravel's standard password-reset notifications/mailables instead of logging
-  reset tokens.
-- Rate-limit login, guest creation, forgot-password, handle generation, and sync.
-- Confirm CSRF behavior for same-origin React requests.
-- Validate request bodies with Form Requests rather than broad `$request->except()`.
 - Replace broad `$guarded = []` on models with explicit `$fillable` or DTOs.
-- Add authorization tests to all write controllers.
-- Decide whether sessions should use Laravel's database driver or encrypted cookies.
-- Ensure logs never contain reset tokens or sensitive user data.
+- Validate request bodies with dedicated Form Requests rather than broad
+  `$request->except()`.
+- Confirm logs contain no reset tokens or sensitive user data.
+- Confirm session cookies and HTTPS behavior on the real host.
+- Run the authorization matrix against staging data.
 
 ### 11. Frontend build/runtime configuration
 
@@ -348,8 +347,8 @@ InstantDB subscription path; when true, it uses the Laravel HTTP API.
 
 1. Add a real API contract/serializer layer and complete full-trip response tests.
 2. Finish authorization tests for every resource.
-3. Run the now-tested importer against a real backup and staging MySQL.
-4. Complete frontend auth/store read fallback and periodic refresh behavior.
+3. Run the now-tested importer against staging MySQL.
+4. Complete frontend auth/store periodic refresh behavior.
 5. Repoint SEO metadata to Laravel/MySQL.
 6. Deploy Laravel + MySQL to shared-host staging.
 7. Enable backend flags in staging and run end-to-end tests.
@@ -778,3 +777,264 @@ Session / mail:
 3. Add flags incrementally in read → auth → write order, not all at once, so each is
    verifiable and reversible.
 4. Keep InstantID fully available as rollback until the post-cutover window closes.
+
+---
+
+# MANUAL / EXTERNAL WORK CHECKLIST
+
+> **Owner:** operator with access to the InstantDB backup and shared hosting.
+> These cannot be completed from this development workspace. Check each box only
+> after running and verifying the command/result. InstantDB must remain available
+> until the final post-cutover checkbox.
+
+## ✅ Completed by you: real backup import into local SQLite
+
+- [x] From `backend/` on your local Windows machine, run:
+  ```powershell
+  php artisan instant:import ..\instant-backup-2026-08-21T02-56-20-000Z.zip --truncate
+  ```
+- [x] Confirm the post-import report matches `config.json`.
+- [x] Confirmed result: 7 orphaned records skipped, including 1 trip membership,
+  1 task, and 5 comments; all other records imported.
+
+## 1. Download/retain the final InstantDB export
+
+**Where:** local operator machine, with InstantDB CLI credentials.
+
+```powershell
+npx instant-cli@latest backup list
+npx instant-cli@latest backup download --latest --out instant-final.zip
+```
+
+**Does:** downloads a final point-in-time export containing schema, rules, entities,
+and files. Store it securely; it contains user email addresses.
+
+- [ ] Downloaded final export immediately before the production freeze.
+- [ ] Recorded filename, timestamp, and SHA-256 checksum.
+
+```powershell
+Get-FileHash .\instant-final.zip -Algorithm SHA256
+```
+
+## 2. Provision staging MySQL
+
+**Where:** hosting control panel / phpMyAdmin, then shared-host SSH.
+
+- [ ] Create an empty staging database and database user.
+- [ ] Grant that user access only to the staging database.
+- [ ] Record the database host, port, name, username, and password.
+
+**Where:** shared-host SSH, `backend/` directory.
+
+```bash
+cd ~/path/to/ikuyo/backend
+cp .env.mysql.example .env
+chmod 600 .env
+# edit .env with staging DB_* and SMTP values
+php -v
+composer --version
+php -m | grep -Ei 'curl|mbstring|pdo_mysql|xml|zip'
+php artisan key:generate
+php artisan migrate:fresh --force
+```
+
+**Does:** installs Laravel's dependencies, confirms PHP 8.4/extensions, creates the
+MySQL schema, and prepares an empty staging database.
+
+- [ ] `php artisan migrate:fresh --force` completed on staging only.
+- [ ] `php artisan about` shows the expected environment/database.
+
+## 3. Import the real backup into staging MySQL
+
+**Where:** shared-host SSH, `backend/`; upload the ZIP first via SCP/SFTP or the
+hosting file manager.
+
+```bash
+cd ~/path/to/ikuyo/backend
+php artisan instant:import /home/account/backups/instant-final.zip \
+  --dry-run --verify-config --json
+```
+
+**Does:** parses the export without writing and fails if expected `config.json`
+entity counts do not match JSONL files.
+
+```bash
+php artisan instant:import /home/account/backups/instant-final.zip --truncate
+```
+
+**Does:** imports users, trips, memberships, children, tasks, comments, and links into
+staging MySQL. Review both the orphan warnings and the post-import report.
+
+- [ ] Dry-run counts all match.
+- [ ] Import completes without SQL errors.
+- [ ] Only understood orphan records are skipped.
+- [ ] Post-import counts are saved as a migration artifact.
+- [ ] Sample IDs from Instant exist in MySQL.
+
+## 4. Deploy and route Laravel on shared hosting
+
+**Where:** shared-host SSH/control panel.
+
+```bash
+cd ~/path/to/ikuyo/backend
+composer install --no-dev --optimize-autoloader --prefer-dist
+php artisan config:clear
+php artisan config:cache
+php artisan migrate --force
+php artisan route:list --path=api
+```
+
+Configure the host:
+
+- [ ] Laravel `backend/public` is the document root for the API host/path.
+- [ ] `/api/*` reaches Laravel's `backend/public/index.php`.
+- [ ] Existing root SPA/SEO routes still reach the root `index.php`.
+- [ ] Static assets still load directly.
+- [ ] `backend/storage` and `backend/bootstrap/cache` are writable.
+- [ ] `.env` is outside the public webroot and is not downloadable.
+- [ ] `APP_DEBUG=false`.
+- [ ] `/up` returns HTTP 200.
+
+```bash
+curl -i https://staging.example.com/up
+curl -i https://staging.example.com/api/auth/me
+curl -i https://staging.example.com/api/trips/public
+```
+
+## 5. Verify SMTP/password recovery
+
+**Where:** staging HTTPS site and shared-host Laravel environment.
+
+```bash
+cd ~/path/to/ikuyo/backend
+php artisan config:clear
+php artisan config:cache
+```
+
+- [ ] Set `MAIL_MAILER=smtp` and real staging SMTP values in `backend/.env`.
+- [ ] Request password reset for an existing user.
+- [ ] Confirm email arrives and link opens the React reset screen.
+- [ ] Complete password reset and log in.
+- [ ] Request reset for an unknown address; response remains generic.
+- [ ] Confirm raw reset tokens do not appear in Laravel logs.
+
+## 6. Run the complete staging E2E test
+
+**Where:** browser against staging HTTPS, with backend API and React build deployed.
+
+Build from the **repo root** with the flags below in the root build environment:
+
+```dotenv
+IKUYO_API_URL=https://staging.example.com
+IKUYO_BACKEND_TRIP_READS=true
+IKUYO_BACKEND_AUTH=true
+IKUYO_BACKEND_TRIP_WRITES=true
+IKUYO_BACKEND_ACTIVITY_WRITES=true
+IKUYO_BACKEND_CONTENT_WRITES=true
+IKUYO_BACKEND_TASK_WRITES=true
+IKUYO_BACKEND_SHARING_WRITES=true
+IKUYO_READ_ONLY_MODE=false
+IKUYO_MAINTENANCE_MODE=false
+```
+
+```bash
+cd ~/path/to/ikuyo
+pnpm install --frozen-lockfile
+pnpm exec tsc --noEmit
+pnpm build
+```
+
+- [ ] Existing email user can log in.
+- [ ] Guest can create an account and retain its session.
+- [ ] Guest can upgrade to email/password.
+- [ ] Password recovery works.
+- [ ] Trips list/detail render from MySQL.
+- [ ] Create/update/delete/duplicate trip works.
+- [ ] Public/private/viewer/editor/owner permissions match expectations.
+- [ ] Activities, accommodation, macroplan, and expenses CRUD works.
+- [ ] Drag/resize, duplicate, and swap-day work.
+- [ ] Tasks CRUD, reorder, and move work.
+- [ ] Comments create/edit/delete/resolve work.
+- [ ] Delete operations do not leave comment graph rows.
+- [ ] Two browser tabs converge through periodic sync/tombstones.
+
+## 7. Repoint SEO metadata
+
+**Where:** repo root `index.php`/`app/`, deployed on staging first.
+
+- [ ] Change the root SEO controller's InstantDB admin query to call:
+  ```text
+  GET https://staging.example.com/api/metadata/trips/{tripId}
+  ```
+- [ ] Preserve `sharing_level >= 2` public-only behavior.
+- [ ] Test public, private, missing, malformed, and nested `/trip/{id}` routes.
+- [ ] Confirm private titles/dates are never present in HTML metadata.
+- [ ] Keep root `config.php` out of git and remove Instant admin credentials only
+  after the SEO switch has been verified.
+
+## 8. Production freeze and final import
+
+**Where:** production deployment/operator machine.
+
+1. Announce a maintenance window.
+2. Set the root build environment:
+   ```dotenv
+   IKUYO_READ_ONLY_MODE=true
+   ```
+3. Deploy/read-only the frontend so users cannot mutate data.
+4. Enable InstantDB read-only mode in the Instant dashboard.
+5. Wait for in-flight mutations to finish.
+6. Download the final export (manual Step 1).
+7. Run dry-run verification against the final ZIP.
+8. Import into the empty production MySQL database:
+   ```bash
+   cd ~/path/to/ikuyo/backend
+   php artisan instant:import /home/account/backups/instant-final.zip --truncate
+   ```
+9. Save the post-import report.
+
+- [ ] Instant writes are frozen before final export.
+- [ ] Final import counts/report reviewed.
+- [ ] Production MySQL data spot-checked.
+- [ ] No client is writing to Instant after the freeze.
+
+## 9. Production cutover and rollback window
+
+**Where:** production shared host + HTTPS browser.
+
+Set root build environment to:
+
+```dotenv
+IKUYO_BACKEND_TRIP_READS=true
+IKUYO_BACKEND_AUTH=true
+IKUYO_BACKEND_TRIP_WRITES=true
+IKUYO_BACKEND_ACTIVITY_WRITES=true
+IKUYO_BACKEND_CONTENT_WRITES=true
+IKUYO_BACKEND_TASK_WRITES=true
+IKUYO_BACKEND_SHARING_WRITES=true
+IKUYO_READ_ONLY_MODE=false
+IKUYO_MAINTENANCE_MODE=false
+```
+
+- [ ] Deploy API and React build.
+- [ ] Confirm `/api/*` and SEO routing.
+- [ ] Run the complete E2E matrix again on production HTTPS.
+- [ ] Confirm writes appear in MySQL.
+- [ ] Confirm sync events/tombstones advance.
+- [ ] Monitor Laravel logs, HTTP 4xx/5xx, mail delivery, and DB errors.
+- [ ] Keep InstantDB read-only and all Instant source/dependencies available for rollback.
+- [ ] Do not delete anything yet; observe for at least the agreed rollback window.
+
+## 10. Decommission InstantDB
+
+**Where:** local repo and production configuration, only after stable operation.
+
+- [ ] Confirm rollback window has passed without data/API/auth issues.
+- [ ] Take/verify the hosting MySQL backup.
+- [ ] Remove Instant feature flags and environment variables.
+- [ ] Remove `@instantdb/admin`, `@instantdb/core`, and Instant CLI dependency when no
+  scripts need them.
+- [ ] Remove InstantDB fallback code from React stores/domain helpers.
+- [ ] Archive `instant.schema.ts`, `instant.perms.ts`, and the final export.
+- [ ] Remove Instant admin credentials from hosting.
+- [ ] Stop/decommission the Instant app only after confirming no clients use it.
