@@ -2,7 +2,7 @@ import { Button, Flex, Heading, Text, TextField } from '@radix-ui/themes';
 import type React from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
-import { post } from '../data/apiClient';
+import { postMutation } from '../data/apiClient';
 import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
 import imgUrl from '../logo/ikuyo.svg';
@@ -38,16 +38,16 @@ export function BackendLogin() {
           assertWritable('creating or changing your account');
         }
         if (mode === 'guest') {
-          await post('/api/auth/guest', {});
+          await postMutation('/api/auth/guest', {});
         } else if (mode === 'login') {
-          await post('/api/auth/login', {
+          await postMutation('/api/auth/login', {
             email: String(form.get('email') ?? '')
               .trim()
               .toLowerCase(),
             password: String(form.get('password') ?? ''),
           });
         } else if (mode === 'forgot') {
-          await post('/api/auth/forgot', {
+          await postMutation('/api/auth/forgot', {
             email: String(form.get('email') ?? '')
               .trim()
               .toLowerCase(),
@@ -64,7 +64,7 @@ export function BackendLogin() {
           setMode('login');
           return;
         } else {
-          await post('/api/auth/reset', {
+          await postMutation('/api/auth/reset', {
             resetToken: String(form.get('resetToken') ?? resetToken),
             password: String(form.get('password') ?? ''),
           });

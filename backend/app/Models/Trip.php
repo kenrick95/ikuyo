@@ -18,6 +18,19 @@ class Trip extends Model
     protected $keyType = 'string';
     public $timestamps = false;
 
+    protected function casts(): array
+    {
+        return [
+            // Nullable section-visibility flags: null = visible, 0/'0' = hidden.
+            'public_show_expenses' => 'boolean',
+            'public_show_tasks' => 'boolean',
+            'public_show_comments' => 'boolean',
+            'viewer_show_expenses' => 'boolean',
+            'viewer_show_tasks' => 'boolean',
+            'viewer_show_comments' => 'boolean',
+        ];
+    }
+
     public function activities(): HasMany
     {
         return $this->hasMany(Activity::class);

@@ -27,17 +27,14 @@ class CommentController extends Controller
 
         $comment = DB::transaction(function () use ($data, $trip, $user): Comment {
             $groupId = $data['groupId'] ?? (string) Str::uuid();
-            $group = CommentGroup::firstOrCreate(
-                ['id' => $groupId],
-                ['trip_id' => $trip->id, 'status' => 0],
-            );
-            if (empty($data['groupId'])) {
-                CommentGroupObject::create([
-                    'id' => $groupId,
-                    'comment_group_id' => $groupId,
-                    'object_type' => $data['objectType'],
-                    'object_id' => $data['objectId'],
-                ]);
+            $group = null;
+            if (!empty($data['groupId'])) {
+                // Reject cross-trip group IDs: an editor of one trip must not append
+                // to another trip's group by guessing its id.
+                $group = $trip->commentGroups()->whereKey($groupId)->firstOrFail();
+            } else {
+                $group = CommentGroup::create(['id' => $groupId, 'trip_id' => $trip->id, 'status' => 0]);
+                CommentGroupObject::create(['id' => $groupId, 'comment_group_id' => $groupId, 'object_type' => $data['objectType'], 'object_id' => $data['objectId']]);
             }
             return $group->comments()->create([
                 'id' => (string) Str::uuid(),
@@ -71,7 +68,14 @@ class CommentController extends Controller
         $record = Comment::with('commentGroup.trip')->findOrFail($comment);
         abort_unless($request->user() && app(\App\Services\TripAccessService::class)->canEdit($record->commentGroup->trip, $request->user()), 403);
         abort_unless($record->user_id === $request->user()->id || app(\App\Services\TripAccessService::class)->canManage($record->commentGroup->trip, $request->user()), 403);
-        $record->delete();
+        DB::transaction(function () use ($record): void {
+            $group = $record->commentGroup;
+            $record->delete();
+            if ($group && !$group->comments()->exists()) {
+                $group->object()->delete();
+                $group->delete();
+            }
+        });
         return response()->json(['ok' => true]);
     }
 

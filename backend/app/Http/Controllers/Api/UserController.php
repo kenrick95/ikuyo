@@ -86,7 +86,9 @@ class UserController extends Controller
     public function updateMember(Request $request, Trip $trip, string $member): JsonResponse
     {
         $data = $request->validate(['role' => ['required', 'integer', 'in:1,2']]);
-        $trip->users()->updateExistingPivot($member, ['role' => $data['role'], 'updated_at_ms' => nowMs()]);
+        // `member` is the membership (pivot) row id, not the related user id.
+        $membership = \App\Models\TripUser::whereKey($member)->where('trip_id', $trip->id)->firstOrFail();
+        $membership->update(['role' => $data['role'], 'updated_at_ms' => $this->nowMs()]);
         return response()->json(['ok' => true]);
     }
 

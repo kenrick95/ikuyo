@@ -32,6 +32,10 @@ Route::middleware('web')->group(function (): void {
     Route::get('/trips', [TripController::class, 'index'])->middleware('auth');
     Route::get('/trips/{trip}', [TripController::class, 'show'])
         ->middleware('trip.access:view');
+    Route::post('/activities/{activity}/drag-end', [ContentController::class, 'activityDragEndById'])
+        ->middleware('auth');
+    Route::post('/activities/{activity}/duplicate', [ContentController::class, 'activityDuplicateById'])
+        ->middleware('auth');
     Route::put('/activities/{activity}', [ContentController::class, 'activityUpdate'])
         ->middleware('auth');
     Route::delete('/activities/{activity}', [ContentController::class, 'activityDestroy'])
@@ -75,6 +79,8 @@ Route::middleware('web')->group(function (): void {
     Route::post('/trips/{trip}/activities/{activity}/duplicate', [ContentController::class, 'activityDuplicate'])
         ->middleware(['auth', 'trip.access:edit']);
 
+    Route::post('/task-lists/{taskList}/tasks', [TaskController::class, 'storeTaskById'])
+        ->middleware('auth');
     Route::put('/task-lists/{taskList}', [TaskController::class, 'updateListById'])
         ->middleware('auth');
     Route::patch('/tasks/{task}/index', [TaskController::class, 'reorderById'])

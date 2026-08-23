@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Accommodation;
 use App\Models\Activity;
+use App\Models\Comment;
+use App\Models\CommentGroup;
+use App\Models\CommentGroupObject;
 use App\Models\Expense;
 use App\Models\MacroPlan;
 use App\Models\Trip;
@@ -19,7 +22,10 @@ class ContentController extends Controller
     public function activityDestroy(Request $request, Activity $activity, TripAccessService $access): JsonResponse
     {
         abort_unless($request->user() && $access->canEdit($activity->trip, $request->user()), 403);
-        $activity->delete();
+        DB::transaction(function () use ($activity): void {
+            $this->deleteRelatedComments('activity', $activity->id);
+            $activity->delete();
+        });
         return response()->json(['ok' => true]);
     }
 
@@ -52,6 +58,55 @@ class ContentController extends Controller
         return response()->json(['ok' => true, 'movedCount' => count($updates)]);
     }
 
+    public function activityDragEnd(Request $request, Trip $trip, string $activity, TripAccessService $access): JsonResponse
+    {
+        abort_unless($request->user() && $access->canEdit($trip, $request->user()), 403);
+        $record = $trip->activities()->whereKey($activity)->firstOrFail();
+        $data = $request->validate(['timestampStart' => ['nullable', 'integer'], 'timestampEnd' => ['nullable', 'integer']]);
+        $record->update([
+            'timestamp_start_ms' => $data['timestampStart'] ?? null,
+            'timestamp_end_ms' => $data['timestampEnd'] ?? null,
+            'flags' => ((int) $record->flags) & ~1,
+        ]);
+        return response()->json($record->fresh());
+    }
+
+    public function activityDuplicate(Request $request, Trip $trip, string $activity, TripAccessService $access): JsonResponse
+    {
+        abort_unless($request->user() && $access->canEdit($trip, $request->user()), 403);
+        $record = $trip->activities()->whereKey($activity)->firstOrFail();
+        $data = $request->validate(['timestampStart' => ['nullable', 'integer'], 'timestampEnd' => ['nullable', 'integer']]);
+        $copy = $record->replicate();
+        $copy->id = (string) Str::uuid();
+        $copy->trip_id = $trip->id;
+        $copy->timestamp_start_ms = $data['timestampStart'] ?? null;
+        $copy->timestamp_end_ms = $data['timestampEnd'] ?? null;
+        $copy->flags = ((int) $record->flags) & ~1;
+        $copy->save();
+        return response()->json(['id' => $copy->id], 201);
+    }
+
+    public function activityDragEndById(Request $request, Activity $activity, TripAccessService $access): JsonResponse
+    {
+        abort_unless($request->user() && $access->canEdit($activity->trip, $request->user()), 403);
+        $data = $request->validate(['timestampStart' => ['nullable', 'integer'], 'timestampEnd' => ['nullable', 'integer']]);
+        $activity->update(['timestamp_start_ms' => $data['timestampStart'] ?? null, 'timestamp_end_ms' => $data['timestampEnd'] ?? null, 'flags' => ((int) $activity->flags) & ~1]);
+        return response()->json($activity->fresh());
+    }
+
+    public function activityDuplicateById(Request $request, Activity $activity, TripAccessService $access): JsonResponse
+    {
+        abort_unless($request->user() && $access->canEdit($activity->trip, $request->user()), 403);
+        $data = $request->validate(['timestampStart' => ['nullable', 'integer'], 'timestampEnd' => ['nullable', 'integer']]);
+        $copy = $activity->replicate();
+        $copy->id = (string) Str::uuid();
+        $copy->timestamp_start_ms = $data['timestampStart'] ?? null;
+        $copy->timestamp_end_ms = $data['timestampEnd'] ?? null;
+        $copy->flags = ((int) $activity->flags) & ~1;
+        $copy->save();
+        return response()->json(['id' => $copy->id], 201);
+    }
+
     public function byIdUpdate(Request $request, string $entity, string $entityId, TripAccessService $access): JsonResponse
     {
         $record = $this->recordById($entity, $entityId);
@@ -65,6 +120,7 @@ class ContentController extends Controller
     {
         $record = $this->recordById($entity, $entityId);
         abort_unless($request->user() && $access->canEdit($record->trip, $request->user()), 403);
+        $this->deleteEntityCommentGraph($record);
         $record->delete();
         return response()->json(['ok' => true]);
     }
@@ -83,9 +139,21 @@ class ContentController extends Controller
         'expenses' => 'expenses',
     ];
 
-    public function index(Trip $trip, string $entity): JsonResponse
+    public function index(Request $request, Trip $trip, string $entity, TripAccessService $access): JsonResponse
     {
         $this->model($entity);
+        $role = $access->role($trip, $request->user());
+        $isPublicVisitor = $role === null && $trip->sharing_level >= 2;
+
+        // Apply same section visibility as the full-trip serializer so a caller cannot
+        // bypass hidden expenses/tasks by hitting the child-collection endpoint directly.
+        $hidden = match ($entity) {
+            'expenses' => $isPublicVisitor ? $trip->public_show_expenses === false : ($role === 2 && $trip->viewer_show_expenses === false),
+            'tasks' => $isPublicVisitor ? $trip->public_show_tasks === false : ($role === 2 && $trip->viewer_show_tasks === false),
+            default => false,
+        };
+        if ($hidden) return response()->json([]);
+
         return response()->json($trip->{self::RELATIONS[$entity]}()->get());
     }
 
@@ -110,8 +178,35 @@ class ContentController extends Controller
 
     public function destroy(Trip $trip, string $entity, string $entityId): JsonResponse
     {
-        $this->record($trip, $entity, $entityId)->delete();
+        $record = $this->record($trip, $entity, $entityId);
+        $this->deleteEntityDescGraph($record);
+        $record->delete();
         return response()->json(['ok' => true]);
+    }
+
+    /** Delete a content entity's polymorphic comment graph (groups/objects/comments). */
+    private function deleteEntityDescGraph(Activity|Accommodation|MacroPlan|Expense $record): void
+    {
+        $type = match (true) {
+            $record instanceof Activity => 'activity',
+            $record instanceof Accommodation => 'accommodation',
+            $record instanceof MacroPlan => 'macroplan',
+            default => 'expense',
+        };
+        $this->deleteRelatedComments($type, $record->id);
+    }
+
+    private function deleteRelatedComments(string $objectType, string $objectId): void
+    {
+        $typeNo = ['trip'=>0,'activity'=>1,'accommodation'=>2,'macroplan'=>3,'expense'=>4,'task'=>5][$objectType] ?? null;
+        if ($typeNo === null) return;
+        $object = CommentGroupObject::where('object_type', $typeNo)->where('object_id', $objectId)->first();
+        if (!$object) return;
+        $group = $object->commentGroup;
+        if (!$group) return;
+        $group->comments()->delete();
+        $object->delete();
+        $group->delete();
     }
 
     private function mapFields(array $data): array

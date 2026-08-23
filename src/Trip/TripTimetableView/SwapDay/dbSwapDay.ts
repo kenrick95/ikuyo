@@ -1,4 +1,4 @@
-import { postMutation } from '../../../data/apiClient';
+import { patchMutation } from '../../../data/apiClient';
 import { backendActivityWrites } from '../../../data/backendConfig';
 import { db } from '../../../data/db';
 import type { TripSliceActivity } from '../../store/types';
@@ -45,7 +45,7 @@ export async function dbSwapDayActivities({
   );
 
   if (backendActivityWrites) {
-    await postMutation(
+    await patchMutation(
       `/api/trips/${encodeURIComponent(activities[0]?.tripId ?? '')}/activities/batch`,
       {
         activities: updates.map((update) => ({
@@ -58,7 +58,7 @@ export async function dbSwapDayActivities({
     return {
       movedCount: updates.length,
       undo: async () => {
-        await postMutation(
+        await patchMutation(
           `/api/trips/${encodeURIComponent(activities[0]?.tripId ?? '')}/activities/batch`,
           {
             activities: updates.map((update) => {

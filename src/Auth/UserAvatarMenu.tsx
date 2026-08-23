@@ -1,7 +1,7 @@
 import { Button, DropdownMenu } from '@radix-ui/themes';
 import { Link, useLocation } from 'wouter';
 import { UserHandle } from '../common/UserHandle/UserHandle';
-import { deleteMutation } from '../data/apiClient';
+import { postMutation } from '../data/apiClient';
 import { backendAuthEnabled } from '../data/backendConfig';
 import { db } from '../data/db';
 import type { DbUser } from '../data/types';
@@ -63,7 +63,7 @@ export function UserAvatarMenu({ user }: { user: DbUser | null | undefined }) {
                 return;
               }
               const logout = backendAuthEnabled
-                ? deleteMutation('/api/auth/logout')
+                ? postMutation('/api/auth/logout', {})
                 : db.auth.signOut();
               void logout.then(() => {
                 setLocation(RouteLogin.asRootRoute());

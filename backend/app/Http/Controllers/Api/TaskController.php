@@ -44,6 +44,32 @@ class TaskController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    public function storeTaskById(Request $request, TaskList $taskList): JsonResponse
+    {
+        abort_unless($request->user(), 401);
+        $taskList->load('trip');
+        $access = app(\App\Services\TripAccessService::class);
+        abort_unless($access->canEdit($taskList->trip, $request->user()), 403);
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'index' => ['required', 'integer', 'min:0'],
+            'status' => ['required', 'integer'],
+            'dueAt' => ['nullable', 'integer'],
+            'completedAt' => ['nullable', 'integer'],
+        ]);
+        $task = $taskList->tasks()->create([
+            'id' => (string) Str::uuid(),
+            'title' => $data['title'],
+            'description' => empty($data['description']) ? null : $data['description'],
+            'index' => $data['index'],
+            'status' => $data['status'],
+            'due_at_ms' => empty($data['dueAt'] ?? null) ? null : ($data['dueAt'] ?? null),
+            'completed_at_ms' => empty($data['completedAt'] ?? null) ? null : ($data['completedAt'] ?? null),
+        ]);
+        return response()->json($task, 201);
+    }
+
     public function storeTask(Request $request, Trip $trip, string $taskList): JsonResponse
     {
         $list = $this->list($trip, $taskList);
@@ -84,10 +110,12 @@ class TaskController extends Controller
                 'description' => $data['description'] ?? null,
                 'index' => $data['index'] ?? null,
                 'status' => $data['status'] ?? null,
-                'due_at_ms' => $data['dueAt'] ?? null,
-                'completed_at_ms' => $data['completedAt'] ?? null,
             ], static fn ($value): bool => $value !== null),
         ]);
+        // Persist nullable fields explicitly when present (even if null).
+        foreach (['dueAt' => 'due_at_ms', 'completedAt' => 'completed_at_ms'] as $field => $col) {
+            if (array_key_exists($field, $data)) $record->update([$col => $data[$field]]);
+        }
         return response()->json($record->fresh());
     }
 
@@ -114,7 +142,10 @@ class TaskController extends Controller
         $task->load('taskList.trip');
         $access = app(\App\Services\TripAccessService::class);
         abort_unless($access->canEdit($task->taskList->trip, $request->user()), 403);
-        $task->delete();
+        DB::transaction(function () use ($task): void {
+            $this->deleteTaskComments($task->id);
+            $task->delete();
+        });
         return response()->json(['ok' => true]);
     }
 
@@ -124,8 +155,23 @@ class TaskController extends Controller
         $taskList->load('trip');
         $access = app(\App\Services\TripAccessService::class);
         abort_unless($access->canEdit($taskList->trip, $request->user()), 403);
-        $taskList->delete();
+        DB::transaction(function () use ($taskList): void {
+            foreach ($taskList->tasks as $task) $this->deleteTaskComments($task->id);
+            $taskList->delete();
+        });
         return response()->json(['ok' => true]);
+    }
+
+    private function deleteTaskComments(string $taskId): void
+    {
+        $object = \App\Models\CommentGroupObject::where('object_type', 5)->where('object_id', $taskId)->first();
+        if (!$object) return;
+        $group = $object->commentGroup;
+        if ($group) {
+            $group->comments()->delete();
+            $group->delete();
+        }
+        $object->delete();
     }
 
     public function reorderTasks(Request $request, Trip $trip): JsonResponse
@@ -178,8 +224,17 @@ class TaskController extends Controller
         $access = app(\App\Services\TripAccessService::class);
         abort_unless($access->canEdit($task->taskList->trip, $request->user()), 403);
         $data = $request->validate(['title' => ['sometimes', 'string', 'max:255'], 'description' => ['nullable', 'string'], 'index' => ['sometimes', 'integer', 'min:0'], 'status' => ['sometimes', 'integer'], 'dueAt' => ['nullable', 'integer'], 'completedAt' => ['nullable', 'integer']]);
-        $task->update(['title' => $data['title'] ?? $task->title, 'description' => $data['description'] ?? $task->description, 'index' => $data['index'] ?? $task->index, 'status' => $data['status'] ?? $task->status, 'due_at_ms' => $data['dueAt'] ?? $task->due_at_ms, 'completed_at_ms' => $data['completedAt'] ?? $task->completed_at_ms]);
+        $updates = [];
+        foreach (['title', 'description', 'index', 'status', 'dueAt', 'completedAt'] as $field) {
+            if (array_key_exists($field, $data)) $updates[$this->dbField($field)] = $data[$field];
+        }
+        $task->update($updates);
         return response()->json($task->fresh());
+    }
+
+    private function dbField(string $field): string
+    {
+        return ['title' => 'title', 'description' => 'description', 'index' => 'index', 'status' => 'status', 'dueAt' => 'due_at_ms', 'completedAt' => 'completed_at_ms'][$field];
     }
 
     public function moveTask(Request $request, Trip $trip, string $task): JsonResponse

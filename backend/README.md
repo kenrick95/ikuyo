@@ -25,14 +25,19 @@ php artisan serve --port=8999
 Then open:
 
 ```
-GET http://127.0.0.1:8999/api/trips
-GET http://127.0.0.1:8999/api/trips/1
-GET http://127.0.0.1:8999/api/trips/1/sql
-GET http://127.0.0.1:8999/api/users/1/trips
-GET http://127.0.0.1:8999/api/db/example
+GET http://127.0.0.1:8999/api/csrf-token
+GET http://127.0.0.1:8999/api/auth/me
+GET http://127.0.0.1:8999/api/trips/public
+GET http://127.0.0.1:8999/api/metadata/trips/{publicTripId}
+GET http://127.0.0.1:8999/up   (health)
 ```
 
-(The seed data was already inserted; the `tinker` line is for a fresh DB.)
+Most endpoints require a valid session. Log in first via `POST /api/auth/login`
+(or use `POST /api/auth/guest`), then authenticate your browser/dev client with the
+session cookie before calling `/api/trips` or `/api/trips/{id}`.
+
+The exploration routes `/api/trips/1/sql`, `/api/users/1/trips`, and
+`/api/db/example` shown previously are no longer registered; use the routes above.
 
 ## What's here — the Eloquent patterns you should learn from
 
@@ -105,10 +110,21 @@ errors on `/api/*` render as JSON (`bootstrap/app.php` → `shouldRenderJsonWhen
   routes if you need route caching.
 - Keep ms-Epoch timestamps as `BIGINT`, not `datetime` casts.
 
-## Not in this skeleton (yet)
+## Current implementation status
 
-- Auth / Sanctum, guest accounts, password reset — right-sized for the real
-  migration (see `docs/migration/php-mysql-migration.md`).
+Auth is implemented:
+
+- `POST /api/auth/login` (password)
+- `POST /api/auth/logout`
+- `POST /api/auth/guest` (guest account)
+- `POST /api/auth/upgrade` (guest → email/password)
+- `POST /api/auth/forgot` + `POST /api/auth/reset` (password recovery mail)
+
+Sanctum can be added later if a token API client is needed; same-origin session
+cookies are used today.
+
+## Notes
+
 - MySQL config — it uses SQLite now so it runs with zero setup. To switch, edit
   `.env` `DB_CONNECTION=mysql` + credentials; the schema is driver-agnostic.
 - **Composer is the only dependency step.** The default `package.json`/Vite/Tailwind

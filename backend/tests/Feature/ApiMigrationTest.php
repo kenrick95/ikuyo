@@ -109,7 +109,7 @@ class ApiMigrationTest extends TestCase
 
         $this->actingAs($user)->getJson('/api/sync?since=0&tripId=' . $trip->id)
             ->assertOk()->assertJsonStructure(['changes', 'nextCursor'])
-            ->assertJsonPath('changes.0.entity', 'trips');
+            ->assertJsonPath('changes.0.entity', 'trip_user');
     }
 
     public function test_metadata_endpoint_exposes_only_public_trip_metadata(): void
