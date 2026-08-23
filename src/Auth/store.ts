@@ -18,6 +18,7 @@ export interface UserSlice {
 
   currentUser: DbUser | undefined;
   setCurrentUser: (user: DbUser | undefined) => void;
+  refreshCurrentUser: () => Promise<void>;
 }
 
 export const createUserSlice: StateCreator<
@@ -377,6 +378,11 @@ export const createUserSlice: StateCreator<
       set(() => ({
         currentUser: user,
       }));
+    },
+    refreshCurrentUser: async () => {
+      if (!backendAuthEnabled) return;
+      const response = await apiGet<{ user: DbUser | null }>('/api/auth/me');
+      set(() => ({ currentUser: response.user ?? undefined }));
     },
   };
 };
