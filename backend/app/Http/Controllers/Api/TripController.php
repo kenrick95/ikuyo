@@ -295,7 +295,7 @@ class TripController extends Controller
             'accommodation' => $trip->accommodations,
             'macroplan' => $trip->macroPlans,
             'expense' => $showExpenses ? $trip->expenses : [],
-            'taskList' => $showTasks ? $trip->taskLists : [],
+            'taskList' => $showTasks ? $trip->taskLists->map(fn ($list): array => array_merge($list->toArray(), ['task' => $list->tasks->values()]))->values() : [],
             'tripUser' => $trip->users->map(function ($user) use ($isMemberOrOwner): array {
                 $userArr = ['id' => $user->id, 'handle' => $user->handle, 'activated' => (bool) $user->activated];
                 // Email is only exposed to authenticated members, matching instant.perms.ts.
@@ -360,7 +360,7 @@ class TripController extends Controller
             default => null,
         };
         if (!$model) return null;
-        $record = $model::withTrashed()->whereKey($objectId)->first();
+        $record = $model::whereKey($objectId)->first();
         if (!$record) return ['id' => $objectId];
         $name = method_exists($record, 'name') ? $record->name : ($record->title ?? '');
         return ['id' => $record->id, 'title' => $name];
