@@ -16,15 +16,15 @@ class InstantCompleteImportTest extends TestCase
         File::ensureDirectoryExists($dir . '/entities');
         $records = [
             'user' => ['id' => 'u1', 'handle' => 'alice', 'email' => 'alice@example.com', 'activated' => true, 'tripUser' => ['tu1']],
-            'trip' => ['id' => 'tr1', 'title' => 'Trip', 'region' => 'JP', 'currency' => 'JPY', 'originCurrency' => 'USD', 'timeZone' => 'Asia/Tokyo', 'timestampStart' => 1000, 'timestampEnd' => 2000, 'sharingLevel' => 3, 'tripUser' => ['tu1']],
+            'trip' => ['id' => 'tr1', 'title' => 'Trip', 'region' => 'JP', 'currency' => 'JPY', 'originCurrency' => 'USD', 'timeZone' => 'Asia/Tokyo', 'timestampStart' => 1000, 'timestampEnd' => 2000, 'sharingLevel' => 3, 'tripUser' => ['tu1'], 'accommodation' => ['ac1'], 'activity' => ['a1'], 'macroplan' => ['m1'], 'expense' => ['e1'], 'taskList' => ['tl1'], 'commentGroup' => ['cg1']],
             'tripUser' => ['id' => 'tu1', 'role' => 'owner'],
-            'activity' => ['id' => 'a1', 'title' => 'Activity', 'location' => 'Kyoto', 'description' => 'Walk', 'trip' => 'tr1'],
-            'accommodation' => ['id' => 'ac1', 'name' => 'Hotel', 'address' => 'Kyoto', 'trip' => 'tr1', 'timestampCheckIn' => 1000, 'timestampCheckOut' => 2000],
-            'macroplan' => ['id' => 'm1', 'name' => 'North', 'notes' => '', 'trip' => 'tr1', 'timestampStart' => 1000, 'timestampEnd' => 2000],
-            'expense' => ['id' => 'e1', 'title' => 'Train', 'description' => '', 'trip' => 'tr1', 'amount' => 100, 'amountInOriginCurrency' => 1, 'currency' => 'JPY', 'currencyConversionFactor' => 1, 'timestampIncurred' => 1000],
-            'taskList' => ['id' => 'tl1', 'title' => 'Todo', 'index' => 0, 'status' => 0, 'trip' => 'tr1'],
-            'task' => ['id' => 't1', 'title' => 'Book', 'description' => '', 'index' => 0, 'status' => 0, 'taskList' => 'tl1'],
-            'commentGroup' => ['id' => 'cg1', 'status' => 0, 'trip' => 'tr1'],
+            'activity' => ['id' => 'a1', 'title' => 'Activity', 'location' => 'Kyoto', 'description' => 'Walk'],
+            'accommodation' => ['id' => 'ac1', 'name' => 'Hotel', 'address' => 'Kyoto', 'timestampCheckIn' => 1000, 'timestampCheckOut' => 2000],
+            'macroplan' => ['id' => 'm1', 'name' => 'North', 'notes' => '', 'timestampStart' => 1000, 'timestampEnd' => 2000],
+            'expense' => ['id' => 'e1', 'title' => 'Train', 'description' => '', 'amount' => 100, 'amountInOriginCurrency' => 1, 'currency' => 'JPY', 'currencyConversionFactor' => 1, 'timestampIncurred' => 1000],
+            'taskList' => ['id' => 'tl1', 'title' => 'Todo', 'index' => 0, 'status' => 0, 'task' => ['t1']],
+            'task' => ['id' => 't1', 'title' => 'Book', 'description' => '', 'index' => 0, 'status' => 0],
+            'commentGroup' => ['id' => 'cg1', 'status' => 0, 'comment' => ['c1']],
             'commentGroupObject' => ['id' => 'cgo1', 'commentGroup' => ['cg1'], 'type' => 'activity', 'activity' => ['a1']],
             'comment' => ['id' => 'c1', 'content' => 'Early start', 'commentGroup' => ['cg1'], 'user' => ['u1']],
         ];
