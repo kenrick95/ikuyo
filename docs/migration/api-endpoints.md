@@ -185,9 +185,14 @@ Special activity ops (mirror `db.ts`):
 | POST | `/api/trips/{tripId}/task-lists/{taskListId}/tasks` | create task | task fields | |
 | PUT | `/api/trips/{tripId}/task-lists/{taskListId}/tasks/{taskId}` | update task | task fields | |
 | DELETE | `/api/trips/{tripId}/task-lists/{taskListId}/tasks/{taskId}` | delete task | — | |
-| PATCH | `/api/trips/{tripId}/tasks/reorder` | bulk reorder | `[{taskId,index}]` | mirrors `dbUpdateTaskIndexes` |
-| PATCH | `/api/trips/{tripId}/task-lists/reorder` | bulk reorder lists | `[{taskListId,index}]` | mirrors `dbUpdateTaskListIndexes` |
+| PATCH | `/api/trips/{tripId}/tasks/reorder` | bulk reorder | `{tasks:[{id,index}]}` | mirrors `dbUpdateTaskIndexes` |
+| PATCH | `/api/trips/{tripId}/task-lists/reorder` | bulk reorder lists | `{taskLists:[{id,index}]}` | mirrors `dbUpdateTaskListIndexes` |
 | POST | `/api/trips/{tripId}/tasks/{taskId}/move` | move task to another list | `{toTaskListId,newIndex}` | mirrors `dbMoveTaskToTaskList` |
+
+The frontend helpers that only have an entity/list ID use these equivalent scoped routes:
+`POST /api/task-lists/{taskListId}/tasks`, `PUT/DELETE /api/tasks/{taskId}`,
+`PUT/DELETE /api/task-lists/{taskListId}`, `PATCH /api/tasks/{taskId}/index`, and
+`POST /api/tasks/{taskId}/move`.
 
 ### Comments
 | Method | Path | Purpose | Body | Notes |

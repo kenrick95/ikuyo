@@ -1,4 +1,4 @@
-import { Button, Flex, Heading, Text, TextField } from '@radix-ui/themes';
+import { Button, Flex, Heading, TextField } from '@radix-ui/themes';
 import type React from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
@@ -100,13 +100,17 @@ export function BackendLogin() {
         </Heading>
         {mode === 'login' && (
           <>
+            <label htmlFor="backend-login-email">Email</label>
             <TextField.Root
+              id="backend-login-email"
               name="email"
               type="email"
               placeholder="you@example.com"
               required
             />
+            <label htmlFor="backend-login-password">Password</label>
             <TextField.Root
+              id="backend-login-password"
               name="password"
               type="password"
               placeholder="Password"
@@ -116,22 +120,29 @@ export function BackendLogin() {
           </>
         )}
         {mode === 'forgot' && (
-          <TextField.Root
-            name="email"
-            type="email"
-            placeholder="you@example.com"
-            required
-          />
+          <>
+            <label htmlFor="backend-forgot-email">Email</label>
+            <TextField.Root
+              id="backend-forgot-email"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              required
+            />
+          </>
         )}
         {mode === 'reset' && (
           <>
-            <Text as="label">Reset token</Text>
+            <label htmlFor="backend-reset-token">Reset token</label>
             <TextField.Root
+              id="backend-reset-token"
               name="resetToken"
               defaultValue={resetToken}
               required
             />
+            <label htmlFor="backend-reset-password">New password</label>
             <TextField.Root
+              id="backend-reset-password"
               name="password"
               type="password"
               placeholder="New password"

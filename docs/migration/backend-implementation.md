@@ -132,7 +132,7 @@ Mirrors `docs/migration/php-mysql-migration.md` §3 — summarized here with Elo
 
 | Table | Eloquent model | Key columns | Relationships |
 |---|---|---|---|
-| `users` | `User` | `id` (string 40), `email` unique, `handle` unique, `handle_key` unique, `auth_namespace_id` unique nullable, `password_hash` nullable, `reset_token` nullable, `reset_token_at` nullable, `activated` bool, `last_login_at` bigint nullable, prefs, `created_at/updated_at` bigint | `trips()` belongsToMany via `trip_user` w/ pivot `role` |
+| `users` | `User` | `id` (string 40), `email` unique, `handle` unique, `handle_key` unique, `auth_namespace_id` unique nullable, `password_hash` nullable, `reset_token` nullable, `reset_token_at` nullable, `activated` bool, `last_login_at` bigint nullable, prefs, `created_at_ms/updated_at_ms` bigint | `trips()` belongsToMany via `trip_user` w/ pivot `role` |
 | `trips` | `Trip` | `id` string, title, region, currency, timezone, `timestamp_start_ms`, `timestamp_end_ms`, `sharing_level` tinyint, `public_show_*/viewer_show_*` nullable bool, ms timestamps | `activities()`,`accommodations()`,`macroplans()`,`expenses()` hasMany; `users()` belongsToMany; `taskLists()` hasMany; `commentGroups()` hasMany; `comments()` morphMany |
 | `trip_user` | `TripUser` | `id` string, `trip_id`, `user_id`, `role` tinyint (enum → 0 owner/1 editor/2 viewer), ms | belongsTo Trip, belongsTo User |
 | `activities` | `Activity` | `id`, `trip_id`, title, location, geo, dest-geo, description, ms range + tz strings, flags int, icon, ms | belongsTo Trip; morphMany comments |

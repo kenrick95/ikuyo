@@ -29,6 +29,8 @@ return new class extends Migration
             $table->boolean('viewer_show_comments')->nullable();
             $table->bigInteger('created_at_ms');
             $table->bigInteger('updated_at_ms');
+            $table->index(['updated_at_ms', 'id']);
+            $table->index(['timestamp_end_ms', 'id']);
         });
 
         // N:N trip <-> user with the role attribute on the pivot.
@@ -42,6 +44,7 @@ return new class extends Migration
             $table->bigInteger('created_at_ms');
             $table->bigInteger('updated_at_ms');
             $table->unique(['trip_id', 'user_id']);
+            $table->index(['updated_at_ms', 'id']);
             $table->foreign('trip_id')->references('id')->on('trips')->cascadeOnDelete();
             $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
         });

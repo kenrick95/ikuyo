@@ -30,6 +30,7 @@ return new class extends Migration
             $table->bigInteger('created_at_ms');
             $table->bigInteger('updated_at_ms');
             $table->foreign('trip_id')->references('id')->on('trips')->cascadeOnDelete();
+            $table->index(['trip_id', 'updated_at_ms', 'id']);
         });
 
         Schema::create('accommodations', function (Blueprint $table): void {
@@ -49,6 +50,7 @@ return new class extends Migration
             $table->bigInteger('created_at_ms');
             $table->bigInteger('updated_at_ms');
             $table->foreign('trip_id')->references('id')->on('trips')->cascadeOnDelete();
+            $table->index(['trip_id', 'updated_at_ms', 'id']);
         });
 
         Schema::create('macro_plans', function (Blueprint $table): void {
@@ -63,6 +65,7 @@ return new class extends Migration
             $table->bigInteger('created_at_ms');
             $table->bigInteger('updated_at_ms');
             $table->foreign('trip_id')->references('id')->on('trips')->cascadeOnDelete();
+            $table->index(['trip_id', 'updated_at_ms', 'id']);
         });
 
         Schema::create('expenses', function (Blueprint $table): void {
@@ -79,6 +82,7 @@ return new class extends Migration
             $table->bigInteger('created_at_ms');
             $table->bigInteger('updated_at_ms');
             $table->foreign('trip_id')->references('id')->on('trips')->cascadeOnDelete();
+            $table->index(['trip_id', 'updated_at_ms', 'id']);
         });
     }
 

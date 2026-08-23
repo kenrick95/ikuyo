@@ -40,7 +40,11 @@ class TaskController extends Controller
 
     public function destroyList(Trip $trip, string $taskList): JsonResponse
     {
-        $this->list($trip, $taskList)->delete();
+        $list = $this->list($trip, $taskList);
+        DB::transaction(function () use ($list): void {
+            foreach ($list->tasks as $task) $this->deleteTaskComments($task->id);
+            $list->delete();
+        });
         return response()->json(['ok' => true]);
     }
 
