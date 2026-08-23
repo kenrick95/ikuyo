@@ -26,12 +26,13 @@ export function usePeriodicTripSync(
   useEffect(() => {
     if (!tripId) return;
     let disposed = false;
-    let cursor = Date.now();
+    // Sync cursors are durable sync_events IDs, not wall-clock timestamps.
+    let cursor = 0;
 
     const sync = async () => {
       try {
         const response = await get<SyncResponse>(
-          `/api/sync?since=${cursor}&tripId=${encodeURIComponent(tripId)}`,
+          `/api/sync?cursor=${cursor}&tripId=${encodeURIComponent(tripId)}`,
         );
         if (disposed) return;
         cursor = Math.max(cursor, response.nextCursor);

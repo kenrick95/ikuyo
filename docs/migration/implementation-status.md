@@ -182,7 +182,13 @@ are remaining validation, deployment, and cutover work; they require access to t
 actual InstantDB backup and hosting environment.
 
 
-### ✅ 1. Full API response contract (implemented; staging validation remains)
+### ✅ 1. Durable sync events and delete tombstones (implemented)
+
+A durable `sync_events` table, `SyncEventService`, model observer, and event-ID cursor
+are implemented. Updates and deletes have a durable event path; the frontend hook uses
+the event cursor. Staging should still exercise long-running sync behavior.
+
+### ✅ 2. Full API response contract (implemented; staging validation remains)
 
 The full-trip response is normalized through `src/data/apiTrip.ts` and backend feature
 coverage exists. A real staging run should still compare every field against production.
@@ -194,7 +200,7 @@ coverage exists. A real staging run should still compare every field against pro
 - Avoid exposing member email addresses to unauthorized viewers.
 - Add complete contract fixtures for every entity.
 
-### ✅ 2. Authorization implementation (implemented; expand staging matrix)
+### ✅ 3. Authorization implementation (implemented; expand staging matrix)
 
 Authorization middleware and route checks are present, with core tests. The staging
 matrix should still exercise every role/resource combination:
@@ -207,7 +213,7 @@ matrix should still exercise every role/resource combination:
 - Comment edit/delete ownership.
 - Guest account ownership.
 
-### ✅ 3. Import validation tooling (real-backup run completed; MySQL validation remains)
+### ✅ 4. Import validation tooling (real-backup run completed; MySQL validation remains)
 
 The importer supports `--dry-run --json --verify-config`, synthetic complete-graph
 regression tests, parent-side link reconstruction, orphan reporting, and post-import
@@ -225,7 +231,7 @@ known orphan records were reported. Before go-live it must still be run on stagi
 - Re-running imports safely and idempotently.
 - A staging MySQL import, not only SQLite.
 
-### 4. Import-to-production cutover tooling
+### 5. Import-to-production cutover tooling
 
 Still needed:
 
@@ -235,7 +241,7 @@ Still needed:
 - A way to prevent writes during final import.
 - A clear rollback procedure before enabling Laravel writes.
 
-### ✅ 5. Frontend migration adapters (implemented; enable/test flags)
+### ✅ 6. Frontend migration adapters (implemented; enable/test flags)
 
 #### Read-only & maintenance mode (implemented)
 
@@ -271,7 +277,7 @@ Laravel equivalent and be intentionally switched:
 - Full-trip periodic sync consumer/refresh behavior.
 - Error/loading behavior after switching from subscriptions to fetches.
 
-### ✅ 6. Realtime replacement decision
+### ✅ 7. Realtime replacement decision
 
 Realtime is intentionally not required. The current target is:
 
@@ -283,12 +289,12 @@ Realtime is intentionally not required. The current target is:
 The sync endpoint exists, but the full trip store does not yet merge or consume its
 changes automatically. This should be completed or explicitly deferred before go-live.
 
-### 7. SEO front controller repoint
+### 8. SEO front controller repoint
 
 The existing PHP SEO front controller still reads InstantDB's admin API. It must be
 changed to read MySQL/Laravel data before InstantDB is shut down.
 
-### 8. Production deployment verification
+### 9. Production deployment verification
 
 Still needed on the real shared host:
 
@@ -302,7 +308,7 @@ Still needed on the real shared host:
 - HTTPS secure sessions.
 - Production `APP_DEBUG=false`.
 
-### 9. Remaining production security review
+### 10. Remaining production security review
 
 Before enabling the backend for real users:
 
@@ -316,7 +322,7 @@ Before enabling the backend for real users:
 - Decide whether sessions should use Laravel's database driver or encrypted cookies.
 - Ensure logs never contain reset tokens or sensitive user data.
 
-### 10. Frontend build/runtime configuration
+### 11. Frontend build/runtime configuration
 
 The migration flags are injected by `rsbuild.config.ts`, but production builds still
 require the existing app environment variables (Instant app ID, MapTiler, etc.). A
