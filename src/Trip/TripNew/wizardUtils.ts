@@ -1,4 +1,5 @@
 import { getDefaultCurrencyForRegion } from '../../data/intl/currencies';
+import { useBoundStore } from '../../data/store';
 import type { DbUser } from '../../User/db';
 import { dbUpdateUserPreferences } from '../../User/db';
 import type { FlightCapture, TrainCapture } from './wizardReducer';
@@ -92,6 +93,7 @@ export async function saveOriginPreferences(
   if (Object.keys(attrs).length === 0) return;
   try {
     await dbUpdateUserPreferences({ id: currentUser.id, ...attrs });
+    await useBoundStore.getState().refreshCurrentUser();
   } catch (e) {
     console.error('Failed to save origin preferences:', e);
   }

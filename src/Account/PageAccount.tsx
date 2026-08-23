@@ -29,6 +29,7 @@ export function PageAccount(_props: RouteComponentProps) {
   const currentUser = useDeepBoundStore((state) => state.currentUser);
   const resetToast = useBoundStore((state) => state.resetToast);
   const publishToast = useBoundStore((state) => state.publishToast);
+  const refreshCurrentUser = useBoundStore((state) => state.refreshCurrentUser);
   const [isFormLoading, setIsFormLoading] = useState(false);
 
   const idEmail = useId();
@@ -76,6 +77,7 @@ export function PageAccount(_props: RouteComponentProps) {
           defaultUserNamespaceId: authUser.id,
           lastLoginAt: currentUser.lastLoginAt,
         });
+        await refreshCurrentUser();
         publishToast({
           root: {},
           title: { children: 'Account details updated' },
@@ -100,7 +102,7 @@ export function PageAccount(_props: RouteComponentProps) {
         elForm.reset();
       }
     };
-  }, [currentUser, resetToast, publishToast, authUser?.id]);
+  }, [currentUser, resetToast, publishToast, refreshCurrentUser, authUser?.id]);
 
   const onFormInput = useCallback(() => {
     setErrorMessage('');
@@ -128,6 +130,7 @@ export function PageAccount(_props: RouteComponentProps) {
             currency: prefCurrency || undefined,
             timeZone: prefTimeZone || undefined,
           });
+          await refreshCurrentUser();
           publishToast({
             root: {},
             title: { children: 'Trip preferences updated' },
@@ -147,7 +150,14 @@ export function PageAccount(_props: RouteComponentProps) {
         }
       })();
     },
-    [currentUser?.id, prefRegion, prefCurrency, prefTimeZone, publishToast],
+    [
+      currentUser?.id,
+      prefRegion,
+      prefCurrency,
+      prefTimeZone,
+      publishToast,
+      refreshCurrentUser,
+    ],
   );
 
   return (

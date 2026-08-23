@@ -207,11 +207,12 @@ matrix should still exercise every role/resource combination:
 - Comment edit/delete ownership.
 - Guest account ownership.
 
-### 3. Import validation against a real Instant backup
+### ✅ 3. Import validation tooling (real-backup run completed; MySQL validation remains)
 
-The importer now supports `--dry-run --json --verify-config` and the synthetic complete
-entity graph is covered by regression tests. The remaining validation requires the
-actual downloaded production backup. Before go-live it must handle and verify:
+The importer supports `--dry-run --json --verify-config`, synthetic complete-graph
+regression tests, parent-side link reconstruction, orphan reporting, and post-import
+counts. The supplied production backup has now imported successfully locally; 7
+known orphan records were reported. Before go-live it must still be run on staging MySQL.
 
 - `$users.jsonl` identity links.
 - `$files.jsonl` decision and any actual file blobs.
