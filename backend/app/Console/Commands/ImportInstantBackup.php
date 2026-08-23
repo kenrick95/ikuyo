@@ -235,6 +235,12 @@ class ImportInstantBackup extends Command
             $source = $record['entity'];
             $row = $this->mapEntity($entity, $source, $record['createdAt'] ?? null);
 
+            // comment.user is a has-one link stored on the comment itself in real
+            // backups (plain id, {id:...}, or an id array); fall back to parent array.
+            if ($entity === 'comment' && ($row['user_id'] ?? null) === null && array_key_exists('user', $source)) {
+                $row['user_id'] = $this->linkId($source['user']);
+            }
+
             // The real backup stores parent-side has-many arrays, so a child's FK may
             // not appear on the child itself. Resolve from the collected parent maps
             // (and from the child's own field when present), then skip orphans.
