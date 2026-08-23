@@ -236,6 +236,29 @@ Still needed:
 
 ### ✅ 5. Frontend migration adapters (implemented; enable/test flags)
 
+#### Read-only & maintenance mode (implemented)
+
+The frontend can be put into a freeze/migration state without touching the Laravel
+flags:
+
+- `IKUYO_MAINTENANCE_MODE=true` — replaces the whole app with a maintenance page
+  (`src/Maintenance/PageMaintenance.tsx`); router and auth UI are bypassed.
+- `IKUYO_READ_ONLY_MODE=true` — keeps the SPA usable for browsing but rejects every
+  write at the data layer via `assertWritable()` (in `src/data/backendConfig.ts`),
+  enforced in the API mutation helpers (`src/data/apiClient.ts`) and by replacing
+  the native `db.transact` (`src/data/db.ts`). A slim `ReadOnlyBanner` is shown.
+
+`IKUYO_READ_ONLY_MODE` also bars the auth write paths that create or modify user
+rows — guest creation, email-linking/upgrade, password reset, and native
+magic-code sign-in — while leaving **login** (and sign-out) available so existing
+users can still read their trips. Guards live in `src/Auth/BackendLogin.tsx`,
+`src/Auth/Auth.tsx`, `src/Account/BackendAccountUpgrade.tsx`, and
+`src/Account/PageAccountUpgrade.tsx`.
+
+Use the read-only flag during the “freeze Instant writes + take the final backup”
+window, then the maintenance flag for the full cutover. Both are independent of (and
+can be combined with) the opt-in `IKUYO_BACKEND_*` flags.
+
 Some frontend modules still directly call InstantDB in fallback branches. InstantDB
 must remain for now, but before final cutover every operation must have a verified
 Laravel equivalent and be intentionally switched:

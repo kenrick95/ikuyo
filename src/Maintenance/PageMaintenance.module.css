@@ -1,0 +1,38 @@
+.container {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: var(--space-8);
+  background: linear-gradient(135deg, var(--accent-2) 0%, var(--accent-5) 100%);
+}
+
+.logo {
+  width: 64px;
+  height: 64px;
+}
+
+.logoText {
+  font-weight: bold;
+  transform: rotate(-6deg) translateY(2px);
+  transform-origin: bottom left;
+  color: var(--accent-9);
+}
+
+.logoTextExclamation {
+  color: var(--accent-9);
+  transform: rotate(6deg);
+  transform-origin: bottom left;
+}
+
+.heading {
+  color: var(--accent-11);
+  text-align: center;
+  max-width: 600px;
+  line-height: 1.3;
+}
+
+.body {
+  color: var(--gray-11);
+  text-align: center;
+  max-width: 520px;
+  line-height: 1.6;
+}

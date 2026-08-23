@@ -3,6 +3,7 @@ import type React from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
 import { post } from '../data/apiClient';
+import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
 import imgUrl from '../logo/ikuyo.svg';
 import { RouteTrips } from '../Routes/routes';
@@ -30,6 +31,12 @@ export function BackendLogin() {
       setLoading(true);
       const form = new FormData(event.currentTarget);
       try {
+        // Guest creation, password recovery, and reset all write to the data
+        // store, so they're barred during the read-only freeze window. Logging
+        // in is kept available so existing users can still read their trips.
+        if (mode !== 'login') {
+          assertWritable('creating or changing your account');
+        }
         if (mode === 'guest') {
           await post('/api/auth/guest', {});
         } else if (mode === 'login') {
