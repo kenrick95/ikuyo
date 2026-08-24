@@ -51,6 +51,23 @@ class AuthController extends Controller
         return response()->json(['user' => $this->user($user)]);
     }
 
+    public function lookup(Request $request): JsonResponse
+    {
+        $data = $request->validate(['email' => ['required', 'email']]);
+        $user = User::where('email', $data['email'])->first();
+
+        if (!$user) {
+            // Generic so an unregistered email cannot be distinguished from a
+            // legacy account that simply needs a password.
+            return response()->json(['known' => false, 'needsPasswordSetup' => true]);
+        }
+
+        return response()->json([
+            'known' => true,
+            'needsPasswordSetup' => !$user->password_hash,
+        ]);
+    }
+
     public function register(Request $request): JsonResponse
     {
         $data = $request->validate([

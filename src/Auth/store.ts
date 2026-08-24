@@ -19,6 +19,8 @@ export interface UserSlice {
   currentUser: DbUser | undefined;
   setCurrentUser: (user: DbUser | undefined) => void;
   refreshCurrentUser: () => Promise<void>;
+  /** Forget the cached user + all cached trip data (call on logout). */
+  clearSession: () => void;
 }
 
 export const createUserSlice: StateCreator<
@@ -383,6 +385,35 @@ export const createUserSlice: StateCreator<
       if (!backendAuthEnabled) return;
       const response = await apiGet<{ user: DbUser | null }>('/api/auth/me');
       set(() => ({ currentUser: response.user ?? undefined }));
+    },
+    clearSession: () => {
+      // Wipe the cached user and every cached domain collection so a different
+      // user logging in on the same browser never sees the previous session's
+      // trips. Also remove the persisted localStorage snapshot.
+      set(() => ({
+        currentUser: undefined,
+        authUser: undefined,
+        trip: {},
+        tripLocalState: {},
+        comment: {},
+        commentGroup: {},
+        commentUser: {},
+        macroplan: {},
+        expense: {},
+        accommodation: {},
+        activity: {},
+        trips: {},
+        tripUser: {},
+        task: {},
+        taskList: {},
+      }));
+      try {
+        localStorage.removeItem('ikuyo-storage');
+        sessionStorage.removeItem('ikuyo-storage');
+      } catch {
+        // Storage may be unavailable (private mode); the in-memory reset above
+        // still protects against cross-user trip leakage.
+      }
     },
   };
 };
