@@ -7,6 +7,17 @@ import {
 } from '../data/apiClient';
 import { backendTaskWrites } from '../data/backendConfig';
 import { db } from '../data/db';
+import {
+  optimisticRun,
+  optimisticTaskListPatch,
+  optimisticTaskListRemove,
+  optimisticTaskListUpsert,
+  optimisticTaskPatch,
+  optimisticTaskRemove,
+  optimisticTaskUpsert,
+} from '../data/optimistic';
+import { useBoundStore } from '../data/store';
+import type { TripSliceTask, TripSliceTaskList } from '../Trip/store/types';
 export type DbTask = {
   id: string;
   index: number;
@@ -32,11 +43,29 @@ export async function dbAddTaskList(
   { tripId }: { tripId: string },
 ) {
   if (backendTaskWrites) {
-    const result = await postMutation<{ id: string }>(
-      `/api/trips/${encodeURIComponent(tripId)}/task-lists`,
-      newTaskList,
+    const newId = id();
+    return optimisticRun(
+      ['taskList', 'trip'],
+      () => {
+        const trip = useBoundStore.getState().trip[tripId];
+        optimisticTaskListUpsert(tripId, {
+          ...newTaskList,
+          id: newId,
+          createdAt: Date.now(),
+          lastUpdatedAt: Date.now(),
+          tripId,
+          taskIds: [],
+        } as TripSliceTaskList);
+        void trip;
+      },
+      async () => {
+        const result = await postMutation<{ id: string }>(
+          `/api/trips/${encodeURIComponent(tripId)}/task-lists`,
+          { ...newTaskList, id: newId },
+        );
+        return { id: result.id, result };
+      },
     );
-    return { id: result.id, result };
   }
   const newId = id();
   return {
@@ -58,9 +87,14 @@ export async function dbUpdateTaskList(
   taskList: Omit<DbTaskList, 'createdAt' | 'lastUpdatedAt'>,
 ) {
   if (backendTaskWrites) {
-    return putMutation(
-      `/api/task-lists/${encodeURIComponent(taskList.id)}`,
-      taskList,
+    return optimisticRun(
+      ['taskList'],
+      () => optimisticTaskListPatch(taskList.id, taskList),
+      () =>
+        putMutation(
+          `/api/task-lists/${encodeURIComponent(taskList.id)}`,
+          taskList,
+        ),
     );
   }
   return db.transact(
@@ -71,8 +105,23 @@ export async function dbUpdateTaskList(
   );
 }
 export async function dbDeleteTaskList(taskListId: string) {
-  if (backendTaskWrites)
-    return deleteMutation(`/api/task-lists/${encodeURIComponent(taskListId)}`);
+  if (backendTaskWrites) {
+    const state = useBoundStore.getState();
+    const tripId = state.taskList[taskListId]?.tripId;
+    return optimisticRun(
+      ['taskList', 'task', 'trip'],
+      () => {
+        if (tripId) {
+          const deleted = state.taskList[taskListId];
+          const taskIds = deleted?.taskIds ?? [];
+          optimisticTaskListRemove(tripId, taskListId);
+          for (const taskId of taskIds)
+            optimisticTaskRemove(taskListId, taskId);
+        }
+      },
+      () => deleteMutation(`/api/task-lists/${encodeURIComponent(taskListId)}`),
+    );
+  }
   const tasks = await db.queryOnce({
     task: {
       $: {
@@ -124,11 +173,31 @@ export async function dbAddTask(
   { taskListId }: { taskListId: string },
 ) {
   if (backendTaskWrites) {
-    const result = await postMutation<{ id: string }>(
-      `/api/task-lists/${encodeURIComponent(taskListId)}/tasks`,
-      newTask,
+    const newId = id();
+    const taskList = useBoundStore.getState().taskList[taskListId];
+    return optimisticRun(
+      ['task', 'taskList'],
+      () => {
+        if (taskList) {
+          optimisticTaskUpsert(taskListId, {
+            ...newTask,
+            id: newId,
+            createdAt: Date.now(),
+            lastUpdatedAt: Date.now(),
+            taskListId,
+            tripId: taskList.tripId,
+            commentGroupId: undefined,
+          } as TripSliceTask);
+        }
+      },
+      async () => {
+        const result = await postMutation<{ id: string }>(
+          `/api/task-lists/${encodeURIComponent(taskListId)}/tasks`,
+          { ...newTask, id: newId },
+        );
+        return { id: result.id, result };
+      },
     );
-    return { id: result.id, result };
   }
   const newId = id();
   return {
@@ -150,7 +219,11 @@ export async function dbUpdateTask(
   task: Omit<DbTask, 'createdAt' | 'lastUpdatedAt'>,
 ) {
   if (backendTaskWrites) {
-    return putMutation(`/api/tasks/${encodeURIComponent(task.id)}`, task);
+    return optimisticRun(
+      ['task'],
+      () => optimisticTaskPatch(task.id, task),
+      () => putMutation(`/api/tasks/${encodeURIComponent(task.id)}`, task),
+    );
   }
   return db.transact(
     db.tx.task[task.id].merge({
@@ -160,8 +233,13 @@ export async function dbUpdateTask(
   );
 }
 export async function dbDeleteTask(taskId: string, taskListId: string) {
-  if (backendTaskWrites)
-    return deleteMutation(`/api/tasks/${encodeURIComponent(taskId)}`);
+  if (backendTaskWrites) {
+    return optimisticRun(
+      ['task', 'taskList'],
+      () => optimisticTaskRemove(taskListId, taskId),
+      () => deleteMutation(`/api/tasks/${encodeURIComponent(taskId)}`),
+    );
+  }
   const commentGroups = await db.queryOnce({
     commentGroup: {
       comment: { $: { fields: ['id'] } },
@@ -201,9 +279,20 @@ export async function dbUpdateTaskIndexes(
   tripId?: string,
 ) {
   if (backendTaskWrites && tripId) {
-    return patchMutation(
-      `/api/trips/${encodeURIComponent(tripId)}/tasks/reorder`,
-      { tasks },
+    return optimisticRun(
+      ['task'],
+      () => {
+        for (const task of tasks) {
+          optimisticTaskPatch(task.id, { index: task.index });
+        }
+      },
+      () =>
+        patchMutation(
+          `/api/trips/${encodeURIComponent(tripId)}/tasks/reorder`,
+          {
+            tasks,
+          },
+        ),
     );
   }
   const transactions = tasks.map((task) =>
@@ -222,10 +311,26 @@ export async function dbMoveTaskToTaskList(
   newIndex: number,
 ) {
   if (backendTaskWrites) {
-    return postMutation(`/api/tasks/${encodeURIComponent(taskId)}/move`, {
-      toTaskListId: newTaskListId,
-      newIndex,
-    });
+    const state = useBoundStore.getState();
+    const task = state.task[taskId];
+    return optimisticRun(
+      ['task', 'taskList'],
+      () => {
+        if (task) {
+          optimisticTaskRemove(currentTaskListId, taskId);
+          optimisticTaskUpsert(newTaskListId, {
+            ...task,
+            taskListId: newTaskListId,
+            index: newIndex,
+          });
+        }
+      },
+      () =>
+        postMutation(`/api/tasks/${encodeURIComponent(taskId)}/move`, {
+          toTaskListId: newTaskListId,
+          newIndex,
+        }),
+    );
   }
   return db.transact([
     db.tx.taskList[currentTaskListId].unlink({ task: taskId }),
@@ -245,9 +350,18 @@ export async function dbUpdateTaskListIndexes(
   tripId?: string,
 ) {
   if (backendTaskWrites && tripId) {
-    return patchMutation(
-      `/api/trips/${encodeURIComponent(tripId)}/task-lists/reorder`,
-      { taskLists },
+    return optimisticRun(
+      ['taskList'],
+      () => {
+        for (const taskList of taskLists) {
+          optimisticTaskListPatch(taskList.id, { index: taskList.index });
+        }
+      },
+      () =>
+        patchMutation(
+          `/api/trips/${encodeURIComponent(tripId)}/task-lists/reorder`,
+          { taskLists },
+        ),
     );
   }
   const transactions = taskLists.map((taskList) =>

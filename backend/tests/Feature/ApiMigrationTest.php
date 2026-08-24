@@ -406,4 +406,47 @@ class ApiMigrationTest extends TestCase
     {
         $this->getJson('/api/sync')->assertUnauthorized();
     }
+
+    public function test_create_accepts_client_supplied_ids(): void
+    {
+        // The frontend optimistic-inserts with a client-generated id; the server
+        // must persist that exact id so the store doesn't need re-keying.
+        $user = $this->user();
+        $trip = Trip::create([
+            'id' => (string) Str::uuid(), 'title' => 'Client ids', 'region' => 'JP', 'currency' => 'JPY',
+            'timezone' => 'Asia/Tokyo', 'timestamp_start_ms' => 1, 'timestamp_end_ms' => 2, 'sharing_level' => 0,
+        ]);
+        $trip->users()->attach($user->id, ['id' => (string) Str::uuid(), 'role' => 0, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
+
+        $activityId = (string) Str::uuid();
+        $this->actingAs($user)->postJson('/api/trips/' . $trip->id . '/activities', [
+            'id' => $activityId,
+            'title' => 'Client-id activity',
+            'location' => '',
+            'description' => '',
+        ])->assertCreated()->assertJsonPath('id', $activityId);
+        $this->assertDatabaseHas('activities', ['id' => $activityId]);
+
+        $listId = (string) Str::uuid();
+        $this->actingAs($user)->postJson('/api/trips/' . $trip->id . '/task-lists', [
+            'id' => $listId,
+            'title' => 'Pack',
+            'index' => 0,
+            'status' => 0,
+        ])->assertCreated()->assertJsonPath('id', $listId);
+        $this->assertDatabaseHas('task_lists', ['id' => $listId]);
+
+        // New comment group: client supplies both the group id and comment id.
+        $groupId = (string) Str::uuid();
+        $commentId = (string) Str::uuid();
+        $this->actingAs($user)->postJson('/api/trips/' . $trip->id . '/comment-groups', [
+            'id' => $commentId,
+            'groupId' => $groupId,
+            'content' => 'Hello',
+            'objectType' => 0,
+            'objectId' => $trip->id,
+        ])->assertCreated()->assertJsonPath('id', $commentId);
+        $this->assertDatabaseHas('comment_groups', ['id' => $groupId]);
+        $this->assertDatabaseHas('comments', ['id' => $commentId, 'comment_group_id' => $groupId]);
+    }
 }

@@ -1,6 +1,10 @@
 import { patchMutation } from '../../../data/apiClient';
 import { backendActivityWrites } from '../../../data/backendConfig';
 import { db } from '../../../data/db';
+import {
+  optimisticActivityPatch,
+  optimisticRun,
+} from '../../../data/optimistic';
 import type { TripSliceActivity } from '../../store/types';
 import { computeSwapDayActivityUpdates } from './swapDay';
 
@@ -45,34 +49,47 @@ export async function dbSwapDayActivities({
   );
 
   if (backendActivityWrites) {
-    await patchMutation(
-      `/api/trips/${encodeURIComponent(activities[0]?.tripId ?? '')}/activities/batch`,
-      {
-        activities: updates.map((update) => ({
-          id: update.id,
-          timestampStart: update.timestampStart,
-          timestampEnd: update.timestampEnd,
-        })),
+    return optimisticRun(
+      ['activity'],
+      () => {
+        for (const update of updates) {
+          optimisticActivityPatch(update.id, {
+            timestampStart: update.timestampStart,
+            timestampEnd: update.timestampEnd,
+          });
+        }
       },
-    );
-    return {
-      movedCount: updates.length,
-      undo: async () => {
+      async () => {
         await patchMutation(
           `/api/trips/${encodeURIComponent(activities[0]?.tripId ?? '')}/activities/batch`,
           {
-            activities: updates.map((update) => {
-              const original = originalById.get(update.id);
-              return {
-                id: update.id,
-                timestampStart: original?.timestampStart,
-                timestampEnd: original?.timestampEnd,
-              };
-            }),
+            activities: updates.map((update) => ({
+              id: update.id,
+              timestampStart: update.timestampStart,
+              timestampEnd: update.timestampEnd,
+            })),
           },
         );
+        return {
+          movedCount: updates.length,
+          undo: async () => {
+            await patchMutation(
+              `/api/trips/${encodeURIComponent(activities[0]?.tripId ?? '')}/activities/batch`,
+              {
+                activities: updates.map((update) => {
+                  const original = originalById.get(update.id);
+                  return {
+                    id: update.id,
+                    timestampStart: original?.timestampStart,
+                    timestampEnd: original?.timestampEnd,
+                  };
+                }),
+              },
+            );
+          },
+        };
       },
-    };
+    );
   }
 
   await db.transact(

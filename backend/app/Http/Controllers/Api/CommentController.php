@@ -23,6 +23,8 @@ class CommentController extends Controller
             'objectType' => ['required', 'integer', 'between:0,5'],
             'objectId' => ['required', 'string', 'max:40'],
             'groupId' => ['nullable', 'string', 'max:40'],
+            // Optional client-supplied comment id (optimistic insert); falls back server-side.
+            'id' => ['nullable', 'string', 'max:40'],
         ]);
 
         $comment = DB::transaction(function () use ($data, $trip, $user): Comment {
@@ -30,8 +32,15 @@ class CommentController extends Controller
             $group = null;
             if (!empty($data['groupId'])) {
                 // Reject cross-trip group IDs: an editor of one trip must not append
-                // to another trip's group by guessing its id.
-                $group = $trip->commentGroups()->whereKey($groupId)->firstOrFail();
+                // to another trip's group by guessing its id. If the id is unknown to
+                // this trip it is treated as a *client-supplied* new group id (the
+                // optimistic create path) rather than an error.
+                $group = $trip->commentGroups()->whereKey($groupId)->first();
+                if ($group === null) {
+                    abort_unless($this->objectBelongsToTrip((int) $data['objectType'], $data['objectId'], $trip), 422);
+                    $group = CommentGroup::create(['id' => $groupId, 'trip_id' => $trip->id, 'status' => 0]);
+                    CommentGroupObject::create(['id' => $groupId, 'comment_group_id' => $groupId, 'object_type' => $data['objectType'], 'object_id' => $data['objectId']]);
+                }
             } else {
                 // Reject comment targets that belong to another trip.
                 abort_unless($this->objectBelongsToTrip((int) $data['objectType'], $data['objectId'], $trip), 422);
@@ -39,7 +48,7 @@ class CommentController extends Controller
                 CommentGroupObject::create(['id' => $groupId, 'comment_group_id' => $groupId, 'object_type' => $data['objectType'], 'object_id' => $data['objectId']]);
             }
             return $group->comments()->create([
-                'id' => (string) Str::uuid(),
+                'id' => $data['id'] ?? (string) Str::uuid(),
                 'user_id' => $user->id,
                 'content' => $data['content'],
             ]);
