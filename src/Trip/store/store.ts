@@ -1,5 +1,5 @@
 import type { StateCreator } from 'zustand';
-import { get as apiGet } from '../../data/apiClient';
+import { get as apiGet, setMutationAppliedHandler } from '../../data/apiClient';
 import { mapApiTrip } from '../../data/apiTrip';
 import { backendTripReads } from '../../data/backendConfig';
 import { db } from '../../data/db';
@@ -68,21 +68,30 @@ function mergeApiTrip(
  * Fetch a backend trip and merge it into the store. `showLoading` controls
  * whether the tripMeta.loading flag is raised (initial load vs silent refresh).
  */
+/**
+ * Fetch a backend trip and merge it into the store. `showLoading` controls
+ * whether the tripMeta.loading flag is raised (initial load vs silent refresh).
+ * Concurrent refreshes of the same trip are coalesced via an in-flight map so
+ * the mutation refresh and the sync poll don't fire redundant requests.
+ */
+const inFlightTrips = new Set<string>();
 async function fetchTripAndMerge(
   set: (fn: (state: BoundStoreType) => Partial<TripSlice> | TripSlice) => void,
   tripId: string,
   showLoading: boolean,
   shouldAbort?: () => boolean,
 ): Promise<void> {
-  if (showLoading) {
-    set((state) => ({
-      tripMeta: {
-        ...state.tripMeta,
-        [tripId]: { loading: true, error: undefined },
-      },
-    }));
-  }
+  if (inFlightTrips.has(tripId)) return;
+  inFlightTrips.add(tripId);
   try {
+    if (showLoading) {
+      set((state) => ({
+        tripMeta: {
+          ...state.tripMeta,
+          [tripId]: { loading: true, error: undefined },
+        },
+      }));
+    }
     const payload = await apiGet<Record<string, unknown>>(
       `/api/trips/${encodeURIComponent(tripId)}`,
     );
@@ -112,6 +121,8 @@ async function fetchTripAndMerge(
           },
         }) satisfies Partial<TripSlice>,
     );
+  } finally {
+    inFlightTrips.delete(tripId);
   }
 }
 
@@ -121,6 +132,16 @@ export const createTripSlice: StateCreator<
   [],
   TripSlice
 > = (set, get) => {
+  // After any successful backend mutation (add/edit/delete activity,
+  // accommodation, day plan, expense, task, comment, trip fields, sharing...),
+  // refresh the currently viewed trip immediately so local state reflects the
+  // change without waiting for the periodic sync poll. No-op when no trip page
+  // is open (currentTripId unset, e.g. login or the trips list).
+  setMutationAppliedHandler(() => {
+    if (!backendTripReads) return;
+    const tripId = get().currentTripId;
+    if (tripId) void fetchTripAndMerge(set, tripId, false);
+  });
   return {
     currentTripId: undefined,
     tripMeta: {},
