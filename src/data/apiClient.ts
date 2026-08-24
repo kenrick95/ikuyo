@@ -72,17 +72,32 @@ export async function mutate<T>(
 ): Promise<T> {
   const headers = new Headers(init.headers);
   headers.set('X-CSRF-TOKEN', await getCsrfToken());
+  let result: T;
   try {
-    return await request<T>(path, { ...init, headers });
+    result = await request<T>(path, { ...init, headers });
   } catch (error) {
     // A login/session rotation can invalidate the cached token; refresh once.
     if (error instanceof ApiError && error.status === 419) {
       csrfToken = undefined;
       headers.set('X-CSRF-TOKEN', await getCsrfToken());
-      return request<T>(path, { ...init, headers });
+      result = await request<T>(path, { ...init, headers });
+    } else {
+      throw error;
     }
-    throw error;
   }
+  // Let the app refresh its local data immediately after a successful write
+  // (registered by the trip store), instead of waiting for the next sync poll.
+  onMutationApplied?.();
+  return result;
+}
+
+// Registered by the store on init. Kept registration-based (no import of the
+// store here) to avoid a circular dependency between apiClient and data/store.
+let onMutationApplied: (() => void) | undefined;
+export function setMutationAppliedHandler(
+  handler: (() => void) | undefined,
+): void {
+  onMutationApplied = handler;
 }
 
 export function postMutation<T>(path: string, body: unknown): Promise<T> {
