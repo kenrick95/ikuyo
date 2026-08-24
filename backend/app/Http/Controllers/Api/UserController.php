@@ -16,17 +16,6 @@ class UserController extends Controller
         return response()->json($this->serialize($request->user()));
     }
 
-    public function byHandle(string $handle): JsonResponse
-    {
-        $user = User::where('handle_key', strtolower($handle))
-            ->orWhere('handle', $handle)->firstOrFail();
-        return response()->json([
-            'id' => $user->id,
-            'handle' => $user->handle,
-            'activated' => (bool) $user->activated,
-        ]);
-    }
-
     public function checkEmail(Request $request): JsonResponse
     {
         $data = $request->validate(['email' => ['required', 'email'], 'excludeUserId' => ['nullable', 'string']]);
@@ -59,15 +48,6 @@ class UserController extends Controller
         if (isset($data['handle'])) $data['handle_key'] = strtolower($data['handle']);
         $request->user()->update($data);
         return response()->json($this->serialize($request->user()->fresh()));
-    }
-
-    public function generateHandle(): JsonResponse
-    {
-        for ($i = 0; $i < 8; $i++) {
-            $handle = 'user_' . strtolower(Str::random(10));
-            if (!User::where('handle_key', $handle)->exists()) return response()->json(['handle' => $handle]);
-        }
-        return response()->json(['handle' => 'user_' . Str::lower(Str::random(24))]);
     }
 
     public function addMember(Request $request, Trip $trip): JsonResponse

@@ -6,6 +6,7 @@ namespace App\Trip;
 
 use App\Config\Settings;
 use App\Http\InstantApi;
+use App\Http\LaravelApi;
 
 /**
  * Fetches trip data via the InstantDB admin API and builds a {@see TripMeta}.
@@ -27,6 +28,35 @@ final class PublicTrip
     }
 
     public function find(string $tripId): ?TripMeta
+    {
+        // Prefer the Laravel metadata endpoint when configured, falling back to
+        // the InstantDB admin path during the transition.
+        if ($this->settings->metadataSource() === 'laravel' && $this->settings->laravelApiUrl() !== '') {
+            $meta = $this->findViaLaravel($tripId);
+            if ($meta !== null) return $meta;
+        }
+        return $this->findViaInstant($tripId);
+    }
+
+    private function findViaLaravel(string $tripId): ?TripMeta
+    {
+        $api = new LaravelApi($this->settings->laravelApiUrl());
+        $data = $api->tripMeta($tripId);
+        if ($data === null) return null;
+        // The Laravel endpoint already enforces public-only; still honor hidden
+        // trips (sharing_level < 2 would have returned 404) for defense in depth.
+        return new TripMeta(
+            id: (string) ($data['id'] ?? $tripId),
+            title: (string) ($data['title'] ?? ''),
+            timestampStart: (int) ($data['timestampStart'] ?? 0),
+            timestampEnd: (int) ($data['timestampEnd'] ?? 0),
+            timeZone: (string) ($data['timeZone'] ?? 'UTC'),
+            ownerHandle: isset($data['ownerHandle']) ? (string) $data['ownerHandle'] : null,
+            activityCount: (int) ($data['activityCount'] ?? 0),
+        );
+    }
+
+    private function findViaInstant(string $tripId): ?TripMeta
     {
         $result = $this->api->query([
             'trip' => [

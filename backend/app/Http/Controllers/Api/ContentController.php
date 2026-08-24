@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Enums\CommentObjectType;
+use App\Enums\TripRole;
+use App\Enums\TripSharingLevel;
 use App\Http\Controllers\Controller;
 use App\Models\Accommodation;
 use App\Models\Activity;
@@ -128,8 +131,7 @@ class ContentController extends Controller
     {
         $record = $this->recordById($entity, $entityId);
         abort_unless($request->user() && $access->canEdit($record->trip, $request->user()), 403);
-        // TODO: deleteEntityCommentGraph doesnt exist!?
-        $this->deleteEntityCommentGraph($record);
+        $this->deleteEntityDescGraph($record);
         $record->delete();
         return response()->json(['ok' => true]);
     }
@@ -152,15 +154,15 @@ class ContentController extends Controller
     {
         $this->model($entity);
         $role = $access->role($trip, $request->user());
-        // TODO: many places has this magic number "sharing_level", can it be a defined const anywhere (?)
-        $isPublicVisitor = $role === null && $trip->sharing_level >= 2;
+        $isPublicVisitor = $role === null
+            && TripSharingLevel::from($trip->sharing_level)->isPublic();
 
         // Apply same section visibility as the full-trip serializer so a caller cannot
         // bypass hidden expenses/tasks by hitting the child-collection endpoint directly.
+        $isViewer = $role === TripRole::Viewer->value;
         $hidden = match ($entity) {
-        // TODO: many places has this magic number "role", can it be a defined const anywhere (?)
-            'expenses' => $isPublicVisitor ? $trip->public_show_expenses === false : ($role === 2 && $trip->viewer_show_expenses === false),
-            'tasks' => $isPublicVisitor ? $trip->public_show_tasks === false : ($role === 2 && $trip->viewer_show_tasks === false),
+            'expenses' => $isPublicVisitor ? $trip->public_show_expenses === false : ($isViewer && $trip->viewer_show_expenses === false),
+            'tasks' => $isPublicVisitor ? $trip->public_show_tasks === false : ($isViewer && $trip->viewer_show_tasks === false),
             default => false,
         };
         if ($hidden) return response()->json([]);
@@ -213,8 +215,7 @@ class ContentController extends Controller
 
     private function deleteRelatedComments(string $objectType, string $objectId): void
     {
-        $typeNo = ['trip'=>0,'activity'=>1,'accommodation'=>2,'macroplan'=>3,'expense'=>4,'task'=>5][$objectType] ?? null;
-        if ($typeNo === null) return;
+        $typeNo = CommentObjectType::fromEntity($objectType)->value;
         $object = CommentGroupObject::where('object_type', $typeNo)->where('object_id', $objectId)->first();
         if (!$object) return;
         $group = $object->commentGroup;

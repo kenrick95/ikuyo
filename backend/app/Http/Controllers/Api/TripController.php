@@ -3,6 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Accommodation;
+use App\Models\Activity;
+use App\Models\CommentGroup;
+use App\Models\MacroPlan;
 use App\Models\Trip;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -236,8 +240,7 @@ class TripController extends Controller
         return (int) round(microtime(true) * 1000);
     }
 
-    // TODO: params not typed?
-    private function copyActivity($item, bool $removeDates, $trip, int $newStartMs): array
+    private function copyActivity(Activity $item, bool $removeDates, Trip $trip, int $newStartMs): array
     {
         $row = $item->only(['title', 'location', 'location_lat', 'location_lng', 'location_zoom', 'location_destination', 'location_destination_lat', 'location_destination_lng', 'location_destination_zoom', 'description', 'timezone_start', 'timezone_end', 'flags', 'icon']);
         $row['timestamp_start_ms'] = $removeDates || $item->timestamp_start_ms === null ? null : $this->shiftCalendarDays((int) $item->timestamp_start_ms, (int) $trip->timestamp_start_ms, $newStartMs, (string) ($item->timezone_start ?? $trip->timezone));
@@ -245,8 +248,7 @@ class TripController extends Controller
         return $row;
     }
 
-    // TODO: params not typed?
-    private function copyAccommodation($item, $trip, int $newStartMs): array
+    private function copyAccommodation(Accommodation $item, Trip $trip, int $newStartMs): array
     {
         $row = $item->only(['name', 'address', 'phone_number', 'notes', 'tz_check_in', 'tz_check_out', 'location_lat', 'location_lng', 'location_zoom']);
         $row['check_in_ms'] = $this->shiftCalendarDays((int) $item->check_in_ms, (int) $trip->timestamp_start_ms, $newStartMs, (string) ($item->tz_check_in ?? $trip->timezone));
@@ -254,8 +256,7 @@ class TripController extends Controller
         return $row;
     }
 
-    // TODO: params not typed?
-    private function copyMacroPlan($item, $trip, int $newStartMs): array
+    private function copyMacroPlan(MacroPlan $item, Trip $trip, int $newStartMs): array
     {
         $row = $item->only(['name', 'notes', 'timezone_start', 'timezone_end']);
         $row['timestamp_start_ms'] = $this->shiftCalendarDays((int) $item->timestamp_start_ms, (int) $trip->timestamp_start_ms, $newStartMs, (string) ($item->timezone_start ?? $trip->timezone));
@@ -317,8 +318,7 @@ class TripController extends Controller
         ];
     }
 
-    // TODO: params not typed?
-    private function serializeCommentGroup($group): array
+    private function serializeCommentGroup(CommentGroup $group): array
     {
         $comments = ($group->comments ?? collect())->map(function ($comment): array {
             $commentUser = $comment->user;

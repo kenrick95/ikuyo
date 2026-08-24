@@ -56,6 +56,18 @@ final readonly class Settings
         return rtrim($this->get('SITE_URL'), '/') ?: '';
     }
 
+    /** Laravel metadata API base. Empty disables the Laravel source. */
+    public function laravelApiUrl(): string
+    {
+        return rtrim($this->get('LARAVEL_API_URL'), '/');
+    }
+
+    /** `laravel` uses the Laravel API first; `instant` (default) uses InstantDB. */
+    public function metadataSource(): string
+    {
+        return strtolower($this->get('METADATA_SOURCE', 'instant'));
+    }
+
     public function indexPath(): string
     {
         return $this->get('INDEX_HTML', dirname(__DIR__, 2) . '/index.html');
