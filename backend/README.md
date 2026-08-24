@@ -1,5 +1,7 @@
 # Ikuyo! Backend — Laravel + Eloquent exploration skeleton
 
+// TODO: this readme seem grossly outdated
+
 > **What this is:** a runnable Laravel **v13** + Eloquent project, generated on the
 > same PHP we target (hosting uses **PHP 8.4**). It exists to let you explore the
 > exact Eloquent patterns the migration plan relies on before we build the real API.

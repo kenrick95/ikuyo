@@ -95,6 +95,7 @@ class AuthController extends Controller
     /** Build a unique handle from a local-part, falling back to random. */
     private function uniqueHandle(string $localPart): string
     {
+        // TODO: don't do this, may leak email unintentionally; refer to src\User\handle.ts on how to generate handle
         $base = preg_replace('/[^a-z0-9_]/i', '_', strtolower(trim($localPart))) ?: 'user';
         $base = substr($base, 0, 24);
         $candidate = $base;
@@ -109,6 +110,7 @@ class AuthController extends Controller
     {
         $id = (string) Str::uuid();
         $handle = 'guest_' . Str::lower(Str::random(12));
+        // TODO: while unlikely, still need to check uniqueness
         $user = User::create([
             'id' => $id,
             'handle' => $handle,
@@ -212,4 +214,6 @@ class AuthController extends Controller
             'preferredTimeZone' => $user->preferred_timezone,
         ];
     }
+
+    // TODO: need flow to verify email, and change email too
 }

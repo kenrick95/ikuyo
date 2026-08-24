@@ -13,7 +13,7 @@ declare(strict_types=1);
  * (`RewriteCond %{REQUEST_FILENAME} !-f`), so this script is only reached for
  * non-file, non-dir requests.
  */
-
+// TODO: implement switching to Laravel instead of calling InstantDB 
 use App\Routing\FrontController;
 
 // PSR-4 style autoload for the `App\` namespace.

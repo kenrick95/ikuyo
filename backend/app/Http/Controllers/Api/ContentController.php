@@ -128,6 +128,7 @@ class ContentController extends Controller
     {
         $record = $this->recordById($entity, $entityId);
         abort_unless($request->user() && $access->canEdit($record->trip, $request->user()), 403);
+        // TODO: deleteEntityCommentGraph doesnt exist!?
         $this->deleteEntityCommentGraph($record);
         $record->delete();
         return response()->json(['ok' => true]);
@@ -151,11 +152,13 @@ class ContentController extends Controller
     {
         $this->model($entity);
         $role = $access->role($trip, $request->user());
+        // TODO: many places has this magic number "sharing_level", can it be a defined const anywhere (?)
         $isPublicVisitor = $role === null && $trip->sharing_level >= 2;
 
         // Apply same section visibility as the full-trip serializer so a caller cannot
         // bypass hidden expenses/tasks by hitting the child-collection endpoint directly.
         $hidden = match ($entity) {
+        // TODO: many places has this magic number "role", can it be a defined const anywhere (?)
             'expenses' => $isPublicVisitor ? $trip->public_show_expenses === false : ($role === 2 && $trip->viewer_show_expenses === false),
             'tasks' => $isPublicVisitor ? $trip->public_show_tasks === false : ($role === 2 && $trip->viewer_show_tasks === false),
             default => false,
