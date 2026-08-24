@@ -261,4 +261,34 @@ class ApiMigrationTest extends TestCase
         $this->actingAs($bob)->getJson('/api/sync')
             ->assertOk()->assertJsonCount(0, 'changes');
     }
+
+    public function test_anonymous_user_can_sync_a_public_trip(): void
+    {
+        $publicTrip = Trip::create([
+            'id' => (string) Str::uuid(), 'title' => 'Public sync', 'region' => 'JP', 'currency' => 'JPY',
+            'timezone' => 'Asia/Tokyo', 'timestamp_start_ms' => 1, 'timestamp_end_ms' => 2, 'sharing_level' => 2,
+        ]);
+        $activityId = (string) Str::uuid();
+        \App\Models\SyncEvent::create(['entity' => 'activities', 'entity_id' => $activityId, 'operation' => 'upsert', 'trip_id' => $publicTrip->id, 'payload' => [], 'created_at_ms' => 2]);
+
+        // Anonymous (no session) must be able to poll sync for an openly shared trip.
+        $response = $this->getJson('/api/sync?tripId=' . $publicTrip->id)
+            ->assertOk();
+        $entities = collect($response->json('changes'))->pluck('entity');
+        $this->assertTrue($entities->contains('activities'), 'expected the activity change to be returned');
+    }
+
+    public function test_anonymous_user_cannot_sync_a_private_trip(): void
+    {
+        $privateTrip = Trip::create([
+            'id' => (string) Str::uuid(), 'title' => 'Private sync', 'region' => 'JP', 'currency' => 'JPY',
+            'timezone' => 'Asia/Tokyo', 'timestamp_start_ms' => 1, 'timestamp_end_ms' => 2, 'sharing_level' => 0,
+        ]);
+        $this->getJson('/api/sync?tripId=' . $privateTrip->id)->assertForbidden();
+    }
+
+    public function test_anonymous_user_sync_without_trip_scope_requires_auth(): void
+    {
+        $this->getJson('/api/sync')->assertUnauthorized();
+    }
 }

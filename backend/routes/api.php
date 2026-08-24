@@ -28,7 +28,7 @@ Route::middleware(['web', 'throttle:60,1'])->prefix('auth')->group(function (): 
 Route::middleware('web')->group(function (): void {
     Route::get('/trips/public', [TripController::class, 'publicIndex']);
     Route::get('/metadata/trips/{trip}', [MetadataController::class, 'trip'])->middleware('throttle:120,1');
-    Route::get('/sync', SyncController::class)->middleware(['auth', 'throttle:120,1']);
+    Route::get('/sync', SyncController::class)->middleware('throttle:120,1');
     Route::get('/trips', [TripController::class, 'index'])->middleware('auth');
     Route::get('/trips/{trip}', [TripController::class, 'show'])
         ->middleware('trip.access:view');
