@@ -164,8 +164,7 @@ export function BackendLogin() {
               name="password"
               type="password"
               placeholder="Password"
-              required
-              minLength={8}
+              autoComplete="current-password"
             />
           </>
         )}

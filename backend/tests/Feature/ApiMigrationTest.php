@@ -76,10 +76,27 @@ class ApiMigrationTest extends TestCase
         // Legacy InstantDB account: has an email but no password_hash.
         $this->user(['email' => 'legacy@example.com', 'password_hash' => null]);
 
+        // Even with a typed password, they're directed to set one up.
         $this->postJson('/api/auth/login', [
             'email' => 'legacy@example.com',
             'password' => 'whatever',
         ])->assertStatus(422)->assertJsonPath('needsPasswordSetup', true);
+
+        // And with a BLANK password (frontend no longer blocks the field), the
+        // legacy branch must still be reached — never a generic credentials error.
+        $this->postJson('/api/auth/login', [
+            'email' => 'legacy@example.com',
+            'password' => '',
+        ])->assertStatus(422)->assertJsonPath('needsPasswordSetup', true);
+    }
+
+    public function test_login_blank_password_is_invalid_for_account_with_password(): void
+    {
+        $this->user(['email' => 'normal@example.com', 'password_hash' => password_hash('right-pass', PASSWORD_DEFAULT)]);
+        $this->postJson('/api/auth/login', [
+            'email' => 'normal@example.com',
+            'password' => '',
+        ])->assertStatus(422)->assertJsonMissingPath('needsPasswordSetup');
     }
 
     public function test_authenticated_user_can_create_a_trip(): void
