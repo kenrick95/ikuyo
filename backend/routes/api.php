@@ -18,6 +18,7 @@ Route::middleware('web')->get('/csrf-token', fn () => response()->json([
 Route::middleware(['web', 'throttle:60,1'])->prefix('auth')->group(function (): void {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/register', [AuthController::class, 'register']);
     Route::post('/guest', [AuthController::class, 'guest']);
     Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
     Route::post('/upgrade', [AuthController::class, 'upgrade'])->middleware('auth');
