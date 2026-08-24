@@ -21,7 +21,10 @@ class AuthController extends Controller
 
     public function login(Request $request): JsonResponse
     {
-        $data = $request->validate(['email' => ['required', 'email'], 'password' => ['required', 'string']]);
+        // Password is optional at submission: a legacy account (email but no
+        // password) must reach the needsPasswordSetup branch even when the user
+        // leaves the field blank and lets the form submit.
+        $data = $request->validate(['email' => ['required', 'email'], 'password' => ['nullable', 'string']]);
         $user = User::where('email', $data['email'])->first();
 
         if (!$user) {
@@ -37,7 +40,7 @@ class AuthController extends Controller
             ], 422);
         }
 
-        if (!Hash::check($data['password'], $user->password_hash)) {
+        if (empty($data['password']) || !Hash::check($data['password'], $user->password_hash)) {
             return response()->json(['message' => 'Invalid credentials.'], 422);
         }
 
