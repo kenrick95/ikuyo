@@ -19,6 +19,15 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'trip.access' => AuthorizeTripAccess::class,
         ]);
+
+        // The frontend models empty strings as "" (matching InstantDB's required
+        // string fields: description, location, ...) and sends `null` only for
+        // optional numeric fields. The framework default empty-string→null
+        // conversion fights that model and violates NOT NULL text columns
+        // (e.g. activities.description/location) on save.
+        $middleware->remove(
+            \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

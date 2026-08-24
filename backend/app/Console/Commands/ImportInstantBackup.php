@@ -419,9 +419,14 @@ class ImportInstantBackup extends Command
     private function child(array $source, int $created, int $updated, array $fields, array $mapped, ?string $parentLink): array
     {
         $row = ['id' => (string) $source['id'], 'created_at_ms' => $created, 'updated_at_ms' => $updated];
+        // InstantDB string fields that the schema marks as required are NOT NULL
+        // locally; normalize a missing/absent source field to an empty string
+        // (matching the frontend's "" convention) instead of null.
+        $requiredStringFields = ['title', 'location', 'description', 'name', 'notes', 'address', 'phone_number', 'content', 'currency', 'timezone_incurred'];
         foreach ($fields as $from => $to) {
             if (is_int($from)) { $from = $to; }
-            $row[$to] = $source[$from] ?? null;
+            $value = $source[$from] ?? null;
+            $row[$to] = in_array($to, $requiredStringFields, true) ? (string) ($value ?? '') : $value;
         }
         foreach ($mapped as $from => $to) $row[$to] = $source[$from] ?? null;
         $linkColumn = ['trip' => 'trip_id', 'taskList' => 'task_list_id', 'commentGroup' => 'comment_group_id'][$parentLink ?? ''] ?? null;
