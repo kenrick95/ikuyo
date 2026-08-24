@@ -24,7 +24,20 @@ class AuthController extends Controller
         $data = $request->validate(['email' => ['required', 'email'], 'password' => ['required', 'string']]);
         $user = User::where('email', $data['email'])->first();
 
-        if (!$user || !$user->password_hash || !Hash::check($data['password'], $user->password_hash)) {
+        if (!$user) {
+            return response()->json(['message' => 'Invalid credentials.'], 422);
+        }
+
+        if (!$user->password_hash) {
+            // Legacy accounts (magic-link/Google from the previous InstantDB era)
+            // have an email but never stored a password. Guide them to set one.
+            return response()->json([
+                'message' => "You haven't set a password for this account yet. We'll send you a link to create one so you can log in.",
+                'needsPasswordSetup' => true,
+            ], 422);
+        }
+
+        if (!Hash::check($data['password'], $user->password_hash)) {
             return response()->json(['message' => 'Invalid credentials.'], 422);
         }
 
@@ -33,6 +46,43 @@ class AuthController extends Controller
         $user->forceFill(['last_login_at' => now()->getTimestampMs()])->save();
 
         return response()->json(['user' => $this->user($user)]);
+    }
+
+    public function register(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8'],
+        ]);
+
+        $handle = $this->uniqueHandle(strstr($data['email'], '@', true) ?: 'user');
+        $user = User::create([
+            'id' => (string) Str::uuid(),
+            'handle' => $handle,
+            'handle_key' => strtolower($handle),
+            'email' => $data['email'],
+            'password_hash' => Hash::make($data['password']),
+            'activated' => true,
+        ]);
+
+        Auth::login($user);
+        $request->session()->regenerate();
+        $user->forceFill(['last_login_at' => now()->getTimestampMs()])->save();
+
+        return response()->json(['user' => $this->user($user)], 201);
+    }
+
+    /** Build a unique handle from a local-part, falling back to random. */
+    private function uniqueHandle(string $localPart): string
+    {
+        $base = preg_replace('/[^a-z0-9_]/i', '_', strtolower(trim($localPart))) ?: 'user';
+        $base = substr($base, 0, 24);
+        $candidate = $base;
+        $i = 1;
+        while (User::where('handle_key', $candidate)->exists()) {
+            $candidate = substr($base, 0, 20) . '_' . $i++;
+        }
+        return $candidate;
     }
 
     public function guest(Request $request): JsonResponse

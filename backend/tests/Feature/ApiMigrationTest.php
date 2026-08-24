@@ -47,6 +47,41 @@ class ApiMigrationTest extends TestCase
         Mail::assertSentCount(1);
     }
 
+    public function test_register_creates_and_logs_in_a_user(): void
+    {
+        $response = $this->postJson('/api/auth/register', [
+            'email' => 'newuser@example.com',
+            'password' => 'password123',
+        ])->assertCreated();
+
+        $user = $response->json('user');
+        $this->assertSame('newuser@example.com', $user['email']);
+        $this->assertTrue((bool) $user['activated']);
+        $this->assertNotNull($user['handle']);
+        // Session established: /api/auth/me returns the new user without extra login.
+        $this->getJson('/api/auth/me')->assertOk()->assertJsonPath('user.email', 'newuser@example.com');
+    }
+
+    public function test_register_rejects_duplicate_email(): void
+    {
+        $this->user(['email' => 'taken@example.com']);
+        $this->postJson('/api/auth/register', [
+            'email' => 'taken@example.com',
+            'password' => 'password123',
+        ])->assertStatus(422);
+    }
+
+    public function test_login_guides_legacy_user_without_password(): void
+    {
+        // Legacy InstantDB account: has an email but no password_hash.
+        $this->user(['email' => 'legacy@example.com', 'password_hash' => null]);
+
+        $this->postJson('/api/auth/login', [
+            'email' => 'legacy@example.com',
+            'password' => 'whatever',
+        ])->assertStatus(422)->assertJsonPath('needsPasswordSetup', true);
+    }
+
     public function test_authenticated_user_can_create_a_trip(): void
     {
         $user = $this->user();

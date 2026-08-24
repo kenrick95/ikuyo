@@ -2,14 +2,14 @@ import { Button, Flex, Heading, TextField } from '@radix-ui/themes';
 import type React from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
-import { mutate, postMutation } from '../data/apiClient';
+import { ApiError, mutate, postMutation } from '../data/apiClient';
 import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
 import imgUrl from '../logo/ikuyo.svg';
 import { RouteTrips } from '../Routes/routes';
 import s from './Auth.module.css';
 
-type Mode = 'login' | 'guest' | 'forgot' | 'reset';
+type Mode = 'login' | 'signup' | 'guest' | 'forgot' | 'reset';
 
 export function BackendLogin() {
   const publishToast = useBoundStore((state) => state.publishToast);
@@ -21,6 +21,9 @@ export function BackendLogin() {
   );
   const [loading, setLoading] = useState(false);
   const [, setLocation] = useLocation();
+  // When a legacy account has no password, remember the email they typed so the
+  // recovery form opens pre-filled.
+  const [prefillEmail, setPrefillEmail] = useState('');
   const resetToken = useMemo(
     () => new URLSearchParams(window.location.search).get('reset_token') ?? '',
     [],
@@ -32,13 +35,20 @@ export function BackendLogin() {
       setLoading(true);
       const form = new FormData(event.currentTarget);
       try {
-        // Guest creation, password recovery, and reset all write to the data
-        // store, so they're barred during the read-only freeze window. Logging
-        // in is kept available so existing users can still read their trips.
+        // Guest creation, signup, password recovery, and reset all write to the
+        // data store, so they're barred during the read-only freeze window.
+        // Logging in is kept available so existing users can still read their trips.
         if (mode !== 'login') {
           assertWritable('creating or changing your account');
         }
-        if (mode === 'guest') {
+        if (mode === 'signup') {
+          await postMutation('/api/auth/register', {
+            email: String(form.get('email') ?? '')
+              .trim()
+              .toLowerCase(),
+            password: String(form.get('password') ?? ''),
+          });
+        } else if (mode === 'guest') {
           await postMutation('/api/auth/guest', {});
         } else if (mode === 'login') {
           // `mutate` keeps CSRF but (unlike postMutation) does not assert
@@ -80,14 +90,43 @@ export function BackendLogin() {
         subscribeUser();
         setLocation(RouteTrips.asRootRoute());
       } catch (error) {
-        publishToast({
-          root: { duration: Number.POSITIVE_INFINITY },
-          title: { children: 'Unable to continue' },
-          description: {
-            children: error instanceof Error ? error.message : 'Unknown error',
-          },
-          close: {},
-        });
+        // Account has an email but never set a password: switch straight to the
+        // recovery flow (pre-filled) with a plain-language message.
+        if (mode === 'login' && error instanceof ApiError) {
+          const needsPasswordSetup =
+            typeof error.body === 'object' &&
+            error.body !== null &&
+            'needsPasswordSetup' in error.body &&
+            error.body.needsPasswordSetup === true;
+          if (needsPasswordSetup) {
+            const email = String(form.get('email') ?? '')
+              .trim()
+              .toLowerCase();
+            setPrefillEmail(email);
+            setMode('forgot');
+          }
+        }
+        if (mode !== 'forgot') {
+          publishToast({
+            root: { duration: Number.POSITIVE_INFINITY },
+            title: { children: 'Unable to continue' },
+            description: {
+              children:
+                error instanceof Error ? error.message : 'Unknown error',
+            },
+            close: {},
+          });
+        } else {
+          publishToast({
+            root: {},
+            title: { children: 'Set up your password' },
+            description: {
+              children:
+                "We'll send you a link to create a password, then you can log in.",
+            },
+            close: {},
+          });
+        }
       } finally {
         setLoading(false);
       }
@@ -100,7 +139,9 @@ export function BackendLogin() {
       ? 'Recover your password'
       : mode === 'reset'
         ? 'Choose a new password'
-        : 'Log in to Ikuyo!';
+        : mode === 'signup'
+          ? 'Create your account'
+          : 'Log in to Ikuyo!';
   return (
     <form onSubmit={submit}>
       <Flex direction="column" gap="2">
@@ -128,12 +169,34 @@ export function BackendLogin() {
             />
           </>
         )}
+        {mode === 'signup' && (
+          <>
+            <label htmlFor="backend-signup-email">Email</label>
+            <TextField.Root
+              id="backend-signup-email"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              required
+            />
+            <label htmlFor="backend-signup-password">Password</label>
+            <TextField.Root
+              id="backend-signup-password"
+              name="password"
+              type="password"
+              placeholder="Password (8+ characters)"
+              required
+              minLength={8}
+            />
+          </>
+        )}
         {mode === 'forgot' && (
           <>
             <label htmlFor="backend-forgot-email">Email</label>
             <TextField.Root
               id="backend-forgot-email"
               name="email"
+              defaultValue={prefillEmail}
               type="email"
               placeholder="you@example.com"
               required
@@ -163,11 +226,13 @@ export function BackendLogin() {
         <Button type="submit" loading={loading}>
           {mode === 'guest'
             ? 'Continue as guest'
-            : mode === 'forgot'
-              ? 'Send reset link'
-              : mode === 'reset'
-                ? 'Set password'
-                : 'Log in'}
+            : mode === 'signup'
+              ? 'Create account'
+              : mode === 'forgot'
+                ? 'Send reset link'
+                : mode === 'reset'
+                  ? 'Set password'
+                  : 'Log in'}
         </Button>
         {mode === 'login' && (
           <>
@@ -177,6 +242,13 @@ export function BackendLogin() {
               onClick={() => setMode('forgot')}
             >
               Forgot password?
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setMode('signup')}
+            >
+              Create an account
             </Button>
             <Button
               type="button"
