@@ -52,18 +52,34 @@ class ImportInstantBackup extends Command
         }
 
         $expected = $this->readConfigCounts($directory);
+        // Only entities we actually migrate are verified. config.json also lists
+        // InstantDB's internal auth bookkeeping ($magicCodes, $oauth*, ...) which
+        // have no JSONL export and are intentionally not migrated; those are shown
+        // as "ignored" and must not fail a --verify-config run.
+        $imported = [...array_keys(self::TABLES)];
+        if (isset($expected['$users']) || isset($counts['$users'])) $imported[] = '$users';
         $verification = [];
-        // Iterate both tables-with-files and expected config entities, so a missing
-        // JSONL file still fails verification instead of silently passing.
-        foreach (array_unique([...array_keys(self::TABLES), '$users', ...array_keys($expected)]) as $entity) {
+        foreach ([...$imported, ...array_keys($expected)] as $entity) {
+            if (isset($verification[$entity])) continue;
             $actual = $counts[$entity] ?? 0;
+            if (!in_array($entity, $imported, true)) {
+                $verification[$entity] = [
+                    'expected' => $expected[$entity] ?? null,
+                    'actual' => $actual,
+                    // InstantDB internal/thrown-away tables: not a pass/fail concern.
+                    'ok' => true,
+                    'ignored' => true,
+                ];
+                continue;
+            }
             $verification[$entity] = [
                 'expected' => $expected[$entity] ?? null,
                 'actual' => $actual,
                 'ok' => !isset($expected[$entity]) || $expected[$entity] === $actual,
+                'ignored' => false,
             ];
         }
-        $this->table(['entity', 'expected', 'actual', 'status'], collect($verification)->map(fn ($row, $entity) => [$entity, $row['expected'] ?? '-', $row['actual'], $row['ok'] ? 'ok' : 'MISMATCH'])->values()->all());
+        $this->table(['entity', 'expected', 'actual', 'status'], collect($verification)->map(fn ($row, $entity) => [$entity, $row['expected'] ?? '-', $row['actual'], $row['ignored'] ? 'ignored' : ($row['ok'] ? 'ok' : 'MISMATCH')])->values()->all());
         if ($this->option('json')) {
             $this->line(json_encode(['counts' => $counts, 'verification' => $verification], JSON_THROW_ON_ERROR));
         }
