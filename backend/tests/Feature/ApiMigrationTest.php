@@ -99,6 +99,29 @@ class ApiMigrationTest extends TestCase
         ])->assertStatus(422)->assertJsonMissingPath('needsPasswordSetup');
     }
 
+    public function test_lookup_reports_account_state_for_password_ux(): void
+    {
+        // Account with a password: password step is shown.
+        $this->user(['email' => 'has-pass@example.com', 'password_hash' => password_hash('secret123', PASSWORD_DEFAULT)]);
+        $this->postJson('/api/auth/lookup', ['email' => 'has-pass@example.com'])
+            ->assertOk()->assertJson(['known' => true, 'needsPasswordSetup' => false]);
+    }
+
+    public function test_lookup_reports_legacy_account_needs_password(): void
+    {
+        $this->user(['email' => 'legacy2@example.com', 'password_hash' => null]);
+        $this->postJson('/api/auth/lookup', ['email' => 'legacy2@example.com'])
+            ->assertOk()->assertJson(['known' => true, 'needsPasswordSetup' => true]);
+    }
+
+    public function test_lookup_unknown_email_is_generic(): void
+    {
+        // Must not leak whether an email is registered; unknown looks like a
+        // legacy account so enumeration isn't possible via this endpoint.
+        $this->postJson('/api/auth/lookup', ['email' => 'nobody@example.com'])
+            ->assertOk()->assertJson(['known' => false, 'needsPasswordSetup' => true]);
+    }
+
     public function test_authenticated_user_can_create_a_trip(): void
     {
         $user = $this->user();

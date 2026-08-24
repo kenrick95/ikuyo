@@ -19,6 +19,10 @@ Route::middleware(['web', 'throttle:60,1'])->prefix('auth')->group(function (): 
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register', [AuthController::class, 'register']);
+    // Check whether an email is known and whether it needs a password before
+    // showing the login form (avoids confusing legacy users with a password field
+    // when they never set one). Generic for unknown emails to avoid enumeration.
+    Route::post('/lookup', [AuthController::class, 'lookup']);
     Route::post('/guest', [AuthController::class, 'guest']);
     Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth');
     Route::post('/upgrade', [AuthController::class, 'upgrade'])->middleware('auth');

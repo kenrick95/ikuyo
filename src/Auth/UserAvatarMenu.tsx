@@ -15,6 +15,7 @@ import {
 export function UserAvatarMenu({ user }: { user: DbUser | null | undefined }) {
   const [, setLocation] = useLocation();
   const subscribeUser = useBoundStore((state) => state.subscribeUser);
+  const clearSession = useBoundStore((state) => state.clearSession);
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger>
@@ -68,8 +69,10 @@ export function UserAvatarMenu({ user }: { user: DbUser | null | undefined }) {
                 ? postMutation('/api/auth/logout', {})
                 : db.auth.signOut();
               void logout.then(() => {
-                // Clear the cached user so the app stops rendering authenticated
-                // data and the route guard no longer treats the user as signed in.
+                // Forget the user + all cached trip data so the next user on this
+                // browser never sees the previous session's trips. subscribeUser()
+                // then re-fetches the (now null) session into the cleared store.
+                clearSession();
                 if (backendAuthEnabled) {
                   subscribeUser();
                 }
