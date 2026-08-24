@@ -1038,3 +1038,35 @@ IKUYO_MAINTENANCE_MODE=false
 - [ ] Archive `instant.schema.ts`, `instant.perms.ts`, and the final export.
 - [ ] Remove Instant admin credentials from hosting.
 - [ ] Stop/decommission the Instant app only after confirming no clients use it.
+
+## Pre-merge review notes (feat/backend-migration)
+
+Validated before merge: `php artisan test` (33 pass), `vitest` (167 pass), `tsc --noEmit`,
+full `instant:import --verify-config` on the real 2026-08-21 backup (all 13 app entities
+round-trip with FK integrity), and migrations run cleanly on a fresh SQLite DB.
+
+### Blockers (fixed)
+- **Import `--verify-config` failed on real backups.** `config.json` includes InstantDB's
+  internal auth tables (`$magicCodes`, `$oauth*`, `$userRefreshTokens`) which have no JSONL
+  export and are intentionally not migrated; they were counted as MISMATCH. Now only the
+  entities we migrate are verified; internal tables are shown as "ignored" and don't fail.
+
+### Non-blockers (accepted / follow-up)
+- **7 orphaned rows pruned during import** (1 `tripUser`, 1 `task`, 5 `comments`) — these are
+  broken references inside the source backup (parent id missing), so they cannot be inserted
+  and are correctly skipped, not data loss. Worth a one-time audit of the 7 ids in the source.
+- **Monthly `biome ci` is red repo-wide** (293 errors on `main`, 40 on this branch) — almost all
+  pre-existing CRLF/format noise unrelated to this migration; not a merge gate. The only
+  non-format lint hits (3 `noExplicitAny` + 1 `noUselessTernary`) are in pre-existing
+  `apiTrip.ts` / `Trips/store.ts` / `TripsPublic/store.ts` files, not introduced here.
+- **Migrations are create-only** — the `index BIGINT` widening for tasks/task-lists (PR 169
+  review item 754814) is baked into the 2026 migration. If a MySQL schema was provisioned from
+  an earlier migration snapshot, deploy needs an `ALTER TABLE ... MODIFY index BIGINT`.
+- **Optimistic updates then reconcile via a background refetch** — after a successful mutation
+  `onMutationApplied` triggers a full-trip refresh that overwrites optimistic (`Date.now()`
+  timestamps, server-derived `flags`) with server truth. Instant UX is preserved, but hot paths
+  (drag-end) still incur one extra `GET /api/trips/{id}`. Optional future: skip the refresh when
+  a mutation was already optimistic.
+- **No Google OAuth in Laravel mode** — `db.auth.createAuthorizationURL` is InstantDB-only.
+  Replaced by email/password + recovery; existing InstantDB users set a password via
+  forgot-password (legacy `needsPasswordSetup` path). Adding Socialite OAuth is optional.
