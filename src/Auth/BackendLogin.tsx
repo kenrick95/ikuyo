@@ -226,7 +226,8 @@ export function BackendLogin() {
               autoComplete="email"
             />
             <Text size="1" color="gray">
-              We'll check if your account needs a password.
+              Enter your email to log in — or to create an account if you're
+              new.
             </Text>
           </>
         )}
@@ -340,13 +341,6 @@ export function BackendLogin() {
                 Use a different email
               </Button>
             )}
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setMode('signup')}
-            >
-              Create an account
-            </Button>
             <Button
               type="button"
               variant="ghost"
