@@ -3,7 +3,15 @@ import type { DbCommentGroup } from '../Comment/db';
 import { deleteMutation, postMutation, putMutation } from '../data/apiClient';
 import { backendActivityWrites } from '../data/backendConfig';
 import { db } from '../data/db';
+import {
+  optimisticActivityPatch,
+  optimisticActivityRemove,
+  optimisticActivityUpsert,
+  optimisticRun,
+} from '../data/optimistic';
+import { useBoundStore } from '../data/store';
 import type { DbTrip, DbTripWithActivity } from '../Trip/db';
+import type { TripSliceActivity } from '../Trip/store/types';
 import { ActivityFlag, updateActivityFlag } from './activityFlag';
 
 export type DbActivityWithTrip = Omit<DbActivity, 'trip'> & {
@@ -66,18 +74,37 @@ export async function dbAddActivity(
   },
 ) {
   if (backendActivityWrites) {
-    const result = await postMutation<{ id: string }>(
-      `/api/trips/${encodeURIComponent(tripId)}/activities`,
-      newActivity,
+    // Optimistic: insert locally with a client-generated id, send the same id so
+    // the server persists it, and roll back on failure.
+    const newId = id();
+    return optimisticRun(
+      ['activity', 'trip'],
+      () => {
+        const now = Date.now();
+        optimisticActivityUpsert(tripId, {
+          ...newActivity,
+          id: newId,
+          createdAt: now,
+          lastUpdatedAt: now,
+          tripId,
+          commentGroupId: undefined,
+        } as TripSliceActivity);
+      },
+      async () => {
+        const result = await postMutation<{ id: string }>(
+          `/api/trips/${encodeURIComponent(tripId)}/activities`,
+          { ...newActivity, id: newId },
+        );
+        return {
+          transaction: result,
+          id: result.id,
+          undo: async () =>
+            deleteMutation(
+              `/api/trips/${encodeURIComponent(tripId)}/activities/${encodeURIComponent(result.id)}`,
+            ),
+        };
+      },
     );
-    return {
-      transaction: result,
-      id: result.id,
-      undo: async () =>
-        deleteMutation(
-          `/api/trips/${encodeURIComponent(tripId)}/activities/${encodeURIComponent(result.id)}`,
-        ),
-    };
   }
 
   const newId = id();
@@ -103,7 +130,16 @@ export async function dbAddActivity(
 }
 export async function dbDeleteActivity(activityId: string) {
   if (backendActivityWrites) {
-    return deleteMutation(`/api/activities/${encodeURIComponent(activityId)}`);
+    const state = useBoundStore.getState();
+    const activity = state.activity[activityId];
+    const tripId = activity?.tripId;
+    return optimisticRun(
+      ['activity', 'trip'],
+      () => {
+        if (tripId) optimisticActivityRemove(tripId, activityId);
+      },
+      () => deleteMutation(`/api/activities/${encodeURIComponent(activityId)}`),
+    );
   }
   const commentGroups = await db.queryOnce({
     commentGroup: {
@@ -140,11 +176,17 @@ export async function dbUpdateActivity(
   activity: Omit<DbActivity, 'createdAt' | 'lastUpdatedAt' | 'trip'>,
 ) {
   if (backendActivityWrites) {
-    const result = await putMutation<DbActivity>(
-      `/api/activities/${encodeURIComponent(activity.id)}`,
-      activity,
+    return optimisticRun(
+      ['activity'],
+      () => optimisticActivityPatch(activity.id, activity),
+      async () => {
+        const result = await putMutation<DbActivity>(
+          `/api/activities/${encodeURIComponent(activity.id)}`,
+          activity,
+        );
+        return { transaction: result, undo: async () => undefined };
+      },
     );
-    return { transaction: result, undo: async () => undefined };
   }
 
   const snapshot = await db.queryOnce({
@@ -186,16 +228,42 @@ export async function dbDuplicateActivityDragEnd(
   },
 ) {
   if (backendActivityWrites) {
-    const result = await postMutation<{ id: string }>(
-      `/api/activities/${encodeURIComponent(activityId)}/duplicate`,
-      { timestampStart, timestampEnd },
+    const state = useBoundStore.getState();
+    const activity = state.activity[activityId];
+    const tripId = activity?.tripId;
+    const newId = id();
+    return optimisticRun(
+      ['activity', 'trip'],
+      () => {
+        if (tripId && activity) {
+          optimisticActivityUpsert(tripId, {
+            ...activity,
+            id: newId,
+            timestampStart,
+            timestampEnd,
+            createdAt: Date.now(),
+            lastUpdatedAt: Date.now(),
+            flags: updateActivityFlag(
+              activity.flags,
+              ActivityFlag.IsIdea,
+              false,
+            ),
+          });
+        }
+      },
+      async () => {
+        const result = await postMutation<{ id: string }>(
+          `/api/activities/${encodeURIComponent(activityId)}/duplicate`,
+          { timestampStart, timestampEnd, id: newId },
+        );
+        return {
+          id: result.id,
+          transaction: result,
+          undo: async () =>
+            deleteMutation(`/api/activities/${encodeURIComponent(result.id)}`),
+        };
+      },
     );
-    return {
-      id: result.id,
-      transaction: result,
-      undo: async () =>
-        deleteMutation(`/api/activities/${encodeURIComponent(result.id)}`),
-    };
   }
   const res = await db.queryOnce({
     activity: {
@@ -253,11 +321,29 @@ export async function dbUpdateActivityDragEnd(
   },
 ) {
   if (backendActivityWrites) {
-    const result = await postMutation<DbActivity>(
-      `/api/activities/${encodeURIComponent(activityId)}/drag-end`,
-      { timestampStart, timestampEnd },
+    return optimisticRun(
+      ['activity'],
+      () => {
+        const existing = useBoundStore.getState().activity[activityId];
+        optimisticActivityPatch(activityId, {
+          timestampStart,
+          timestampEnd,
+          flags: updateActivityFlag(
+            existing?.flags,
+            ActivityFlag.IsIdea,
+            false,
+          ),
+          lastUpdatedAt: Date.now(),
+        });
+      },
+      async () => {
+        const result = await postMutation<DbActivity>(
+          `/api/activities/${encodeURIComponent(activityId)}/drag-end`,
+          { timestampStart, timestampEnd },
+        );
+        return { transaction: result, undo: async () => undefined };
+      },
     );
-    return { transaction: result, undo: async () => undefined };
   }
   const res = await db.queryOnce({
     activity: {

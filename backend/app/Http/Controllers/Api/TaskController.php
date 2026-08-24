@@ -19,10 +19,13 @@ class TaskController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'index' => ['required', 'integer'],
             'status' => ['required', 'integer'],
+            'id' => ['nullable', 'string', 'max:40'],
         ]);
         $list = $trip->taskLists()->create([
-            'id' => (string) Str::uuid(),
-            ...$data,
+            'id' => $data['id'] ?? (string) Str::uuid(),
+            'title' => $data['title'],
+            'index' => $data['index'],
+            'status' => $data['status'],
         ]);
         return response()->json($list, 201);
     }
@@ -61,9 +64,10 @@ class TaskController extends Controller
             'status' => ['required', 'integer'],
             'dueAt' => ['nullable', 'integer'],
             'completedAt' => ['nullable', 'integer'],
+            'id' => ['nullable', 'string', 'max:40'],
         ]);
         $task = $taskList->tasks()->create([
-            'id' => (string) Str::uuid(),
+            'id' => $data['id'] ?? (string) Str::uuid(),
             'title' => $data['title'],
             'description' => empty($data['description']) ? null : $data['description'],
             'index' => $data['index'],
@@ -84,9 +88,10 @@ class TaskController extends Controller
             'status' => ['required', 'integer'],
             'dueAt' => ['nullable', 'integer'],
             'completedAt' => ['nullable', 'integer'],
+            'id' => ['nullable', 'string', 'max:40'],
         ]);
         $task = $list->tasks()->create([
-            'id' => (string) Str::uuid(),
+            'id' => $data['id'] ?? (string) Str::uuid(),
             'title' => $data['title'],
             'description' => $data['description'] ?? null,
             'index' => $data['index'],

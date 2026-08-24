@@ -2,7 +2,15 @@ import { id } from '@instantdb/core';
 import { deleteMutation, postMutation, putMutation } from '../data/apiClient';
 import { backendContentWrites } from '../data/backendConfig';
 import { db } from '../data/db';
+import {
+  optimisticExpensePatch,
+  optimisticExpenseRemove,
+  optimisticExpenseUpsert,
+  optimisticRun,
+} from '../data/optimistic';
+import { useBoundStore } from '../data/store';
 import type { DbTrip } from '../Trip/db';
+import type { TripSliceExpense } from '../Trip/store/types';
 
 export type DbExpenseWithTrip = Omit<DbExpense, 'trip'> & {
   trip: DbTrip;
@@ -34,11 +42,28 @@ export async function dbAddExpense(
   { tripId }: { tripId: string },
 ) {
   if (backendContentWrites) {
-    const result = await postMutation<{ id: string }>(
-      `/api/trips/${encodeURIComponent(tripId)}/expenses`,
-      newExpense,
+    const newId = id();
+    return optimisticRun(
+      ['expense', 'trip'],
+      () => {
+        const now = Date.now();
+        optimisticExpenseUpsert(tripId, {
+          ...newExpense,
+          id: newId,
+          createdAt: now,
+          lastUpdatedAt: now,
+          tripId,
+          commentGroupId: undefined,
+        } as TripSliceExpense);
+      },
+      async () => {
+        const result = await postMutation<{ id: string }>(
+          `/api/trips/${encodeURIComponent(tripId)}/expenses`,
+          { ...newExpense, id: newId },
+        );
+        return { id: result.id, result };
+      },
     );
-    return { id: result.id, result };
   }
   const newId = id();
   return {
@@ -59,11 +84,14 @@ export async function dbAddExpense(
 export async function dbUpdateExpense(
   expense: Omit<DbExpense, 'createdAt' | 'lastUpdatedAt' | 'trip'>,
 ) {
-  if (backendContentWrites)
-    return putMutation(
-      `/api/expenses/${encodeURIComponent(expense.id)}`,
-      expense,
+  if (backendContentWrites) {
+    return optimisticRun(
+      ['expense'],
+      () => optimisticExpensePatch(expense.id, expense),
+      () =>
+        putMutation(`/api/expenses/${encodeURIComponent(expense.id)}`, expense),
     );
+  }
   return db.transact(
     db.tx.expense[expense.id].merge({
       ...expense,
@@ -72,8 +100,17 @@ export async function dbUpdateExpense(
   );
 }
 export async function dbDeleteExpense(expenseId: string) {
-  if (backendContentWrites)
-    return deleteMutation(`/api/expenses/${encodeURIComponent(expenseId)}`);
+  if (backendContentWrites) {
+    const state = useBoundStore.getState();
+    const tripId = state.expense[expenseId]?.tripId;
+    return optimisticRun(
+      ['expense', 'trip'],
+      () => {
+        if (tripId) optimisticExpenseRemove(tripId, expenseId);
+      },
+      () => deleteMutation(`/api/expenses/${encodeURIComponent(expenseId)}`),
+    );
+  }
   const commentGroups = await db.queryOnce({
     commentGroup: {
       comment: { $: { fields: ['id'] } },

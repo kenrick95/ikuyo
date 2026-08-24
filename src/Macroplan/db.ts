@@ -2,7 +2,15 @@ import { id } from '@instantdb/core';
 import { deleteMutation, postMutation, putMutation } from '../data/apiClient';
 import { backendContentWrites } from '../data/backendConfig';
 import { db } from '../data/db';
+import {
+  optimisticMacroplanPatch,
+  optimisticMacroplanRemove,
+  optimisticMacroplanUpsert,
+  optimisticRun,
+} from '../data/optimistic';
+import { useBoundStore } from '../data/store';
 import type { DbTrip, DbTripWithMacroplan } from '../Trip/db';
+import type { TripSliceMacroplan } from '../Trip/store/types';
 
 export type DbMacroplanWithTrip = Omit<DbMacroplan, 'trip'> & {
   trip: DbTripWithMacroplan;
@@ -51,16 +59,33 @@ export async function dbAddMacroplan(
   { tripId }: { tripId: string },
 ) {
   if (backendContentWrites) {
-    const result = await postMutation<{ id: string }>(
-      `/api/trips/${encodeURIComponent(tripId)}/macroplans`,
-      newMacroplan,
+    const newId = id();
+    return optimisticRun(
+      ['macroplan', 'trip'],
+      () => {
+        const now = Date.now();
+        optimisticMacroplanUpsert(tripId, {
+          ...newMacroplan,
+          id: newId,
+          createdAt: now,
+          lastUpdatedAt: now,
+          tripId,
+          commentGroupId: undefined,
+        } as TripSliceMacroplan);
+      },
+      async () => {
+        const result = await postMutation<{ id: string }>(
+          `/api/trips/${encodeURIComponent(tripId)}/macroplans`,
+          { ...newMacroplan, id: newId },
+        );
+        return {
+          id: result.id,
+          transaction: result,
+          undo: async () =>
+            deleteMutation(`/api/macroplans/${encodeURIComponent(result.id)}`),
+        };
+      },
     );
-    return {
-      id: result.id,
-      transaction: result,
-      undo: async () =>
-        deleteMutation(`/api/macroplans/${encodeURIComponent(result.id)}`),
-    };
   }
   const newMacroplanId = id();
   const transaction = await db.transact([
@@ -87,11 +112,17 @@ export async function dbUpdateMacroplan(
   macroplan: Omit<DbMacroplan, 'createdAt' | 'lastUpdatedAt' | 'trip'>,
 ) {
   if (backendContentWrites) {
-    const result = await putMutation<DbMacroplan>(
-      `/api/macroplans/${encodeURIComponent(macroplan.id)}`,
-      macroplan,
+    return optimisticRun(
+      ['macroplan'],
+      () => optimisticMacroplanPatch(macroplan.id, macroplan),
+      async () => {
+        const result = await putMutation<DbMacroplan>(
+          `/api/macroplans/${encodeURIComponent(macroplan.id)}`,
+          macroplan,
+        );
+        return { transaction: result, undo: async () => undefined };
+      },
     );
-    return { transaction: result, undo: async () => undefined };
   }
   const snapshot = await db.queryOnce({
     macroplan: {
@@ -120,8 +151,18 @@ export async function dbUpdateMacroplan(
 }
 
 export async function dbDeleteMacroplan(macroplanId: string) {
-  if (backendContentWrites)
-    return deleteMutation(`/api/macroplans/${encodeURIComponent(macroplanId)}`);
+  if (backendContentWrites) {
+    const state = useBoundStore.getState();
+    const tripId = state.macroplan[macroplanId]?.tripId;
+    return optimisticRun(
+      ['macroplan', 'trip'],
+      () => {
+        if (tripId) optimisticMacroplanRemove(tripId, macroplanId);
+      },
+      () =>
+        deleteMutation(`/api/macroplans/${encodeURIComponent(macroplanId)}`),
+    );
+  }
   const commentGroups = await db.queryOnce({
     commentGroup: {
       comment: { $: { fields: ['id'] } },

@@ -75,9 +75,13 @@ class ContentController extends Controller
     {
         abort_unless($request->user() && $access->canEdit($trip, $request->user()), 403);
         $record = $trip->activities()->whereKey($activity)->firstOrFail();
-        $data = $request->validate(['timestampStart' => ['nullable', 'integer'], 'timestampEnd' => ['nullable', 'integer']]);
+        $data = $request->validate([
+            'timestampStart' => ['nullable', 'integer'],
+            'timestampEnd' => ['nullable', 'integer'],
+            'id' => ['nullable', 'string', 'max:40'],
+        ]);
         $copy = $record->replicate();
-        $copy->id = (string) Str::uuid();
+        $copy->id = $data['id'] ?? (string) Str::uuid();
         $copy->trip_id = $trip->id;
         $copy->timestamp_start_ms = $data['timestampStart'] ?? null;
         $copy->timestamp_end_ms = $data['timestampEnd'] ?? null;
@@ -97,9 +101,13 @@ class ContentController extends Controller
     public function activityDuplicateById(Request $request, Activity $activity, TripAccessService $access): JsonResponse
     {
         abort_unless($request->user() && $access->canEdit($activity->trip, $request->user()), 403);
-        $data = $request->validate(['timestampStart' => ['nullable', 'integer'], 'timestampEnd' => ['nullable', 'integer']]);
+        $data = $request->validate([
+            'timestampStart' => ['nullable', 'integer'],
+            'timestampEnd' => ['nullable', 'integer'],
+            'id' => ['nullable', 'string', 'max:40'],
+        ]);
         $copy = $activity->replicate();
-        $copy->id = (string) Str::uuid();
+        $copy->id = $data['id'] ?? (string) Str::uuid();
         $copy->timestamp_start_ms = $data['timestampStart'] ?? null;
         $copy->timestamp_end_ms = $data['timestampEnd'] ?? null;
         $copy->flags = ((int) $activity->flags) & ~1;
@@ -160,9 +168,13 @@ class ContentController extends Controller
     public function store(Request $request, Trip $trip, string $entity): JsonResponse
     {
         $model = $this->model($entity);
-        $data = $this->mapFields($request->except(['id', 'trip_id', 'created_at_ms', 'updated_at_ms']));
+        $request->validate(['id' => ['nullable', 'string', 'max:40']]);
+        $data = $this->mapFields($request->except(['trip_id', 'created_at_ms', 'updated_at_ms']));
+        unset($data['id']);
         $record = new $model($data);
-        $record->id = (string) Str::uuid();
+        // Optional client-supplied id (matches the frontend's optimistic insert);
+        // falls back to a server-generated id otherwise.
+        $record->id = $request->input('id') ?: (string) Str::uuid();
         $record->trip_id = $trip->id;
         $record->save();
         return response()->json($record->fresh(), 201);

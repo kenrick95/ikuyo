@@ -9,11 +9,25 @@ import {
 } from '../data/apiClient';
 import { backendContentWrites } from '../data/backendConfig';
 import { db } from '../data/db';
+import {
+  optimisticCommentGroupPatch,
+  optimisticCommentGroupRemove,
+  optimisticCommentPatch,
+  optimisticCommentRemove,
+  optimisticCommentUpsert,
+  optimisticCommentUpsertWithGroup,
+  optimisticRun,
+} from '../data/optimistic';
+import { useBoundStore } from '../data/store';
 import type { DbUser } from '../data/types';
 import type { DbExpense } from '../Expense/db';
 import type { DbMacroplan } from '../Macroplan/db';
 import type { DbTask } from '../Task/db';
 import type { DbTrip } from '../Trip/db';
+import type {
+  TripSliceComment,
+  TripSliceCommentGroup,
+} from '../Trip/store/types';
 
 export const COMMENT_GROUP_STATUS = {
   UNRESOLVED: 0,
@@ -98,13 +112,62 @@ export async function dbAddComment<ObjectType extends DbCommentGroupObjectType>(
   },
 ) {
   if (backendContentWrites) {
-    return postMutation<{ id: string; result: unknown }>(
-      `/api/trips/${encodeURIComponent(tripId)}/comment-groups`,
-      {
-        content: newComment.content,
-        objectType: objectTypeNumber(objectType),
-        objectId,
-        groupId: commentGroupId,
+    // Optimistic: comment (and a new comment group when this is the first comment
+    // on the object) appear locally before the request resolves; the ids are
+    // client-supplied so the server persists the exact same group/comment ids.
+    const newCommentId = id();
+    const newGroupId = commentGroupId ?? id();
+    const now = Date.now();
+    const user = useBoundStore.getState().currentUser;
+    const commentUser = {
+      id: userId,
+      handle: user?.handle ?? '',
+      activated: true,
+    };
+    const comment: TripSliceComment = {
+      id: newCommentId,
+      content: newComment.content,
+      createdAt: now,
+      lastUpdatedAt: now,
+      commentGroupId: newGroupId,
+      userId,
+    };
+    return optimisticRun(
+      ['commentGroup', 'comment', 'commentUser', 'trip'],
+      () => {
+        if (commentGroupId) {
+          optimisticCommentUpsert(newGroupId, comment, commentUser);
+        } else {
+          optimisticCommentUpsertWithGroup(
+            tripId,
+            {
+              id: newGroupId,
+              createdAt: now,
+              lastUpdatedAt: now,
+              status: 0,
+              tripId,
+              objectType,
+              objectId,
+              objectName: '',
+              commentIds: [newCommentId],
+            } as TripSliceCommentGroup,
+            comment,
+            commentUser,
+          );
+        }
+      },
+      async () => {
+        const result = await postMutation<{ id: string; result: unknown }>(
+          `/api/trips/${encodeURIComponent(tripId)}/comment-groups`,
+          {
+            content: newComment.content,
+            objectType: objectTypeNumber(objectType),
+            objectId,
+            groupId: newGroupId,
+            id: newCommentId,
+          },
+        );
+        return result;
       },
     );
   }
@@ -173,9 +236,14 @@ export async function dbUpdateCommentGroupStatus(
   status: CommentGroupStatus,
 ) {
   if (backendContentWrites) {
-    return patchMutation(
-      `/api/comment-groups/${encodeURIComponent(commentGroupId)}/status`,
-      { status },
+    return optimisticRun(
+      ['commentGroup'],
+      () => optimisticCommentGroupPatch(commentGroupId, { status }),
+      () =>
+        patchMutation(
+          `/api/comment-groups/${encodeURIComponent(commentGroupId)}/status`,
+          { status },
+        ),
     );
   }
   const now = Date.now();
@@ -196,9 +264,18 @@ export async function dbUpdateComment<
   >,
 ) {
   if (backendContentWrites) {
-    return putMutation(`/api/comments/${encodeURIComponent(comment.id)}`, {
-      content: comment.content,
-    });
+    return optimisticRun(
+      ['comment'],
+      () =>
+        optimisticCommentPatch(comment.id, {
+          content: comment.content,
+          lastUpdatedAt: Date.now(),
+        }),
+      () =>
+        putMutation(`/api/comments/${encodeURIComponent(comment.id)}`, {
+          content: comment.content,
+        }),
+    );
   }
   const now = Date.now();
   const transactions = [
@@ -219,7 +296,20 @@ export async function dbDeleteComment(
     throw new Error('Comment group id is required to delete comment');
   }
   if (backendContentWrites) {
-    return deleteMutation(`/api/comments/${encodeURIComponent(commentId)}`);
+    const state = useBoundStore.getState();
+    const commentGroup = state.commentGroup[commentGroupId];
+    return optimisticRun(
+      ['commentGroup', 'comment', 'trip'],
+      () => {
+        optimisticCommentRemove(commentGroupId, commentId);
+        // If the group becomes empty, drop it from the trip too (matches the
+        // server's delete-comment workflow).
+        if (commentGroup && commentGroup.commentIds.length <= 1) {
+          optimisticCommentGroupRemove(commentGroup.tripId, commentGroupId);
+        }
+      },
+      () => deleteMutation(`/api/comments/${encodeURIComponent(commentId)}`),
+    );
   }
   const transactions = [
     db.tx.commentGroup[commentGroupId].unlink({

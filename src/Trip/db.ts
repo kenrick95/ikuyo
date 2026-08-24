@@ -14,6 +14,11 @@ import {
 } from '../data/apiClient';
 import { backendSharingWrites, backendTripWrites } from '../data/backendConfig';
 import { db } from '../data/db';
+import {
+  optimisticPatchTrip,
+  optimisticRemoveTrip,
+  optimisticRun,
+} from '../data/optimistic';
 import type { DbUser } from '../data/types';
 import type { DbMacroplan, DbMacroplanWithTrip } from '../Macroplan/db';
 import { TaskStatus } from '../Task/TaskStatus';
@@ -155,7 +160,22 @@ export async function dbUpdateTrip(
   >,
 ) {
   if (backendTripWrites) {
-    return putMutation(`/api/trips/${encodeURIComponent(trip.id)}`, trip);
+    return optimisticRun(
+      ['trip'],
+      () =>
+        optimisticPatchTrip(trip.id, {
+          title: trip.title,
+          timestampStart: trip.timestampStart,
+          timestampEnd: trip.timestampEnd,
+          timeZone: trip.timeZone,
+          region: trip.region,
+          currency: trip.currency,
+          originCurrency: trip.originCurrency,
+          originRegion: trip.originRegion ?? '',
+          originTimeZone: trip.originTimeZone ?? '',
+        }),
+      () => putMutation(`/api/trips/${encodeURIComponent(trip.id)}`, trip),
+    );
   }
   const tripId = trip.id;
 
@@ -453,9 +473,14 @@ export async function dbUpdateTripSharingLevel(
   sharingLevel: TripSharingLevelType,
 ) {
   if (backendSharingWrites) {
-    return patchMutation(`/api/trips/${encodeURIComponent(tripId)}/sharing`, {
-      sharingLevel,
-    });
+    return optimisticRun(
+      ['trip'],
+      () => optimisticPatchTrip(tripId, { sharingLevel }),
+      () =>
+        patchMutation(`/api/trips/${encodeURIComponent(tripId)}/sharing`, {
+          sharingLevel,
+        }),
+    );
   }
   const transactionTimestamp = Date.now();
   return db.transact([
@@ -468,7 +493,22 @@ export async function dbUpdateTripSharingLevel(
 
 export async function dbDeleteTrip(trip: TripSliceTrip) {
   if (backendTripWrites) {
-    return deleteMutation(`/api/trips/${encodeURIComponent(trip.id)}`);
+    return optimisticRun(
+      [
+        'trip',
+        'activity',
+        'accommodation',
+        'macroplan',
+        'expense',
+        'taskList',
+        'task',
+        'commentGroup',
+        'comment',
+        'tripUser',
+      ],
+      () => optimisticRemoveTrip(trip.id),
+      () => deleteMutation(`/api/trips/${encodeURIComponent(trip.id)}`),
+    );
   }
   const tripData = await db.queryOnce({
     trip: {
@@ -713,9 +753,14 @@ export async function dbUpdateTripSectionVisibility(
   >,
 ): Promise<void> {
   if (backendSharingWrites) {
-    await patchMutation(
-      `/api/trips/${encodeURIComponent(tripId)}/sections`,
-      fields,
+    await optimisticRun(
+      ['trip'],
+      () => optimisticPatchTrip(tripId, fields),
+      () =>
+        patchMutation(
+          `/api/trips/${encodeURIComponent(tripId)}/sections`,
+          fields,
+        ),
     );
     return;
   }
