@@ -1,0 +1,21 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - phpstan-baseline.neon
+
+parameters:
+    paths:
+        - app
+        - database
+
+    # Level 6 is a good default for a Laravel app: broad type coverage with
+    # reasonable noise. Raise it after the codebase is fully typed if desired.
+    level: 6
+
+    tmpDir: storage/framework/phpstan
+
+    # Eloquent magic (->where()->first() etc.) needs Larastan's model extension.
+    checkModelProperties: true
+
+    tipsOfTheDay: false
+
+    treatPhpDocTypesAsCertain: false

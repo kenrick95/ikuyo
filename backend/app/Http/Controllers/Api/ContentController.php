@@ -9,7 +9,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Accommodation;
 use App\Models\Activity;
 use App\Models\Comment;
-use App\Models\CommentGroup;
 use App\Models\CommentGroupObject;
 use App\Models\Expense;
 use App\Models\MacroPlan;
@@ -29,6 +28,7 @@ class ContentController extends Controller
             $this->deleteRelatedComments('activity', $activity->id);
             $activity->delete();
         });
+
         return response()->json(['ok' => true]);
     }
 
@@ -37,6 +37,7 @@ class ContentController extends Controller
         abort_unless($request->user() && $access->canEdit($activity->trip, $request->user()), 403);
         $activity->fill($this->mapFields($request->except(['id', 'trip_id', 'created_at_ms', 'updated_at_ms'])));
         $activity->save();
+
         return response()->json($activity->fresh());
     }
 
@@ -58,6 +59,7 @@ class ContentController extends Controller
                 ]);
             }
         });
+
         return response()->json(['ok' => true, 'movedCount' => count($updates)]);
     }
 
@@ -71,6 +73,7 @@ class ContentController extends Controller
             'timestamp_end_ms' => $data['timestampEnd'] ?? null,
             'flags' => ((int) $record->flags) & ~1,
         ]);
+
         return response()->json($record->fresh());
     }
 
@@ -90,6 +93,7 @@ class ContentController extends Controller
         $copy->timestamp_end_ms = $data['timestampEnd'] ?? null;
         $copy->flags = ((int) $record->flags) & ~1;
         $copy->save();
+
         return response()->json(['id' => $copy->id], 201);
     }
 
@@ -98,6 +102,7 @@ class ContentController extends Controller
         abort_unless($request->user() && $access->canEdit($activity->trip, $request->user()), 403);
         $data = $request->validate(['timestampStart' => ['nullable', 'integer'], 'timestampEnd' => ['nullable', 'integer']]);
         $activity->update(['timestamp_start_ms' => $data['timestampStart'] ?? null, 'timestamp_end_ms' => $data['timestampEnd'] ?? null, 'flags' => ((int) $activity->flags) & ~1]);
+
         return response()->json($activity->fresh());
     }
 
@@ -115,6 +120,7 @@ class ContentController extends Controller
         $copy->timestamp_end_ms = $data['timestampEnd'] ?? null;
         $copy->flags = ((int) $activity->flags) & ~1;
         $copy->save();
+
         return response()->json(['id' => $copy->id], 201);
     }
 
@@ -124,6 +130,7 @@ class ContentController extends Controller
         abort_unless($request->user() && $access->canEdit($record->trip, $request->user()), 403);
         $record->fill($this->mapFields($request->except(['id', 'trip_id', 'created_at_ms', 'updated_at_ms'])));
         $record->save();
+
         return response()->json($record->fresh());
     }
 
@@ -133,6 +140,7 @@ class ContentController extends Controller
         abort_unless($request->user() && $access->canEdit($record->trip, $request->user()), 403);
         $this->deleteEntityDescGraph($record);
         $record->delete();
+
         return response()->json(['ok' => true]);
     }
 
@@ -165,7 +173,9 @@ class ContentController extends Controller
             'tasks' => $isPublicVisitor ? $trip->public_show_tasks === false : ($isViewer && $trip->viewer_show_tasks === false),
             default => false,
         };
-        if ($hidden) return response()->json([]);
+        if ($hidden) {
+            return response()->json([]);
+        }
 
         return response()->json($trip->{self::RELATIONS[$entity]}()->get());
     }
@@ -182,6 +192,7 @@ class ContentController extends Controller
         $record->id = $request->input('id') ?: (string) Str::uuid();
         $record->trip_id = $trip->id;
         $record->save();
+
         return response()->json($record->fresh(), 201);
     }
 
@@ -190,6 +201,7 @@ class ContentController extends Controller
         $record = $this->record($trip, $entity, $entityId);
         $record->fill($this->mapFields($request->except(['id', 'trip_id', 'created_at_ms', 'updated_at_ms'])));
         $record->save();
+
         return response()->json($record->fresh());
     }
 
@@ -198,6 +210,7 @@ class ContentController extends Controller
         $record = $this->record($trip, $entity, $entityId);
         $this->deleteEntityDescGraph($record);
         $record->delete();
+
         return response()->json(['ok' => true]);
     }
 
@@ -217,9 +230,13 @@ class ContentController extends Controller
     {
         $typeNo = CommentObjectType::fromEntity($objectType)->value;
         $object = CommentGroupObject::where('object_type', $typeNo)->where('object_id', $objectId)->first();
-        if (!$object) return;
+        if (! $object) {
+            return;
+        }
         $group = $object->commentGroup;
-        if (!$group) return;
+        if (! $group) {
+            return;
+        }
         $group->comments()->delete();
         $object->delete();
         $group->delete();
@@ -240,14 +257,19 @@ class ContentController extends Controller
             'timeZoneIncurred' => 'timezone_incurred',
         ];
         foreach ($map as $from => $to) {
-            if (array_key_exists($from, $data)) { $data[$to] = $data[$from]; unset($data[$from]); }
+            if (array_key_exists($from, $data)) {
+                $data[$to] = $data[$from];
+                unset($data[$from]);
+            }
         }
+
         return $data;
     }
 
     private function model(string $entity): string
     {
         abort_unless(isset(self::MODELS[$entity]), 404, 'Unknown content type.');
+
         return self::MODELS[$entity];
     }
 
@@ -259,6 +281,7 @@ class ContentController extends Controller
     private function recordById(string $entity, string $id): Activity|Accommodation|MacroPlan|Expense
     {
         $model = $this->model($entity);
+
         return $model::with('trip')->whereKey($id)->firstOrFail();
     }
 }

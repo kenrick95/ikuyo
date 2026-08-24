@@ -45,11 +45,17 @@ class SyncController extends Controller
 
         // Section visibility: a non-member public visitor must not receive events
         // (expenses / tasks / comments) hidden by the trip's public_show_* flags.
-        if ($trip && $trip->sharing_level >= 2 && !($user && $trip->users()->whereKey($user->getKey())->exists())) {
+        if ($trip && $trip->sharing_level >= 2 && ! ($user && $trip->users()->whereKey($user->getKey())->exists())) {
             $hiddenEntities = collect();
-            if ($trip->public_show_expenses === false) $hiddenEntities->push('expense');
-            if ($trip->public_show_tasks === false) $hiddenEntities->push('task_list', 'task');
-            if ($trip->public_show_comments === false) $hiddenEntities->push('comment_group', 'comment');
+            if ($trip->public_show_expenses === false) {
+                $hiddenEntities->push('expense');
+            }
+            if ($trip->public_show_tasks === false) {
+                $hiddenEntities->push('task_list', 'task');
+            }
+            if ($trip->public_show_comments === false) {
+                $hiddenEntities->push('comment_group', 'comment');
+            }
             $events = $events->reject(fn (SyncEvent $e) => $hiddenEntities->contains($e->entity));
         }
 

@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Activity;
 use App\Models\CommentGroup;
 use App\Models\CommentGroupObject;
 use App\Models\Trip;

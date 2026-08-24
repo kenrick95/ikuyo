@@ -28,11 +28,11 @@ class AuthController extends Controller
         $data = $request->validate(['email' => ['required', 'email'], 'password' => ['nullable', 'string']]);
         $user = User::where('email', $data['email'])->first();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json(['message' => 'Invalid credentials.'], 422);
         }
 
-        if (!$user->password_hash) {
+        if (! $user->password_hash) {
             // Legacy accounts (magic-link/Google from the previous InstantDB era)
             // have an email but never stored a password. Guide them to set one.
             return response()->json([
@@ -41,7 +41,7 @@ class AuthController extends Controller
             ], 422);
         }
 
-        if (empty($data['password']) || !Hash::check($data['password'], $user->password_hash)) {
+        if (empty($data['password']) || ! Hash::check($data['password'], $user->password_hash)) {
             return response()->json(['message' => 'Invalid credentials.'], 422);
         }
 
@@ -57,7 +57,7 @@ class AuthController extends Controller
         $data = $request->validate(['email' => ['required', 'email']]);
         $user = User::where('email', $data['email'])->first();
 
-        if (!$user) {
+        if (! $user) {
             // Generic so an unregistered email cannot be distinguished from a
             // legacy account that simply needs a password.
             return response()->json(['known' => false, 'needsPasswordSetup' => true]);
@@ -65,7 +65,7 @@ class AuthController extends Controller
 
         return response()->json([
             'known' => true,
-            'needsPasswordSetup' => !$user->password_hash,
+            'needsPasswordSetup' => ! $user->password_hash,
         ]);
     }
 
@@ -100,8 +100,11 @@ class AuthController extends Controller
             // Random handle is not derived from the email, so it cannot leak PII.
             $words = ['koala', 'sakura', 'petra', 'delta', 'azure', 'nimbus', 'quill', 'ember', 'sol', 'mira'];
             $candidate = $words[array_rand($words)] . '_' . strtolower(Str::random(5));
-            if (!self::handleKeyInUse($candidate)) return $candidate;
+            if (! self::handleKeyInUse($candidate)) {
+                return $candidate;
+            }
         }
+
         return 'user_' . strtolower(Str::random(12));
     }
 
@@ -155,6 +158,7 @@ class AuthController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return response()->json(['ok' => true]);
     }
 
@@ -187,7 +191,9 @@ class AuthController extends Controller
         $user = $request->user();
         abort_unless($user, 401);
         $target = $user->pending_email ?: $user->email;
-        if (!$target) abort(422, 'No email address to verify.');
+        if (! $target) {
+            abort(422, 'No email address to verify.');
+        }
 
         $token = Str::random(64);
         $user->forceFill([
@@ -200,6 +206,7 @@ class AuthController extends Controller
             $user,
             $frontendUrl . '/login?verify_token=' . urlencode($token),
         ));
+
         return response()->json(['ok' => true]);
     }
 
@@ -216,6 +223,7 @@ class AuthController extends Controller
             $user->forceFill(['email' => $user->pending_email, 'pending_email' => null])->save();
         }
         $user->forceFill(['email_verify_token_hash' => null, 'email_verify_token_at' => null])->save();
+
         return response()->json(['user' => $this->user($user), 'ok' => true]);
     }
 
@@ -227,6 +235,7 @@ class AuthController extends Controller
             'email' => ['required', 'email', 'unique:users,email'],
         ]);
         $user->forceFill(['pending_email' => $data['email'], 'email_verified' => false])->save();
+
         return $this->sendEmailVerification($request);
     }
 

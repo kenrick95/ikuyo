@@ -22,6 +22,7 @@ class SyncEventService
     public function upsert(string $entity, Model $model, ?string $tripId = null): SyncEvent
     {
         $model->refresh();
+
         return $this->record($entity, (string) $model->getKey(), 'upsert', $tripId, $model->toArray());
     }
 

@@ -1,16 +1,17 @@
 <?php
 
+use App\Http\Middleware\AuthorizeTripAccess;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use App\Http\Middleware\AuthorizeTripAccess;
+use Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull;
 use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        api: __DIR__.'/../routes/api.php',
-        web: __DIR__.'/../routes/web.php',
-        commands: __DIR__.'/../routes/console.php',
+        api: __DIR__ . '/../routes/api.php',
+        web: __DIR__ . '/../routes/web.php',
+        commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -26,7 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // conversion fights that model and violates NOT NULL text columns
         // (e.g. activities.description/location) on save.
         $middleware->remove(
-            \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
+            ConvertEmptyStringsToNull::class,
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {

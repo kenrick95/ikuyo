@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\CommentGroupObject;
 use App\Models\Task;
 use App\Models\TaskList;
 use App\Models\Trip;
+use App\Services\TripAccessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +29,7 @@ class TaskController extends Controller
             'index' => $data['index'],
             'status' => $data['status'],
         ]);
+
         return response()->json($list, 201);
     }
 
@@ -38,6 +41,7 @@ class TaskController extends Controller
             'index' => ['sometimes', 'integer'],
             'status' => ['sometimes', 'integer'],
         ]));
+
         return response()->json($list->fresh('tasks'));
     }
 
@@ -45,9 +49,12 @@ class TaskController extends Controller
     {
         $list = $this->list($trip, $taskList);
         DB::transaction(function () use ($list): void {
-            foreach ($list->tasks as $task) $this->deleteTaskComments($task->id);
+            foreach ($list->tasks as $task) {
+                $this->deleteTaskComments($task->id);
+            }
             $list->delete();
         });
+
         return response()->json(['ok' => true]);
     }
 
@@ -55,7 +62,7 @@ class TaskController extends Controller
     {
         abort_unless($request->user(), 401);
         $taskList->load('trip');
-        $access = app(\App\Services\TripAccessService::class);
+        $access = app(TripAccessService::class);
         abort_unless($access->canEdit($taskList->trip, $request->user()), 403);
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -75,6 +82,7 @@ class TaskController extends Controller
             'due_at_ms' => empty($data['dueAt'] ?? null) ? null : ($data['dueAt'] ?? null),
             'completed_at_ms' => empty($data['completedAt'] ?? null) ? null : ($data['completedAt'] ?? null),
         ]);
+
         return response()->json($task, 201);
     }
 
@@ -99,6 +107,7 @@ class TaskController extends Controller
             'due_at_ms' => $data['dueAt'] ?? null,
             'completed_at_ms' => $data['completedAt'] ?? null,
         ]);
+
         return response()->json($task, 201);
     }
 
@@ -116,6 +125,7 @@ class TaskController extends Controller
         $record->update([
             ...$this->nullableAwareUpdates($data, ['title', 'description', 'index', 'status', 'dueAt', 'completedAt']),
         ]);
+
         return response()->json($record->fresh());
     }
 
@@ -127,8 +137,11 @@ class TaskController extends Controller
     {
         $updates = [];
         foreach ($fields as $field) {
-            if (array_key_exists($field, $data)) $updates[$this->dbField($field)] = $data[$field];
+            if (array_key_exists($field, $data)) {
+                $updates[$this->dbField($field)] = $data[$field];
+            }
         }
+
         return $updates;
     }
 
@@ -139,6 +152,7 @@ class TaskController extends Controller
             $this->deleteTaskComments($record->id);
             $record->delete();
         });
+
         return response()->json(['ok' => true]);
     }
 
@@ -146,10 +160,11 @@ class TaskController extends Controller
     {
         abort_unless($request->user(), 401);
         $taskList->load('trip');
-        $access = app(\App\Services\TripAccessService::class);
+        $access = app(TripAccessService::class);
         abort_unless($access->canEdit($taskList->trip, $request->user()), 403);
         $data = $request->validate(['title' => ['sometimes', 'string', 'max:255'], 'index' => ['sometimes', 'integer'], 'status' => ['sometimes', 'integer']]);
         $taskList->update($data);
+
         return response()->json($taskList->fresh('tasks'));
     }
 
@@ -157,12 +172,13 @@ class TaskController extends Controller
     {
         abort_unless($request->user(), 401);
         $task->load('taskList.trip');
-        $access = app(\App\Services\TripAccessService::class);
+        $access = app(TripAccessService::class);
         abort_unless($access->canEdit($task->taskList->trip, $request->user()), 403);
         DB::transaction(function () use ($task): void {
             $this->deleteTaskComments($task->id);
             $task->delete();
         });
+
         return response()->json(['ok' => true]);
     }
 
@@ -170,19 +186,24 @@ class TaskController extends Controller
     {
         abort_unless($request->user(), 401);
         $taskList->load('trip');
-        $access = app(\App\Services\TripAccessService::class);
+        $access = app(TripAccessService::class);
         abort_unless($access->canEdit($taskList->trip, $request->user()), 403);
         DB::transaction(function () use ($taskList): void {
-            foreach ($taskList->tasks as $task) $this->deleteTaskComments($task->id);
+            foreach ($taskList->tasks as $task) {
+                $this->deleteTaskComments($task->id);
+            }
             $taskList->delete();
         });
+
         return response()->json(['ok' => true]);
     }
 
     private function deleteTaskComments(string $taskId): void
     {
-        $object = \App\Models\CommentGroupObject::where('object_type', 5)->where('object_id', $taskId)->first();
-        if (!$object) return;
+        $object = CommentGroupObject::where('object_type', 5)->where('object_id', $taskId)->first();
+        if (! $object) {
+            return;
+        }
         $group = $object->commentGroup;
         if ($group) {
             $group->comments()->delete();
@@ -199,6 +220,7 @@ class TaskController extends Controller
                 Task::whereKey($item['id'])->whereHas('taskList', fn ($q) => $q->where('trip_id', $trip->id))->update(['index' => $item['index'], 'updated_at_ms' => nowMs()]);
             }
         });
+
         return response()->json(['ok' => true]);
     }
 
@@ -208,6 +230,7 @@ class TaskController extends Controller
         foreach ($items as $item) {
             TaskList::whereKey($item['id'])->where('trip_id', $trip->id)->update(['index' => $item['index'], 'updated_at_ms' => nowMs()]);
         }
+
         return response()->json(['ok' => true]);
     }
 
@@ -215,10 +238,11 @@ class TaskController extends Controller
     {
         abort_unless($request->user(), 401);
         $task->load('taskList.trip');
-        $access = app(\App\Services\TripAccessService::class);
+        $access = app(TripAccessService::class);
         abort_unless($access->canEdit($task->taskList->trip, $request->user()), 403);
         $data = $request->validate(['index' => ['required', 'integer']]);
         $task->update(['index' => $data['index']]);
+
         return response()->json($task->fresh());
     }
 
@@ -226,11 +250,12 @@ class TaskController extends Controller
     {
         abort_unless($request->user(), 401);
         $task->load('taskList.trip');
-        $access = app(\App\Services\TripAccessService::class);
+        $access = app(TripAccessService::class);
         abort_unless($access->canEdit($task->taskList->trip, $request->user()), 403);
         $data = $request->validate(['toTaskListId' => ['required', 'string'], 'newIndex' => ['required', 'integer', 'min:0']]);
         $target = $task->taskList->trip->taskLists()->whereKey($data['toTaskListId'])->firstOrFail();
         $task->update(['task_list_id' => $target->id, 'index' => $data['newIndex']]);
+
         return response()->json($task->fresh());
     }
 
@@ -238,14 +263,17 @@ class TaskController extends Controller
     {
         abort_unless($request->user(), 401);
         $task->load('taskList.trip');
-        $access = app(\App\Services\TripAccessService::class);
+        $access = app(TripAccessService::class);
         abort_unless($access->canEdit($task->taskList->trip, $request->user()), 403);
         $data = $request->validate(['title' => ['sometimes', 'string', 'max:255'], 'description' => ['nullable', 'string'], 'index' => ['sometimes', 'integer'], 'status' => ['sometimes', 'integer'], 'dueAt' => ['nullable', 'integer'], 'completedAt' => ['nullable', 'integer']]);
         $updates = [];
         foreach (['title', 'description', 'index', 'status', 'dueAt', 'completedAt'] as $field) {
-            if (array_key_exists($field, $data)) $updates[$this->dbField($field)] = $data[$field];
+            if (array_key_exists($field, $data)) {
+                $updates[$this->dbField($field)] = $data[$field];
+            }
         }
         $task->update($updates);
+
         return response()->json($task->fresh());
     }
 
@@ -262,6 +290,7 @@ class TaskController extends Controller
         DB::transaction(function () use ($taskRecord, $target, $data): void {
             $taskRecord->update(['task_list_id' => $target->id, 'index' => $data['newIndex']]);
         });
+
         return response()->json($taskRecord->fresh());
     }
 

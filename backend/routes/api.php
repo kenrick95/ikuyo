@@ -1,13 +1,13 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\ContentController;
 use App\Http\Controllers\Api\CommentController;
+use App\Http\Controllers\Api\ContentController;
 use App\Http\Controllers\Api\MetadataController;
 use App\Http\Controllers\Api\SyncController;
 use App\Http\Controllers\Api\TaskController;
-use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\TripController;
+use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 // The `/api` prefix is applied by bootstrap/app.php.

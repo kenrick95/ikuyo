@@ -28,6 +28,7 @@ class AuthorizeTripAccess
         abort_unless($allowed, $user ? 403 : 401);
 
         $request->attributes->set('tripRole', $this->access->role($trip, $user));
+
         return $next($request);
     }
 }

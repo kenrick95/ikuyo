@@ -9,11 +9,12 @@ class TripAccessService
 {
     public function role(Trip $trip, ?User $user): ?int
     {
-        if (!$user) {
+        if (! $user) {
             return null;
         }
 
         $member = $trip->users()->whereKey($user->getKey())->first();
+
         return $member?->pivot?->role;
     }
 

@@ -20,7 +20,7 @@ trait HasMsTimestamps
         // real static event API, which also satisfies static-analysis tools.
         static::saving(static function ($model): void {
             $now = (int) round(microtime(true) * 1000);
-            if (!$model->exists || !array_key_exists('created_at_ms', $model->getAttributes())) {
+            if (! $model->exists || ! array_key_exists('created_at_ms', $model->getAttributes())) {
                 $model->created_at_ms = $now;
             }
             $model->updated_at_ms = $now;

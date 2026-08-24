@@ -4,3 +4,13 @@ pre-commit:
       glob: "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc,css}"
       run: pnpm biome check --write --no-errors-on-unmatched --files-ignore-unknown=true --colors=off {staged_files}
       stage_fixed: true
+    # PHP syntax check (fast) on staged PHP files (paths are repo-root-relative).
+    php-syntax:
+      glob: "backend/**/*.php"
+      run: php -l {staged_files}
+    # PHP code style (Pint) across the backend, run from the backend directory.
+    php-style:
+      run: cd backend && ./vendor/bin/pint --test
+    # PHP static analysis (PHPStan) across the backend, run from the backend directory.
+    php-static:
+      run: cd backend && ./vendor/bin/phpstan analyse --memory-limit=1G --no-progress
