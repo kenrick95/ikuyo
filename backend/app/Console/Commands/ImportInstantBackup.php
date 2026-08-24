@@ -46,8 +46,9 @@ class ImportInstantBackup extends Command
             if (!is_file($file)) {
                 continue;
             }
-            $records = $this->readJsonLines($file);
-            $counts[$entity] = count($records);
+            // Stream the count so a production-sized backup is not materialized
+            // into memory just to be verified.
+            $counts[$entity] = iterator_count($this->readJsonLines($file));
         }
 
         $expected = $this->readConfigCounts($directory);
@@ -160,22 +161,28 @@ class ImportInstantBackup extends Command
         return $directory;
     }
 
-    /** @return list<array{entity: array<string, mixed>, createdAt?: mixed}> */
-    private function readJsonLines(string $file): array
+    /**
+     * Stream the JSONL records of a file one at a time (generator), so a
+     * production-sized backup never has to be fully loaded into memory.
+     *
+     * @return \Generator<array{entity: array<string, mixed>, createdAt?: mixed}>
+     */
+    private function readJsonLines(string $file): \Generator
     {
-        $records = [];
         $handle = fopen($file, 'rb');
         if (!$handle) throw new RuntimeException("Unable to read {$file}");
-        while (($line = fgets($handle)) !== false) {
-            if (trim($line) === '') continue;
-            $record = json_decode($line, true, 512, JSON_THROW_ON_ERROR);
-            if (!isset($record['entity']['id'])) {
-                throw new RuntimeException("Missing entity.id in {$file}");
+        try {
+            while (($line = fgets($handle)) !== false) {
+                if (trim($line) === '') continue;
+                $record = json_decode($line, true, 512, JSON_THROW_ON_ERROR);
+                if (!isset($record['entity']['id'])) {
+                    throw new RuntimeException("Missing entity.id in {$file}");
+                }
+                yield $record;
             }
-            $records[] = $record;
+        } finally {
+            fclose($handle);
         }
-        fclose($handle);
-        return $records;
     }
 
     private function importUsers(string $directory): void
@@ -466,11 +473,15 @@ class ImportInstantBackup extends Command
         return $counts;
     }
 
-    /** @return list<array{entity: array<string, mixed>, createdAt?: mixed}> */
-    private function records(string $directory, string $entity): array
+    /**
+     * Stream the JSONL records of one entity.
+     *
+     * @return \Generator<array{entity: array<string, mixed>, createdAt?: mixed}>
+     */
+    private function records(string $directory, string $entity): \Generator
     {
         $file = $directory . '/entities/' . $entity . '.jsonl';
-        return is_file($file) ? $this->readJsonLines($file) : [];
+        if (is_file($file)) yield from $this->readJsonLines($file);
     }
 
     private function linkId(mixed $value): ?string

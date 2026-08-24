@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { get } from './apiClient';
 
 export type SyncChange = {
@@ -23,6 +23,11 @@ export function usePeriodicTripSync(
   onChanges: (changes: SyncChange[]) => void,
   intervalMs = 30_000,
 ): void {
+  // Keep the latest callback in a ref so a changing identity (common with inline
+  // closures over props) does not tear down and restart the poll on every render.
+  const onChangesRef = useRef(onChanges);
+  onChangesRef.current = onChanges;
+
   useEffect(() => {
     if (!tripId) return;
     let disposed = false;
@@ -36,7 +41,7 @@ export function usePeriodicTripSync(
         );
         if (disposed) return;
         cursor = Math.max(cursor, response.nextCursor);
-        if (response.changes.length > 0) onChanges(response.changes);
+        if (response.changes.length > 0) onChangesRef.current(response.changes);
       } catch {
         // A failed background refresh must not disrupt the currently visible trip.
       }
@@ -55,5 +60,5 @@ export function usePeriodicTripSync(
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('focus', onVisible);
     };
-  }, [tripId, onChanges, intervalMs]);
+  }, [tripId, intervalMs]);
 }

@@ -61,7 +61,9 @@ const TripTaskList = withLoading()(
 );
 
 import { useCurrentUser } from '../Auth/hooks';
+import { backendTripReads } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
+import { usePeriodicTripSync } from '../data/usePeriodicTripSync';
 import {
   RouteLogin,
   RouteTripComment,
@@ -84,6 +86,7 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   const { id: tripId } = params;
   const setCurrentTripId = useBoundStore((state) => state.setCurrentTripId);
   const subscribeTrip = useBoundStore((state) => state.subscribeTrip);
+  const refreshTrip = useBoundStore((state) => state.refreshTrip);
   useEffect(() => {
     setCurrentTripId(tripId);
     return () => {
@@ -93,6 +96,11 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   useEffect(() => {
     return subscribeTrip(tripId);
   }, [tripId, subscribeTrip]);
+  // In backend-read mode, poll the sync cursor and refetch the trip whenever
+  // changes arrive, so edits by collaborators are reflected without a reload.
+  usePeriodicTripSync(backendTripReads ? tripId : undefined, () =>
+    refreshTrip(tripId),
+  );
   const { trip, loading, error } = useTrip(tripId);
 
   return (

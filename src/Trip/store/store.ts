@@ -31,6 +31,90 @@ import type {
   TripSliceTripUser,
 } from './types';
 
+/** Merge a fetched backend trip into the normalized store slices. */
+function mergeApiTrip(
+  state: BoundStoreType,
+  trip: DbTripQueryReturnType,
+): Partial<TripSlice> {
+  const newAccommodationState = deriveNewAccommodationState(state, trip);
+  const newActivityState = deriveNewActivityState(state, trip);
+  const newMacroplanState = deriveNewMacroplanState(state, trip);
+  const newCommentGroupState = deriveNewCommentGroupState(state, trip);
+  const newTripUserState = deriveNewTripUserState(state, trip);
+  const newExpenseState = deriveNewExpenseState(state, trip);
+  const { newCommentState, newCommentUserState } =
+    deriveNewCommentAndCommentUserState(state, trip);
+  const { taskListState, taskState } = deriveNewTripTaskListAndTaskState(
+    state,
+    trip,
+  );
+  const newTripState = deriveNewTripState(state, trip);
+  return {
+    trip: newTripState,
+    accommodation: newAccommodationState,
+    activity: newActivityState,
+    macroplan: newMacroplanState,
+    commentGroup: newCommentGroupState,
+    expense: newExpenseState,
+    tripUser: newTripUserState,
+    comment: newCommentState,
+    commentUser: newCommentUserState,
+    task: taskState,
+    taskList: taskListState,
+  } satisfies Partial<TripSlice>;
+}
+
+/**
+ * Fetch a backend trip and merge it into the store. `showLoading` controls
+ * whether the tripMeta.loading flag is raised (initial load vs silent refresh).
+ */
+async function fetchTripAndMerge(
+  set: (fn: (state: BoundStoreType) => Partial<TripSlice> | TripSlice) => void,
+  tripId: string,
+  showLoading: boolean,
+  shouldAbort?: () => boolean,
+): Promise<void> {
+  if (showLoading) {
+    set((state) => ({
+      tripMeta: {
+        ...state.tripMeta,
+        [tripId]: { loading: true, error: undefined },
+      },
+    }));
+  }
+  try {
+    const payload = await apiGet<Record<string, unknown>>(
+      `/api/trips/${encodeURIComponent(tripId)}`,
+    );
+    if (shouldAbort?.()) return;
+    const trip = mapApiTrip(payload);
+    set(
+      (state) =>
+        ({
+          ...mergeApiTrip(state, trip),
+          tripMeta: {
+            ...state.tripMeta,
+            [tripId]: { loading: false, error: undefined },
+          },
+        }) satisfies Partial<TripSlice>,
+    );
+  } catch (error: unknown) {
+    set(
+      (state) =>
+        ({
+          tripMeta: {
+            ...state.tripMeta,
+            [tripId]: {
+              loading: false,
+              error:
+                error instanceof Error ? error.message : 'Unable to load trip',
+            },
+          },
+        }) satisfies Partial<TripSlice>,
+    );
+  }
+}
+
 export const createTripSlice: StateCreator<
   BoundStoreType,
   [],
@@ -201,75 +285,14 @@ export const createTripSlice: StateCreator<
     subscribeTrip: (tripId: string) => {
       if (!backendTripReads) return get().subscribeTripInstant(tripId);
       let disposed = false;
-      set((state) => ({
-        tripMeta: {
-          ...state.tripMeta,
-          [tripId]: { loading: true, error: undefined },
-        },
-      }));
-
-      void apiGet<Record<string, unknown>>(
-        `/api/trips/${encodeURIComponent(tripId)}`,
-      )
-        .then((payload) => {
-          if (disposed) return;
-          const trip = mapApiTrip(payload);
-          set((state) => {
-            const newAccommodationState = deriveNewAccommodationState(
-              state,
-              trip,
-            );
-            const newActivityState = deriveNewActivityState(state, trip);
-            const newMacroplanState = deriveNewMacroplanState(state, trip);
-            const newCommentGroupState = deriveNewCommentGroupState(
-              state,
-              trip,
-            );
-            const newTripUserState = deriveNewTripUserState(state, trip);
-            const newExpenseState = deriveNewExpenseState(state, trip);
-            const { newCommentState, newCommentUserState } =
-              deriveNewCommentAndCommentUserState(state, trip);
-            const { taskListState, taskState } =
-              deriveNewTripTaskListAndTaskState(state, trip);
-            const newTripState = deriveNewTripState(state, trip);
-            return {
-              trip: newTripState,
-              accommodation: newAccommodationState,
-              activity: newActivityState,
-              macroplan: newMacroplanState,
-              commentGroup: newCommentGroupState,
-              expense: newExpenseState,
-              tripUser: newTripUserState,
-              comment: newCommentState,
-              commentUser: newCommentUserState,
-              task: taskState,
-              taskList: taskListState,
-              tripMeta: {
-                ...state.tripMeta,
-                [tripId]: { loading: false, error: undefined },
-              },
-            } satisfies Partial<TripSlice>;
-          });
-        })
-        .catch((error: unknown) => {
-          if (disposed) return;
-          set((state) => ({
-            tripMeta: {
-              ...state.tripMeta,
-              [tripId]: {
-                loading: false,
-                error:
-                  error instanceof Error
-                    ? error.message
-                    : 'Unable to load trip',
-              },
-            },
-          }));
-        });
-
+      void fetchTripAndMerge(set, tripId, true, () => disposed);
       return () => {
         disposed = true;
       };
+    },
+    refreshTrip: (tripId: string) => {
+      if (!backendTripReads) return;
+      void fetchTripAndMerge(set, tripId, false);
     },
     setCurrentTripId: (tripId: string | undefined) => {
       set(() => ({

@@ -12,7 +12,9 @@ return new class extends Migration
             $table->string('id', 40)->primary();
             $table->string('trip_id', 40);
             $table->string('title');
-            $table->integer('index');
+            // 64-bit so negative `-Date.now()` insertion indexes (from the
+            // frontend / Instant imports) fit; 32-bit would overflow.
+            $table->bigInteger('index');
             $table->tinyInteger('status'); // open / done
             $table->bigInteger('created_at_ms');
             $table->bigInteger('updated_at_ms');
@@ -22,7 +24,7 @@ return new class extends Migration
         Schema::create('tasks', function (Blueprint $table): void {
             $table->string('id', 40)->primary();
             $table->string('task_list_id', 40);
-            $table->integer('index');
+            $table->bigInteger('index');
             $table->string('title');
             $table->text('description')->nullable();
             $table->tinyInteger('status'); // 0 todo / 1 done
