@@ -24,6 +24,11 @@ jobs:
           extensions: mbstring, curl, pdo, sqlite, xml, zip, intl, gd
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist
+      - name: Provision .env and app key
+        run: |
+          cp .env.example .env
+          php artisan key:generate --ansi
+          php artisan config:clear
       - name: PHP syntax lint
         run: composer lint
       - name: PHP code style (Pint)
