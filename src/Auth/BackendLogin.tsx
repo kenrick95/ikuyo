@@ -226,8 +226,7 @@ export function BackendLogin() {
               autoComplete="email"
             />
             <Text size="1" color="gray">
-              Enter your email to log in — or to create an account if you're
-              new.
+              Enter your email to log in or create a new account.
             </Text>
           </>
         )}
