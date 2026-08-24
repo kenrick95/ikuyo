@@ -5,8 +5,6 @@ namespace Tests\Feature;
 use App\Models\Comment;
 use App\Models\CommentGroup;
 use App\Models\CommentGroupObject;
-use App\Models\Task;
-use App\Models\TaskList;
 use App\Models\Trip;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;

@@ -22,8 +22,9 @@ class SetUserPassword extends Command
             ->orWhere('handle', $this->argument('account'))
             ->first();
 
-        if (!$user) {
+        if (! $user) {
             $this->error("No user found for: {$this->argument('account')}");
+
             return self::FAILURE;
         }
 
@@ -32,11 +33,13 @@ class SetUserPassword extends Command
             $password = $this->secret('Password');
             if ($password === null || $password === '') {
                 $this->error('Password is required.');
+
                 return self::FAILURE;
             }
         }
         if (strlen($password) < 8) {
             $this->error('Password must be at least 8 characters.');
+
             return self::FAILURE;
         }
 
@@ -45,6 +48,7 @@ class SetUserPassword extends Command
         $email = $user->email ?? 'no email';
         $this->info("Password set for {$user->handle} <{$email}> (id: {$user->id})");
         $this->info('You can now log in at /login with this email and the password.');
+
         return self::SUCCESS;
     }
 }

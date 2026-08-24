@@ -20,9 +20,20 @@ class SyncableObserver
 {
     public function __construct(private readonly SyncEventService $events) {}
 
-    public function created(Model $model): void { $this->record('upsert', $model); }
-    public function updated(Model $model): void { $this->record('upsert', $model); }
-    public function deleted(Model $model): void { $this->record('delete', $model); }
+    public function created(Model $model): void
+    {
+        $this->record('upsert', $model);
+    }
+
+    public function updated(Model $model): void
+    {
+        $this->record('upsert', $model);
+    }
+
+    public function deleted(Model $model): void
+    {
+        $this->record('delete', $model);
+    }
 
     private function record(string $operation, Model $model): void
     {
@@ -40,7 +51,9 @@ class SyncableObserver
             $model instanceof Comment => 'comments',
             default => null,
         };
-        if ($entity === null) return;
+        if ($entity === null) {
+            return;
+        }
         $tripId = $this->tripId($model);
         $payload = $operation === 'upsert' ? $model->toArray() : null;
         $this->events->record($entity, (string) $model->getKey(), $operation, $tripId, $payload);
@@ -48,12 +61,25 @@ class SyncableObserver
 
     private function tripId(Model $model): ?string
     {
-        if ($model instanceof Trip) return $model->id;
-        if (array_key_exists('trip_id', $model->getAttributes())) return $model->trip_id;
-        if ($model instanceof TripUser) return $model->trip_id;
-        if ($model instanceof CommentGroupObject) return $model->commentGroup?->trip_id;
-        if ($model instanceof Comment) return $model->commentGroup?->trip_id;
-        if ($model instanceof Task) return $model->taskList?->trip_id;
+        if ($model instanceof Trip) {
+            return $model->id;
+        }
+        if (array_key_exists('trip_id', $model->getAttributes())) {
+            return $model->trip_id;
+        }
+        if ($model instanceof TripUser) {
+            return $model->trip_id;
+        }
+        if ($model instanceof CommentGroupObject) {
+            return $model->commentGroup?->trip_id;
+        }
+        if ($model instanceof Comment) {
+            return $model->commentGroup?->trip_id;
+        }
+        if ($model instanceof Task) {
+            return $model->taskList?->trip_id;
+        }
+
         return null;
     }
 }

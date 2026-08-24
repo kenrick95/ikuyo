@@ -1,0 +1,637 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Method App\\Console\\Commands\\ImportInstantBackup\:\:child\(\) has parameter \$fields with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Console/Commands/ImportInstantBackup.php
+
+		-
+			message: '#^Method App\\Console\\Commands\\ImportInstantBackup\:\:child\(\) has parameter \$mapped with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Console/Commands/ImportInstantBackup.php
+
+		-
+			message: '#^Method App\\Console\\Commands\\ImportInstantBackup\:\:child\(\) has parameter \$source with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Console/Commands/ImportInstantBackup.php
+
+		-
+			message: '#^Method App\\Console\\Commands\\ImportInstantBackup\:\:child\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Console/Commands/ImportInstantBackup.php
+
+		-
+			message: '#^Method App\\Console\\Commands\\ImportInstantBackup\:\:hasSkippedParent\(\) has parameter \$row with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Console/Commands/ImportInstantBackup.php
+
+		-
+			message: '#^Method App\\Console\\Commands\\ImportInstantBackup\:\:mapCommentObject\(\) has parameter \$source with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Console/Commands/ImportInstantBackup.php
+
+		-
+			message: '#^Method App\\Console\\Commands\\ImportInstantBackup\:\:mapCommentObject\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Console/Commands/ImportInstantBackup.php
+
+		-
+			message: '#^Method App\\Console\\Commands\\ImportInstantBackup\:\:mapEntity\(\) has parameter \$source with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Console/Commands/ImportInstantBackup.php
+
+		-
+			message: '#^Method App\\Console\\Commands\\ImportInstantBackup\:\:requiresFk\(\) has parameter \$row with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Console/Commands/ImportInstantBackup.php
+
+		-
+			message: '#^Method App\\Console\\Commands\\ImportInstantBackup\:\:resolveChildFk\(\) has parameter \$row with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Console/Commands/ImportInstantBackup.php
+
+		-
+			message: '#^Method App\\Console\\Commands\\ImportInstantBackup\:\:treeSkipped\(\) has parameter \$row with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Console/Commands/ImportInstantBackup.php
+
+		-
+			message: '#^Method App\\Console\\Commands\\ImportInstantBackup\:\:upsert\(\) has parameter \$row with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Console/Commands/ImportInstantBackup.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Api\\AuthController\:\:user\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Http/Controllers/Api/AuthController.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_if expects bool, string\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/AuthController.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, App\\Models\\User\|null given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Http/Controllers/Api/AuthController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$trip\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Http/Controllers/Api/CommentController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:comments\(\)\.$#'
+			identifier: method.notFound
+			count: 5
+			path: app/Http/Controllers/Api/CommentController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:object\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Http/Controllers/Api/CommentController.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, App\\Models\\User\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/CommentController.php
+
+		-
+			message: '#^Parameter \#1 \$trip of method App\\Services\\TripAccessService\:\:canEdit\(\) expects App\\Models\\Trip, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/CommentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$flags\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Http/Controllers/Api/ContentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/ContentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$timestamp_end_ms\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/ContentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$timestamp_start_ms\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/ContentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$trip_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/ContentController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:comments\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/ContentController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Api\\ContentController\:\:mapFields\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Http/Controllers/Api/ContentController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Api\\ContentController\:\:mapFields\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Http/Controllers/Api/ContentController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Api\\ContentController\:\:record\(\) should return App\\Models\\Accommodation\|App\\Models\\Activity\|App\\Models\\Expense\|App\\Models\\MacroPlan but returns Illuminate\\Database\\Eloquent\\Model\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/Api/ContentController.php
+
+		-
+			message: '#^Parameter \#1 \$trip of method App\\Services\\TripAccessService\:\:canEdit\(\) expects App\\Models\\Trip, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
+			identifier: argument.type
+			count: 6
+			path: app/Http/Controllers/Api/ContentController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model&object\{pivot\: Illuminate\\Database\\Eloquent\\Relations\\Pivot\}\:\:\$handle\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/MetadataController.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, App\\Models\\User\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/SyncController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>id" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/SyncController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Http/Controllers/Api/TaskController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$trip\.$#'
+			identifier: property.notFound
+			count: 5
+			path: app/Http/Controllers/Api/TaskController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:comments\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/TaskController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Api\\TaskController\:\:list\(\) should return App\\Models\\TaskList but returns Illuminate\\Database\\Eloquent\\Model\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/Api/TaskController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Api\\TaskController\:\:nullableAwareUpdates\(\) has parameter \$data with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Http/Controllers/Api/TaskController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Api\\TaskController\:\:nullableAwareUpdates\(\) has parameter \$fields with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Http/Controllers/Api/TaskController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Api\\TaskController\:\:nullableAwareUpdates\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Http/Controllers/Api/TaskController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Api\\TaskController\:\:task\(\) should return App\\Models\\Task but returns Illuminate\\Database\\Eloquent\\Model\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Http/Controllers/Api/TaskController.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, App\\Models\\User\|null given\.$#'
+			identifier: argument.type
+			count: 7
+			path: app/Http/Controllers/Api/TaskController.php
+
+		-
+			message: '#^Parameter \#1 \$trip of method App\\Services\\TripAccessService\:\:canEdit\(\) expects App\\Models\\Trip, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Http/Controllers/Api/TaskController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$activated\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$created_at_ms\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$email\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$handle\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$index\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$object_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$object_type\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$pivot\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$tasks\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$title\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$updated_at_ms\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:tasks\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Api\\TripController\:\:copyAccommodation\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Api\\TripController\:\:copyActivity\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Api\\TripController\:\:copyMacroPlan\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Api\\TripController\:\:resolveCommentTarget\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Api\\TripController\:\:serializeCommentGroup\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Api\\TripController\:\:serializeTrip\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, App\\Models\\User\|null given\.$#'
+			identifier: argument.type
+			count: 2
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,App\\Models\\Trip\>\:\:transform\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Parameter \#1 \$group of method App\\Http\\Controllers\\Api\\TripController\:\:serializeCommentGroup\(\) expects App\\Models\\CommentGroup, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Parameter \#1 \$item of method App\\Http\\Controllers\\Api\\TripController\:\:copyAccommodation\(\) expects App\\Models\\Accommodation, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Parameter \#1 \$item of method App\\Http\\Controllers\\Api\\TripController\:\:copyActivity\(\) expects App\\Models\\Activity, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Parameter \#1 \$item of method App\\Http\\Controllers\\Api\\TripController\:\:copyMacroPlan\(\) expects App\\Models\\MacroPlan, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Return type of call to method Illuminate\\Support\\Collection\<int,App\\Models\\Trip\>\:\:transform\(\) contains unresolvable type\.$#'
+			identifier: method.unresolvableReturnType
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>activated" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/Api/TripController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model&object\{pivot\: Illuminate\\Database\\Eloquent\\Relations\\Pivot\}\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/UserController.php
+
+		-
+			message: '#^Method App\\Http\\Controllers\\Api\\UserController\:\:serialize\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Http/Controllers/Api/UserController.php
+
+		-
+			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, App\\Models\\User\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/UserController.php
+
+		-
+			message: '#^Parameter \#1 \$trip of method App\\Services\\TripAccessService\:\:canManage\(\) expects App\\Models\\Trip, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Api/UserController.php
+
+		-
+			message: '#^Method App\\Models\\Accommodation\:\:trip\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Accommodation.php
+
+		-
+			message: '#^Method App\\Models\\Activity\:\:trip\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Activity.php
+
+		-
+			message: '#^Method App\\Models\\Comment\:\:commentGroup\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Comment.php
+
+		-
+			message: '#^Method App\\Models\\Comment\:\:user\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Comment.php
+
+		-
+			message: '#^Method App\\Models\\CommentGroup\:\:comments\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/CommentGroup.php
+
+		-
+			message: '#^Method App\\Models\\CommentGroup\:\:object\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasOne does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/CommentGroup.php
+
+		-
+			message: '#^Method App\\Models\\CommentGroup\:\:trip\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/CommentGroup.php
+
+		-
+			message: '#^Method App\\Models\\CommentGroupObject\:\:commentGroup\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/CommentGroupObject.php
+
+		-
+			message: '#^Method App\\Models\\Expense\:\:trip\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Expense.php
+
+		-
+			message: '#^Method App\\Models\\MacroPlan\:\:trip\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/MacroPlan.php
+
+		-
+			message: '#^Method App\\Models\\Task\:\:taskList\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Task.php
+
+		-
+			message: '#^Method App\\Models\\TaskList\:\:tasks\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/TaskList.php
+
+		-
+			message: '#^Method App\\Models\\TaskList\:\:trip\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/TaskList.php
+
+		-
+			message: '#^Method App\\Models\\Trip\:\:accommodations\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Trip.php
+
+		-
+			message: '#^Method App\\Models\\Trip\:\:activities\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Trip.php
+
+		-
+			message: '#^Method App\\Models\\Trip\:\:commentGroups\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Trip.php
+
+		-
+			message: '#^Method App\\Models\\Trip\:\:expenses\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Trip.php
+
+		-
+			message: '#^Method App\\Models\\Trip\:\:macroPlans\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Trip.php
+
+		-
+			message: '#^Method App\\Models\\Trip\:\:taskLists\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Trip.php
+
+		-
+			message: '#^Method App\\Models\\Trip\:\:users\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany does not specify its types\: TRelatedModel, TDeclaringModel, TPivotModel, TAccessor \(2\-4 required\)$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/Trip.php
+
+		-
+			message: '#^Method App\\Models\\TripUser\:\:trip\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/TripUser.php
+
+		-
+			message: '#^Method App\\Models\\TripUser\:\:user\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/TripUser.php
+
+		-
+			message: '#^Method App\\Models\\User\:\:trips\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsToMany does not specify its types\: TRelatedModel, TDeclaringModel, TPivotModel, TAccessor \(2\-4 required\)$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^PHPDoc tag @use has invalid type App\\Models\\UserFactory\.$#'
+			identifier: class.notFound
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Type App\\Models\\UserFactory in generic type Illuminate\\Database\\Eloquent\\Factories\\HasFactory\<App\\Models\\UserFactory\> in PHPDoc tag @use is not subtype of template type TFactory of Illuminate\\Database\\Eloquent\\Factories\\Factory of trait Illuminate\\Database\\Eloquent\\Factories\\HasFactory\.$#'
+			identifier: generics.notSubtype
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$trip_id\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Observers/SyncableObserver.php
+
+		-
+			message: '#^Method App\\Services\\SyncEventService\:\:record\(\) has parameter \$payload with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Services/SyncEventService.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Relations\\Pivot\:\:\$role\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/TripAccessService.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Factories\\UserFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Models\\User, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Models\\User\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/factories/UserFactory.php

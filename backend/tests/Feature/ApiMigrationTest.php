@@ -2,10 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\Trip;
-use App\Models\User;
 use App\Mail\PasswordResetMail;
 use App\Mail\VerifyEmailMail;
+use App\Models\SyncEvent;
+use App\Models\Trip;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -396,7 +397,7 @@ class ApiMigrationTest extends TestCase
             'timezone' => 'Asia/Tokyo', 'timestamp_start_ms' => 1, 'timestamp_end_ms' => 2, 'sharing_level' => 0,
         ]);
         $aliceTrip->users()->attach($alice->id, ['id' => (string) Str::uuid(), 'role' => 0, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
-        \App\Models\SyncEvent::create(['entity' => 'activity', 'entity_id' => (string) Str::uuid(), 'operation' => 'upsert', 'trip_id' => $aliceTrip->id, 'payload' => [], 'created_at_ms' => 1]);
+        SyncEvent::create(['entity' => 'activity', 'entity_id' => (string) Str::uuid(), 'operation' => 'upsert', 'trip_id' => $aliceTrip->id, 'payload' => [], 'created_at_ms' => 1]);
 
         $this->actingAs($bob)->getJson('/api/sync')
             ->assertOk()->assertJsonCount(0, 'changes');
@@ -409,7 +410,7 @@ class ApiMigrationTest extends TestCase
             'timezone' => 'Asia/Tokyo', 'timestamp_start_ms' => 1, 'timestamp_end_ms' => 2, 'sharing_level' => 2,
         ]);
         $activityId = (string) Str::uuid();
-        \App\Models\SyncEvent::create(['entity' => 'activities', 'entity_id' => $activityId, 'operation' => 'upsert', 'trip_id' => $publicTrip->id, 'payload' => [], 'created_at_ms' => 2]);
+        SyncEvent::create(['entity' => 'activities', 'entity_id' => $activityId, 'operation' => 'upsert', 'trip_id' => $publicTrip->id, 'payload' => [], 'created_at_ms' => 2]);
 
         // Anonymous (no session) must be able to poll sync for an openly shared trip.
         $response = $this->getJson('/api/sync?tripId=' . $publicTrip->id)

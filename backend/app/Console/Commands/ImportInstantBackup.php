@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 use ZipArchive;
@@ -43,7 +44,7 @@ class ImportInstantBackup extends Command
 
         foreach (array_unique([...array_keys(self::TABLES), '$users']) as $entity) {
             $file = $directory . '/entities/' . $entity . '.jsonl';
-            if (!is_file($file)) {
+            if (! is_file($file)) {
                 continue;
             }
             // Stream the count so a production-sized backup is not materialized
@@ -57,12 +58,16 @@ class ImportInstantBackup extends Command
         // have no JSONL export and are intentionally not migrated; those are shown
         // as "ignored" and must not fail a --verify-config run.
         $imported = [...array_keys(self::TABLES)];
-        if (isset($expected['$users']) || isset($counts['$users'])) $imported[] = '$users';
+        if (isset($expected['$users']) || isset($counts['$users'])) {
+            $imported[] = '$users';
+        }
         $verification = [];
         foreach ([...$imported, ...array_keys($expected)] as $entity) {
-            if (isset($verification[$entity])) continue;
+            if (isset($verification[$entity])) {
+                continue;
+            }
             $actual = $counts[$entity] ?? 0;
-            if (!in_array($entity, $imported, true)) {
+            if (! in_array($entity, $imported, true)) {
                 $verification[$entity] = [
                     'expected' => $expected[$entity] ?? null,
                     'actual' => $actual,
@@ -70,12 +75,13 @@ class ImportInstantBackup extends Command
                     'ok' => true,
                     'ignored' => true,
                 ];
+
                 continue;
             }
             $verification[$entity] = [
                 'expected' => $expected[$entity] ?? null,
                 'actual' => $actual,
-                'ok' => !isset($expected[$entity]) || $expected[$entity] === $actual,
+                'ok' => ! isset($expected[$entity]) || $expected[$entity] === $actual,
                 'ignored' => false,
             ];
         }
@@ -83,17 +89,19 @@ class ImportInstantBackup extends Command
         if ($this->option('json')) {
             $this->line(json_encode(['counts' => $counts, 'verification' => $verification], JSON_THROW_ON_ERROR));
         }
-        if ($this->option('verify-config') && collect($verification)->contains(fn (array $row): bool => !$row['ok'])) {
+        if ($this->option('verify-config') && collect($verification)->contains(fn (array $row): bool => ! $row['ok'])) {
             $this->error('Entity counts do not match config.json.');
+
             return self::FAILURE;
         }
 
         if ($this->option('dry-run')) {
             $this->info('Dry run complete; no rows written.');
+
             return self::SUCCESS;
         }
 
-        if ($this->option('truncate') && !$this->confirm('Truncate application tables before import?')) {
+        if ($this->option('truncate') && ! $this->confirm('Truncate application tables before import?')) {
             return self::FAILURE;
         }
 
@@ -128,6 +136,7 @@ class ImportInstantBackup extends Command
 
         $this->printPostImportReport($directory);
         $this->cleanupExtractedSource($source, $directory);
+
         return self::SUCCESS;
     }
 
@@ -153,7 +162,7 @@ class ImportInstantBackup extends Command
     private function cleanupExtractedSource(string $source, string $directory): void
     {
         if (is_file($source) && str_starts_with($directory, storage_path('app/instant-import/'))) {
-            \Illuminate\Support\Facades\File::deleteDirectory($directory);
+            File::deleteDirectory($directory);
         }
     }
 
@@ -162,18 +171,19 @@ class ImportInstantBackup extends Command
         if (is_dir($source)) {
             return rtrim($source, '/');
         }
-        if (!is_file($source)) {
+        if (! is_file($source)) {
             throw new RuntimeException("Backup not found: {$source}");
         }
 
         $directory = storage_path('app/instant-import/' . bin2hex(random_bytes(8)));
-        if (!mkdir($directory, 0700, true) && !is_dir($directory)) {
+        if (! mkdir($directory, 0700, true) && ! is_dir($directory)) {
             throw new RuntimeException("Unable to create import directory: {$directory}");
         }
-        $zip = new ZipArchive();
-        if ($zip->open($source) !== true || !$zip->extractTo($directory)) {
+        $zip = new ZipArchive;
+        if ($zip->open($source) !== true || ! $zip->extractTo($directory)) {
             throw new RuntimeException("Unable to extract backup: {$source}");
         }
+
         return $directory;
     }
 
@@ -186,12 +196,16 @@ class ImportInstantBackup extends Command
     private function readJsonLines(string $file): \Generator
     {
         $handle = fopen($file, 'rb');
-        if (!$handle) throw new RuntimeException("Unable to read {$file}");
+        if (! $handle) {
+            throw new RuntimeException("Unable to read {$file}");
+        }
         try {
             while (($line = fgets($handle)) !== false) {
-                if (trim($line) === '') continue;
+                if (trim($line) === '') {
+                    continue;
+                }
                 $record = json_decode($line, true, 512, JSON_THROW_ON_ERROR);
-                if (!isset($record['entity']['id'])) {
+                if (! isset($record['entity']['id'])) {
                     throw new RuntimeException("Missing entity.id in {$file}");
                 }
                 yield $record;
@@ -256,30 +270,42 @@ class ImportInstantBackup extends Command
 
     private function collectCommentLink(mixed $ids, string $column, string $parentId): void
     {
-        if ($ids === null) return;
+        if ($ids === null) {
+            return;
+        }
         foreach ((array) $ids as $id) {
             $commentId = $this->linkId($id);
-            if ($commentId === null) continue;
+            if ($commentId === null) {
+                continue;
+            }
             $this->commentLinks[$commentId][$column] = $parentId;
         }
     }
 
     private function collectOneSideLink(string $child, mixed $ids, string $parentId): void
     {
-        if ($ids === null) return;
+        if ($ids === null) {
+            return;
+        }
         foreach ((array) $ids as $id) {
             $childId = $this->linkId($id);
-            if ($childId === null) continue;
+            if ($childId === null) {
+                continue;
+            }
             $this->parentChildLinks[$child][$childId] = $parentId;
         }
     }
 
     private function collectTripUserLink(mixed $ids, string $column, string $parentId): void
     {
-        if ($ids === null) return;
+        if ($ids === null) {
+            return;
+        }
         foreach ((array) $ids as $id) {
             $tripUserId = $this->linkId($id);
-            if ($tripUserId === null) continue;
+            if ($tripUserId === null) {
+                continue;
+            }
             $this->tripUserLinks[$tripUserId][$column] = $parentId;
         }
     }
@@ -305,28 +331,35 @@ class ImportInstantBackup extends Command
             // skipped (orphaned), otherwise the foreign-key insert would fail.
             if ($this->hasSkippedParent($entity, $row)) {
                 $this->warn($this->treeSkipped($entity, $row, 'parent'));
+
                 continue;
             }
 
             if ($entity === 'tripUser' && ($row['trip_id'] === null || $row['user_id'] === null)) {
                 $this->warn($this->treeSkipped($entity, $row, $row['trip_id'] === null ? 'trip_id' : 'user_id'));
+
                 continue;
             }
             if ($this->requiresFk($entity, $row) && ($row['trip_id'] ?? null) === null) {
                 // trip child missing its trip link
                 $this->warn($this->treeSkipped($entity, $row, 'trip_id'));
+
                 continue;
             }
             if ($entity === 'task' && ($row['task_list_id'] ?? null) === null) {
                 $this->warn($this->treeSkipped($entity, $row, 'task_list_id'));
+
                 continue;
             }
             if ($entity === 'comment' && (($row['comment_group_id'] ?? null) === null || ($row['user_id'] ?? null) === null)) {
                 $this->warn($this->treeSkipped($entity, $row, ($row['comment_group_id'] ?? null) === null ? 'comment_group_id' : 'user_id'));
+
                 continue;
             }
 
-            if ($row !== []) $this->upsert(self::TABLES[$entity], $row);
+            if ($row !== []) {
+                $this->upsert(self::TABLES[$entity], $row);
+            }
         }
     }
 
@@ -339,8 +372,11 @@ class ImportInstantBackup extends Command
             'comment' => ['commentGroup', $row['comment_group_id'] ?? null],
             default => null,
         };
-        if (!$parent) return false;
+        if (! $parent) {
+            return false;
+        }
         [$parentEntity, $parentId] = $parent;
+
         return $parentId !== null && isset($this->skipped[$parentEntity][$parentId]);
     }
 
@@ -351,6 +387,7 @@ class ImportInstantBackup extends Command
         if ($this->orphanedChildren <= 50) {
             return 'Skipping orphaned ' . $entity . ' ' . ($row['id'] ?? '') . ' (' . $field . '=missing-or-orphaned)';
         }
+
         return '';
     }
 
@@ -366,7 +403,9 @@ class ImportInstantBackup extends Command
             $row['trip_id'] = $row['trip_id'] ?? $links['trip_id'] ?? null;
             $row['user_id'] = $row['user_id'] ?? $links['user_id'] ?? null;
         }
-        if ($entity === 'task') $row['task_list_id'] = $row['task_list_id'] ?? $this->parentChildLinks['task'][$row['id']] ?? null;
+        if ($entity === 'task') {
+            $row['task_list_id'] = $row['task_list_id'] ?? $this->parentChildLinks['task'][$row['id']] ?? null;
+        }
         if ($entity === 'comment') {
             $links = $this->commentLinks[$row['id']] ?? [];
             $row['comment_group_id'] = $row['comment_group_id'] ?? $links['comment_group_id'] ?? null;
@@ -399,12 +438,12 @@ class ImportInstantBackup extends Command
                 'created_at_ms' => $created, 'updated_at_ms' => $updated,
             ],
             'tripUser' => ['id' => $id, 'trip_id' => $this->linkId($source['trip'] ?? null), 'user_id' => $this->linkId($source['user'] ?? null), 'role' => $this->role($source['role'] ?? null), 'created_at_ms' => $created, 'updated_at_ms' => $updated],
-            'activity' => $this->child($source, $created, $updated, ['title','location','description','flags','icon'], ['timestampStart'=>'timestamp_start_ms','timestampEnd'=>'timestamp_end_ms','timeZoneStart'=>'timezone_start','timeZoneEnd'=>'timezone_end','locationLat'=>'location_lat','locationLng'=>'location_lng','locationZoom'=>'location_zoom','locationDestination'=>'location_destination','locationDestinationLat'=>'location_destination_lat','locationDestinationLng'=>'location_destination_lng','locationDestinationZoom'=>'location_destination_zoom'], 'trip'),
-            'accommodation' => $this->child($source, $created, $updated, ['name','address','phoneNumber'=>'phone_number','notes'], ['timestampCheckIn'=>'check_in_ms','timestampCheckOut'=>'check_out_ms','timeZoneCheckIn'=>'tz_check_in','timeZoneCheckOut'=>'tz_check_out','locationLat'=>'location_lat','locationLng'=>'location_lng','locationZoom'=>'location_zoom'], 'trip'),
-            'macroplan' => $this->child($source, $created, $updated, ['name','notes'], ['timestampStart'=>'timestamp_start_ms','timestampEnd'=>'timestamp_end_ms','timeZoneStart'=>'timezone_start','timeZoneEnd'=>'timezone_end'], 'trip'),
-            'expense' => $this->child($source, $created, $updated, ['amount','amountInOriginCurrency'=>'amount_in_origin_currency','currency','currencyConversionFactor'=>'currency_conversion_factor','title','description'], ['timestampIncurred'=>'incurred_at_ms','timeZoneIncurred'=>'timezone_incurred'], 'trip'),
-            'taskList' => $this->child($source, $created, $updated, ['title','index','status'], [], 'trip'),
-            'task' => $this->child($source, $created, $updated, ['index','title','description','status','dueAt'=>'due_at_ms','completedAt'=>'completed_at_ms'], [], 'taskList'),
+            'activity' => $this->child($source, $created, $updated, ['title', 'location', 'description', 'flags', 'icon'], ['timestampStart' => 'timestamp_start_ms', 'timestampEnd' => 'timestamp_end_ms', 'timeZoneStart' => 'timezone_start', 'timeZoneEnd' => 'timezone_end', 'locationLat' => 'location_lat', 'locationLng' => 'location_lng', 'locationZoom' => 'location_zoom', 'locationDestination' => 'location_destination', 'locationDestinationLat' => 'location_destination_lat', 'locationDestinationLng' => 'location_destination_lng', 'locationDestinationZoom' => 'location_destination_zoom'], 'trip'),
+            'accommodation' => $this->child($source, $created, $updated, ['name', 'address', 'phoneNumber' => 'phone_number', 'notes'], ['timestampCheckIn' => 'check_in_ms', 'timestampCheckOut' => 'check_out_ms', 'timeZoneCheckIn' => 'tz_check_in', 'timeZoneCheckOut' => 'tz_check_out', 'locationLat' => 'location_lat', 'locationLng' => 'location_lng', 'locationZoom' => 'location_zoom'], 'trip'),
+            'macroplan' => $this->child($source, $created, $updated, ['name', 'notes'], ['timestampStart' => 'timestamp_start_ms', 'timestampEnd' => 'timestamp_end_ms', 'timeZoneStart' => 'timezone_start', 'timeZoneEnd' => 'timezone_end'], 'trip'),
+            'expense' => $this->child($source, $created, $updated, ['amount', 'amountInOriginCurrency' => 'amount_in_origin_currency', 'currency', 'currencyConversionFactor' => 'currency_conversion_factor', 'title', 'description'], ['timestampIncurred' => 'incurred_at_ms', 'timeZoneIncurred' => 'timezone_incurred'], 'trip'),
+            'taskList' => $this->child($source, $created, $updated, ['title', 'index', 'status'], [], 'trip'),
+            'task' => $this->child($source, $created, $updated, ['index', 'title', 'description', 'status', 'dueAt' => 'due_at_ms', 'completedAt' => 'completed_at_ms'], [], 'taskList'),
             'commentGroup' => $this->child($source, $created, $updated, ['status'], [], 'trip'),
             'commentGroupObject' => $this->mapCommentObject($source, $created, $updated),
             'comment' => $this->child($source, $created, $updated, ['content'], [], 'commentGroup'),
@@ -429,6 +468,7 @@ class ImportInstantBackup extends Command
                 break;
             }
         }
+
         return $row;
     }
 
@@ -440,15 +480,20 @@ class ImportInstantBackup extends Command
         // (matching the frontend's "" convention) instead of null.
         $requiredStringFields = ['title', 'location', 'description', 'name', 'notes', 'address', 'phone_number', 'content', 'currency', 'timezone_incurred'];
         foreach ($fields as $from => $to) {
-            if (is_int($from)) { $from = $to; }
+            if (is_int($from)) {
+                $from = $to;
+            }
             $value = $source[$from] ?? null;
             $row[$to] = in_array($to, $requiredStringFields, true) ? (string) ($value ?? '') : $value;
         }
-        foreach ($mapped as $from => $to) $row[$to] = $source[$from] ?? null;
+        foreach ($mapped as $from => $to) {
+            $row[$to] = $source[$from] ?? null;
+        }
         $linkColumn = ['trip' => 'trip_id', 'taskList' => 'task_list_id', 'commentGroup' => 'comment_group_id'][$parentLink ?? ''] ?? null;
         if ($linkColumn !== null && array_key_exists($parentLink, $source)) {
             $row[$linkColumn] = $this->linkId($source[$parentLink]);
         }
+
         return $row;
     }
 
@@ -463,17 +508,23 @@ class ImportInstantBackup extends Command
         // Use delete() instead of truncate(): TRUNCATE implicitly commits in
         // MySQL, which would commit the surrounding import transaction early and
         // make the import non-rollback-safe.
-        foreach (array_reverse(array_values(self::TABLES)) as $table) DB::table($table)->delete();
+        foreach (array_reverse(array_values(self::TABLES)) as $table) {
+            DB::table($table)->delete();
+        }
         Schema::enableForeignKeyConstraints();
     }
 
     /** @var array<string, array<string, string>> single-parent childEntity => childId => parentId */
     private array $parentChildLinks = [];
+
     /** @var array<string, array{trip_id?: string, user_id?: string}> tripUserId => resolved links */
     private array $tripUserLinks = [];
+
     /** @var array<string, array{comment_group_id?: string, user_id?: string}> commentId => resolved links */
     private array $commentLinks = [];
+
     private int $orphanedTripUsers = 0;
+
     private int $orphanedChildren = 0;
 
     /** @var array<string, array<string, true>> entity => skipped row ids (for descendant pruning). */
@@ -483,14 +534,20 @@ class ImportInstantBackup extends Command
     private function readConfigCounts(string $directory): array
     {
         $file = $directory . '/config.json';
-        if (!is_file($file)) return [];
+        if (! is_file($file)) {
+            return [];
+        }
         $config = json_decode((string) file_get_contents($file), true, 512, JSON_THROW_ON_ERROR);
         $candidates = $config['entityCounts'] ?? $config['entities'] ?? $config['counts'] ?? [];
         $counts = [];
         foreach ($candidates as $name => $value) {
-            if (is_int($value) || is_float($value)) $counts[(string) $name] = (int) $value;
-            elseif (is_array($value) && isset($value['count'])) $counts[(string) $name] = (int) $value['count'];
+            if (is_int($value) || is_float($value)) {
+                $counts[(string) $name] = (int) $value;
+            } elseif (is_array($value) && isset($value['count'])) {
+                $counts[(string) $name] = (int) $value['count'];
+            }
         }
+
         return $counts;
     }
 
@@ -502,41 +559,63 @@ class ImportInstantBackup extends Command
     private function records(string $directory, string $entity): \Generator
     {
         $file = $directory . '/entities/' . $entity . '.jsonl';
-        if (is_file($file)) yield from $this->readJsonLines($file);
+        if (is_file($file)) {
+            yield from $this->readJsonLines($file);
+        }
     }
 
     private function linkId(mixed $value): ?string
     {
-        if ($value === null || $value === '') return null;
-        if (is_string($value)) return $value;
-        if (is_int($value) || is_float($value)) return (string) $value;
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (is_string($value)) {
+            return $value;
+        }
+        if (is_int($value) || is_float($value)) {
+            return (string) $value;
+        }
         if (is_array($value)) {
             // has-one link shaped as {"id": "..."}
-            if (array_key_exists('id', $value)) return $this->linkId($value['id']);
+            if (array_key_exists('id', $value)) {
+                return $this->linkId($value['id']);
+            }
             // has-many link: an array of ids and/or {"id": ...} objects.
             foreach ($value as $item) {
                 $resolved = $this->linkId($item);
-                if ($resolved !== null) return $resolved;
+                if ($resolved !== null) {
+                    return $resolved;
+                }
             }
         }
+
         return null;
     }
 
     private function timestampMs(mixed $value): ?int
     {
-        if ($value === null || $value === '') return null;
-        if (is_numeric($value)) return (int) $value;
+        if ($value === null || $value === '') {
+            return null;
+        }
+        if (is_numeric($value)) {
+            return (int) $value;
+        }
         $time = strtotime((string) $value);
+
         return $time === false ? null : $time * 1000;
     }
 
     private function role(mixed $role): int
     {
-        return match ($role) { 'owner', 0, '0' => 0, 'editor', 1, '1' => 1, default => 2 };
+        return match ($role) {
+            'owner', 0, '0' => 0, 'editor', 1, '1' => 1, default => 2
+        };
     }
 
     private function objectType(string $type): int
     {
-        return match ($type) { 'trip' => 0, 'activity' => 1, 'accommodation' => 2, 'macroplan' => 3, 'expense' => 4, 'task' => 5, default => 0 };
+        return match ($type) {
+            'trip' => 0, 'activity' => 1, 'accommodation' => 2, 'macroplan' => 3, 'expense' => 4, 'task' => 5, default => 0
+        };
     }
 }

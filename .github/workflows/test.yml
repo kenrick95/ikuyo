@@ -9,6 +9,36 @@ on:
 permissions: {}
 
 jobs:
+  php-backend:
+    name: "PHP lint, style, static, test"
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, curl, pdo, sqlite, xml, zip, intl, gd
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: backend/vendor
+          key: ${{ runner.os }}-php-${{ hashFiles('backend/composer.lock') }}
+          restore-keys: ${{ runner.os }}-php-
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+      - name: PHP syntax lint
+        run: composer lint
+      - name: PHP code style (Pint)
+        run: composer style
+      - name: PHP static analysis (PHPStan)
+        run: composer static
+      - name: PHPUnit
+        run: composer test
+
   test:
     name: "Lint, Typecheck, Test, and Build"
     concurrency:

@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasMsTimestamps;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -16,10 +15,12 @@ class User extends Authenticatable
     protected $guarded = [];
 
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasMsTimestamps;
+    use HasFactory, HasMsTimestamps, Notifiable;
 
     public $incrementing = false;
+
     protected $keyType = 'string';
+
     public $timestamps = false;
 
     public function getAuthPasswordName(): string
