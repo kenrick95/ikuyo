@@ -36,3 +36,14 @@ export const backendSharingWrites =
   process.env.IKUYO_BACKEND_SHARING_WRITES === true;
 export const backendTripWrites = process.env.IKUYO_BACKEND_TRIP_WRITES === true;
 export const backendTripReads = process.env.IKUYO_BACKEND_TRIP_READS === true;
+
+// Enforce compatible flag combinations. Backend auth is Laravel-session based, so
+// it never establishes an InstantDB session for the remaining InstantDB read
+// fallbacks (trip/list reads, auth store). Enabling backend auth while still
+// reading trips from Instant leads to a signed-in-app-but-empty-data state, so
+// backend auth implies backend trip reads.
+if (backendAuthEnabled && !backendTripReads) {
+  throw new Error(
+    'IKUYO_BACKEND_AUTH requires IKUYO_BACKEND_TRIP_READS: backend auth does not establish an InstantDB session for the InstantDB read fallbacks.',
+  );
+}

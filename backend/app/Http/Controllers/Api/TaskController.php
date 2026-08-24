@@ -17,7 +17,7 @@ class TaskController extends Controller
     {
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'index' => ['required', 'integer', 'min:0'],
+            'index' => ['required', 'integer'],
             'status' => ['required', 'integer'],
         ]);
         $list = $trip->taskLists()->create([
@@ -32,7 +32,7 @@ class TaskController extends Controller
         $list = $this->list($trip, $taskList);
         $list->update($request->validate([
             'title' => ['sometimes', 'string', 'max:255'],
-            'index' => ['sometimes', 'integer', 'min:0'],
+            'index' => ['sometimes', 'integer'],
             'status' => ['sometimes', 'integer'],
         ]));
         return response()->json($list->fresh('tasks'));
@@ -57,7 +57,7 @@ class TaskController extends Controller
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'index' => ['required', 'integer', 'min:0'],
+            'index' => ['required', 'integer'],
             'status' => ['required', 'integer'],
             'dueAt' => ['nullable', 'integer'],
             'completedAt' => ['nullable', 'integer'],
@@ -80,7 +80,7 @@ class TaskController extends Controller
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'index' => ['required', 'integer', 'min:0'],
+            'index' => ['required', 'integer'],
             'status' => ['required', 'integer'],
             'dueAt' => ['nullable', 'integer'],
             'completedAt' => ['nullable', 'integer'],
@@ -103,7 +103,7 @@ class TaskController extends Controller
         $data = $request->validate([
             'title' => ['sometimes', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'index' => ['sometimes', 'integer', 'min:0'],
+            'index' => ['sometimes', 'integer'],
             'status' => ['sometimes', 'integer'],
             'dueAt' => ['nullable', 'integer'],
             'completedAt' => ['nullable', 'integer'],
@@ -143,7 +143,7 @@ class TaskController extends Controller
         $taskList->load('trip');
         $access = app(\App\Services\TripAccessService::class);
         abort_unless($access->canEdit($taskList->trip, $request->user()), 403);
-        $data = $request->validate(['title' => ['sometimes', 'string', 'max:255'], 'index' => ['sometimes', 'integer', 'min:0'], 'status' => ['sometimes', 'integer']]);
+        $data = $request->validate(['title' => ['sometimes', 'string', 'max:255'], 'index' => ['sometimes', 'integer'], 'status' => ['sometimes', 'integer']]);
         $taskList->update($data);
         return response()->json($taskList->fresh('tasks'));
     }
@@ -212,7 +212,7 @@ class TaskController extends Controller
         $task->load('taskList.trip');
         $access = app(\App\Services\TripAccessService::class);
         abort_unless($access->canEdit($task->taskList->trip, $request->user()), 403);
-        $data = $request->validate(['index' => ['required', 'integer', 'min:0']]);
+        $data = $request->validate(['index' => ['required', 'integer']]);
         $task->update(['index' => $data['index']]);
         return response()->json($task->fresh());
     }
@@ -235,7 +235,7 @@ class TaskController extends Controller
         $task->load('taskList.trip');
         $access = app(\App\Services\TripAccessService::class);
         abort_unless($access->canEdit($task->taskList->trip, $request->user()), 403);
-        $data = $request->validate(['title' => ['sometimes', 'string', 'max:255'], 'description' => ['nullable', 'string'], 'index' => ['sometimes', 'integer', 'min:0'], 'status' => ['sometimes', 'integer'], 'dueAt' => ['nullable', 'integer'], 'completedAt' => ['nullable', 'integer']]);
+        $data = $request->validate(['title' => ['sometimes', 'string', 'max:255'], 'description' => ['nullable', 'string'], 'index' => ['sometimes', 'integer'], 'status' => ['sometimes', 'integer'], 'dueAt' => ['nullable', 'integer'], 'completedAt' => ['nullable', 'integer']]);
         $updates = [];
         foreach (['title', 'description', 'index', 'status', 'dueAt', 'completedAt'] as $field) {
             if (array_key_exists($field, $data)) $updates[$this->dbField($field)] = $data[$field];
