@@ -236,6 +236,7 @@ class TripController extends Controller
         return (int) round(microtime(true) * 1000);
     }
 
+    // TODO: params not typed?
     private function copyActivity($item, bool $removeDates, $trip, int $newStartMs): array
     {
         $row = $item->only(['title', 'location', 'location_lat', 'location_lng', 'location_zoom', 'location_destination', 'location_destination_lat', 'location_destination_lng', 'location_destination_zoom', 'description', 'timezone_start', 'timezone_end', 'flags', 'icon']);
@@ -244,6 +245,7 @@ class TripController extends Controller
         return $row;
     }
 
+    // TODO: params not typed?
     private function copyAccommodation($item, $trip, int $newStartMs): array
     {
         $row = $item->only(['name', 'address', 'phone_number', 'notes', 'tz_check_in', 'tz_check_out', 'location_lat', 'location_lng', 'location_zoom']);
@@ -252,6 +254,7 @@ class TripController extends Controller
         return $row;
     }
 
+    // TODO: params not typed?
     private function copyMacroPlan($item, $trip, int $newStartMs): array
     {
         $row = $item->only(['name', 'notes', 'timezone_start', 'timezone_end']);
@@ -314,6 +317,7 @@ class TripController extends Controller
         ];
     }
 
+    // TODO: params not typed?
     private function serializeCommentGroup($group): array
     {
         $comments = ($group->comments ?? collect())->map(function ($comment): array {

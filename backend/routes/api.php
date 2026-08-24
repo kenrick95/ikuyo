@@ -137,6 +137,7 @@ Route::middleware('web')->group(function (): void {
     Route::get('/users/me', [UserController::class, 'me'])->middleware('auth');
     Route::get('/users/by-handle/{handle}', [UserController::class, 'byHandle']);
     Route::post('/users/check-email', [UserController::class, 'checkEmail']);
+    // TODO: this /users/generate-handle and /users/by-handle/{handle} handle API seem unused in front-end
     Route::post('/users/generate-handle', [UserController::class, 'generateHandle']);
     Route::put('/users/me/preferences', [UserController::class, 'updatePreferences'])->middleware('auth');
     Route::patch('/users/me', [UserController::class, 'update'])->middleware('auth');
