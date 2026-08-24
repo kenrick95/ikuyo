@@ -15,7 +15,11 @@ class TripController extends Controller
     public function index(Request $request): JsonResponse
     {
         $now = (int) $request->integer('now', (int) round(microtime(true) * 1000));
-        $userId = $request->user()?->getKey() ?? $request->query('user_id');
+        // Membership is resolved from the authenticated principal only; never
+        // trust a client-supplied `user_id`, which would allow enumerating
+        // another user's trips.
+        $user = $request->user();
+        $userId = $user?->getKey();
 
         if (!$userId) {
             return response()->json(['message' => 'Authentication required.'], 401);
@@ -34,6 +38,7 @@ class TripController extends Controller
         }
 
         $trips = $query->orderBy('timestamp_end_ms', 'desc')
+            ->orderBy('trips.id') // deterministic tiebreak for equal timestamp_end_ms
             ->cursorPaginate(min($request->integer('limit', 50), 100));
 
         return response()->json([
@@ -60,6 +65,7 @@ class TripController extends Controller
             ->withCount('activities')
             ->with(['users' => fn ($query) => $query->wherePivot('role', 0)])
             ->orderByDesc('created_at_ms')
+            ->orderBy('id') // deterministic tiebreak for equal created_at_ms
             ->cursorPaginate($limit);
 
         $trips->getCollection()->transform(fn (Trip $trip): array => [
@@ -198,7 +204,7 @@ class TripController extends Controller
             if ($data['includeExpenses'] ?? false) foreach ($trip->expenses as $item) $copy->expenses()->create($item->only(['amount', 'amount_in_origin_currency', 'currency', 'currency_conversion_factor', 'title', 'description', 'incurred_at_ms', 'timezone_incurred']));
             if ($data['includeTasks'] ?? false) foreach ($trip->taskLists as $list) {
                 $copyList = $copy->taskLists()->create(['title' => $list->title, 'index' => $list->index, 'status' => $list->status]);
-                foreach ($list->items as $item) {
+                foreach ($list->tasks as $item) {
                     $copyList->tasks()->create(['title' => $item->title, 'description' => $item->description, 'index' => $item->index, 'status' => 0, 'due_at_ms' => $item->due_at_ms, 'completed_at_ms' => null]);
                 }
             }
@@ -259,7 +265,9 @@ class TripController extends Controller
     {
         $fromStart = \Illuminate\Support\Carbon::createFromTimestampMs($fromStartMs, $tz)->startOfDay();
         $toStart = \Illuminate\Support\Carbon::createFromTimestampMs($toStartMs, $tz)->startOfDay();
-        $days = $toStart->diffInDays($fromStart);
+        // Signed source→destination day difference: negative when duplicating to
+        // an earlier start date (so content shifts backward, not forward).
+        $days = $fromStart->diffInDays($toStart, false);
         return \Illuminate\Support\Carbon::createFromTimestampMs($timestampMs, $tz)->addDays($days)->getTimestampMs();
     }
 
@@ -362,7 +370,9 @@ class TripController extends Controller
         if (!$model) return null;
         $record = $model::whereKey($objectId)->first();
         if (!$record) return ['id' => $objectId];
-        $name = method_exists($record, 'name') ? $record->name : ($record->title ?? '');
+        // Use getAttribute so Eloquent dynamic attributes (e.g. a `name` column on
+        // accommodations/macroplans) are resolved, falling back to `title`.
+        $name = $record->getAttribute('name') ?: $record->getAttribute('title');
         return ['id' => $record->id, 'title' => $name];
     }
 

@@ -278,6 +278,13 @@ class ImportInstantBackup extends Command
             // (and from the child's own field when present), then skip orphans.
             $this->resolveChildFk($entity, $row);
 
+            // Skip rows whose resolved FK points at a parent that was itself
+            // skipped (orphaned), otherwise the foreign-key insert would fail.
+            if ($this->hasSkippedParent($entity, $row)) {
+                $this->warn($this->treeSkipped($entity, $row, 'parent'));
+                continue;
+            }
+
             if ($entity === 'tripUser' && ($row['trip_id'] === null || $row['user_id'] === null)) {
                 $this->warn($this->treeSkipped($entity, $row, $row['trip_id'] === null ? 'trip_id' : 'user_id'));
                 continue;
@@ -298,6 +305,30 @@ class ImportInstantBackup extends Command
 
             if ($row !== []) $this->upsert(self::TABLES[$entity], $row);
         }
+    }
+
+    /** True if this row's FK references a parent that was skipped as an orphan. */
+    private function hasSkippedParent(string $entity, array $row): bool
+    {
+        $parent = match ($entity) {
+            'tripUser', 'activity', 'accommodation', 'macroplan', 'expense', 'taskList', 'commentGroup' => ['trip', $row['trip_id'] ?? null],
+            'task' => ['taskList', $row['task_list_id'] ?? null],
+            'comment' => ['commentGroup', $row['comment_group_id'] ?? null],
+            default => null,
+        };
+        if (!$parent) return false;
+        [$parentEntity, $parentId] = $parent;
+        return $parentId !== null && isset($this->skipped[$parentEntity][$parentId]);
+    }
+
+    private function treeSkipped(string $entity, array $row, string $field): string
+    {
+        $this->orphanedChildren++;
+        $this->skipped[$entity][$row['id'] ?? ''] = true;
+        if ($this->orphanedChildren <= 50) {
+            return 'Skipping orphaned ' . $entity . ' ' . ($row['id'] ?? '') . ' (' . $field . '=missing-or-orphaned)';
+        }
+        return '';
     }
 
     private function resolveChildFk(string $entity, array &$row): void
@@ -323,15 +354,6 @@ class ImportInstantBackup extends Command
     private function requiresFk(string $entity, array $row): bool
     {
         return in_array($entity, ['tripUser', 'activity', 'accommodation', 'macroplan', 'expense', 'taskList', 'commentGroup'], true);
-    }
-
-    private function treeSkipped(string $entity, array $row, string $field): string
-    {
-        $this->orphanedChildren++;
-        if ($this->orphanedChildren <= 50) {
-            return 'Skipping orphaned ' . $entity . ' ' . $row['id'] . ' (' . $field . '=null)';
-        }
-        return '';
     }
 
     /** @return array<string, mixed> */
@@ -410,7 +432,10 @@ class ImportInstantBackup extends Command
     private function truncateTables(): void
     {
         Schema::disableForeignKeyConstraints();
-        foreach (array_reverse(array_values(self::TABLES)) as $table) DB::table($table)->truncate();
+        // Use delete() instead of truncate(): TRUNCATE implicitly commits in
+        // MySQL, which would commit the surrounding import transaction early and
+        // make the import non-rollback-safe.
+        foreach (array_reverse(array_values(self::TABLES)) as $table) DB::table($table)->delete();
         Schema::enableForeignKeyConstraints();
     }
 
@@ -422,6 +447,9 @@ class ImportInstantBackup extends Command
     private array $commentLinks = [];
     private int $orphanedTripUsers = 0;
     private int $orphanedChildren = 0;
+
+    /** @var array<string, array<string, true>> entity => skipped row ids (for descendant pruning). */
+    private array $skipped = [];
 
     /** @return array<string, int> */
     private function readConfigCounts(string $directory): array

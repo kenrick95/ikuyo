@@ -62,7 +62,15 @@ export const createTripsSlice: StateCreator<
     let activeLoaded = false;
     let pastLoaded = false;
 
-    const toTrip = (trip: ApiTrip): TripsSliceTrip => ({ ...trip });
+    const toTrip = (trip: ApiTrip): TripsSliceTrip => ({
+      ...trip,
+      // MySQL BIGINT ms fields can be JSON strings; coerce so TripCard's
+      // Temporal.Instant.fromEpochMilliseconds does not fail.
+      timestampStart: Number(trip.timestampStart),
+      timestampEnd: Number(trip.timestampEnd),
+      createdAt: Number(trip.createdAt),
+      lastUpdatedAt: Number(trip.lastUpdatedAt),
+    });
     const merge = () => {
       if (disposed || !activeLoaded || !pastLoaded) return;
       set((state) => ({

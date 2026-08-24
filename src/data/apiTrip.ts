@@ -51,8 +51,8 @@ export function mapApiTrip(trip: ApiTrip): DbTripQueryReturnType {
     amount: toNum(row.amount),
     timestampIncurred: toNum(row.timestampIncurred ?? row.incurred_at_ms),
     timeZoneIncurred: row.timeZoneIncurred ?? row.timezone_incurred,
-    dueAt: row.dueAt ?? row.due_at_ms,
-    completedAt: row.completedAt ?? row.completed_at_ms,
+    dueAt: toNum(row.dueAt ?? row.due_at_ms),
+    completedAt: toNum(row.completedAt ?? row.completed_at_ms),
   });
 
   return {
@@ -98,16 +98,23 @@ function mapCommentObject(object: ApiTrip): ApiTrip {
     typeof object.type === 'string'
       ? object.type
       : objectTypeName(object.object_type);
-  const target = object.object_id
-    ? { id: object.object_id, title: object.title ?? object.name ?? '' }
-    : undefined;
+  // The backend serializes the target as a dynamic relation (e.g.
+  // activity: [{ id, title }]), but an `object_id` may also be present. Prefer
+  // the relation so comments keep the entity they belong to.
+  const relation = Array.isArray(object[type]) ? object[type] : undefined;
+  const target =
+    relation && relation.length > 0
+      ? relation
+      : object.object_id
+        ? [{ id: object.object_id, title: object.title ?? object.name ?? '' }]
+        : [];
   return {
     ...object,
     id: object.id,
     createdAt: object.createdAt ?? object.created_at_ms,
     lastUpdatedAt: object.lastUpdatedAt ?? object.updated_at_ms,
     type,
-    [type]: target ? [target] : [],
+    [type]: target,
   };
 }
 

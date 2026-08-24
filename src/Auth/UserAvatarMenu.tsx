@@ -4,6 +4,7 @@ import { UserHandle } from '../common/UserHandle/UserHandle';
 import { postMutation } from '../data/apiClient';
 import { backendAuthEnabled } from '../data/backendConfig';
 import { db } from '../data/db';
+import { useBoundStore } from '../data/store';
 import type { DbUser } from '../data/types';
 import {
   RouteAccount,
@@ -13,6 +14,7 @@ import {
 
 export function UserAvatarMenu({ user }: { user: DbUser | null | undefined }) {
   const [, setLocation] = useLocation();
+  const subscribeUser = useBoundStore((state) => state.subscribeUser);
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger>
@@ -66,6 +68,11 @@ export function UserAvatarMenu({ user }: { user: DbUser | null | undefined }) {
                 ? postMutation('/api/auth/logout', {})
                 : db.auth.signOut();
               void logout.then(() => {
+                // Clear the cached user so the app stops rendering authenticated
+                // data and the route guard no longer treats the user as signed in.
+                if (backendAuthEnabled) {
+                  subscribeUser();
+                }
                 setLocation(RouteLogin.asRootRoute());
               });
             }}

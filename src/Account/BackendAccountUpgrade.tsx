@@ -9,6 +9,7 @@ import { RouteAccount } from '../Routes/routes';
 
 export function BackendAccountUpgrade() {
   const publishToast = useBoundStore((state) => state.publishToast);
+  const subscribeUser = useBoundStore((state) => state.subscribeUser);
   const [, setLocation] = useLocation();
   const [loading, setLoading] = useState(false);
 
@@ -34,6 +35,8 @@ export function BackendAccountUpgrade() {
           },
           close: {},
         });
+        // Refresh the cached user so the account/avatar no longer show a guest.
+        subscribeUser();
         setLocation(RouteAccount.asRootRoute());
       } catch (error) {
         publishToast({
@@ -48,7 +51,7 @@ export function BackendAccountUpgrade() {
         setLoading(false);
       }
     },
-    [publishToast, setLocation],
+    [publishToast, setLocation, subscribeUser],
   );
 
   return (

@@ -2,7 +2,7 @@ import { Button, Flex, Heading, TextField } from '@radix-ui/themes';
 import type React from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
-import { postMutation } from '../data/apiClient';
+import { mutate, postMutation } from '../data/apiClient';
 import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
 import imgUrl from '../logo/ikuyo.svg';
@@ -13,6 +13,7 @@ type Mode = 'login' | 'guest' | 'forgot' | 'reset';
 
 export function BackendLogin() {
   const publishToast = useBoundStore((state) => state.publishToast);
+  const subscribeUser = useBoundStore((state) => state.subscribeUser);
   const [mode, setMode] = useState<Mode>(() =>
     new URLSearchParams(window.location.search).has('reset_token')
       ? 'reset'
@@ -40,11 +41,16 @@ export function BackendLogin() {
         if (mode === 'guest') {
           await postMutation('/api/auth/guest', {});
         } else if (mode === 'login') {
-          await postMutation('/api/auth/login', {
-            email: String(form.get('email') ?? '')
-              .trim()
-              .toLowerCase(),
-            password: String(form.get('password') ?? ''),
+          // `mutate` keeps CSRF but (unlike postMutation) does not assert
+          // writable, so existing users can still log in during a read-only freeze.
+          await mutate('/api/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({
+              email: String(form.get('email') ?? '')
+                .trim()
+                .toLowerCase(),
+              password: String(form.get('password') ?? ''),
+            }),
           });
         } else if (mode === 'forgot') {
           await postMutation('/api/auth/forgot', {
@@ -69,6 +75,9 @@ export function BackendLogin() {
             password: String(form.get('password') ?? ''),
           });
         }
+        // Refresh the cached auth/current user from the new session before
+        // navigating, so the redirect guard no longer sees the pre-login state.
+        subscribeUser();
         setLocation(RouteTrips.asRootRoute());
       } catch (error) {
         publishToast({
@@ -83,7 +92,7 @@ export function BackendLogin() {
         setLoading(false);
       }
     },
-    [mode, publishToast, resetToken, setLocation],
+    [mode, publishToast, resetToken, setLocation, subscribeUser],
   );
 
   const title =

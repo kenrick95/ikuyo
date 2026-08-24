@@ -96,7 +96,7 @@ class UserController extends Controller
     {
         $data = $request->validate(['email' => ['required', 'email'], 'role' => ['required', 'integer', 'in:1,2']]);
         $member = $trip->users()->where('email', $data['email'])->firstOrFail();
-        $trip->users()->updateExistingPivot($member->id, ['role' => $data['role'], 'updated_at_ms' => nowMs()]);
+        $trip->users()->updateExistingPivot($member->id, ['role' => $data['role'], 'updated_at_ms' => $this->nowMs()]);
         return response()->json(['ok' => true]);
     }
 
