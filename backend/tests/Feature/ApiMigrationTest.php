@@ -264,6 +264,46 @@ class ApiMigrationTest extends TestCase
         ]);
     }
 
+    public function test_activity_accepts_empty_string_fields(): void
+    {
+        // Regression: InstantDB string fields are required/non-null and the
+        // frontend sends "" for empty strings. The framework's empty→null
+        // conversion used to violate the NOT NULL description/location columns.
+        $user = $this->user();
+        $trip = Trip::create([
+            'id' => (string) Str::uuid(), 'title' => 'Empty strings', 'region' => 'JP', 'currency' => 'JPY',
+            'timezone' => 'Asia/Tokyo', 'timestamp_start_ms' => 1, 'timestamp_end_ms' => 2,
+            'sharing_level' => 0,
+        ]);
+        $trip->users()->attach($user->id, ['id' => (string) Str::uuid(), 'role' => 0, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
+
+        $response = $this->actingAs($user)->postJson('/api/trips/' . $trip->id . '/activities', [
+            'title' => 'Sophie big bang concert',
+            'icon' => null,
+            'description' => '',
+            'location' => 'Singapore National Stadium',
+            'locationLat' => 1.3044,
+            'locationLng' => 103.8743,
+            'locationZoom' => 16,
+            'locationDestination' => '',
+            'locationDestinationLat' => null,
+            'locationDestinationLng' => null,
+            'locationDestinationZoom' => null,
+            'timestampStart' => 1792227600000,
+            'timestampEnd' => 1792231200000,
+            'timeZoneStart' => 'Asia/Singapore',
+            'timeZoneEnd' => 'Asia/Singapore',
+            'flags' => 0,
+        ]);
+
+        $response->assertCreated()->assertJsonPath('description', '');
+        $this->assertDatabaseHas('activities', [
+            'id' => $response->json('id'),
+            'description' => '',
+            'location_destination' => '',
+        ]);
+    }
+
     public function test_public_section_visibility_hides_expenses_from_anonymous_users(): void
     {
         $trip = Trip::create([
