@@ -18,16 +18,10 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
         with:
           php-version: '8.4'
           extensions: mbstring, curl, pdo, sqlite, xml, zip, intl, gd
-      - name: Cache Composer packages
-        uses: actions/cache@v4
-        with:
-          path: backend/vendor
-          key: ${{ runner.os }}-php-${{ hashFiles('backend/composer.lock') }}
-          restore-keys: ${{ runner.os }}-php-
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist
       - name: PHP syntax lint
@@ -36,6 +30,8 @@ jobs:
         run: composer style
       - name: PHP static analysis (PHPStan)
         run: composer static
+      - name: Generate temporary application key
+        run: touch .env && php artisan key:generate
       - name: PHPUnit
         run: composer test
 
