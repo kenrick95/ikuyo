@@ -210,4 +210,55 @@ class ApiMigrationTest extends TestCase
         $this->getJson('/api/trips/' . $trip->id)
             ->assertOk()->assertJsonPath('title', 'Public');
     }
+
+    public function test_trip_index_uses_authenticated_user_not_client_user_id(): void
+    {
+        $alice = $this->user();
+        $bob = $this->user();
+        $aliceTrip = Trip::create([
+            'id' => (string) Str::uuid(), 'title' => 'Alice private', 'region' => 'JP', 'currency' => 'JPY',
+            'timezone' => 'Asia/Tokyo', 'timestamp_start_ms' => 1, 'timestamp_end_ms' => 2, 'sharing_level' => 0,
+        ]);
+        $aliceTrip->users()->attach($alice->id, ['id' => (string) Str::uuid(), 'role' => 0, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
+
+        // Bob asks for Alice's trips via a spoofed user_id; must NOT see them.
+        $this->actingAs($bob)->getJson('/api/trips?user_id=' . $alice->id)
+            ->assertOk()->assertJsonCount(0, 'data');
+    }
+
+    public function test_comment_rejects_cross_trip_object_target(): void
+    {
+        $owner = $this->user();
+        $tripA = Trip::create([
+            'id' => (string) Str::uuid(), 'title' => 'A', 'region' => 'JP', 'currency' => 'JPY',
+            'timezone' => 'Asia/Tokyo', 'timestamp_start_ms' => 1, 'timestamp_end_ms' => 2, 'sharing_level' => 0,
+        ]);
+        $tripB = Trip::create([
+            'id' => (string) Str::uuid(), 'title' => 'B', 'region' => 'JP', 'currency' => 'JPY',
+            'timezone' => 'Asia/Tokyo', 'timestamp_start_ms' => 1, 'timestamp_end_ms' => 2, 'sharing_level' => 0,
+        ]);
+        $activityB = $tripB->activities()->create(['id' => (string) Str::uuid(), 'title' => 'B act', 'location' => '', 'description' => '', 'created_at_ms' => 1, 'updated_at_ms' => 1]);
+        $tripA->users()->attach($owner->id, ['id' => (string) Str::uuid(), 'role' => 0, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
+        $tripB->users()->attach($owner->id, ['id' => (string) Str::uuid(), 'role' => 0, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
+
+        // An editor of trip A tries to comment on an activity that belongs to trip B.
+        $this->actingAs($owner)->postJson('/api/trips/' . $tripA->id . '/comment-groups', [
+            'content' => 'hi', 'objectType' => 1, 'objectId' => $activityB->id,
+        ])->assertStatus(422);
+    }
+
+    public function test_sync_without_trip_scope_does_not_leak_other_trips(): void
+    {
+        $alice = $this->user();
+        $bob = $this->user();
+        $aliceTrip = Trip::create([
+            'id' => (string) Str::uuid(), 'title' => 'Alice private', 'region' => 'JP', 'currency' => 'JPY',
+            'timezone' => 'Asia/Tokyo', 'timestamp_start_ms' => 1, 'timestamp_end_ms' => 2, 'sharing_level' => 0,
+        ]);
+        $aliceTrip->users()->attach($alice->id, ['id' => (string) Str::uuid(), 'role' => 0, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
+        \App\Models\SyncEvent::create(['entity' => 'activity', 'entity_id' => (string) Str::uuid(), 'operation' => 'upsert', 'trip_id' => $aliceTrip->id, 'payload' => [], 'created_at_ms' => 1]);
+
+        $this->actingAs($bob)->getJson('/api/sync')
+            ->assertOk()->assertJsonCount(0, 'changes');
+    }
 }

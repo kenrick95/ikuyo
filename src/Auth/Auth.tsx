@@ -207,14 +207,19 @@ function LoginSelection({
 
   const handleGuestSignIn = useCallback(() => {
     setIsGuestLoading(true);
-    db.auth
-      .signInAsGuest()
+    Promise.resolve()
+      // Guest creation writes a user session, so it's barred during the
+      // read-only freeze window (db.transact does not guard db.auth directly).
+      .then(() => assertWritable('creating a guest account'))
+      .then(() => db.auth.signInAsGuest())
       .catch((err: unknown) => {
         publishToast({
           root: { duration: Number.POSITIVE_INFINITY },
           title: { children: 'Error signing in as guest' },
           description: {
-            children: (err as { body?: { message?: string } }).body?.message,
+            children:
+              (err as { body?: { message?: string } })?.body?.message ??
+              (err instanceof Error ? err.message : undefined),
           },
           close: {},
         });

@@ -33,6 +33,8 @@ class CommentController extends Controller
                 // to another trip's group by guessing its id.
                 $group = $trip->commentGroups()->whereKey($groupId)->firstOrFail();
             } else {
+                // Reject comment targets that belong to another trip.
+                abort_unless($this->objectBelongsToTrip((int) $data['objectType'], $data['objectId'], $trip), 422);
                 $group = CommentGroup::create(['id' => $groupId, 'trip_id' => $trip->id, 'status' => 0]);
                 CommentGroupObject::create(['id' => $groupId, 'comment_group_id' => $groupId, 'object_type' => $data['objectType'], 'object_id' => $data['objectId']]);
             }
@@ -44,6 +46,22 @@ class CommentController extends Controller
         });
 
         return response()->json($comment->load('user'), 201);
+    }
+
+    /** Verify a polymorphic comment target (0..5) belongs to this trip. */
+    private function objectBelongsToTrip(int $type, string $objectId, Trip $trip): bool
+    {
+        if ($type === 0) return $objectId === $trip->id;
+        if ($type === 5) return \App\Models\Task::whereKey($objectId)
+            ->whereHas('taskList', fn ($q) => $q->where('trip_id', $trip->id))->exists();
+        $model = match ($type) {
+            1 => \App\Models\Activity::class,
+            2 => \App\Models\Accommodation::class,
+            3 => \App\Models\MacroPlan::class,
+            4 => \App\Models\Expense::class,
+            default => null,
+        };
+        return $model && $model::whereKey($objectId)->where('trip_id', $trip->id)->exists();
     }
 
     public function updateStatusById(Request $request, string $group): JsonResponse

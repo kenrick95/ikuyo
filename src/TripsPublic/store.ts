@@ -28,6 +28,17 @@ type ApiPublicTrip = {
   activityCount: number;
 };
 
+/** Coerce MySQL BIGINT ms fields that may arrive as JSON strings. */
+function coercePublicTrip(trip: ApiPublicTrip): TripsPublicSliceTrip {
+  return {
+    ...trip,
+    timestampStart: Number(trip.timestampStart),
+    timestampEnd: Number(trip.timestampEnd),
+    createdAt: Number(trip.createdAt),
+    lastUpdatedAt: Number(trip.lastUpdatedAt),
+  };
+}
+
 export type TripsPublicSlice = {
   tripsPublic: TripsPublicSliceTrip[];
   tripsPublicLoading: boolean;
@@ -77,8 +88,8 @@ export const createTripsPublicSlice: StateCreator<
           nextCursor = page.nextCursor;
           set((state) => ({
             tripsPublic: append
-              ? [...state.tripsPublic, ...page.data]
-              : page.data,
+              ? [...state.tripsPublic, ...page.data.map(coercePublicTrip)]
+              : page.data.map(coercePublicTrip),
             tripsPublicLoading: false,
             tripsPublicLoadingMore: false,
             tripsPublicHasMore: page.hasMore,
@@ -128,7 +139,11 @@ function subscribeTripsPublicInstant(
         $: {
           limit: PAGE_SIZE,
           order: { serverCreatedAt: 'desc' },
-          where: { sharingLevel: 3 },
+          where: {
+            sharingLevel: 3,
+            // Match the backend: only trips that have at least one activity.
+            'activity.id': { $isNull: false },
+          },
         },
         tripUser: { $: { where: { role: 'owner' } }, user: {} },
         activity: {},

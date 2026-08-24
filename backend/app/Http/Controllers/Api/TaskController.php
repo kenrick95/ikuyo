@@ -109,23 +109,31 @@ class TaskController extends Controller
             'completedAt' => ['nullable', 'integer'],
         ]);
         $record->update([
-            ...array_filter([
-                'title' => $data['title'] ?? null,
-                'description' => $data['description'] ?? null,
-                'index' => $data['index'] ?? null,
-                'status' => $data['status'] ?? null,
-            ], static fn ($value): bool => $value !== null),
+            ...$this->nullableAwareUpdates($data, ['title', 'description', 'index', 'status', 'dueAt', 'completedAt']),
         ]);
-        // Persist nullable fields explicitly when present (even if null).
-        foreach (['dueAt' => 'due_at_ms', 'completedAt' => 'completed_at_ms'] as $field => $col) {
-            if (array_key_exists($field, $data)) $record->update([$col => $data[$field]]);
-        }
         return response()->json($record->fresh());
+    }
+
+    /**
+     * Build update columns that persist explicitly-supplied nulls (so a task
+     * description or due date can be cleared), instead of dropping them.
+     */
+    private function nullableAwareUpdates(array $data, array $fields): array
+    {
+        $updates = [];
+        foreach ($fields as $field) {
+            if (array_key_exists($field, $data)) $updates[$this->dbField($field)] = $data[$field];
+        }
+        return $updates;
     }
 
     public function destroyTask(Trip $trip, string $taskList, string $task): JsonResponse
     {
-        $this->task($trip, $taskList, $task)->delete();
+        $record = $this->task($trip, $taskList, $task);
+        DB::transaction(function () use ($record): void {
+            $this->deleteTaskComments($record->id);
+            $record->delete();
+        });
         return response()->json(['ok' => true]);
     }
 
