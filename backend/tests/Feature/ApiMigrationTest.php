@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Trip;
 use App\Models\User;
 use App\Mail\PasswordResetMail;
+use App\Mail\VerifyEmailMail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -120,6 +121,30 @@ class ApiMigrationTest extends TestCase
         // legacy account so enumeration isn't possible via this endpoint.
         $this->postJson('/api/auth/lookup', ['email' => 'nobody@example.com'])
             ->assertOk()->assertJson(['known' => false, 'needsPasswordSetup' => true]);
+    }
+
+    public function test_email_verification_and_change_flow(): void
+    {
+        Mail::fake();
+        $user = $this->user(['email' => 'verify@example.com']);
+
+        // Request a verification email.
+        $this->actingAs($user)->postJson('/api/auth/send-email-verification')->assertOk();
+        Mail::assertSent(VerifyEmailMail::class);
+        $user->refresh();
+        $this->assertNotNull($user->email_verify_token_hash);
+
+        // The confirm endpoint expects the raw token; simulate reading it from the
+        // emailed link by resolving it against the stored hash.
+        // For test simplicity, set a known raw token and its hash directly.
+        $rawToken = 'raw-token-for-test';
+        $user->forceFill(['email_verify_token_hash' => hash('sha256', $rawToken), 'email_verify_token_at' => now()->addHour()->getTimestampMs()])->save();
+
+        $this->actingAs($user)->postJson('/api/auth/confirm-email', ['token' => $rawToken])
+            ->assertOk()->assertJsonPath('user.emailVerified', true);
+        $user->refresh();
+        $this->assertTrue((bool) $user->email_verified);
+        $this->assertNull($user->email_verify_token_hash);
     }
 
     public function test_authenticated_user_can_create_a_trip(): void

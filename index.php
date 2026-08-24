@@ -12,9 +12,11 @@ declare(strict_types=1);
  * Static assets (JS/CSS/images) are served directly by Apache via .htaccess
  * (`RewriteCond %{REQUEST_FILENAME} !-f`), so this script is only reached for
  * non-file, non-dir requests.
- */
-// TODO: implement switching to Laravel instead of calling InstantDB 
-use App\Routing\FrontController;
+ *
+ * Metadata source: defaults to the InstantDB admin API. Set METADATA_SOURCE=laravel
+ * (plus LARAVEL_API_URL) in config.php to read public-trip metadata from the
+ * Laravel/MySQL backend instead; see app/Trip/PublicTrip.php.
+ */use App\Routing\FrontController;
 
 // PSR-4 style autoload for the `App\` namespace.
 spl_autoload_register(static function (string $class): void {

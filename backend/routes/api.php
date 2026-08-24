@@ -28,6 +28,9 @@ Route::middleware(['web', 'throttle:60,1'])->prefix('auth')->group(function (): 
     Route::post('/upgrade', [AuthController::class, 'upgrade'])->middleware('auth');
     Route::post('/forgot', [AuthController::class, 'forgot']);
     Route::post('/reset', [AuthController::class, 'reset']);
+    Route::post('/send-email-verification', [AuthController::class, 'sendEmailVerification'])->middleware('auth');
+    Route::post('/confirm-email', [AuthController::class, 'confirmEmail']);
+    Route::post('/change-email', [AuthController::class, 'changeEmail'])->middleware('auth');
 });
 
 Route::middleware('web')->group(function (): void {
@@ -135,10 +138,7 @@ Route::middleware('web')->group(function (): void {
         ->middleware(['auth', 'trip.access:edit']);
 
     Route::get('/users/me', [UserController::class, 'me'])->middleware('auth');
-    Route::get('/users/by-handle/{handle}', [UserController::class, 'byHandle']);
     Route::post('/users/check-email', [UserController::class, 'checkEmail']);
-    // TODO: this /users/generate-handle and /users/by-handle/{handle} handle API seem unused in front-end
-    Route::post('/users/generate-handle', [UserController::class, 'generateHandle']);
     Route::put('/users/me/preferences', [UserController::class, 'updatePreferences'])->middleware('auth');
     Route::patch('/users/me', [UserController::class, 'update'])->middleware('auth');
     Route::post('/trips/{trip}/members', [UserController::class, 'addMember'])

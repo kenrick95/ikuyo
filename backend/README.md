@@ -1,11 +1,11 @@
-# Ikuyo! Backend — Laravel + Eloquent exploration skeleton
+# Ikuyo! Backend — Laravel + MySQL JSON API
 
-// TODO: this readme seem grossly outdated
-
-> **What this is:** a runnable Laravel **v13** + Eloquent project, generated on the
-> same PHP we target (hosting uses **PHP 8.4**). It exists to let you explore the
-> exact Eloquent patterns the migration plan relies on before we build the real API.
+> **What this is:** the Laravel **v13** JSON API that replaces the InstantDB backend
+> during the migration. It runs on the same PHP we target (hosting uses **PHP 8.4**).
 > It is a **JSON API only** — the React SPA stays the frontend.
+>
+> See `docs/migration/implementation-status.md` for current status and the exact
+> cutover runbook.
 
 ## Requirements (already set up on this machine)
 

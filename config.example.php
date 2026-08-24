@@ -26,6 +26,12 @@ return [
     // https://api.instantdb.com. Do not include a trailing slash or path suffix.
     'INSTANT_API_URI' => '',
 
+    // Post-cutover SEO source: set to 'laravel' and provide LARAVEL_API_URL to read
+    // public-trip metadata from the Laravel/MySQL backend instead of InstantDB.
+    // Defaults to 'instant' which keeps the InstantDB admin path.
+    'METADATA_SOURCE' => 'instant',
+    'LARAVEL_API_URL' => '',
+
     // Absolute public site URL, no trailing slash, used to build og:url / og:image.
     // e.g. 'https://ikuyo.kenrick95.org'
     'SITE_URL' => '',

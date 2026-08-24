@@ -163,7 +163,12 @@ export function BackendLogin() {
             resetToken: String(form.get('resetToken') ?? resetToken),
             password: String(form.get('password') ?? ''),
           });
-          // TODO: no feedback here? what happen on failure too?
+          publishToast({
+            root: {},
+            title: { children: 'Password updated' },
+            description: { children: 'You are now signed in.' },
+            close: {},
+          });
         }
         // Refresh the cached auth/current user from the new session before
         // navigating, so the redirect guard no longer sees the pre-login state.

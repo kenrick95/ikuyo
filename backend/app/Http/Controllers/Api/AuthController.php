@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Mail\PasswordResetMail;
+use App\Mail\VerifyEmailMail;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -75,7 +76,7 @@ class AuthController extends Controller
             'password' => ['required', 'string', 'min:8'],
         ]);
 
-        $handle = $this->uniqueHandle(strstr($data['email'], '@', true) ?: 'user');
+        $handle = $this->uniqueHandle();
         $user = User::create([
             'id' => (string) Str::uuid(),
             'handle' => $handle,
@@ -92,25 +93,28 @@ class AuthController extends Controller
         return response()->json(['user' => $this->user($user)], 201);
     }
 
-    /** Build a unique handle from a local-part, falling back to random. */
-    private function uniqueHandle(string $localPart): string
+    /** Build a unique handle without leaking the email (mirrors src/User/handle.ts). */
+    private function uniqueHandle(): string
     {
-        // TODO: don't do this, may leak email unintentionally; refer to src\User\handle.ts on how to generate handle
-        $base = preg_replace('/[^a-z0-9_]/i', '_', strtolower(trim($localPart))) ?: 'user';
-        $base = substr($base, 0, 24);
-        $candidate = $base;
-        $i = 1;
-        while (User::where('handle_key', $candidate)->exists()) {
-            $candidate = substr($base, 0, 20) . '_' . $i++;
+        for ($attempt = 0; $attempt < 16; $attempt++) {
+            // Random handle is not derived from the email, so it cannot leak PII.
+            $words = ['koala', 'sakura', 'petra', 'delta', 'azure', 'nimbus', 'quill', 'ember', 'sol', 'mira'];
+            $candidate = $words[array_rand($words)] . '_' . strtolower(Str::random(5));
+            if (!self::handleKeyInUse($candidate)) return $candidate;
         }
-        return $candidate;
+        return 'user_' . strtolower(Str::random(12));
+    }
+
+    private static function handleKeyInUse(string $handle): bool
+    {
+        return User::where('handle_key', strtolower($handle))->exists();
     }
 
     public function guest(Request $request): JsonResponse
     {
         $id = (string) Str::uuid();
-        $handle = 'guest_' . Str::lower(Str::random(12));
-        // TODO: while unlikely, still need to check uniqueness
+        // Ensure a unique handle (`Str::random` collisions are unlikely but possible).
+        $handle = $this->uniqueHandle();
         $user = User::create([
             'id' => $id,
             'handle' => $handle,
@@ -178,6 +182,54 @@ class AuthController extends Controller
         return response()->json(['ok' => true]);
     }
 
+    public function sendEmailVerification(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user, 401);
+        $target = $user->pending_email ?: $user->email;
+        if (!$target) abort(422, 'No email address to verify.');
+
+        $token = Str::random(64);
+        $user->forceFill([
+            'email_verify_token_hash' => hash('sha256', $token),
+            'email_verify_token_at' => now()->addHour()->getTimestampMs(),
+        ])->save();
+
+        $frontendUrl = rtrim((string) config('app.url'), '/');
+        Mail::to($target)->send(new VerifyEmailMail(
+            $user,
+            $frontendUrl . '/login?verify_token=' . urlencode($token),
+        ));
+        return response()->json(['ok' => true]);
+    }
+
+    public function confirmEmail(Request $request): JsonResponse
+    {
+        $data = $request->validate(['token' => ['required', 'string']]);
+        $user = User::where('email_verify_token_hash', hash('sha256', $data['token']))
+            ->where('email_verify_token_at', '>', now()->getTimestampMs())
+            ->firstOrFail();
+        $user->forceFill([
+            'email_verified' => true,
+        ])->save();
+        if ($user->pending_email) {
+            $user->forceFill(['email' => $user->pending_email, 'pending_email' => null])->save();
+        }
+        $user->forceFill(['email_verify_token_hash' => null, 'email_verify_token_at' => null])->save();
+        return response()->json(['user' => $this->user($user), 'ok' => true]);
+    }
+
+    public function changeEmail(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user, 401);
+        $data = $request->validate([
+            'email' => ['required', 'email', 'unique:users,email'],
+        ]);
+        $user->forceFill(['pending_email' => $data['email'], 'email_verified' => false])->save();
+        return $this->sendEmailVerification($request);
+    }
+
     public function reset(Request $request): JsonResponse
     {
         $data = $request->validate([
@@ -199,12 +251,20 @@ class AuthController extends Controller
         return response()->json(['user' => $this->user($user)]);
     }
 
+    // Imported users from InstantDB arrive verified (email bound at account time).
+    private function isImportedEmail(User $user): bool
+    {
+        return $user->auth_namespace_id !== null;
+    }
+
     private function user(User $user): array
     {
         return [
             'id' => $user->id,
             'handle' => $user->handle,
             'email' => $user->email,
+            'emailVerified' => (bool) $user->email_verified || $this->isImportedEmail($user),
+            'pendingEmail' => $user->pending_email,
             'activated' => (bool) $user->activated,
             'createdAt' => $user->created_at_ms,
             'lastUpdatedAt' => $user->updated_at_ms,
@@ -214,6 +274,4 @@ class AuthController extends Controller
             'preferredTimeZone' => $user->preferred_timezone,
         ];
     }
-
-    // TODO: need flow to verify email, and change email too
 }
