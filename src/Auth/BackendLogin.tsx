@@ -234,6 +234,13 @@ export function BackendLogin() {
             <Text size="1" color="gray">
               Enter your email to log in or create a new account.
             </Text>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setMode('forgot')}
+            >
+              Forgot password?
+            </Button>
           </>
         )}
         {mode === 'login' && loginStep === 'password' && (
@@ -289,34 +296,32 @@ export function BackendLogin() {
             <TextField.Root
               id="backend-forgot-email"
               name="email"
-              defaultValue={prefillEmail}
+              defaultValue={prefillEmail || loginEmail}
               type="email"
               placeholder="you@example.com"
               required
             />
             <Text size="1" color="gray">
-              Enter your email and we'll send you a link to set a password.
+              Enter your email and we'll send you a link to reset your password.
             </Text>
           </>
         )}
         {mode === 'reset' && (
           <>
-            <label htmlFor="backend-reset-token">Reset token</label>
-            <TextField.Root
-              id="backend-reset-token"
-              name="resetToken"
-              defaultValue={resetToken}
-              required
-            />
+            <input type="hidden" name="resetToken" value={resetToken} />
             <label htmlFor="backend-reset-password">New password</label>
             <TextField.Root
               id="backend-reset-password"
               name="password"
               type="password"
-              placeholder="New password"
+              placeholder="New password (8+ characters)"
               required
               minLength={8}
+              autoComplete="new-password"
             />
+            <Text size="1" color="gray">
+              Enter a new password, then you'll be signed in.
+            </Text>
           </>
         )}
         <Button type="submit" loading={loading}>
