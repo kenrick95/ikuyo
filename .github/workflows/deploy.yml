@@ -26,6 +26,17 @@ jobs:
       SENTRY_DSN: ${{ vars.SENTRY_DSN }}
       SENTRY_ENABLED: ${{ vars.SENTRY_ENABLED }}
       SENTRY_RELEASE: ${{ github.sha }}
+      # Backend-migration flags (set in Settings → Secrets and variables → Actions → Variables)
+      IKUYO_API_URL: ${{ vars.IKUYO_API_URL }}
+      IKUYO_BACKEND_AUTH: ${{ vars.IKUYO_BACKEND_AUTH }}
+      IKUYO_BACKEND_TRIP_READS: ${{ vars.IKUYO_BACKEND_TRIP_READS }}
+      IKUYO_BACKEND_ACTIVITY_WRITES: ${{ vars.IKUYO_BACKEND_ACTIVITY_WRITES }}
+      IKUYO_BACKEND_CONTENT_WRITES: ${{ vars.IKUYO_BACKEND_CONTENT_WRITES }}
+      IKUYO_BACKEND_TASK_WRITES: ${{ vars.IKUYO_BACKEND_TASK_WRITES }}
+      IKUYO_BACKEND_SHARING_WRITES: ${{ vars.IKUYO_BACKEND_SHARING_WRITES }}
+      IKUYO_BACKEND_TRIP_WRITES: ${{ vars.IKUYO_BACKEND_TRIP_WRITES }}
+      IKUYO_MAINTENANCE_MODE: ${{ vars.IKUYO_MAINTENANCE_MODE }}
+      IKUYO_READ_ONLY_MODE: ${{ vars.IKUYO_READ_ONLY_MODE }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
