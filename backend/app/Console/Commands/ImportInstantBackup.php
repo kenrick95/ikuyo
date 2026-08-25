@@ -548,7 +548,7 @@ class ImportInstantBackup extends Command
 
     private int $orphanedChildren = 0;
 
-    /** normalized email => true (used to dedupe emails that collide on MySQL's collation). */
+    /** @var array<string, true> normalized email => true (used to dedupe emails that collide on MySQL's collation). */
     private array $seenEmails = [];
 
     /** @var array<string, array<string, true>> entity => skipped row ids (for descendant pruning). */
