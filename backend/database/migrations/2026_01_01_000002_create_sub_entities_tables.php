@@ -12,11 +12,13 @@ return new class extends Migration
             $table->string('id', 40)->primary();
             $table->string('trip_id', 40);
             $table->string('title');
-            $table->string('location')->default('');
+            // InstantDB strings are unbounded; real backups contain long multi-line
+            // strings here (e.g. 505 chars), so use TEXT, not VARCHAR(255).
+            $table->text('location');
             $table->decimal('location_lat', 10, 7)->nullable();
             $table->decimal('location_lng', 10, 7)->nullable();
             $table->tinyInteger('location_zoom')->nullable();
-            $table->string('location_destination')->nullable();
+            $table->text('location_destination')->nullable();
             $table->decimal('location_destination_lat', 10, 7)->nullable();
             $table->decimal('location_destination_lng', 10, 7)->nullable();
             $table->tinyInteger('location_destination_zoom')->nullable();
@@ -76,7 +78,8 @@ return new class extends Migration
             $table->string('currency', 8);
             $table->decimal('currency_conversion_factor', 12, 6);
             $table->string('title');
-            $table->string('description')->nullable();
+            // Real expense descriptions reach ~770 chars; must be TEXT.
+            $table->text('description')->nullable();
             $table->bigInteger('incurred_at_ms');
             $table->string('timezone_incurred', 64)->nullable();
             $table->bigInteger('created_at_ms');
