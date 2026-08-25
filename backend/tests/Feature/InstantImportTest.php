@@ -33,4 +33,29 @@ class InstantImportTest extends TestCase
         $this->assertDatabaseHas('trip_user', ['id' => 'membership-1', 'trip_id' => 'trip-1', 'user_id' => 'user-1', 'role' => 0]);
         File::deleteDirectory($dir);
     }
+
+    public function test_import_trims_emails_and_dedupes_normalized_duplicates(): void
+    {
+        // Simulates InstantDB quirks found in prod: emails with trailing whitespace,
+        // and two distinct users that normalize to the same email (which MySQL's
+        // case/space-insensitive unique collation would reject as a duplicate).
+        $dir = storage_path('framework/testing/instant-fixture-' . uniqid());
+        File::ensureDirectoryExists($dir . '/entities');
+        File::put($dir . '/entities/user.jsonl', implode("\n", [
+            json_encode(['entity' => ['id' => 'u-a', 'handle' => 'alice', 'email' => 'alice@example.com ', 'activated' => true, 'createdAt' => 1700000000000, 'lastUpdatedAt' => 1700000000001]]),
+            json_encode(['entity' => ['id' => 'u-b', 'handle' => 'bob', 'email' => 'ALICE@example.com', 'activated' => true, 'createdAt' => 1700000000000, 'lastUpdatedAt' => 1700000000001]]),
+            json_encode(['entity' => ['id' => 'u-c', 'handle' => 'carol', 'email' => 'carol@example.com', 'activated' => true, 'createdAt' => 1700000000000, 'lastUpdatedAt' => 1700000000001]]),
+        ]));
+
+        $this->artisan('instant:import', ['backup' => $dir])->assertExitCode(0);
+        // u-a's trailing space is trimmed.
+        $this->assertDatabaseHas('users', ['id' => 'u-a', 'email' => 'alice@example.com']);
+        // u-b normalizes to the same email; must be aliased, not rejected.
+        $this->assertDatabaseHas('users', ['id' => 'u-b']);
+        $bob = \App\Models\User::find('u-b');
+        $this->assertNotSame('alice@example.com', $bob->email);
+        $this->assertStringContainsString('@', $bob->email);
+        $this->assertDatabaseHas('users', ['id' => 'u-c', 'email' => 'carol@example.com']);
+        File::deleteDirectory($dir);
+    }
 }

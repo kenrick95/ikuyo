@@ -231,11 +231,30 @@ class ImportInstantBackup extends Command
             $this->collectCommentLink($entity['comment'] ?? null, 'user_id', $entity['id']);
             $authId = $this->linkId($entity['$users'] ?? null);
             $auth = $authId ? ($authById[$authId] ?? []) : [];
+            // Emails/handles from InstantDB sometimes carry surrounding whitespace.
+            // Trim so MySQL's (case/space-insensitive) unique collation doesn't see
+            // 'x@y ' and 'x@y' as duplicate-adjacent values.
+            $email = isset($entity['email']) ? trim((string) $entity['email']) : (isset($auth['email']) ? trim((string) $auth['email']) : null);
+            $handle = isset($entity['handle']) ? trim((string) $entity['handle']) : 'user_' . substr(str_replace('-', '', $entity['id']), 0, 12);
+            if ($email !== null && $email === '') $email = null;
+            if ($email !== null) {
+                // MySQL's collation is case/space-insensitive, so two InstantDB
+                // users whose emails differ only by case/whitespace would collide on
+                // the unique index. Keep both users (so neither loses their trips)
+                // by making the later one unique via a +<id> alias before the domain.
+                if (isset($this->seenEmails[strtolower($email)])) {
+                    $at = strrpos($email, '@');
+                    $alias = $at === false ? $email . '+x' : substr($email, 0, $at) . '+u' . substr(preg_replace('/[\W_]/', '', $entity['id']), 0, 8) . substr($email, $at);
+                    $this->warn("Duplicate normalized email '" . $email . "' (user " . $entity['id'] . ") aliased to " . $alias);
+                    $email = $alias;
+                }
+                $this->seenEmails[strtolower($email)] = true;
+            }
             $this->upsert('users', [
                 'id' => $entity['id'],
-                'email' => $entity['email'] ?? $auth['email'] ?? null,
-                'handle' => $entity['handle'] ?? 'user_' . substr(str_replace('-', '', $entity['id']), 0, 12),
-                'handle_key' => isset($entity['handle']) ? strtolower($entity['handle']) : null,
+                'email' => $email,
+                'handle' => $handle,
+                'handle_key' => isset($entity['handle']) ? strtolower($handle) : null,
                 'auth_namespace_id' => $authId,
                 'image_url' => $auth['imageURL'] ?? null,
                 'activated' => (int) ($entity['activated'] ?? true),
@@ -526,6 +545,9 @@ class ImportInstantBackup extends Command
     private int $orphanedTripUsers = 0;
 
     private int $orphanedChildren = 0;
+
+    /** normalized email => true (used to dedupe emails that collide on MySQL's collation). */
+    private array $seenEmails = [];
 
     /** @var array<string, array<string, true>> entity => skipped row ids (for descendant pruning). */
     private array $skipped = [];
