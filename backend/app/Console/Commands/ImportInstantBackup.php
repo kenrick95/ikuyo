@@ -252,11 +252,23 @@ class ImportInstantBackup extends Command
                 }
                 $this->seenEmails[strtolower($email)] = true;
             }
+            // Handles have the same collation pitfall (users_handle_unique and
+            // users_handle_key_unique). Dedupe on the lowercased handle_key.
+            $handleKey = isset($entity['handle']) ? strtolower($handle) : null;
+            if ($handleKey !== null) {
+                if (isset($this->seenHandles[$handleKey])) {
+                    $suffix = substr(preg_replace('/[\W_]/', '', $entity['id']), 0, 8);
+                    $this->warn("Duplicate normalized handle '" . $handle . "' (user " . $entity['id'] . ') aliased to ' . $handle . '_' . $suffix);
+                    $handle .= '_' . $suffix;
+                    $handleKey = strtolower($handle);
+                }
+                $this->seenHandles[$handleKey] = true;
+            }
             $this->upsert('users', [
                 'id' => $entity['id'],
                 'email' => $email,
                 'handle' => $handle,
-                'handle_key' => isset($entity['handle']) ? strtolower($handle) : null,
+                'handle_key' => $handleKey,
                 'auth_namespace_id' => $authId,
                 'image_url' => $auth['imageURL'] ?? null,
                 'activated' => (int) ($entity['activated'] ?? true),
@@ -550,6 +562,9 @@ class ImportInstantBackup extends Command
 
     /** @var array<string, true> normalized email => true (used to dedupe emails that collide on MySQL's collation). */
     private array $seenEmails = [];
+
+    /** @var array<string, true> lowercased handle_key => true (used to dedupe handles that collide on MySQL's collation). */
+    private array $seenHandles = [];
 
     /** @var array<string, array<string, true>> entity => skipped row ids (for descendant pruning). */
     private array $skipped = [];

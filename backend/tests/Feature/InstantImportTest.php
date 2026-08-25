@@ -59,4 +59,24 @@ class InstantImportTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => 'u-c', 'email' => 'carol@example.com']);
         File::deleteDirectory($dir);
     }
+
+    public function test_import_dedupes_colliding_handles(): void
+    {
+        // Two distinct users with the same normalized handle collide on
+        // users_handle_unique; the later one must be suffixed, not rejected.
+        $dir = storage_path('framework/testing/instant-fixture-' . uniqid());
+        File::ensureDirectoryExists($dir . '/entities');
+        File::put($dir . '/entities/user.jsonl', implode("\n", [
+            json_encode(['entity' => ['id' => 'h-a', 'handle' => 'shafiulmiah_gmail_com', 'email' => 'a@example.com', 'activated' => true, 'createdAt' => 1700000000000, 'lastUpdatedAt' => 1700000000001]]),
+            json_encode(['entity' => ['id' => 'h-b', 'handle' => 'shafiulmiah_gmail_com', 'email' => 'b@example.com', 'activated' => true, 'createdAt' => 1700000000000, 'lastUpdatedAt' => 1700000000001]]),
+        ]));
+
+        $this->artisan('instant:import', ['backup' => $dir])->assertExitCode(0);
+        $b = User::find('h-b');
+        $this->assertNotSame('shafiulmiah_gmail_com', $b->handle);
+        $this->assertNotSame('shafiulmiah_gmail_com', $b->handle_key);
+        $this->assertStringContainsString('shafiulmiah_gmail_com_', $b->handle);
+        $this->assertDatabaseHas('users', ['id' => 'h-a', 'handle' => 'shafiulmiah_gmail_com']);
+        File::deleteDirectory($dir);
+    }
 }
