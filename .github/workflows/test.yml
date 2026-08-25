@@ -9,37 +9,6 @@ on:
 permissions: {}
 
 jobs:
-  php-backend:
-    name: "PHP lint, style, static, test"
-    runs-on: ubuntu-24.04
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - name: Setup PHP
-        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
-        with:
-          php-version: '8.4'
-          extensions: mbstring, curl, pdo, sqlite, xml, zip, intl, gd
-      - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist
-      - name: Provision .env and app key
-        run: |
-          cp .env.example .env
-          php artisan key:generate --ansi
-          php artisan config:clear
-      - name: PHP syntax lint
-        run: composer lint
-      - name: PHP code style (Pint)
-        run: composer style
-      - name: PHP static analysis (PHPStan)
-        run: composer static
-      - name: Generate temporary application key
-        run: touch .env && php artisan key:generate
-      - name: PHPUnit
-        run: composer test
-
   test:
     name: "Lint, Typecheck, Test, and Build"
     concurrency:
@@ -62,6 +31,11 @@ jobs:
         with:
           persist-credentials: false
       - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, curl, pdo, sqlite, xml, zip, intl, gd
       - name: Use Node.js 24
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -76,11 +50,36 @@ jobs:
         run: pnpm test
       - name: Build
         run: pnpm build
-      - name: Bundle PHP metadata service into dist
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+        working-directory: backend
+      - name: Provision .env and app key
+        run: |
+          cp .env.example .env
+          php artisan key:generate --ansi
+          php artisan config:clear
+        working-directory: backend
+      - name: PHP syntax lint
+        run: composer lint
+        working-directory: backend
+      - name: PHP code style (Pint)
+        run: composer style
+        working-directory: backend
+      - name: PHP static analysis (PHPStan)
+        run: composer static
+        working-directory: backend
+      - name: Generate temporary application key
+        run: touch .env && php artisan key:generate
+        working-directory: backend
+      - name: PHPUnit
+        run: composer test
+        working-directory: backend
+      - name: Bundle PHP metadata service + backend into dist
         run: |
           cp index.php dist/index.php
           cp -r app dist/app
           cp -r shared dist/shared
+          cp -r backend dist/backend
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         id: artifact-upload-step
         with:
