@@ -236,7 +236,9 @@ class ImportInstantBackup extends Command
             // 'x@y ' and 'x@y' as duplicate-adjacent values.
             $email = isset($entity['email']) ? trim((string) $entity['email']) : (isset($auth['email']) ? trim((string) $auth['email']) : null);
             $handle = isset($entity['handle']) ? trim((string) $entity['handle']) : 'user_' . substr(str_replace('-', '', $entity['id']), 0, 12);
-            if ($email !== null && $email === '') $email = null;
+            if ($email !== null && $email === '') {
+                $email = null;
+            }
             if ($email !== null) {
                 // MySQL's collation is case/space-insensitive, so two InstantDB
                 // users whose emails differ only by case/whitespace would collide on
@@ -245,7 +247,7 @@ class ImportInstantBackup extends Command
                 if (isset($this->seenEmails[strtolower($email)])) {
                     $at = strrpos($email, '@');
                     $alias = $at === false ? $email . '+x' : substr($email, 0, $at) . '+u' . substr(preg_replace('/[\W_]/', '', $entity['id']), 0, 8) . substr($email, $at);
-                    $this->warn("Duplicate normalized email '" . $email . "' (user " . $entity['id'] . ") aliased to " . $alias);
+                    $this->warn("Duplicate normalized email '" . $email . "' (user " . $entity['id'] . ') aliased to ' . $alias);
                     $email = $alias;
                 }
                 $this->seenEmails[strtolower($email)] = true;

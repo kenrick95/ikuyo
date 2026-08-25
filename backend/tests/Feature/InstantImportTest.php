@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
@@ -52,7 +53,7 @@ class InstantImportTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => 'u-a', 'email' => 'alice@example.com']);
         // u-b normalizes to the same email; must be aliased, not rejected.
         $this->assertDatabaseHas('users', ['id' => 'u-b']);
-        $bob = \App\Models\User::find('u-b');
+        $bob = User::find('u-b');
         $this->assertNotSame('alice@example.com', $bob->email);
         $this->assertStringContainsString('@', $bob->email);
         $this->assertDatabaseHas('users', ['id' => 'u-c', 'email' => 'carol@example.com']);
