@@ -61,7 +61,6 @@ const TripTaskList = withLoading()(
 );
 
 import { useCurrentUser } from '../Auth/hooks';
-import { backendTripReads } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
 import { usePeriodicTripSync } from '../data/usePeriodicTripSync';
 import {
@@ -96,11 +95,9 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   useEffect(() => {
     return subscribeTrip(tripId);
   }, [tripId, subscribeTrip]);
-  // In backend-read mode, poll the sync cursor and refetch the trip whenever
-  // changes arrive, so edits by collaborators are reflected without a reload.
-  usePeriodicTripSync(backendTripReads ? tripId : undefined, () =>
-    refreshTrip(tripId),
-  );
+  // Poll the sync cursor and refetch the trip whenever changes arrive, so edits
+  // by collaborators are reflected without a reload.
+  usePeriodicTripSync(tripId, () => refreshTrip(tripId));
   const { trip, loading, error } = useTrip(tripId);
 
   return (

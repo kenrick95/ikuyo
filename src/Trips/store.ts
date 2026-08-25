@@ -1,7 +1,5 @@
 import type { StateCreator } from 'zustand';
 import { type CursorPage, get } from '../data/apiClient';
-import { backendTripReads } from '../data/backendConfig';
-import { db } from '../data/db';
 import type { BoundStoreType } from '../data/store';
 import { TripGroup, type TripGroupType } from '../Trip/TripGroup';
 
@@ -51,9 +49,6 @@ export const createTripsSlice: StateCreator<
   tripsLoadMore: undefined,
   tripsLoadingMore: null,
   subscribeTrips: (currentUserId, now) => {
-    if (!backendTripReads) {
-      return subscribeTripsInstant(currentUserId, now, set);
-    }
     const queryKey = getQueryKey(currentUserId);
     let disposed = false;
     let pastCursor: string | null = null;
@@ -100,12 +95,14 @@ export const createTripsSlice: StateCreator<
         merge();
       } catch (error) {
         if (disposed) return;
-        set(() => ({
-          tripsLoading: activeLoaded && pastLoaded ? false : false,
-          tripsLoadingMore: false,
-          tripsError:
-            error instanceof Error ? error.message : 'Unable to load trips',
-        }));
+        if (activeLoaded && pastLoaded) {
+          set(() => ({
+            tripsLoading: false,
+            tripsLoadingMore: false,
+            tripsError:
+              error instanceof Error ? error.message : 'Unable to load trips',
+          }));
+        }
       }
     };
 
@@ -146,115 +143,6 @@ export const createTripsSlice: StateCreator<
     return groups;
   },
 });
-
-/** Original InstantDB-backed implementation (default when backend trip reads are disabled). */
-function subscribeTripsInstant(
-  currentUserId: string,
-  now: number,
-  set: (fn: (state: any) => Partial<TripsSlice>) => void,
-): () => void {
-  const queryKey = getQueryKey(currentUserId);
-  const PAGE_SIZE = 10;
-  let activeTrips: TripsSliceTrip[] = [];
-  let pastTrips: TripsSliceTrip[] = [];
-  let activeLoaded = false;
-  let pastLoaded = false;
-
-  const mergeAndSet = () => {
-    if (!activeLoaded || !pastLoaded) return;
-    set((state) => ({
-      trips: { ...state.trips, [queryKey]: [...activeTrips, ...pastTrips] },
-      tripsLoading: false,
-    }));
-  };
-
-  const unsubActive = db.subscribeQuery(
-    {
-      trip: {
-        $: {
-          where: {
-            'tripUser.user.id': currentUserId,
-            timestampEnd: { $gte: now },
-          },
-        },
-      },
-    },
-    ({ data, error }) => {
-      if (error) {
-        set(() => ({ tripsLoading: false, tripsError: error.message }));
-        return;
-      }
-      activeTrips = data?.trip?.map(toSliceTrip) ?? [];
-      activeLoaded = true;
-      mergeAndSet();
-    },
-  );
-
-  const pastQuery = db.subscribeInfiniteQuery(
-    {
-      trip: {
-        $: {
-          limit: PAGE_SIZE,
-          order: { timestampEnd: 'desc' },
-          where: {
-            'tripUser.user.id': currentUserId,
-            timestampEnd: { $lt: now },
-          },
-        },
-      },
-    },
-    ({ data, error, canLoadNextPage }) => {
-      if (error) {
-        set(() => ({
-          tripsLoading: false,
-          tripsError: error.message,
-          tripsHasMore: null,
-          tripsLoadingMore: null,
-        }));
-        return;
-      }
-      pastTrips = data?.trip?.map(toSliceTrip) ?? [];
-      pastLoaded = true;
-      set(() => ({
-        tripsHasMore: canLoadNextPage ?? null,
-        tripsLoadingMore: false,
-      }));
-      mergeAndSet();
-    },
-  );
-
-  set(() => ({
-    tripsLoadMore: () => {
-      set(() => ({ tripsLoadingMore: true }));
-      pastQuery.loadNextPage();
-    },
-  }));
-
-  return () => {
-    unsubActive();
-    pastQuery.unsubscribe();
-  };
-}
-
-function toSliceTrip(trip: {
-  id: string;
-  title: string;
-  timestampStart: number;
-  timestampEnd: number;
-  timeZone: string;
-  createdAt: number;
-  lastUpdatedAt: number;
-}): TripsSliceTrip {
-  return {
-    id: trip.id,
-    title: trip.title,
-    timestampStart: trip.timestampStart,
-    timestampEnd: trip.timestampEnd,
-    timeZone: trip.timeZone,
-    createdAt: trip.createdAt,
-    lastUpdatedAt: trip.lastUpdatedAt,
-  };
-}
 
 function getQueryKey(currentUserId: string): string {
   return JSON.stringify({ tripUser: currentUserId });

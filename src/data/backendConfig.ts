@@ -1,14 +1,8 @@
 /**
- * Opt-in migration flags. Keep backend auth disabled until the Laravel path is verified.
- *
- * The two global modes below are independent of (and usually used *plus*) the
- * opt-in backend flags:
- *
- * - `maintenanceMode` replaces the whole app with a maintenance page. During an
- *   InstantDB → MySQL cutover this is the safe "everything is frozen" state.
- * - `readOnlyMode` keeps the SPA usable for browsing/reading but rejects every
- *   write at the data layer. Use it for the “freeze Instant writes + take final
- *   backup” window before enabling Laravel writes.
+ * Backend (Laravel/MySQL) is now the only data source; InstantDB is removed.
+ * These flags are retained as always-on so the API-client code paths are taken.
+ * Set the corresponding IKUYO_BACKEND_* to 'false' only if you intentionally want
+ * to disable a capability (not recommended after cutover).
  */
 export const maintenanceMode = process.env.IKUYO_MAINTENANCE_MODE === true;
 export const readOnlyMode = process.env.IKUYO_READ_ONLY_MODE === true;
@@ -26,24 +20,20 @@ export function assertWritable(what = 'write'): void {
   }
 }
 
-export const backendAuthEnabled = process.env.IKUYO_BACKEND_AUTH === true;
-export const backendActivityWrites =
-  process.env.IKUYO_BACKEND_ACTIVITY_WRITES === true;
-export const backendContentWrites =
-  process.env.IKUYO_BACKEND_CONTENT_WRITES === true;
-export const backendTaskWrites = process.env.IKUYO_BACKEND_TASK_WRITES === true;
-export const backendSharingWrites =
-  process.env.IKUYO_BACKEND_SHARING_WRITES === true;
-export const backendTripWrites = process.env.IKUYO_BACKEND_TRIP_WRITES === true;
-export const backendTripReads = process.env.IKUYO_BACKEND_TRIP_READS === true;
+// Backend (Laravel) is the source of truth. Flags default to true unless the
+// corresponding IKUYO_BACKEND_* env is set to 'false'.
+const flagOn = (v: unknown): boolean => v !== false;
 
-// Enforce compatible flag combinations. Backend auth is Laravel-session based, so
-// it never establishes an InstantDB session for the remaining InstantDB read
-// fallbacks (trip/list reads, auth store). Enabling backend auth while still
-// reading trips from Instant leads to a signed-in-app-but-empty-data state, so
-// backend auth implies backend trip reads.
-if (backendAuthEnabled && !backendTripReads) {
-  throw new Error(
-    'IKUYO_BACKEND_AUTH requires IKUYO_BACKEND_TRIP_READS: backend auth does not establish an InstantDB session for the InstantDB read fallbacks.',
-  );
-}
+export const backendAuthEnabled = flagOn(process.env.IKUYO_BACKEND_AUTH);
+export const backendActivityWrites = flagOn(
+  process.env.IKUYO_BACKEND_ACTIVITY_WRITES,
+);
+export const backendContentWrites = flagOn(
+  process.env.IKUYO_BACKEND_CONTENT_WRITES,
+);
+export const backendTaskWrites = flagOn(process.env.IKUYO_BACKEND_TASK_WRITES);
+export const backendSharingWrites = flagOn(
+  process.env.IKUYO_BACKEND_SHARING_WRITES,
+);
+export const backendTripWrites = flagOn(process.env.IKUYO_BACKEND_TRIP_WRITES);
+export const backendTripReads = flagOn(process.env.IKUYO_BACKEND_TRIP_READS);

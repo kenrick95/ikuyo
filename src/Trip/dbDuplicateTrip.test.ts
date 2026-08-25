@@ -1,30 +1,12 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-const { queryOnceMock, transactMock } = vi.hoisted(() => ({
-  queryOnceMock: vi.fn(),
-  transactMock: vi.fn(),
+const { postMutationMock } = vi.hoisted(() => ({
+  postMutationMock: vi.fn(),
 }));
 
-vi.mock('../data/db', () => {
-  const updateResult = { link: () => ({}) };
-  const builder = { update: () => updateResult };
-  // `db.tx.<entity>[id].update(...).link(...)`: any property access or index
-  // yields the next link in the chain.
-  const entityAccessor = new Proxy(() => {}, {
-    get: () => builder,
-  });
-  return {
-    db: {
-      queryOnce: queryOnceMock,
-      transact: transactMock,
-      tx: new Proxy(
-        {},
-        {
-          get: () => entityAccessor,
-        },
-      ),
-    },
-  };
+vi.mock('../data/apiClient', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../data/apiClient')>();
+  return { ...actual, postMutation: postMutationMock };
 });
 
 import { dbDuplicateTrip } from './db';
@@ -41,50 +23,22 @@ const baseOptions = {
   removeActivityDates: false,
 };
 
-function sourceTrip() {
-  return {
-    id: 'src',
-    title: 'Source',
-    timestampStart: 0,
-    timestampEnd: 86400000,
-    timeZone: 'UTC',
-    region: 'US',
-    currency: 'USD',
-    originCurrency: 'USD',
-    originRegion: 'US',
-    originTimeZone: 'UTC',
-    activity: [],
-    accommodation: [],
-    macroplan: [],
-    expense: [],
-    taskList: [],
-  };
-}
-
-describe('dbDuplicateTrip authorization', () => {
+describe('dbDuplicateTrip', () => {
   beforeEach(() => {
-    queryOnceMock.mockReset();
-    transactMock.mockReset();
+    postMutationMock.mockReset();
   });
 
-  test('does not duplicate a trip the user cannot read', async () => {
-    // Simulates InstantDB read permissions returning nothing for an
-    // inaccessible (e.g. private) trip.
-    queryOnceMock.mockResolvedValue({ data: { trip: [] } });
+  test('duplicates via the Laravel endpoint and returns the new trip id', async () => {
+    postMutationMock.mockResolvedValue({ id: 'new-trip-id' });
 
-    await expect(
-      dbDuplicateTrip('private-inaccessible', baseOptions, { userId: 'u' }),
-    ).rejects.toThrow(/not found/);
-    expect(transactMock).not.toHaveBeenCalled();
-  });
-
-  test('duplicates a readable / public trip', async () => {
-    queryOnceMock.mockResolvedValue({ data: { trip: [sourceTrip()] } });
-
-    const res = await dbDuplicateTrip('public-accessible', baseOptions, {
+    const res = await dbDuplicateTrip('source-id', baseOptions, {
       userId: 'u',
     });
-    expect(res.id).toBeTruthy();
-    expect(transactMock).toHaveBeenCalledTimes(1);
+    expect(res.id).toBe('new-trip-id');
+    expect(postMutationMock).toHaveBeenCalledTimes(1);
+    expect(postMutationMock).toHaveBeenCalledWith(
+      '/api/trips/source-id/duplicate',
+      baseOptions,
+    );
   });
 });
