@@ -73,10 +73,12 @@ return new class extends Migration
         Schema::create('expenses', function (Blueprint $table): void {
             $table->string('id', 40)->primary();
             $table->string('trip_id', 40);
-            $table->decimal('amount', 12, 2);
-            $table->decimal('amount_in_origin_currency', 12, 2);
+            // Real backups contain extreme amounts (up to 10^13) with tiny
+            // conversion factors (down to 1e-13); widen beyond DECIMAL(12,2/6).
+            $table->decimal('amount', 30, 10);
+            $table->decimal('amount_in_origin_currency', 30, 10);
             $table->string('currency', 8);
-            $table->decimal('currency_conversion_factor', 12, 6);
+            $table->decimal('currency_conversion_factor', 30, 16);
             $table->string('title');
             // Real expense descriptions reach ~770 chars; must be TEXT.
             $table->text('description')->nullable();
