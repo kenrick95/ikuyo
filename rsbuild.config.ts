@@ -5,7 +5,18 @@ import { pluginSass } from '@rsbuild/plugin-sass';
 import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
 
 const {
+  NODE_ENV,
   INSTANT_APP_ID,
+  IKUYO_API_URL,
+  IKUYO_BACKEND_AUTH,
+  IKUYO_BACKEND_CONTENT_WRITES,
+  IKUYO_BACKEND_TASK_WRITES,
+  IKUYO_BACKEND_SHARING_WRITES,
+  IKUYO_BACKEND_ACTIVITY_WRITES,
+  IKUYO_BACKEND_TRIP_WRITES,
+  IKUYO_BACKEND_TRIP_READS,
+  IKUYO_MAINTENANCE_MODE,
+  IKUYO_READ_ONLY_MODE,
   INSTANT_API_URI,
   INSTANT_WEBSOCKET_URI,
   SENTRY_ENABLED,
@@ -14,7 +25,6 @@ const {
   MAPTILER_API_KEY,
   MAPTILER_MAP_STYLE_LIGHT,
   MAPTILER_MAP_STYLE_DARK,
-  NODE_ENV,
 } = process.env;
 const isSentryEnabled = !!JSON.parse(SENTRY_ENABLED || 'true');
 const isProduction = NODE_ENV === 'production';
@@ -22,7 +32,18 @@ const isDevelopment = NODE_ENV === 'development';
 
 console.log('Building Ikuyo for', NODE_ENV);
 console.log('Configurations from env variables', {
+  NODE_ENV,
   INSTANT_APP_ID,
+  IKUYO_API_URL,
+  IKUYO_BACKEND_AUTH,
+  IKUYO_BACKEND_CONTENT_WRITES,
+  IKUYO_BACKEND_TASK_WRITES,
+  IKUYO_BACKEND_SHARING_WRITES,
+  IKUYO_BACKEND_ACTIVITY_WRITES,
+  IKUYO_BACKEND_TRIP_WRITES,
+  IKUYO_BACKEND_TRIP_READS,
+  IKUYO_MAINTENANCE_MODE,
+  IKUYO_READ_ONLY_MODE,
   INSTANT_API_URI,
   INSTANT_WEBSOCKET_URI,
   SENTRY_ENABLED,
@@ -31,7 +52,6 @@ console.log('Configurations from env variables', {
   MAPTILER_API_KEY,
   MAPTILER_MAP_STYLE_LIGHT,
   MAPTILER_MAP_STYLE_DARK,
-  NODE_ENV,
   isSentryEnabled,
   isProduction,
   isDevelopment,
