@@ -1,6 +1,11 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /
+    
+    # ── Route /api/* to the Laravel backend ────────────────────────────
+    RewriteCond %{REQUEST_URI} ^/api(/|$)
+    RewriteRule ^ backend/public/index.php [L]
+
     <FilesMatch "^index\.(html|php)$">
         FileETag None
         Header unset ETag
