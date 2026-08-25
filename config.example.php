@@ -29,13 +29,13 @@ return [
     // Post-cutover SEO source: set to 'laravel' and provide LARAVEL_API_URL to read
     // public-trip metadata from the Laravel/MySQL backend instead of InstantDB.
     // Defaults to 'instant' which keeps the InstantDB admin path.
-    'METADATA_SOURCE' => 'instant',
-    'LARAVEL_API_URL' => '',
+    'METADATA_SOURCE' => 'laravel',
+    'LARAVEL_API_URL' => 'http://localhost:8999',
 
     // Absolute public site URL, no trailing slash, used to build og:url / og:image.
     // e.g. 'https://ikuyo.kenrick95.org'
-    'SITE_URL' => '',
+    'SITE_URL' => 'http://localhost:5173',
 
     // Path to the built SPA index.html. Defaults to <dir>/index.html.
-    'INDEX_HTML' => '',
+    'INDEX_HTML' => 'index.html',
 ];
