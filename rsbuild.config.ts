@@ -6,7 +6,6 @@ import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
 
 const {
   NODE_ENV,
-  INSTANT_APP_ID,
   IKUYO_API_URL,
   IKUYO_BACKEND_AUTH,
   IKUYO_BACKEND_CONTENT_WRITES,
@@ -17,8 +16,6 @@ const {
   IKUYO_BACKEND_TRIP_READS,
   IKUYO_MAINTENANCE_MODE,
   IKUYO_READ_ONLY_MODE,
-  INSTANT_API_URI,
-  INSTANT_WEBSOCKET_URI,
   SENTRY_ENABLED,
   SENTRY_DSN,
   SENTRY_RELEASE,
@@ -33,7 +30,6 @@ const isDevelopment = NODE_ENV === 'development';
 console.log('Building Ikuyo for', NODE_ENV);
 console.log('Configurations from env variables', {
   NODE_ENV,
-  INSTANT_APP_ID,
   IKUYO_API_URL,
   IKUYO_BACKEND_AUTH,
   IKUYO_BACKEND_CONTENT_WRITES,
@@ -44,8 +40,6 @@ console.log('Configurations from env variables', {
   IKUYO_BACKEND_TRIP_READS,
   IKUYO_MAINTENANCE_MODE,
   IKUYO_READ_ONLY_MODE,
-  INSTANT_API_URI,
-  INSTANT_WEBSOCKET_URI,
   SENTRY_ENABLED,
   SENTRY_DSN,
   SENTRY_RELEASE,
@@ -57,9 +51,6 @@ console.log('Configurations from env variables', {
   isDevelopment,
 });
 
-if (!INSTANT_APP_ID) {
-  throw new Error('process.env.INSTANT_APP_ID is not set');
-}
 if (!MAPTILER_API_KEY) {
   throw new Error('process.env.MAPTILER_API_KEY is not set');
 }
@@ -92,7 +83,6 @@ export default defineConfig({
     },
   },
   server: {
-    // For local dev, only localhost:5173 is allowed by the OAuth callback
     host: 'localhost',
     port: 5173,
   },
@@ -101,40 +91,37 @@ export default defineConfig({
       index: './src/main.tsx',
     },
     define: {
-      'process.env.INSTANT_APP_ID': JSON.stringify(INSTANT_APP_ID),
       'process.env.IKUYO_API_URL': JSON.stringify(
         process.env.IKUYO_API_URL || '',
       ),
+      // Backend (Laravel) flags default ON now that InstantDB is removed.
+      // They are only OFF if the caller explicitly sets the env var to 'false'.
       'process.env.IKUYO_BACKEND_AUTH': JSON.stringify(
-        process.env.IKUYO_BACKEND_AUTH === 'true',
+        process.env.IKUYO_BACKEND_AUTH !== 'false',
       ),
       'process.env.IKUYO_BACKEND_CONTENT_WRITES': JSON.stringify(
-        process.env.IKUYO_BACKEND_CONTENT_WRITES === 'true',
+        process.env.IKUYO_BACKEND_CONTENT_WRITES !== 'false',
       ),
       'process.env.IKUYO_BACKEND_TASK_WRITES': JSON.stringify(
-        process.env.IKUYO_BACKEND_TASK_WRITES === 'true',
+        process.env.IKUYO_BACKEND_TASK_WRITES !== 'false',
       ),
       'process.env.IKUYO_BACKEND_SHARING_WRITES': JSON.stringify(
-        process.env.IKUYO_BACKEND_SHARING_WRITES === 'true',
+        process.env.IKUYO_BACKEND_SHARING_WRITES !== 'false',
       ),
       'process.env.IKUYO_BACKEND_ACTIVITY_WRITES': JSON.stringify(
-        process.env.IKUYO_BACKEND_ACTIVITY_WRITES === 'true',
+        process.env.IKUYO_BACKEND_ACTIVITY_WRITES !== 'false',
       ),
       'process.env.IKUYO_BACKEND_TRIP_WRITES': JSON.stringify(
-        process.env.IKUYO_BACKEND_TRIP_WRITES === 'true',
+        process.env.IKUYO_BACKEND_TRIP_WRITES !== 'false',
       ),
       'process.env.IKUYO_BACKEND_TRIP_READS': JSON.stringify(
-        process.env.IKUYO_BACKEND_TRIP_READS === 'true',
+        process.env.IKUYO_BACKEND_TRIP_READS !== 'false',
       ),
       'process.env.IKUYO_MAINTENANCE_MODE': JSON.stringify(
         process.env.IKUYO_MAINTENANCE_MODE === 'true',
       ),
       'process.env.IKUYO_READ_ONLY_MODE': JSON.stringify(
         process.env.IKUYO_READ_ONLY_MODE === 'true',
-      ),
-      'process.env.INSTANT_API_URI': JSON.stringify(INSTANT_API_URI || ''),
-      'process.env.INSTANT_WEBSOCKET_URI': JSON.stringify(
-        INSTANT_WEBSOCKET_URI || '',
       ),
       'process.env.SENTRY_ENABLED': JSON.stringify(isSentryEnabled),
       'process.env.SENTRY_DSN': JSON.stringify(SENTRY_DSN),
@@ -163,7 +150,6 @@ export default defineConfig({
         'lib-wouter': /node_modules[\\/]wouter/,
         'lib-maplibre': /node_modules[\\/]maplibre-gl/,
         'lib-maptiler': /node_modules[\\/]@maptiler/,
-        'lib-instant': /node_modules[\\/](@instantdb|mutative|uuid)/,
         'lib-radix': /node_modules[\\/](@radix-ui|@floating-ui)/,
         'lib-dndkit': /node_modules[\\/](@dnd-kit)/,
         'lib-sentry': /node_modules[\\/](@sentry)/,

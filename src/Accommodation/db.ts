@@ -1,7 +1,5 @@
-import { id } from '@instantdb/core';
 import { deleteMutation, postMutation, putMutation } from '../data/apiClient';
-import { backendContentWrites } from '../data/backendConfig';
-import { db } from '../data/db';
+import { id } from '../data/id';
 import {
   optimisticAccommodationPatch,
   optimisticAccommodationRemove,
@@ -54,146 +52,64 @@ export async function dbAddAccommodation(
     tripId: string;
   },
 ) {
-  if (backendContentWrites) {
-    const newId = id();
-    return optimisticRun(
-      ['accommodation', 'trip'],
-      () => {
-        const now = Date.now();
-        optimisticAccommodationUpsert(tripId, {
-          ...newAccommodation,
-          id: newId,
-          createdAt: now,
-          lastUpdatedAt: now,
-          tripId,
-          commentGroupId: undefined,
-        } as TripSliceAccommodation);
-      },
-      async () => {
-        const result = await postMutation<{ id: string }>(
-          `/api/trips/${encodeURIComponent(tripId)}/accommodations`,
-          { ...newAccommodation, id: newId },
-        );
-        return {
-          id: result.id,
-          transaction: result,
-          undo: async () =>
-            deleteMutation(
-              `/api/accommodations/${encodeURIComponent(result.id)}`,
-            ),
-        };
-      },
-    );
-  }
-  const newAccommodationId = id();
-  const transaction = await db.transact([
-    db.tx.accommodation[newAccommodationId]
-      .update({
+  const newId = id();
+  return optimisticRun(
+    ['accommodation', 'trip'],
+    () => {
+      const now = Date.now();
+      optimisticAccommodationUpsert(tripId, {
         ...newAccommodation,
-        createdAt: Date.now(),
-        lastUpdatedAt: Date.now(),
-      })
-      .link({
-        trip: tripId,
-      }),
-  ]);
-  return {
-    id: newAccommodationId,
-    transaction,
-    undo: async () => {
-      return await db.transact(
-        db.tx.accommodation[newAccommodationId].delete(),
-      );
+        id: newId,
+        createdAt: now,
+        lastUpdatedAt: now,
+        tripId,
+        commentGroupId: undefined,
+      } as TripSliceAccommodation);
     },
-  };
+    async () => {
+      const result = await postMutation<{ id: string }>(
+        `/api/trips/${encodeURIComponent(tripId)}/accommodations`,
+        { ...newAccommodation, id: newId },
+      );
+      return {
+        id: result.id,
+        transaction: result,
+        undo: async () =>
+          deleteMutation(
+            `/api/accommodations/${encodeURIComponent(result.id)}`,
+          ),
+      };
+    },
+  );
 }
 
 export async function dbUpdateAccommodation(
   accommodation: Omit<DbAccommodation, 'createdAt' | 'lastUpdatedAt' | 'trip'>,
 ) {
-  if (backendContentWrites) {
-    return optimisticRun(
-      ['accommodation'],
-      () => optimisticAccommodationPatch(accommodation.id, accommodation),
-      async () => {
-        const result = await putMutation<DbAccommodation>(
-          `/api/accommodations/${encodeURIComponent(accommodation.id)}`,
-          accommodation,
-        );
-        return { transaction: result, undo: async () => undefined };
-      },
-    );
-  }
-  const snapshot = await db.queryOnce({
-    accommodation: {
-      $: {
-        where: { id: accommodation.id },
-      },
-    },
-  });
-  const transaction = await db.transact(
-    db.tx.accommodation[accommodation.id].merge({
-      ...accommodation,
-      lastUpdatedAt: Date.now(),
-    }),
-  );
-  return {
-    transaction,
-    undo: async () => {
-      return await db.transact(
-        db.tx.accommodation[accommodation.id].merge({
-          ...snapshot.data.accommodation[0],
-          lastUpdatedAt: Date.now(),
-        }),
+  return optimisticRun(
+    ['accommodation'],
+    () => optimisticAccommodationPatch(accommodation.id, accommodation),
+    async () => {
+      const result = await putMutation<DbAccommodation>(
+        `/api/accommodations/${encodeURIComponent(accommodation.id)}`,
+        accommodation,
       );
+      return { transaction: result, undo: async () => undefined };
     },
-  };
+  );
 }
 
 export async function dbDeleteAccommodation(accommodationId: string) {
-  if (backendContentWrites) {
-    const state = useBoundStore.getState();
-    const tripId = state.accommodation[accommodationId]?.tripId;
-    return optimisticRun(
-      ['accommodation', 'trip'],
-      () => {
-        if (tripId) optimisticAccommodationRemove(tripId, accommodationId);
-      },
-      () =>
-        deleteMutation(
-          `/api/accommodations/${encodeURIComponent(accommodationId)}`,
-        ),
-    );
-  }
-  const commentGroups = await db.queryOnce({
-    commentGroup: {
-      comment: { $: { fields: ['id'] } },
-      $: {
-        where: {
-          'object.type': 'accommodation',
-          'object.accommodation.id': accommodationId,
-        },
-        fields: ['id'],
-      },
+  const state = useBoundStore.getState();
+  const tripId = state.accommodation[accommodationId]?.tripId;
+  return optimisticRun(
+    ['accommodation', 'trip'],
+    () => {
+      if (tripId) optimisticAccommodationRemove(tripId, accommodationId);
     },
-  });
-  const commentGroupIds = commentGroups.data.commentGroup.map(
-    (commentGroup) => commentGroup.id,
+    () =>
+      deleteMutation(
+        `/api/accommodations/${encodeURIComponent(accommodationId)}`,
+      ),
   );
-  const commentIds = commentGroups.data.commentGroup.flatMap((commentGroup) =>
-    commentGroup.comment.map((comment) => comment.id),
-  );
-
-  // TODO: change to soft delete so we can easily undo
-  return db.transact([
-    ...commentGroupIds.map((commentGroupId) =>
-      db.tx.commentGroup[commentGroupId].delete(),
-    ),
-    ...commentGroupIds.map((commentGroupId) =>
-      // CommentGroupObject has same id as commentGroup
-      db.tx.commentGroupObject[commentGroupId].delete(),
-    ),
-    ...commentIds.map((commentId) => db.tx.comment[commentId].delete()),
-    db.tx.accommodation[accommodationId].delete(),
-  ]);
 }

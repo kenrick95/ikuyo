@@ -2,8 +2,6 @@ import { Button, DropdownMenu } from '@radix-ui/themes';
 import { Link, useLocation } from 'wouter';
 import { UserHandle } from '../common/UserHandle/UserHandle';
 import { postMutation } from '../data/apiClient';
-import { backendAuthEnabled } from '../data/backendConfig';
-import { db } from '../data/db';
 import { useBoundStore } from '../data/store';
 import type { DbUser } from '../data/types';
 import {
@@ -65,17 +63,12 @@ export function UserAvatarMenu({ user }: { user: DbUser | null | undefined }) {
                 setLocation(RouteLogin.asRootRoute());
                 return;
               }
-              const logout = backendAuthEnabled
-                ? postMutation('/api/auth/logout', {})
-                : db.auth.signOut();
-              void logout.then(() => {
+              void postMutation('/api/auth/logout', {}).then(() => {
                 // Forget the user + all cached trip data so the next user on this
                 // browser never sees the previous session's trips. subscribeUser()
                 // then re-fetches the (now null) session into the cleared store.
                 clearSession();
-                if (backendAuthEnabled) {
-                  subscribeUser();
-                }
+                subscribeUser();
                 setLocation(RouteLogin.asRootRoute());
               });
             }}

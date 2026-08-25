@@ -1,7 +1,4 @@
-import { id } from '@instantdb/core';
 import { patchMutation, putMutation } from '../data/apiClient';
-import { backendAuthEnabled } from '../data/backendConfig';
-import { db } from '../data/db';
 
 export type DbUser = {
   id: string;
@@ -17,97 +14,33 @@ export type DbUser = {
 };
 
 export async function dbUpdateUserPreferences({
-  id: userId,
   region,
   currency,
   timeZone,
 }: {
-  id: string;
+  id?: string;
   region?: string;
   currency?: string;
   timeZone?: string;
 }) {
-  if (backendAuthEnabled) {
-    return putMutation(`/api/users/me/preferences`, {
-      region,
-      currency,
-      timeZone,
-    });
-  }
-  const attrs: Record<string, unknown> = {
-    lastUpdatedAt: Date.now(),
-  };
-  if (region !== undefined) attrs.preferredRegion = region;
-  if (currency !== undefined) attrs.preferredCurrency = currency;
-  if (timeZone !== undefined) attrs.preferredTimeZone = timeZone;
-  return db.transact(db.tx.user[userId].merge(attrs));
-}
-
-export async function dbCreateUser({
-  email,
-  handle,
-  defaultUserNamespaceId,
-}: {
-  email?: string;
-  handle: string;
-  /** 'id' in $user table/namespace */
-  defaultUserNamespaceId: string;
-}) {
-  const newUserId = id();
-  const now = Date.now();
-  const baseAttrs = {
-    handle,
-    createdAt: now,
-    lastUpdatedAt: now,
-    activated: true,
-    lastLoginAt: now,
-  } satisfies Omit<DbUser, 'id' | 'email'>;
-  const attrs = email ? { ...baseAttrs, email } : baseAttrs;
-  const result = await db.transact(
-    db.tx.user[newUserId].create(attrs).link({
-      $users: defaultUserNamespaceId,
-    }),
-  );
-  return {
-    id: newUserId,
-    result,
-  };
+  return putMutation(`/api/users/me/preferences`, {
+    region,
+    currency,
+    timeZone,
+  });
 }
 
 export async function dbUpdateUser({
-  id: userId,
+  id: _userId,
   email,
   handle,
-  activated,
-  defaultUserNamespaceId,
-  lastLoginAt,
 }: {
-  id: string;
-  email: string | undefined;
-  handle: string;
-  activated: boolean;
-  defaultUserNamespaceId: string;
-  lastLoginAt: number | undefined;
+  id?: string;
+  email?: string | undefined;
+  handle?: string;
+  activated?: boolean;
+  defaultUserNamespaceId?: string;
+  lastLoginAt?: number | undefined;
 }) {
-  if (backendAuthEnabled) {
-    return patchMutation<{ id: string }>(`/api/users/me`, { email, handle });
-  }
-  const attrs: Record<string, unknown> = {
-    handle,
-    activated,
-    lastUpdatedAt: Date.now(),
-    lastLoginAt,
-  };
-  if (email !== undefined) {
-    attrs.email = email;
-  }
-  const result = await db.transact(
-    db.tx.user[userId].update(attrs, { upsert: false }).link({
-      $users: defaultUserNamespaceId,
-    }),
-  );
-  return {
-    id: userId,
-    result,
-  };
+  return patchMutation<{ id: string }>(`/api/users/me`, { email, handle });
 }
