@@ -1,10 +1,16 @@
 import { useBoundStore } from '../data/store';
 
-/** Throws unless an authenticated user is present; returns their auth user id. */
+/**
+ * Throws unless both the auth session and application user record are ready.
+ * Return the application user id: it is the id required by the InstantDB
+ * fallback, whereas `authUser.id` is the separate auth-namespace id.
+ */
 export function requireAuthUser(): { id: string } {
-  const { authUser } = useBoundStore.getState();
-  if (!authUser) throw new Error('Not authenticated. Call auth-login first.');
-  return authUser;
+  const { authUser, currentUser } = useBoundStore.getState();
+  if (!authUser || !currentUser) {
+    throw new Error('Not authenticated. Call auth-login first.');
+  }
+  return currentUser;
 }
 
 /**

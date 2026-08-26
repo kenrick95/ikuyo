@@ -38,16 +38,17 @@ New module: `src/webmcp/`
 src/webmcp/
 ├── modelContext.ts        # feature detection + registerTool() helper + types
 ├── schema.ts              # JSON-Schema param helpers + epoch/ISO converters
+├── tripDates.ts           # trip date bounds + partial-update conversion
 ├── context.ts             # auth / current-trip guards shared by tools
 ├── useWebMCPTools.ts      # React hook: registers tools, aborts on unmount
 ├── auth.tools.ts          # auth + account preferences tools
-├── trip.tools.ts          # trip CRUD + sharing/sections/members tools
-├── activity.tools.ts      # activity CRUD tools
-├── accommodation.tools.ts # accommodation CRUD tools
-├── task.tools.ts          # task + task-list CRUD tools
-├── expense.tools.ts       # expense CRUD tools
-├── macroplan.tools.ts     # macroplan CRUD tools
-├── comment.tools.ts       # comment list/add/update/resolve/delete tools
+├── trip.tools.ts          # trip create/update + sharing/sections/members tools
+├── activity.tools.ts      # activity create/read/update tools
+├── accommodation.tools.ts # accommodation create/read/update tools
+├── task.tools.ts          # task + task-list create/read/update tools
+├── expense.tools.ts       # expense create/read/update tools
+├── macroplan.tools.ts     # macroplan create/read/update tools
+├── comment.tools.ts       # comment list/add/update/resolve tools
 └── WebMCPTools.tsx        # wiring component rendered once in App
 ```
 
@@ -73,9 +74,10 @@ src/webmcp/
   `dbAddMacroplan`, `dbAddComment`, …), which already route to the Laravel/MySQL
   backend with CSRF + optimistic updates. Tools are thin adapters over the same
   code the UI uses — they never reimplement API access or auth.
-- **Safety:** destructive tools (`*-delete`) are described as **HIGH-RISK** and
-  refuse when the app is in read-only mode (`assertWritable`). All mutating
-  actions go through the same flows the UI uses.
+- **Safety:** destructive actions (delete and member removal) are deliberately
+  not exposed as WebMCP tools: they require a manual UI confirmation outside an
+  agent's control. Other writes refuse when the app is in read-only mode
+  (`assertWritable`) and use the same mutation layer as the UI.
 
 ### Tool registration strategy
 
@@ -86,9 +88,9 @@ Tools are registered **dynamically** per current app context (see
   `auth-signup`, `auth-logout`, `account-update-preferences`).
 - **When signed in:** trip read/list/create tools (`trip-list`, `trip-get`,
   `trip-create`).
-- **When a trip is loaded (`currentTripId`):** full trip mutation tools
-  (update/delete/sharing/sections/members) plus the per-trip vocabulary for
-  activity / accommodation / macroplan / expense / task / comment.
+- **When a trip is loaded (`currentTripId`):** trip update/sharing/member-role
+  tools plus the per-trip vocabulary for activity / accommodation / macroplan /
+  expense / task / comment.
 - Read-only tools set `annotations: { readOnlyHint: true }` (placed **after**
   `execute`) so agents know they are safe.
 
@@ -98,13 +100,13 @@ Tools are registered **dynamically** per current app context (see
 | --- | --- |
 | Auth / account | `auth-get-current-user`, `auth-login`, `auth-signup`, `auth-logout`, `account-update-preferences` |
 | Trip list | `trip-list` |
-| Trip | `trip-get`, `trip-create`, `trip-update`, `trip-delete`, `trip-update-sharing`, `trip-update-sections`, `trip-add-member`, `trip-update-member`, `trip-remove-member` |
-| Activity | `activity-get`, `activity-create`, `activity-update`, `activity-delete` |
-| Accommodation | `accommodation-get`, `accommodation-create`, `accommodation-update`, `accommodation-delete` |
-| Macroplan | `macroplan-get`, `macroplan-create`, `macroplan-update`, `macroplan-delete` |
-| Expense | `expense-get`, `expense-create`, `expense-update`, `expense-delete` |
-| Task | `task-list-create`, `task-list-update`, `task-list-delete`, `task-create`, `task-get`, `task-update`, `task-delete` |
-| Comment | `comment-list`, `comment-add`, `comment-update`, `comment-resolve`, `comment-delete` |
+| Trip | `trip-get`, `trip-create`, `trip-update`, `trip-update-sharing`, `trip-update-sections`, `trip-add-member`, `trip-update-member` |
+| Activity | `activity-get`, `activity-create`, `activity-update` |
+| Accommodation | `accommodation-get`, `accommodation-create`, `accommodation-update` |
+| Macroplan | `macroplan-get`, `macroplan-create`, `macroplan-update` |
+| Expense | `expense-get`, `expense-create`, `expense-update` |
+| Task | `task-list-create`, `task-list-update`, `task-create`, `task-get`, `task-update` |
+| Comment | `comment-list`, `comment-add`, `comment-update`, `comment-resolve` |
 
 ## 5. Schema design
 
@@ -124,8 +126,8 @@ Tools are registered **dynamically** per current app context (see
 Run these from the repository root:
 
 ```bash
-# JSON-Schema/time validation used by every tool factory.
-CI=1 pnpm exec vitest run src/webmcp/schema.test.ts
+# JSON-Schema/time validation plus partial trip-date update regression coverage.
+CI=1 pnpm exec vitest run src/webmcp/schema.test.ts src/webmcp/tripDates.test.ts
 
 # Formatting and linting for the integration and its App wiring.
 CI=1 pnpm exec biome check src/webmcp src/App.tsx
@@ -154,8 +156,8 @@ when there are no matches, so treat empty output as success; run the full
    Configure `IKUYO_API_URL` if the frontend is not proxied to the backend.
    `localhost` is treated as a potentially trustworthy secure context by
    Chromium; use real HTTPS when testing from a non-local host.
-4. Use a dedicated test account and a disposable test trip. Never exercise a
-   `*-delete` tool against production data.
+4. Use a dedicated test account and a disposable test trip. Delete and member
+   removal are intentionally performed only through the UI confirmation flow.
 
 ### Manual WebMCP registration check
 
@@ -194,8 +196,8 @@ console error is emitted: the integration must be a feature-detected no-op.
    (for example an invalid ISO timestamp or a missing task title).
 6. Build/run once with `IKUYO_READ_ONLY_MODE=true`; confirm each mutating tool
    fails before any backend write while all read tools still work.
-7. Only after explicit confirmation, use the `*-delete` tools to remove the
-   disposable entities and `trip-delete` to remove the disposable trip.
+7. Clean up the disposable entities and trip through their normal UI delete
+   dialogs; these actions are intentionally absent from WebMCP.
 
 ## 7. Non-goals
 

@@ -1,9 +1,17 @@
 import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
-import { dbAddExpense, dbDeleteExpense, dbUpdateExpense } from '../Expense/db';
+import { dbAddExpense, dbUpdateExpense } from '../Expense/db';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
 import type { WebMCPTool } from './modelContext';
-import { asOptNum, asOptStr, asStr, num, str, toEpochMs } from './schema';
+import {
+  asOptNum,
+  asOptStr,
+  asStr,
+  epochOrIso,
+  num,
+  str,
+  toEpochMs,
+} from './schema';
 
 export function createExpenseTools(): WebMCPTool[] {
   return [
@@ -19,7 +27,7 @@ export function createExpenseTools(): WebMCPTool[] {
           amount: num('Amount spent (numeric).'),
           currency: str('ISO 4217 currency code (e.g. JPY).'),
           description: str('Optional description.'),
-          timestampIncurred: str(
+          timestampIncurred: epochOrIso(
             'Optional date incurred (ISO-8601 or epoch ms).',
           ),
         },
@@ -87,7 +95,9 @@ export function createExpenseTools(): WebMCPTool[] {
           amount: num('New amount.'),
           currency: str('New ISO 4217 currency.'),
           description: str('New description.'),
-          timestampIncurred: str('New incurred date (ISO-8601 or epoch ms).'),
+          timestampIncurred: epochOrIso(
+            'New incurred date (ISO-8601 or epoch ms).',
+          ),
         },
         required: ['expenseId'],
       },
@@ -117,25 +127,6 @@ export function createExpenseTools(): WebMCPTool[] {
             existing.timeZoneIncurred,
         });
         return { ok: true, expenseId: id };
-      },
-    },
-    {
-      name: 'expense-delete',
-      description:
-        'HIGH-RISK: permanently deletes an expense and its comments. Destructive and irreversible.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          expenseId: str('The expense id to delete.'),
-        },
-        required: ['expenseId'],
-      },
-      async execute(input) {
-        assertWritable('deleting an expense');
-        requireAuthUser();
-        const id = asStr(input.expenseId, 'expenseId');
-        await dbDeleteExpense(id);
-        return { ok: true, deletedExpenseId: id };
       },
     },
   ];

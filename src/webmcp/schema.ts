@@ -19,6 +19,21 @@ export function int(description: string): Record<string, unknown> {
   return { type: 'integer', description };
 }
 
+/** A timestamp accepted as epoch milliseconds or an ISO-8601 date-time. */
+export function epochOrIso(description: string): Record<string, unknown> {
+  return {
+    anyOf: [
+      { type: 'number', description: 'Epoch milliseconds.' },
+      {
+        type: 'string',
+        format: 'date-time',
+        description: 'ISO-8601 date-time.',
+      },
+    ],
+    description,
+  };
+}
+
 export function bool(description: string): Record<string, unknown> {
   return { type: 'boolean', description };
 }

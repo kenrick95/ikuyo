@@ -2,7 +2,6 @@ import {
   COMMENT_GROUP_OBJECT_TYPE,
   type DbCommentGroupObjectType,
   dbAddComment,
-  dbDeleteComment,
   dbUpdateComment,
   dbUpdateCommentGroupStatus,
 } from '../Comment/db';
@@ -10,7 +9,7 @@ import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
 import type { WebMCPTool } from './modelContext';
-import { asStr, str, strEnum } from './schema';
+import { asOptStr, asStr, str, strEnum } from './schema';
 
 const OBJECT_TYPES = Object.values(COMMENT_GROUP_OBJECT_TYPE);
 
@@ -65,6 +64,9 @@ export function createCommentTools(): WebMCPTool[] {
           objectId: str(
             'The id of the object (trip/activity/etc.) to comment on.',
           ),
+          groupId: str(
+            'Optional existing comment-group id from comment-list. Provide it to reply in that thread.',
+          ),
         },
         required: ['content', 'objectType', 'objectId'],
       },
@@ -83,15 +85,23 @@ export function createCommentTools(): WebMCPTool[] {
           );
         }
         const objectId = asStr(input.objectId, 'objectId');
+        const groupId = asOptStr(input.groupId, 'groupId') ?? undefined;
+        if (groupId) {
+          const group = useBoundStore.getState().commentGroup[groupId];
+          if (
+            !group ||
+            group.tripId !== tripId ||
+            group.objectType !== objectType ||
+            group.objectId !== objectId
+          ) {
+            throw new Error(
+              'groupId must identify a loaded comment thread for the supplied trip and object.',
+            );
+          }
+        }
         const result = await dbAddComment(
           { content: asStr(input.content, 'content') },
-          {
-            userId: user.id,
-            tripId,
-            objectId,
-            objectType,
-            groupId: undefined,
-          },
+          { userId: user.id, tripId, objectId, objectType, groupId },
         );
         return { ok: true, commentId: result.id };
       },
@@ -140,27 +150,6 @@ export function createCommentTools(): WebMCPTool[] {
         const resolved = input.resolved === 'true';
         await dbUpdateCommentGroupStatus(groupId, resolved ? 1 : 0);
         return { ok: true, commentGroupId: groupId, resolved };
-      },
-    },
-    {
-      name: 'comment-delete',
-      description:
-        'HIGH-RISK: permanently deletes a comment. Destructive and irreversible.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          commentId: str('The comment id to delete.'),
-        },
-        required: ['commentId'],
-      },
-      async execute(input) {
-        assertWritable('deleting a comment');
-        requireAuthUser();
-        const id = asStr(input.commentId, 'commentId');
-        const comment = useBoundStore.getState().comment[id];
-        if (!comment) throw new Error(`Comment ${id} is not loaded.`);
-        await dbDeleteComment(id, comment.commentGroupId);
-        return { ok: true, deletedCommentId: id };
       },
     },
   ];

@@ -4,6 +4,7 @@ import {
   asOptStr,
   asStr,
   bool,
+  epochOrIso,
   num,
   str,
   strEnum,
@@ -16,6 +17,17 @@ describe('schema helpers', () => {
     expect(str('a')).toEqual({ type: 'string', description: 'a' });
     expect(num('n')).toEqual({ type: 'number', description: 'n' });
     expect(bool('b')).toEqual({ type: 'boolean', description: 'b' });
+    expect(epochOrIso('when')).toEqual({
+      anyOf: [
+        { type: 'number', description: 'Epoch milliseconds.' },
+        {
+          type: 'string',
+          format: 'date-time',
+          description: 'ISO-8601 date-time.',
+        },
+      ],
+      description: 'when',
+    });
     expect(strEnum('e', ['x', 'y'])).toEqual({
       type: 'string',
       enum: ['x', 'y'],

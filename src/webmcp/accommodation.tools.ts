@@ -1,28 +1,32 @@
-import {
-  dbAddAccommodation,
-  dbDeleteAccommodation,
-  dbUpdateAccommodation,
-} from '../Accommodation/db';
+import { dbAddAccommodation, dbUpdateAccommodation } from '../Accommodation/db';
 import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
 import type { WebMCPTool } from './modelContext';
-import { asOptNum, asOptStr, asStr, num, str, toEpochMs } from './schema';
+import {
+  asOptNum,
+  asOptStr,
+  asStr,
+  epochOrIso,
+  num,
+  str,
+  toEpochMs,
+} from './schema';
 
 export function createAccommodationTools(): WebMCPTool[] {
   return [
     {
       name: 'accommodation-create',
       description:
-        'Creates a lodging/accommodation in a trip. Requires a name; check-in/out dates optional.',
+        'Creates a lodging/accommodation in a trip. Requires a name, check-in time, and check-out time.',
       inputSchema: {
         type: 'object',
         properties: {
           tripId: str('Trip id. Defaults to the currently open trip.'),
           name: str('Accommodation name.'),
           address: str('Optional street address.'),
-          checkIn: str('Optional check-in time (ISO-8601 or epoch ms).'),
-          checkOut: str('Optional check-out time (ISO-8601 or epoch ms).'),
+          checkIn: epochOrIso('Check-in time (ISO-8601 or epoch ms).'),
+          checkOut: epochOrIso('Check-out time (ISO-8601 or epoch ms).'),
           phoneNumber: str('Optional phone number.'),
           notes: str('Optional notes.'),
           locationLat: num('Optional latitude.'),
@@ -95,8 +99,8 @@ export function createAccommodationTools(): WebMCPTool[] {
           accommodationId: str('The accommodation id.'),
           name: str('New name.'),
           address: str('New address.'),
-          checkIn: str('New check-in time (ISO-8601 or epoch ms).'),
-          checkOut: str('New check-out time (ISO-8601 or epoch ms).'),
+          checkIn: epochOrIso('New check-in time (ISO-8601 or epoch ms).'),
+          checkOut: epochOrIso('New check-out time (ISO-8601 or epoch ms).'),
           phoneNumber: str('New phone number.'),
           notes: str('New notes.'),
         },
@@ -134,25 +138,6 @@ export function createAccommodationTools(): WebMCPTool[] {
             existing.timeZoneCheckOut,
         });
         return { ok: true, accommodationId: id };
-      },
-    },
-    {
-      name: 'accommodation-delete',
-      description:
-        'HIGH-RISK: permanently deletes an accommodation and its comments. Destructive and irreversible.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          accommodationId: str('The accommodation id to delete.'),
-        },
-        required: ['accommodationId'],
-      },
-      async execute(input) {
-        assertWritable('deleting an accommodation');
-        requireAuthUser();
-        const id = asStr(input.accommodationId, 'accommodationId');
-        await dbDeleteAccommodation(id);
-        return { ok: true, deletedAccommodationId: id };
       },
     },
   ];

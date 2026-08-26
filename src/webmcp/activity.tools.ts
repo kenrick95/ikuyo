@@ -1,13 +1,17 @@
-import {
-  dbAddActivity,
-  dbDeleteActivity,
-  dbUpdateActivity,
-} from '../Activity/db';
+import { dbAddActivity, dbUpdateActivity } from '../Activity/db';
 import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
 import type { WebMCPTool } from './modelContext';
-import { asOptNum, asOptStr, asStr, num, str, toEpochMs } from './schema';
+import {
+  asOptNum,
+  asOptStr,
+  asStr,
+  epochOrIso,
+  num,
+  str,
+  toEpochMs,
+} from './schema';
 
 export function createActivityTools(): WebMCPTool[] {
   return [
@@ -28,10 +32,12 @@ export function createActivityTools(): WebMCPTool[] {
           locationDestination: str(
             'Optional destination name (for A→B trips).',
           ),
-          timestampStart: str(
+          timestampStart: epochOrIso(
             'Optional start time (ISO-8601 string or epoch ms).',
           ),
-          timestampEnd: str('Optional end time (ISO-8601 string or epoch ms).'),
+          timestampEnd: epochOrIso(
+            'Optional end time (ISO-8601 string or epoch ms).',
+          ),
           timeZoneStart: str('Optional IANA time zone for start.'),
           timeZoneEnd: str('Optional IANA time zone for end.'),
           icon: str('Optional emoji icon for the activity.'),
@@ -108,8 +114,8 @@ export function createActivityTools(): WebMCPTool[] {
           title: str('New title.'),
           description: str('New description.'),
           location: str('New location name.'),
-          timestampStart: str('New start time (ISO-8601 or epoch ms).'),
-          timestampEnd: str('New end time (ISO-8601 or epoch ms).'),
+          timestampStart: epochOrIso('New start time (ISO-8601 or epoch ms).'),
+          timestampEnd: epochOrIso('New end time (ISO-8601 or epoch ms).'),
           icon: str('New emoji icon.'),
         },
         required: ['activityId'],
@@ -165,25 +171,6 @@ export function createActivityTools(): WebMCPTool[] {
           icon: asOptStr(input.icon, 'icon') ?? existing.icon,
         });
         return { ok: true, activityId: id };
-      },
-    },
-    {
-      name: 'activity-delete',
-      description:
-        'HIGH-RISK: permanently deletes an activity and its comments. Destructive and irreversible.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          activityId: str('The activity id to delete.'),
-        },
-        required: ['activityId'],
-      },
-      async execute(input) {
-        assertWritable('deleting an activity');
-        requireAuthUser();
-        const id = asStr(input.activityId, 'activityId');
-        await dbDeleteActivity(id);
-        return { ok: true, deletedActivityId: id };
       },
     },
   ];

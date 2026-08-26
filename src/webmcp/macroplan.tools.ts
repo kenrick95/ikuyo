@@ -1,10 +1,6 @@
 import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
-import {
-  dbAddMacroplan,
-  dbDeleteMacroplan,
-  dbUpdateMacroplan,
-} from '../Macroplan/db';
+import { dbAddMacroplan, dbUpdateMacroplan } from '../Macroplan/db';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
 import type { WebMCPTool } from './modelContext';
 import { asOptStr, asStr, str } from './schema';
@@ -123,25 +119,6 @@ export function createMacroplanTools(): WebMCPTool[] {
           timeZoneEnd: timeZone,
         });
         return { ok: true, macroplanId: id };
-      },
-    },
-    {
-      name: 'macroplan-delete',
-      description:
-        'HIGH-RISK: permanently deletes a macroplan and its comments. Destructive and irreversible.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          macroplanId: str('The macroplan id to delete.'),
-        },
-        required: ['macroplanId'],
-      },
-      async execute(input) {
-        assertWritable('deleting a macroplan');
-        requireAuthUser();
-        const id = asStr(input.macroplanId, 'macroplanId');
-        await dbDeleteMacroplan(id);
-        return { ok: true, deletedMacroplanId: id };
       },
     },
   ];

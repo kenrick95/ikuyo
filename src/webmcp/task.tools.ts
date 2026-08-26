@@ -3,15 +3,13 @@ import { useBoundStore } from '../data/store';
 import {
   dbAddTask,
   dbAddTaskList,
-  dbDeleteTask,
-  dbDeleteTaskList,
   dbUpdateTask,
   dbUpdateTaskList,
 } from '../Task/db';
 import { TaskStatus } from '../Task/TaskStatus';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
 import type { WebMCPTool } from './modelContext';
-import { asStr, int, str, toEpochMs } from './schema';
+import { asStr, epochOrIso, int, str, toEpochMs } from './schema';
 
 const VALID_STATUS: number[] = [
   TaskStatus.Todo,
@@ -87,7 +85,7 @@ export function createTaskTools(): WebMCPTool[] {
           status: int(
             'Task status: 0=todo, 1=in-progress, 2=done, 3=archived, 4=cancelled. Default 0.',
           ),
-          dueAt: str('Optional due time (ISO-8601 or epoch ms).'),
+          dueAt: epochOrIso('Optional due time (ISO-8601 or epoch ms).'),
         },
         required: ['taskListId', 'title'],
       },
@@ -149,7 +147,7 @@ export function createTaskTools(): WebMCPTool[] {
           status: int(
             'New status: 0=todo, 1=in-progress, 2=done, 3=archived, 4=cancelled.',
           ),
-          dueAt: str('New due time (ISO-8601 or epoch ms).'),
+          dueAt: epochOrIso('New due time (ISO-8601 or epoch ms).'),
           done: {
             ...str('Set to "true" to mark done, "false" to mark not done.'),
             enum: ['true', 'false'],
@@ -187,46 +185,6 @@ export function createTaskTools(): WebMCPTool[] {
           completedAt,
         });
         return { ok: true, taskId: id, status };
-      },
-    },
-    {
-      name: 'task-list-delete',
-      description:
-        'HIGH-RISK: permanently deletes a task list and all tasks inside it. Destructive and irreversible.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          taskListId: str('The task list id to delete.'),
-        },
-        required: ['taskListId'],
-      },
-      async execute(input) {
-        assertWritable('deleting a task list');
-        requireAuthUser();
-        const id = asStr(input.taskListId, 'taskListId');
-        await dbDeleteTaskList(id);
-        return { ok: true, deletedTaskListId: id };
-      },
-    },
-    {
-      name: 'task-delete',
-      description:
-        'HIGH-RISK: permanently deletes a task and its comments. Destructive and irreversible.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          taskId: str('The task id to delete.'),
-        },
-        required: ['taskId'],
-      },
-      async execute(input) {
-        assertWritable('deleting a task');
-        requireAuthUser();
-        const id = asStr(input.taskId, 'taskId');
-        const task = useBoundStore.getState().task[id];
-        if (!task) throw new Error(`Task ${id} is not loaded.`);
-        await dbDeleteTask(id, task.taskListId);
-        return { ok: true, deletedTaskId: id };
       },
     },
   ];

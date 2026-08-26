@@ -4,8 +4,6 @@ import { useBoundStore } from '../data/store';
 import {
   dbAddTrip,
   dbAddUserToTrip,
-  dbDeleteTrip,
-  dbRemoveUserFromTrip,
   dbUpdateTrip,
   dbUpdateTripSectionVisibility,
   dbUpdateTripSharingLevel,
@@ -18,6 +16,7 @@ import {
 import { TripUserRole } from '../User/TripUserRole';
 import type { WebMCPTool } from './modelContext';
 import { asOptStr, asStr, int, str, strEnum } from './schema';
+import { epochToTripDate, resolveTripDates } from './tripDates';
 
 type TripSummary = {
   id: string;
@@ -28,9 +27,11 @@ type TripSummary = {
 };
 
 function requireAuthUser(): { id: string } {
-  const { authUser } = useBoundStore.getState();
-  if (!authUser) throw new Error('Not authenticated. Call auth-login first.');
-  return authUser;
+  const { authUser, currentUser } = useBoundStore.getState();
+  if (!authUser || !currentUser) {
+    throw new Error('Not authenticated. Call auth-login first.');
+  }
+  return currentUser;
 }
 
 function requireCurrentTrip(): string {
@@ -41,36 +42,6 @@ function requireCurrentTrip(): string {
     );
   }
   return currentTripId;
-}
-
-/** Midnight (00:00) of a YYYY-MM-DD date in a time zone, as epoch ms. */
-function dayStartEpochMs(
-  isoDate: string,
-  timeZone: string,
-  addDays = 0,
-): number {
-  const plain = Temporal.PlainDate.from(isoDate).add({ days: addDays });
-  return plain.toZonedDateTime({
-    timeZone,
-    plainTime: Temporal.PlainTime.from('00:00'),
-  }).epochMilliseconds;
-}
-
-/** End date is the *last* day; store semantics want midnight of the next day. */
-function resolveTripDates(
-  start: unknown,
-  end: unknown,
-  timeZone: string,
-): { timestampStart: number; timestampEnd: number } {
-  if (typeof start !== 'string' || typeof end !== 'string') {
-    throw new Error(
-      'startDate and endDate must be ISO-8601 date strings (YYYY-MM-DD)',
-    );
-  }
-  return {
-    timestampStart: dayStartEpochMs(start, timeZone),
-    timestampEnd: dayStartEpochMs(end, timeZone, 1),
-  };
 }
 
 function tripSnapshot(id: string): Record<string, unknown> {
@@ -240,8 +211,14 @@ export function createTripTools(): WebMCPTool[] {
         const dates =
           input.startDate !== undefined || input.endDate !== undefined
             ? resolveTripDates(
-                (input.startDate as string) ?? existing.timestampStart,
-                (input.endDate as string) ?? existing.timestampEnd,
+                (input.startDate as string | undefined) ??
+                  epochToTripDate(existing.timestampStart, existing.timeZone),
+                (input.endDate as string | undefined) ??
+                  epochToTripDate(
+                    existing.timestampEnd,
+                    existing.timeZone,
+                    true,
+                  ),
                 timeZone,
               )
             : {
@@ -265,28 +242,6 @@ export function createTripTools(): WebMCPTool[] {
           sharingLevel: existing.sharingLevel,
         });
         return { ok: true, trip: tripSnapshot(tripId) };
-      },
-    },
-    {
-      name: 'trip-delete',
-      description:
-        'HIGH-RISK: permanently deletes a trip and ALL of its activities, accommodations, macroplans, expenses, tasks, comments and members. This is destructive and irreversible; only call when the user has explicitly confirmed deletion.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          tripId: str('Trip id. Defaults to the currently open trip.'),
-        },
-        required: ['tripId'],
-      },
-      async execute(input) {
-        assertWritable('deleting a trip');
-        requireAuthUser();
-        const tripId = asStr(input.tripId, 'tripId');
-        const state = useBoundStore.getState();
-        const trip = state.trip[tripId];
-        if (!trip) throw new Error(`Trip ${tripId} is not loaded.`);
-        await dbDeleteTrip(trip);
-        return { ok: true, deletedTripId: tripId };
       },
     },
     {
@@ -430,25 +385,6 @@ export function createTripTools(): WebMCPTool[] {
           previousUserRole: (members[0]?.role as TripUserRole) ?? role,
         });
         return { ok: true, tripId, email, role };
-      },
-    },
-    {
-      name: 'trip-remove-member',
-      description:
-        'HIGH-RISK: removes a member from a trip. Provide the member tripUserId (from trip-get listing tripUserIds, or resolve by email via the members sub-object).',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          tripUserId: str('The tripUser id of the member to remove.'),
-        },
-        required: ['tripUserId'],
-      },
-      async execute(input) {
-        assertWritable('removing a member');
-        requireAuthUser();
-        const tripUserId = asStr(input.tripUserId, 'tripUserId');
-        await dbRemoveUserFromTrip(tripUserId);
-        return { ok: true, removedTripUserId: tripUserId };
       },
     },
   ];
