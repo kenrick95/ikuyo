@@ -18,17 +18,21 @@ function dayStart(isoDate: string, timeZone: string, addDays = 0): number {
 export function createMacroplanTools(): WebMCPTool[] {
   return [
     {
-      name: 'macroplan-create',
+      name: 'day-plan-create',
       description:
-        'Creates a macroplan (rough multi-day plan block) in a trip. Provide name, startDate and endDate (YYYY-MM-DD; endDate is the last day).',
+        "Creates a day plan (stored internally as a macroplan) for one or more whole travel days. For an itinerary, create one day plan per day before adding activities; use the same startDate and endDate for a single-day plan. A day plan groups the day's focused activities rather than replacing them.",
       inputSchema: {
         type: 'object',
         properties: {
           tripId: str('Trip id. Defaults to the currently open trip.'),
-          name: str('Macroplan name.'),
-          notes: str('Optional notes.'),
-          startDate: str('First day (YYYY-MM-DD).'),
-          endDate: str('Last day (YYYY-MM-DD).'),
+          name: str('Day plan name (for example, "Kyoto day trip").'),
+          notes: str(
+            'Optional overview, pacing, or transport notes for the day.',
+          ),
+          startDate: str('First day covered by this plan (YYYY-MM-DD).'),
+          endDate: str(
+            'Last day covered by this plan (YYYY-MM-DD); use the same date for one day.',
+          ),
           timeZone: str('IANA time zone; defaults to the trip time zone.'),
         },
         required: ['name', 'startDate', 'endDate'],
@@ -53,48 +57,49 @@ export function createMacroplanTools(): WebMCPTool[] {
           },
           { tripId },
         );
-        return { ok: true, id: result.id, macroplanId: result.id };
+        return { ok: true, id: result.id, dayPlanId: result.id };
       },
     },
     {
-      name: 'macroplan-get',
-      description: 'Returns a macroplan from the locally loaded state by id.',
+      name: 'day-plan-get',
+      description:
+        'Returns a day plan from the locally loaded state by id. Day plans are stored internally as macroplans.',
       inputSchema: {
         type: 'object',
         properties: {
-          macroplanId: str('The macroplan id.'),
+          dayPlanId: str('The day plan id.'),
         },
-        required: ['macroplanId'],
+        required: ['dayPlanId'],
       },
       annotations: { readOnlyHint: true },
       execute(input) {
         requireAuthUser();
-        const id = asStr(input.macroplanId, 'macroplanId');
+        const id = asStr(input.dayPlanId, 'dayPlanId');
         const m = useBoundStore.getState().macroplan[id];
         if (!m) throw new Error(`Macroplan ${id} is not loaded.`);
-        return { ok: true, macroplan: m };
+        return { ok: true, dayPlan: m };
       },
     },
     {
-      name: 'macroplan-update',
+      name: 'day-plan-update',
       description:
-        'Updates an existing macroplan (name, notes, dates). Only provided fields are changed.',
+        "Updates a day plan's name, overview notes, or covered dates. Only provided fields are changed.",
       inputSchema: {
         type: 'object',
         properties: {
-          macroplanId: str('The macroplan id.'),
-          name: str('New name.'),
-          notes: str('New notes.'),
+          dayPlanId: str('The day plan id.'),
+          name: str('New day plan name.'),
+          notes: str('New overview, pacing, or transport notes.'),
           startDate: str('New first day (YYYY-MM-DD).'),
           endDate: str('New last day (YYYY-MM-DD).'),
           timeZone: str('New IANA time zone.'),
         },
-        required: ['macroplanId'],
+        required: ['dayPlanId'],
       },
       async execute(input) {
         assertWritable('updating a macroplan');
         requireAuthUser();
-        const id = asStr(input.macroplanId, 'macroplanId');
+        const id = asStr(input.dayPlanId, 'dayPlanId');
         const existing = useBoundStore.getState().macroplan[id];
         if (!existing) throw new Error(`Macroplan ${id} is not loaded.`);
         const timeZone =
@@ -118,7 +123,7 @@ export function createMacroplanTools(): WebMCPTool[] {
           timeZoneStart: timeZone,
           timeZoneEnd: timeZone,
         });
-        return { ok: true, macroplanId: id };
+        return { ok: true, dayPlanId: id };
       },
     },
   ];

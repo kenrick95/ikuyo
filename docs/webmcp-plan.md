@@ -105,7 +105,7 @@ Tools are registered **dynamically** per current app context (see
 | Trip | `trip-get`, `trip-create`, `trip-update`, `trip-update-sharing`, `trip-update-sections`, `trip-add-member`, `trip-update-member` |
 | Activity | `activity-get`, `activity-create`, `activity-update` |
 | Accommodation | `accommodation-get`, `accommodation-create`, `accommodation-update` |
-| Macroplan | `macroplan-get`, `macroplan-create`, `macroplan-update` |
+| Day plan (stored internally as a macroplan) | `day-plan-get`, `day-plan-create`, `day-plan-update` |
 | Expense | `expense-get`, `expense-create`, `expense-update` |
 | Task | `task-list-create`, `task-list-update`, `task-create`, `task-get`, `task-update` |
 | Comment | `comment-list`, `comment-add`, `comment-update`, `comment-resolve` |
@@ -195,7 +195,7 @@ console error is emitted: the integration must be a feature-detected no-op.
      `accommodation-get`
    - `task-list-create`, then `task-create` → `task-get`
    - `expense-create` → `expense-get`
-   - `macroplan-create` → `macroplan-get`
+   - `day-plan-create` → `day-plan-get`
    - `comment-add` → `comment-list`, then `comment-update` and
      `comment-resolve`
 5. Confirm an invalid required field produces a descriptive retry-able error

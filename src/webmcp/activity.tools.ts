@@ -19,14 +19,18 @@ export function createActivityTools(): WebMCPTool[] {
     {
       name: 'activity-create',
       description:
-        'Creates an activity in a trip. Provide at least a title; dates are optional ISO-8601 (or epoch ms). location may include lat/lng/zoom.',
+        'Creates one focused itinerary activity: a single place, journey, reservation, or event with a bounded time. For a full-day itinerary or a day trip with several stops, first create a day plan and then add separate activities for each stop. Do not combine several venues or a city-wide day into one activity.',
       inputSchema: {
         type: 'object',
         properties: {
           tripId: str('Trip id. Defaults to the currently open trip.'),
-          title: str('Activity title.'),
+          title: str(
+            'Short name for one activity, event, or location (for example, "Fushimi Inari Taisha").',
+          ),
           description: str('Optional free-text description.'),
-          location: str('Optional location / origin name.'),
+          location: str(
+            'Optional primary location for this one activity; do not combine multiple stops.',
+          ),
           locationLat: num('Optional latitude of the location.'),
           locationLng: num('Optional longitude of the location.'),
           locationZoom: num('Optional map zoom for the location.'),
