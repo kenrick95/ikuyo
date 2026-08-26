@@ -155,7 +155,7 @@ when there are no matches, so treat empty output as success; run the full
    pnpm dev               # terminal 2, frontend at http://localhost:5173
    ```
 
-   Configure `IKUYO_API_URL` if the frontend is not proxied to the backend.
+   The frontend development server proxies `/api` requests to the backend.
    `localhost` is treated as a potentially trustworthy secure context by
    Chromium; use real HTTPS when testing from a non-local host.
 4. Use a dedicated test account and a disposable test trip. Delete and member

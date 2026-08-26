@@ -330,7 +330,6 @@ require the existing app environment variables (Instant app ID, MapTiler, etc.).
 staged backend deployment needs a complete environment example and a build test with:
 
 ```env
-IKUYO_API_URL=
 IKUYO_BACKEND_AUTH=true
 IKUYO_BACKEND_TRIP_WRITES=true
 IKUYO_BACKEND_ACTIVITY_WRITES=true
@@ -600,7 +599,6 @@ Backend step.
 
 ```dotenv
 # .env (repo root)
-IKUYO_API_URL=            # e.g. https://yourhost.com  (or blank = same origin)
 IKUYO_BACKEND_TRIP_READS=true
 IKUYO_BACKEND_AUTH=true
 IKUYO_BACKEND_TRIP_WRITES=true
@@ -710,7 +708,6 @@ Only when Step 9 has run stable (no rollback in N days):
 | `SENTRY_DSN` | required in prod | sentry DSN |
 | `SENTRY_RELEASE` | blank | sentry release id |
 | `NODE_ENV` | development | `production`/`development` |
-| `IKUYO_API_URL` | blank = same-origin | Laravel API base |
 | `IKUYO_BACKEND_TRIP_READS` | false | read trip detail via Laravel (else InstantID) |
 | `IKUYO_BACKEND_AUTH` | false | use Laravel auth pages (else InstantID) |
 | `IKUYO_BACKEND_TRIP_WRITES` | false | write trips (create/update/delete/duplicate) via Laravel |
@@ -925,7 +922,6 @@ php artisan config:cache
 Build from the **repo root** with the flags below in the root build environment:
 
 ```dotenv
-IKUYO_API_URL=https://staging.example.com
 IKUYO_BACKEND_TRIP_READS=true
 IKUYO_BACKEND_AUTH=true
 IKUYO_BACKEND_TRIP_WRITES=true

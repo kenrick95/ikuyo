@@ -7,7 +7,6 @@ import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
 const {
   NODE_ENV,
   INSTANT_APP_ID,
-  IKUYO_API_URL,
   IKUYO_BACKEND_AUTH,
   IKUYO_BACKEND_CONTENT_WRITES,
   IKUYO_BACKEND_TASK_WRITES,
@@ -34,7 +33,6 @@ console.log('Building Ikuyo for', NODE_ENV);
 console.log('Configurations from env variables', {
   NODE_ENV,
   INSTANT_APP_ID,
-  IKUYO_API_URL,
   IKUYO_BACKEND_AUTH,
   IKUYO_BACKEND_CONTENT_WRITES,
   IKUYO_BACKEND_TASK_WRITES,
@@ -95,6 +93,12 @@ export default defineConfig({
     // For local dev, only localhost:5173 is allowed by the OAuth callback
     host: 'localhost',
     port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8999',
+        changeOrigin: true,
+      },
+    },
   },
   source: {
     entry: {
@@ -102,9 +106,6 @@ export default defineConfig({
     },
     define: {
       'process.env.INSTANT_APP_ID': JSON.stringify(INSTANT_APP_ID),
-      'process.env.IKUYO_API_URL': JSON.stringify(
-        process.env.IKUYO_API_URL || '',
-      ),
       'process.env.IKUYO_BACKEND_AUTH': JSON.stringify(
         process.env.IKUYO_BACKEND_AUTH === 'true',
       ),
