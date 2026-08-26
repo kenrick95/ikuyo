@@ -117,17 +117,85 @@ Tools are registered **dynamically** per current app context (see
 - Constraints (required fields, valid ranges) are validated in code and
   returned as descriptive errors for agent retries.
 
-## 6. Rollout / verification
+## 6. How to test
 
-1. `pnpm typecheck` — no errors in `src/webmcp` / `src/App.tsx` (the remaining
-   repo errors are the pre-existing InstantDB-migration baseline on `main`).
-2. `biome check src/webmcp src/App.tsx` passes.
-3. Unit tests for the schema helpers: `src/webmcp/schema.test.ts`
-   (`npx vitest run src/webmcp/schema.test.ts`).
-4. Manual: enable `chrome://flags/#enable-webmcp-testing` in Chromium 146+,
-   run `pnpm dev` over HTTPS, confirm `document.modelContext` lists the expected
-   tools per route and that `execute` produces correct store/backend changes.
-5. Feature detection keeps all existing browsers working unchanged.
+### Automated checks
+
+Run these from the repository root:
+
+```bash
+# JSON-Schema/time validation used by every tool factory.
+CI=1 pnpm exec vitest run src/webmcp/schema.test.ts
+
+# Formatting and linting for the integration and its App wiring.
+CI=1 pnpm exec biome check src/webmcp src/App.tsx
+
+# Check integration-specific TypeScript errors. The repository currently has a
+# known main-branch InstantDB-migration typecheck baseline outside src/webmcp.
+CI=1 pnpm typecheck 2>&1 | grep -E 'src/webmcp|src/App.tsx'
+```
+
+The final command should print no matches. Its `grep` exit status is non-zero
+when there are no matches, so treat empty output as success; run the full
+`pnpm typecheck` separately when the existing InstantDB baseline is resolved.
+
+### Browser prerequisites
+
+1. Use Chromium/Chrome/Edge **146.0.7672.0 or later**.
+2. Enable `chrome://flags/#enable-webmcp-testing` and relaunch the browser.
+3. Start the app and its API/session backend with a local development
+   configuration:
+
+   ```bash
+   pnpm dev:backend       # terminal 1, Laravel API at http://localhost:8999
+   pnpm dev               # terminal 2, frontend at http://localhost:5173
+   ```
+
+   Configure `IKUYO_API_URL` if the frontend is not proxied to the backend.
+   `localhost` is treated as a potentially trustworthy secure context by
+   Chromium; use real HTTPS when testing from a non-local host.
+4. Use a dedicated test account and a disposable test trip. Never exercise a
+   `*-delete` tool against production data.
+
+### Manual WebMCP registration check
+
+Use the browser assistant / WebMCP test client enabled by the flag to inspect
+and invoke the page tools. Confirm the following registration lifecycle:
+
+| Page/state | Expected tools |
+| --- | --- |
+| `/login`, logged out | `auth-get-current-user`, `auth-login`, `auth-signup`, `auth-logout`, `account-update-preferences` |
+| Signed in at `/trip` | Above plus `trip-list`, `trip-get`, `trip-create` |
+| A loaded `/trip/:id` page | Above plus trip mutation/member tools and activity, accommodation, task, expense, macroplan, and comment tools |
+| Navigate away from `/trip/:id` | Per-trip tools disappear; this verifies the `AbortSignal` cleanup path |
+
+On an unsupported browser, verify normal login/trip UI still works and no
+console error is emitted: the integration must be a feature-detected no-op.
+
+### End-to-end disposable-data checklist
+
+1. Call `auth-get-current-user`; sign in using `auth-login` or create the
+   dedicated test user with `auth-signup`.
+2. Call `trip-create` with a unique title such as `WebMCP QA <timestamp>`;
+   open the returned trip in the UI so it is loaded into the store.
+3. Verify `trip-get`, then use `trip-update`, `trip-update-sharing`, and
+   `trip-update-sections`; refresh the page and confirm each change persisted.
+4. Create one entity for each main flow and verify it with its matching read
+   tool and the UI:
+   - `activity-create` → `activity-get`
+   - `accommodation-create` (provide required `checkIn` and `checkOut`) →
+     `accommodation-get`
+   - `task-list-create`, then `task-create` → `task-get`
+   - `expense-create` → `expense-get`
+   - `macroplan-create` → `macroplan-get`
+   - `comment-add` → `comment-list`, then `comment-update` and
+     `comment-resolve`
+5. Confirm an invalid required field produces a descriptive retry-able error
+   (for example an invalid ISO timestamp or a missing task title).
+6. Build/run once with `IKUYO_READ_ONLY_MODE=true`; confirm each mutating tool
+   fails before any backend write while all read tools still work.
+7. Only after explicit confirmation, use the `*-delete` tools to remove the
+   disposable entities and `trip-delete` to remove the disposable trip.
 
 ## 7. Non-goals
 
