@@ -30,6 +30,9 @@ export function createExpenseTools(): WebMCPTool[] {
           timestampIncurred: epochOrIso(
             'Optional date incurred (ISO-8601 or epoch ms).',
           ),
+          timeZoneIncurred: str(
+            'Optional IANA time zone where it was incurred.',
+          ),
         },
         required: ['title', 'amount'],
       },
@@ -98,6 +101,7 @@ export function createExpenseTools(): WebMCPTool[] {
           timestampIncurred: epochOrIso(
             'New incurred date (ISO-8601 or epoch ms).',
           ),
+          timeZoneIncurred: str('New IANA incurred time zone.'),
         },
         required: ['expenseId'],
       },

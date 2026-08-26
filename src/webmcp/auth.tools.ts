@@ -108,13 +108,12 @@ export function createAuthTools(): WebMCPTool[] {
       inputSchema: { type: 'object', properties: {} },
       async execute() {
         requireUser();
-        try {
-          await postMutation('/api/auth/logout', {});
-        } catch (error) {
-          // Logout should invalidate even if the server call fails; the local
-          // session is wiped regardless.
-          console.warn('[webmcp] logout request failed', error);
-        }
+        // Use `mutate` so logout remains available in read-only mode, but do
+        // not clear the local session until the server has acknowledged it.
+        await mutate('/api/auth/logout', {
+          method: 'POST',
+          body: JSON.stringify({}),
+        });
         useBoundStore.getState().clearSession();
         return { ok: true };
       },

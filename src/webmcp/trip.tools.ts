@@ -83,7 +83,8 @@ async function listTripsFromApi(): Promise<TripSummary[]> {
 }
 
 export function createTripTools(): WebMCPTool[] {
-  const roleValues = Object.values(TripUserRole);
+  // Owners cannot be assigned through the UI or backend member endpoints.
+  const memberRoleValues = [TripUserRole.Viewer, TripUserRole.Editor];
   return [
     {
       name: 'trip-list',
@@ -209,7 +210,9 @@ export function createTripTools(): WebMCPTool[] {
         const timeZone =
           asOptStr(input.timeZone, 'timeZone') ?? existing.timeZone;
         const dates =
-          input.startDate !== undefined || input.endDate !== undefined
+          input.startDate !== undefined ||
+          input.endDate !== undefined ||
+          input.timeZone !== undefined
             ? resolveTripDates(
                 (input.startDate as string | undefined) ??
                   epochToTripDate(existing.timestampStart, existing.timeZone),
@@ -281,29 +284,27 @@ export function createTripTools(): WebMCPTool[] {
           tripId: str('Trip id. Defaults to the currently open trip.'),
           publicShowExpenses: strEnum(
             'Visibility of expenses to public visitors.',
-            ['true', 'false', 'null'],
+            ['true', 'false'],
           ),
           publicShowTasks: strEnum('Visibility of tasks to public visitors.', [
             'true',
             'false',
-            'null',
           ]),
           publicShowComments: strEnum(
             'Visibility of comments to public visitors.',
-            ['true', 'false', 'null'],
+            ['true', 'false'],
           ),
           viewerShowExpenses: strEnum(
             'Visibility of expenses to invited viewers.',
-            ['true', 'false', 'null'],
+            ['true', 'false'],
           ),
           viewerShowTasks: strEnum('Visibility of tasks to invited viewers.', [
             'true',
             'false',
-            'null',
           ]),
           viewerShowComments: strEnum(
             'Visibility of comments to invited viewers.',
-            ['true', 'false', 'null'],
+            ['true', 'false'],
           ),
         },
       },
@@ -313,9 +314,7 @@ export function createTripTools(): WebMCPTool[] {
         const tripId =
           (input.tripId as string | undefined) ?? requireCurrentTrip();
         const parse = (key: string): boolean | undefined =>
-          input[key] === undefined || input[key] === 'null'
-            ? undefined
-            : input[key] === 'true';
+          input[key] === undefined ? undefined : input[key] === 'true';
         await dbUpdateTripSectionVisibility(tripId, {
           publicShowExpenses: parse('publicShowExpenses'),
           publicShowTasks: parse('publicShowTasks'),
@@ -330,13 +329,13 @@ export function createTripTools(): WebMCPTool[] {
     {
       name: 'trip-add-member',
       description:
-        'Adds a member to a trip by email with a role (owner, editor, viewer).',
+        'Adds a member to a trip by email with a role (editor or viewer).',
       inputSchema: {
         type: 'object',
         properties: {
           tripId: str('Trip id. Defaults to the currently open trip.'),
           email: str('Email of the member to invite.'),
-          role: strEnum('Member role.', roleValues),
+          role: strEnum('Member role (editor or viewer).', memberRoleValues),
         },
         required: ['email', 'role'],
       },
@@ -347,8 +346,9 @@ export function createTripTools(): WebMCPTool[] {
           (input.tripId as string | undefined) ?? requireCurrentTrip();
         const email = asStr(input.email, 'email').toLowerCase();
         const role = asStr(input.role, 'role') as TripUserRole;
-        if (!roleValues.includes(role))
-          throw new Error(`role must be one of ${roleValues.join(', ')}`);
+        if (!memberRoleValues.includes(role)) {
+          throw new Error(`role must be one of ${memberRoleValues.join(', ')}`);
+        }
         await dbAddUserToTrip({ tripId, userEmail: email, userRole: role });
         return { ok: true, tripId, email, role };
       },
@@ -361,7 +361,10 @@ export function createTripTools(): WebMCPTool[] {
         properties: {
           tripId: str('Trip id. Defaults to the currently open trip.'),
           email: str('Email of the member.'),
-          role: strEnum('New role.', roleValues),
+          role: strEnum(
+            'New member role (editor or viewer).',
+            memberRoleValues,
+          ),
         },
         required: ['email', 'role'],
       },
@@ -372,8 +375,9 @@ export function createTripTools(): WebMCPTool[] {
           (input.tripId as string | undefined) ?? requireCurrentTrip();
         const email = asStr(input.email, 'email').toLowerCase();
         const role = asStr(input.role, 'role') as TripUserRole;
-        if (!roleValues.includes(role))
-          throw new Error(`role must be one of ${roleValues.join(', ')}`);
+        if (!memberRoleValues.includes(role)) {
+          throw new Error(`role must be one of ${memberRoleValues.join(', ')}`);
+        }
         // Look up the current role so validation of a role change works server-side.
         const members = Object.values(useBoundStore.getState().tripUser).filter(
           (m) => m.tripId === tripId && m.email.toLowerCase() === email,

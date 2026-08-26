@@ -1,4 +1,5 @@
 import { useBoundStore } from '../data/store';
+import { TripUserRole } from '../User/TripUserRole';
 import { createAccommodationTools } from './accommodation.tools';
 import { createActivityTools } from './activity.tools';
 import { createAuthTools } from './auth.tools';
@@ -24,40 +25,82 @@ import { useWebMCPTools } from './useWebMCPTools';
  */
 export function WebMCPTools() {
   const authUser = useBoundStore((state) => state.authUser);
+  const currentUser = useBoundStore((state) => state.currentUser);
   const currentTripId = useBoundStore((state) => state.currentTripId);
-  const tripLoaded = useBoundStore((state) =>
-    currentTripId ? Boolean(state.trip[currentTripId]) : false,
+  const currentTrip = useBoundStore((state) =>
+    currentTripId ? state.trip[currentTripId] : undefined,
   );
+  const authenticated = Boolean(authUser && currentUser);
+  const tripLoaded = Boolean(currentTrip);
+  const canEdit =
+    currentTrip?.isCurrentUserTripMember === true &&
+    (currentTrip.currentUserRole === TripUserRole.Owner ||
+      currentTrip.currentUserRole === TripUserRole.Editor);
+  const canManage =
+    currentTrip?.isCurrentUserTripMember === true &&
+    currentTrip.currentUserRole === TripUserRole.Owner;
 
-  // Always-registered tools (auth + account).
-  const baseTools: WebMCPTool[] = [...createAuthTools()];
-  useWebMCPTools(baseTools, []);
+  // Do not advertise login/signup to an already authenticated assistant, or
+  // account/logout tools to a logged-out one.
+  const authToolNames = authenticated
+    ? ['auth-get-current-user', 'auth-logout', 'account-update-preferences']
+    : ['auth-get-current-user', 'auth-login', 'auth-signup'];
+  const authTools = createAuthTools().filter((tool) =>
+    authToolNames.includes(tool.name),
+  );
+  useWebMCPTools(authTools, [authenticated]);
 
-  // Authenticated: trip read/list/create + account preferences (already in
-  // baseTools) — register the trip subset that doesn't need an open trip.
-  const authenticated = Boolean(authUser);
+  // Authenticated: trip list/create/get tools that do not require a writable
+  // trip membership.
   const tripReadWriteTools: WebMCPTool[] = authenticated
-    ? createTripTools().filter((t) =>
-        ['trip-list', 'trip-get', 'trip-create'].includes(t.name),
+    ? createTripTools().filter((tool) =>
+        ['trip-list', 'trip-get', 'trip-create'].includes(tool.name),
       )
     : [];
   useWebMCPTools(tripReadWriteTools, [authenticated]);
 
-  // Trip open & loaded: full trip mutation tools + all entity tools.
-  const entityTools: WebMCPTool[] = tripLoaded
-    ? [
-        ...createTripTools().filter(
-          (t) => !['trip-list', 'trip-get', 'trip-create'].includes(t.name),
-        ),
-        ...createActivityTools(),
-        ...createAccommodationTools(),
-        ...createTaskTools(),
-        ...createExpenseTools(),
-        ...createMacroplanTools(),
-        ...createCommentTools(),
-      ]
-    : [];
-  useWebMCPTools(entityTools, [currentTripId, tripLoaded]);
+  const allEntityTools = [
+    ...createActivityTools(),
+    ...createAccommodationTools(),
+    ...createTaskTools(),
+    ...createExpenseTools(),
+    ...createMacroplanTools(),
+    ...createCommentTools(),
+  ];
+  const tripTools = createTripTools();
+  const entityTools: WebMCPTool[] =
+    authenticated && tripLoaded
+      ? [
+          ...allEntityTools.filter(
+            (tool) => tool.annotations?.readOnlyHint === true,
+          ),
+          ...(canEdit
+            ? [
+                ...tripTools.filter((tool) => tool.name === 'trip-update'),
+                ...allEntityTools.filter(
+                  (tool) => tool.annotations?.readOnlyHint !== true,
+                ),
+              ]
+            : []),
+          ...(canManage
+            ? tripTools.filter((tool) =>
+                [
+                  'trip-update-sharing',
+                  'trip-update-sections',
+                  'trip-add-member',
+                  'trip-update-member',
+                ].includes(tool.name),
+              )
+            : []),
+        ]
+      : [];
+  useWebMCPTools(entityTools, [
+    authenticated,
+    currentTripId,
+    tripLoaded,
+    canEdit,
+    canManage,
+  ]);
 
   return null;
 }

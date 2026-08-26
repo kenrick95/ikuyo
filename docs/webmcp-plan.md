@@ -84,13 +84,15 @@ src/webmcp/
 Tools are registered **dynamically** per current app context (see
 `WebMCPTools.tsx`):
 
-- **Always:** auth + account tools (`auth-get-current-user`, `auth-login`,
-  `auth-signup`, `auth-logout`, `account-update-preferences`).
-- **When signed in:** trip read/list/create tools (`trip-list`, `trip-get`,
-  `trip-create`).
-- **When a trip is loaded (`currentTripId`):** trip update/sharing/member-role
-  tools plus the per-trip vocabulary for activity / accommodation / macroplan /
-  expense / task / comment.
+- **When logged out:** `auth-get-current-user`, `auth-login`, and
+  `auth-signup`.
+- **When signed in:** `auth-get-current-user`, `auth-logout`,
+  `account-update-preferences`, plus trip read/list/create tools (`trip-list`,
+  `trip-get`, `trip-create`).
+- **When a trip is loaded (`currentTripId`):** read tools are available to any
+  authenticated visitor; create/update entity tools require an invited
+  **editor** or **owner** role; sharing, section visibility, and member-role
+  tools require **owner**. Member roles are limited to editor/viewer.
 - Read-only tools set `annotations: { readOnlyHint: true }` (placed **after**
   `execute`) so agents know they are safe.
 
@@ -166,9 +168,11 @@ and invoke the page tools. Confirm the following registration lifecycle:
 
 | Page/state | Expected tools |
 | --- | --- |
-| `/login`, logged out | `auth-get-current-user`, `auth-login`, `auth-signup`, `auth-logout`, `account-update-preferences` |
-| Signed in at `/trip` | Above plus `trip-list`, `trip-get`, `trip-create` |
-| A loaded `/trip/:id` page | Above plus trip mutation/member tools and activity, accommodation, task, expense, macroplan, and comment tools |
+| `/login`, logged out | `auth-get-current-user`, `auth-login`, `auth-signup` |
+| Signed in at `/trip` | `auth-get-current-user`, `auth-logout`, `account-update-preferences`, `trip-list`, `trip-get`, `trip-create` |
+| A loaded viewer/public `/trip/:id` | Signed-in tools plus entity read tools only |
+| A loaded editor `/trip/:id` | Viewer tools plus trip/entity create and update tools |
+| A loaded owner `/trip/:id` | Editor tools plus sharing, section-visibility, and member-role tools |
 | Navigate away from `/trip/:id` | Per-trip tools disappear; this verifies the `AbortSignal` cleanup path |
 
 On an unsupported browser, verify normal login/trip UI still works and no
@@ -182,6 +186,8 @@ console error is emitted: the integration must be a feature-detected no-op.
    open the returned trip in the UI so it is loaded into the store.
 3. Verify `trip-get`, then use `trip-update`, `trip-update-sharing`, and
    `trip-update-sections`; refresh the page and confirm each change persisted.
+   Also test a timezone-only `trip-update` and a single-date update to confirm
+   the intended calendar dates are retained.
 4. Create one entity for each main flow and verify it with its matching read
    tool and the UI:
    - `activity-create` → `activity-get`
@@ -194,8 +200,11 @@ console error is emitted: the integration must be a feature-detected no-op.
      `comment-resolve`
 5. Confirm an invalid required field produces a descriptive retry-able error
    (for example an invalid ISO timestamp or a missing task title).
-6. Build/run once with `IKUYO_READ_ONLY_MODE=true`; confirm each mutating tool
-   fails before any backend write while all read tools still work.
+6. Confirm a viewer sees no mutation tools, an editor sees entity create/update
+   tools but no sharing/member tools, and an owner sees all non-destructive
+   trip tools. Build/run once with `IKUYO_READ_ONLY_MODE=true`; confirm each
+   visible mutating tool fails before any backend write while all read tools
+   still work.
 7. Clean up the disposable entities and trip through their normal UI delete
    dialogs; these actions are intentionally absent from WebMCP.
 
