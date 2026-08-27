@@ -227,6 +227,36 @@ stale WebMCP tool handle. Long sequences of individual create calls also made
 partial completion likely: some entries could be saved before the context
 expired.
 
+### Testing findings: technical friction and missing tools
+
+The end-to-end trip-planning test also exposed gaps that make an otherwise
+valid agent workflow unnecessarily brittle:
+
+- **Route-dependent discovery:** the landing/trip-list page exposes only the
+  account and trip tools. Activity, day-plan, and other entity tools appear
+  only after opening the trip. An agent must therefore drive the UI or guess a
+  route before it can discover the tools required to continue planning.
+- **No explicit trip-context operation:** `trip-get` reads only a trip already
+  loaded into client state. There is no read-only `trip-open`/`trip-load` tool
+  for loading a known trip id and registering the corresponding tool set.
+- **Single-item writes only:** creating a normal itinerary requires one
+  `day-plan-create` call per day and one `activity-create` call per entry. This
+  makes longer plans slow, raises the chance of a stale context, and leaves
+  partially saved data if a sequence is interrupted.
+- **No relationship tool for itinerary structure:** activities cannot be
+  explicitly attached to a day plan/macroplan. The agent can align dates and
+  times, but cannot express or verify that a particular activity belongs to a
+  named day plan.
+- **No planning-oriented transport or event lookup:** the tools store a train
+  or performance once an agent has researched it elsewhere, but cannot search
+  schedules, validate a proposed service, or retrieve venue event details.
+  The agent must use an external source and record the source/uncertainty in
+  the activity description.
+- **No idempotency or batch result contract:** retries after a connection,
+  approval, or context interruption risk duplicate itinerary items, and the
+  caller cannot atomically learn which subset of a multi-step itinerary was
+  committed.
+
 ### Planned improvements
 
 1. Keep a minimal, stable trip-scoped tool set registered whenever an
@@ -238,6 +268,9 @@ expired.
 3. Add bounded batch tools such as `day-plan-create-many` and
    `activity-create-many`. Validate all input before writing; return ordered
    per-item results and an explicit partial-failure contract.
+   Include an optional `dayPlanId`/`macroplanId` on activity creation (and a
+   corresponding activity-membership read field) so a saved itinerary retains
+   its intended day-plan structure.
 4. Avoid unnecessary route replacement/reload after a mutation. When routing
    is necessary, immediately register the replacement tool set so an agent can
    rediscover it predictably.
@@ -247,6 +280,10 @@ expired.
 6. Extend the manual test matrix with a delayed approval/re-fetch scenario,
    retries using the same idempotency key, and batch interruption after each
    item.
+7. Decide whether transport and event discovery are product capabilities. If
+   so, add read-only, source-attributed tools such as `transport-search` and
+   `venue-events-search`; otherwise document that these facts must be checked
+   externally and stored as provisional itinerary notes.
 
 ### `isIdea` semantics
 
