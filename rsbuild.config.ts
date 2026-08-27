@@ -24,6 +24,7 @@ const {
   MAPTILER_API_KEY,
   MAPTILER_MAP_STYLE_LIGHT,
   MAPTILER_MAP_STYLE_DARK,
+  GOATCOUNTER_HOSTNAME,
 } = process.env;
 const isSentryEnabled = !!JSON.parse(SENTRY_ENABLED || 'true');
 const isProduction = NODE_ENV === 'production';
@@ -50,6 +51,7 @@ console.log('Configurations from env variables', {
   MAPTILER_API_KEY,
   MAPTILER_MAP_STYLE_LIGHT,
   MAPTILER_MAP_STYLE_DARK,
+  GOATCOUNTER_HOSTNAME,
   isSentryEnabled,
   isProduction,
   isDevelopment,
@@ -146,6 +148,11 @@ export default defineConfig({
       ),
       'process.env.MAPTILER_MAP_STYLE_DARK': JSON.stringify(
         MAPTILER_MAP_STYLE_DARK || 'BASIC.DARK',
+      ),
+      // Hostname only, e.g. "ikuyo.goatcounter.com". An empty value keeps
+      // GoatCounter entirely disabled in the client.
+      'process.env.GOATCOUNTER_HOSTNAME': JSON.stringify(
+        GOATCOUNTER_HOSTNAME || '',
       ),
     },
   },

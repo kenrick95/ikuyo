@@ -1,3 +1,5 @@
+import { trackWebMCPTool } from './goatcounter';
+
 /**
  * WebMCP (Web Model Context Protocol) — minimal client-side helper.
  *
@@ -67,7 +69,21 @@ export async function registerToolIfSupported(
   const ctx = getModelContext();
   if (!ctx) return;
   try {
-    await ctx.registerTool(tool, signal ? { signal } : undefined);
+    await ctx.registerTool(
+      {
+        ...tool,
+        async execute(input) {
+          // The tool name is static; inputs are intentionally never tracked.
+          try {
+            trackWebMCPTool(tool.name);
+          } catch {
+            // Telemetry must never affect a tool invocation.
+          }
+          return tool.execute(input);
+        },
+      },
+      signal ? { signal } : undefined,
+    );
   } catch (error) {
     // Registration must never break the app; surface a warning in dev only.
     console.warn('[webmcp] failed to register tool', tool.name, error);
