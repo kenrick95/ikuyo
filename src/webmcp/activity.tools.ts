@@ -1,16 +1,18 @@
 import { dbAddActivity, dbUpdateActivity } from '../Activity/db';
 import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
+import { resolveActivityFlags } from './activityFlags';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
 import type { WebMCPTool } from './modelContext';
 import {
   asOptNum,
   asOptStr,
   asStr,
+  bool,
   epochOrIso,
-  int,
   num,
   str,
+  strEnum,
   toEpochMs,
 } from './schema';
 
@@ -19,7 +21,7 @@ export function createActivityTools(): WebMCPTool[] {
     {
       name: 'activity-create',
       description:
-        'Creates one focused itinerary activity: a single place, journey, reservation, or event with a bounded time. For a full-day itinerary or a day trip with several stops, first create a day plan and then add separate activities for each stop. Do not combine several venues or a city-wide day into one activity.',
+        'Creates one focused itinerary activity: a single place, journey, reservation, or event with a bounded time. For a full-day itinerary or a day trip with several stops, first create a day plan and then add separate activities for each stop. Do not combine several venues or a city-wide day into one activity. Set `type` to "flight" for an airplane/journey segment, "train" for a rail journey, or leave it as "activity" for a place or event; set `isIdea` true for a tentative idea rather than a confirmed plan.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -40,7 +42,13 @@ export function createActivityTools(): WebMCPTool[] {
           locationDestinationLat: num('Optional destination latitude.'),
           locationDestinationLng: num('Optional destination longitude.'),
           locationDestinationZoom: num('Optional destination map zoom.'),
-          flags: int('Optional activity flag bitmask.'),
+          type: strEnum(
+            'Activity kind: "flight" for an airplane flight, "train" for a train journey, or "activity" for a place or event (default).',
+            ['activity', 'flight', 'train'],
+          ),
+          isIdea: bool(
+            'Whether this is a tentative idea rather than a confirmed plan.',
+          ),
           timestampStart: epochOrIso(
             'Optional start time (ISO-8601 string or epoch ms).',
           ),
@@ -85,7 +93,7 @@ export function createActivityTools(): WebMCPTool[] {
             timeZoneStart:
               asOptStr(input.timeZoneStart, 'timeZoneStart') ?? null,
             timeZoneEnd: asOptStr(input.timeZoneEnd, 'timeZoneEnd') ?? null,
-            flags: input.flags !== undefined ? Number(input.flags) : undefined,
+            flags: resolveActivityFlags(undefined, input.type, input.isIdea),
             icon: asOptStr(input.icon, 'icon') ?? null,
           },
           { tripId },
@@ -115,7 +123,7 @@ export function createActivityTools(): WebMCPTool[] {
     {
       name: 'activity-update',
       description:
-        'Updates an existing activity. Only provided fields are changed.',
+        'Updates an existing activity. Only provided fields are changed. Use `type` = "flight" to mark it as an airplane flight, "train" for a train journey, or "activity" to clear it; use `isIdea` true/false to mark it as a tentative idea.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -134,7 +142,13 @@ export function createActivityTools(): WebMCPTool[] {
           timestampEnd: epochOrIso('New end time (ISO-8601 or epoch ms).'),
           timeZoneStart: str('New IANA start time zone.'),
           timeZoneEnd: str('New IANA end time zone.'),
-          flags: int('New activity flag bitmask.'),
+          type: strEnum(
+            'Activity kind: "flight" for an airplane flight, "train" for a train journey, or "activity" for a place or event.',
+            ['activity', 'flight', 'train'],
+          ),
+          isIdea: bool(
+            'Whether this is a tentative idea rather than a confirmed plan.',
+          ),
           icon: str('New emoji icon.'),
         },
         required: ['activityId'],
@@ -183,10 +197,7 @@ export function createActivityTools(): WebMCPTool[] {
             existing.timeZoneStart,
           timeZoneEnd:
             asOptStr(input.timeZoneEnd, 'timeZoneEnd') ?? existing.timeZoneEnd,
-          flags:
-            input.flags !== undefined
-              ? Number(input.flags)
-              : (existing.flags ?? undefined),
+          flags: resolveActivityFlags(existing.flags, input.type, input.isIdea),
           icon: asOptStr(input.icon, 'icon') ?? existing.icon,
         });
         return { ok: true, activityId: id };
