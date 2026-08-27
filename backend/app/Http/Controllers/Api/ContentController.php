@@ -23,7 +23,7 @@ class ContentController extends Controller
 {
     public function activityDestroy(Request $request, Activity $activity, TripAccessService $access): JsonResponse
     {
-        abort_unless($request->user() && $access->canEdit($activity->trip, $request->user()), 403);
+        abort_unless($request->user() && $access->canEdit($this->tripFor($activity), $request->user()), 403);
         DB::transaction(function () use ($activity): void {
             $this->deleteRelatedComments('activity', $activity->id);
             $activity->delete();
@@ -34,7 +34,10 @@ class ContentController extends Controller
 
     public function activityUpdate(Request $request, Activity $activity, TripAccessService $access): JsonResponse
     {
-        abort_unless($request->user() && $access->canEdit($activity->trip, $request->user()), 403);
+        $trip = $activity->trip;
+        abort_unless($trip instanceof Trip, 404);
+        abort_unless($request->user() && $access->canEdit($trip, $request->user()), 403);
+        $this->validateActivityPlanning($request, $trip);
         $activity->fill($this->mapFields($request->except(['id', 'trip_id', 'created_at_ms', 'updated_at_ms'])));
         $activity->save();
 
@@ -99,7 +102,7 @@ class ContentController extends Controller
 
     public function activityDragEndById(Request $request, Activity $activity, TripAccessService $access): JsonResponse
     {
-        abort_unless($request->user() && $access->canEdit($activity->trip, $request->user()), 403);
+        abort_unless($request->user() && $access->canEdit($this->tripFor($activity), $request->user()), 403);
         $data = $request->validate(['timestampStart' => ['nullable', 'integer'], 'timestampEnd' => ['nullable', 'integer']]);
         $activity->update(['timestamp_start_ms' => $data['timestampStart'] ?? null, 'timestamp_end_ms' => $data['timestampEnd'] ?? null, 'flags' => ((int) $activity->flags) & ~1]);
 
@@ -108,7 +111,7 @@ class ContentController extends Controller
 
     public function activityDuplicateById(Request $request, Activity $activity, TripAccessService $access): JsonResponse
     {
-        abort_unless($request->user() && $access->canEdit($activity->trip, $request->user()), 403);
+        abort_unless($request->user() && $access->canEdit($this->tripFor($activity), $request->user()), 403);
         $data = $request->validate([
             'timestampStart' => ['nullable', 'integer'],
             'timestampEnd' => ['nullable', 'integer'],
@@ -127,7 +130,11 @@ class ContentController extends Controller
     public function byIdUpdate(Request $request, string $entity, string $entityId, TripAccessService $access): JsonResponse
     {
         $record = $this->recordById($entity, $entityId);
-        abort_unless($request->user() && $access->canEdit($record->trip, $request->user()), 403);
+        $trip = $this->tripFor($record);
+        abort_unless($request->user() && $access->canEdit($trip, $request->user()), 403);
+        if ($record instanceof Activity) {
+            $this->validateActivityPlanning($request, $trip);
+        }
         $record->fill($this->mapFields($request->except(['id', 'trip_id', 'created_at_ms', 'updated_at_ms'])));
         $record->save();
 
@@ -137,7 +144,7 @@ class ContentController extends Controller
     public function byIdDestroy(Request $request, string $entity, string $entityId, TripAccessService $access): JsonResponse
     {
         $record = $this->recordById($entity, $entityId);
-        abort_unless($request->user() && $access->canEdit($record->trip, $request->user()), 403);
+        abort_unless($request->user() && $access->canEdit($this->tripFor($record), $request->user()), 403);
         $this->deleteEntityDescGraph($record);
         $record->delete();
 
@@ -183,6 +190,9 @@ class ContentController extends Controller
     public function store(Request $request, Trip $trip, string $entity): JsonResponse
     {
         $model = $this->model($entity);
+        if ($entity === 'activities') {
+            $this->validateActivityPlanning($request, $trip);
+        }
         $request->validate(['id' => ['nullable', 'string', 'max:40']]);
         $data = $this->mapFields($request->except(['trip_id', 'created_at_ms', 'updated_at_ms']));
         unset($data['id']);
@@ -199,6 +209,9 @@ class ContentController extends Controller
     public function update(Request $request, Trip $trip, string $entity, string $entityId): JsonResponse
     {
         $record = $this->record($trip, $entity, $entityId);
+        if ($record instanceof Activity) {
+            $this->validateActivityPlanning($request, $trip);
+        }
         $record->fill($this->mapFields($request->except(['id', 'trip_id', 'created_at_ms', 'updated_at_ms'])));
         $record->save();
 
@@ -255,6 +268,8 @@ class ContentController extends Controller
             'phoneNumber' => 'phone_number', 'amountInOriginCurrency' => 'amount_in_origin_currency',
             'currencyConversionFactor' => 'currency_conversion_factor', 'timestampIncurred' => 'incurred_at_ms',
             'timeZoneIncurred' => 'timezone_incurred',
+            'dayPlanId' => 'macro_plan_id', 'macroplanId' => 'macro_plan_id',
+            'planningStatus' => 'planning_status',
         ];
         foreach ($map as $from => $to) {
             if (array_key_exists($from, $data)) {
@@ -264,6 +279,28 @@ class ContentController extends Controller
         }
 
         return $data;
+    }
+
+    private function validateActivityPlanning(Request $request, Trip $trip): void
+    {
+        $request->validate([
+            'dayPlanId' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'macroplanId' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'planningStatus' => ['sometimes', 'nullable', 'in:planned,tentative,confirmed'],
+        ]);
+        $dayPlanId = $request->input('dayPlanId');
+        $macroplanId = $request->input('macroplanId');
+        abort_unless($dayPlanId === null || $macroplanId === null || $dayPlanId === $macroplanId, 422, 'dayPlanId and macroplanId must match when both are supplied.');
+        $dayPlanId ??= $macroplanId;
+        abort_unless($dayPlanId === null || $trip->macroPlans()->whereKey($dayPlanId)->exists(), 422, 'dayPlanId must belong to the same trip.');
+    }
+
+    private function tripFor(Activity|Accommodation|MacroPlan|Expense $record): Trip
+    {
+        $trip = $record->trip;
+        abort_unless($trip instanceof Trip, 404);
+
+        return $trip;
     }
 
     private function model(string $entity): string

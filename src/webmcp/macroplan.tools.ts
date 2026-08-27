@@ -2,6 +2,7 @@ import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
 import { dbAddMacroplan, dbUpdateMacroplan } from '../Macroplan/db';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
+import { idempotencyKeySchema, runIdempotent } from './idempotency';
 import type { WebMCPTool } from './modelContext';
 import { asOptStr, asStr, str } from './schema';
 
@@ -15,6 +16,61 @@ function dayStart(isoDate: string, timeZone: string, addDays = 0): number {
     }).epochMilliseconds;
 }
 
+function dayPlanProperties() {
+  return {
+    tripId: str('Trip id. Defaults to the current WebMCP trip context.'),
+    idempotencyKey: idempotencyKeySchema(),
+    name: str('Day plan name (for example, "Kyoto day trip").'),
+    notes: str('Optional overview, pacing, or transport notes for the day.'),
+    startDate: str('First day covered by this plan (YYYY-MM-DD).'),
+    endDate: str(
+      'Last day covered (YYYY-MM-DD); use the same date for one day.',
+    ),
+    timeZone: str('IANA time zone; defaults to the trip time zone.'),
+  };
+}
+
+function parseDayPlan(input: Record<string, unknown>) {
+  const tripId = resolveTripId(input.tripId);
+  requireLoadedTrip(tripId);
+  const trip = useBoundStore.getState().trip[tripId];
+  const timeZone = asOptStr(input.timeZone, 'timeZone') ?? trip.timeZone;
+  const start = asStr(input.startDate, 'startDate');
+  const end = asStr(input.endDate, 'endDate');
+  const timestampStart = dayStart(start, timeZone);
+  const timestampEnd = dayStart(end, timeZone, 1);
+  if (timestampEnd <= timestampStart) {
+    throw new Error('endDate must be on or after startDate');
+  }
+  return {
+    tripId,
+    data: {
+      name: asStr(input.name, 'name'),
+      notes: asOptStr(input.notes, 'notes') ?? '',
+      timestampStart,
+      timestampEnd,
+      timeZoneStart: timeZone,
+      timeZoneEnd: timeZone,
+    },
+  };
+}
+
+async function createDayPlan(input: Record<string, unknown>) {
+  const parsed = parseDayPlan(input);
+  return runIdempotent(
+    'day-plan-create',
+    parsed.tripId,
+    input.idempotencyKey,
+    input,
+    async () => {
+      const result = await dbAddMacroplan(parsed.data, {
+        tripId: parsed.tripId,
+      });
+      return { ok: true, id: result.id, dayPlanId: result.id };
+    },
+  );
+}
+
 export function createMacroplanTools(): WebMCPTool[] {
   return [
     {
@@ -23,41 +79,78 @@ export function createMacroplanTools(): WebMCPTool[] {
         "Creates a day plan (stored internally as a macroplan) for one or more whole travel days. For an itinerary, create one day plan per day before adding activities; use the same startDate and endDate for a single-day plan. A day plan groups the day's focused activities rather than replacing them.",
       inputSchema: {
         type: 'object',
-        properties: {
-          tripId: str('Trip id. Defaults to the currently open trip.'),
-          name: str('Day plan name (for example, "Kyoto day trip").'),
-          notes: str(
-            'Optional overview, pacing, or transport notes for the day.',
-          ),
-          startDate: str('First day covered by this plan (YYYY-MM-DD).'),
-          endDate: str(
-            'Last day covered by this plan (YYYY-MM-DD); use the same date for one day.',
-          ),
-          timeZone: str('IANA time zone; defaults to the trip time zone.'),
-        },
+        properties: dayPlanProperties(),
         required: ['name', 'startDate', 'endDate'],
       },
       async execute(input) {
         assertWritable('creating a macroplan');
         requireAuthUser();
-        const tripId = resolveTripId(input.tripId);
-        requireLoadedTrip(tripId);
-        const trip = useBoundStore.getState().trip[tripId];
-        const timeZone = asOptStr(input.timeZone, 'timeZone') ?? trip.timeZone;
-        const start = asStr(input.startDate, 'startDate');
-        const end = asStr(input.endDate, 'endDate');
-        const result = await dbAddMacroplan(
-          {
-            name: asStr(input.name, 'name'),
-            notes: asOptStr(input.notes, 'notes') ?? '',
-            timestampStart: dayStart(start, timeZone),
-            timestampEnd: dayStart(end, timeZone, 1),
-            timeZoneStart: timeZone,
-            timeZoneEnd: timeZone,
+        return createDayPlan(input);
+      },
+    },
+    {
+      name: 'day-plan-create-many',
+      description:
+        'Creates up to 31 day plans. All input is validated before writing. Writes are ordered and non-atomic; partial failures identify the committed prefix, and per-item idempotency keys make retrying safe.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          tripId: str('Trip id applied to items that omit tripId.'),
+          dayPlans: {
+            type: 'array',
+            minItems: 1,
+            maxItems: 31,
+            description: 'Ordered day plans to create.',
+            items: {
+              type: 'object',
+              properties: dayPlanProperties(),
+              required: ['name', 'startDate', 'endDate'],
+            },
           },
-          { tripId },
-        );
-        return { ok: true, id: result.id, dayPlanId: result.id };
+        },
+        required: ['dayPlans'],
+      },
+      async execute(input) {
+        assertWritable('creating day plans');
+        requireAuthUser();
+        if (
+          !Array.isArray(input.dayPlans) ||
+          input.dayPlans.length < 1 ||
+          input.dayPlans.length > 31
+        ) {
+          throw new Error('dayPlans must contain between 1 and 31 items');
+        }
+        const items = input.dayPlans.map((item, index) => {
+          if (!item || typeof item !== 'object')
+            throw new Error(`dayPlans[${index}] must be an object`);
+          const merged = {
+            tripId: input.tripId,
+            ...(item as Record<string, unknown>),
+          };
+          parseDayPlan(merged);
+          return merged;
+        });
+        const results: Array<Record<string, unknown>> = [];
+        for (let index = 0; index < items.length; index++) {
+          try {
+            results.push(await createDayPlan(items[index]));
+          } catch (error) {
+            return {
+              ok: false,
+              atomic: false,
+              committedCount: results.length,
+              failedIndex: index,
+              results,
+              error: error instanceof Error ? error.message : String(error),
+            };
+          }
+        }
+        return {
+          ok: true,
+          atomic: false,
+          committedCount: results.length,
+          results,
+        };
       },
     },
     {
@@ -77,7 +170,10 @@ export function createMacroplanTools(): WebMCPTool[] {
         const id = asStr(input.dayPlanId, 'dayPlanId');
         const m = useBoundStore.getState().macroplan[id];
         if (!m) throw new Error(`Macroplan ${id} is not loaded.`);
-        return { ok: true, dayPlan: m };
+        const activityIds = Object.values(useBoundStore.getState().activity)
+          .filter((activity) => activity.dayPlanId === id)
+          .map((activity) => activity.id);
+        return { ok: true, dayPlan: { ...m, activityIds } };
       },
     },
     {

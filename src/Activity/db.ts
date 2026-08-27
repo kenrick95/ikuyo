@@ -20,6 +20,9 @@ export type DbActivityWithTrip = Omit<DbActivity, 'trip'> & {
 
 export type DbActivity = {
   id: string;
+  /** Optional explicit itinerary day-plan/macroplan membership. */
+  dayPlanId?: string | null;
+  planningStatus?: string | null;
   title: string;
   location: string;
   /** undefined/null means not set, 0 means somewhere! */

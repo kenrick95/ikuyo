@@ -8,6 +8,7 @@ import {
 } from '../Task/db';
 import { TaskStatus } from '../Task/TaskStatus';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
+import { idempotencyKeySchema, runIdempotent } from './idempotency';
 import type { WebMCPTool } from './modelContext';
 import { asStr, epochOrIso, int, str, toEpochMs } from './schema';
 
@@ -29,6 +30,7 @@ export function createTaskTools(): WebMCPTool[] {
         type: 'object',
         properties: {
           tripId: str('Trip id. Defaults to the currently open trip.'),
+          idempotencyKey: idempotencyKeySchema(),
           title: str('Task list title.'),
         },
         required: ['title'],
@@ -38,11 +40,20 @@ export function createTaskTools(): WebMCPTool[] {
         requireAuthUser();
         const tripId = resolveTripId(input.tripId);
         requireLoadedTrip(tripId);
-        const result = await dbAddTaskList(
-          { title: asStr(input.title, 'title'), index: 0, status: 0 },
-          { tripId },
+        const title = asStr(input.title, 'title');
+        return runIdempotent(
+          'task-list-create',
+          tripId,
+          input.idempotencyKey,
+          input,
+          async () => {
+            const result = await dbAddTaskList(
+              { title, index: 0, status: 0 },
+              { tripId },
+            );
+            return { ok: true, id: result.id, taskListId: result.id };
+          },
         );
-        return { ok: true, id: result.id, taskListId: result.id };
       },
     },
     {
@@ -80,6 +91,7 @@ export function createTaskTools(): WebMCPTool[] {
         type: 'object',
         properties: {
           taskListId: str('The task list id to add the task to.'),
+          idempotencyKey: idempotencyKeySchema(),
           title: str('Task title.'),
           description: str('Optional description.'),
           status: int(
@@ -101,18 +113,24 @@ export function createTaskTools(): WebMCPTool[] {
         if (!VALID_STATUS.includes(status))
           throw new Error('status is out of range');
         const dueAt = toEpochMs(input.dueAt, 'dueAt');
-        const result = await dbAddTask(
-          {
-            index: existingList.taskIds.length,
-            title: asStr(input.title, 'title'),
-            description: (input.description as string | undefined) ?? '',
-            status,
-            dueAt: dueAt ?? null,
-            completedAt: status === TaskStatus.Done ? Date.now() : null,
+        const data = {
+          index: existingList.taskIds.length,
+          title: asStr(input.title, 'title'),
+          description: (input.description as string | undefined) ?? '',
+          status,
+          dueAt: dueAt ?? null,
+          completedAt: status === TaskStatus.Done ? Date.now() : null,
+        };
+        return runIdempotent(
+          'task-create',
+          taskListId,
+          input.idempotencyKey,
+          input,
+          async () => {
+            const result = await dbAddTask(data, { taskListId });
+            return { ok: true, id: result.id, taskId: result.id };
           },
-          { taskListId },
         );
-        return { ok: true, id: result.id, taskId: result.id };
       },
     },
     {

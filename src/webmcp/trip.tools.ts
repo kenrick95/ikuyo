@@ -14,6 +14,7 @@ import {
   type TripSharingLevelType,
 } from '../Trip/tripSharingLevel';
 import { TripUserRole } from '../User/TripUserRole';
+import { idempotencyKeySchema, runIdempotent } from './idempotency';
 import type { WebMCPTool } from './modelContext';
 import { asOptStr, asStr, int, str, strEnum } from './schema';
 import { epochToTripDate, resolveTripDates } from './tripDates';
@@ -99,9 +100,26 @@ export function createTripTools(): WebMCPTool[] {
       },
     },
     {
+      name: 'trip-open',
+      description:
+        'Loads a known trip id into the non-visual WebMCP context and returns its snapshot. Use this after trip-list; it does not navigate or replace the visible route. Trip-scoped tools become discoverable immediately after loading completes.',
+      inputSchema: {
+        type: 'object',
+        properties: { tripId: str('The trip id to load.') },
+        required: ['tripId'],
+      },
+      annotations: { readOnlyHint: true },
+      async execute(input) {
+        requireAuthUser();
+        const tripId = asStr(input.tripId, 'tripId');
+        await useBoundStore.getState().loadTrip(tripId);
+        return { ok: true, trip: tripSnapshot(tripId) };
+      },
+    },
+    {
       name: 'trip-get',
       description:
-        'Returns a trip and its child entity ids from the locally loaded state. The trip must already be loaded (be on its page or have fetched it).',
+        'Returns a trip and its child entity ids from locally loaded state. Call trip-open first when the trip is not loaded.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -124,6 +142,7 @@ export function createTripTools(): WebMCPTool[] {
         type: 'object',
         properties: {
           title: str('Trip title.'),
+          idempotencyKey: idempotencyKeySchema(),
           startDate: str('First day of the trip (YYYY-MM-DD).'),
           endDate: str('Last full day of the trip (YYYY-MM-DD).'),
           timeZone: str('IANA trip time zone, e.g. Asia/Tokyo.'),
@@ -160,27 +179,33 @@ export function createTripTools(): WebMCPTool[] {
           input.endDate,
           timeZone,
         );
-        const result = await dbAddTrip(
-          {
-            title,
-            timestampStart,
-            timestampEnd,
-            timeZone,
+        const data = {
+          title,
+          timestampStart,
+          timestampEnd,
+          timeZone,
+          region,
+          currency,
+          originRegion:
+            asOptStr(input.originRegion, 'originRegion')?.toUpperCase() ??
             region,
+          originCurrency:
+            asOptStr(input.originCurrency, 'originCurrency')?.toUpperCase() ??
             currency,
-            originRegion:
-              asOptStr(input.originRegion, 'originRegion')?.toUpperCase() ??
-              region,
-            originCurrency:
-              asOptStr(input.originCurrency, 'originCurrency')?.toUpperCase() ??
-              currency,
-            originTimeZone:
-              asOptStr(input.originTimeZone, 'originTimeZone') ?? timeZone,
-            sharingLevel: TripSharingLevel.Private,
+          originTimeZone:
+            asOptStr(input.originTimeZone, 'originTimeZone') ?? timeZone,
+          sharingLevel: TripSharingLevel.Private,
+        };
+        return runIdempotent(
+          'trip-create',
+          user.id,
+          input.idempotencyKey,
+          input,
+          async () => {
+            const result = await dbAddTrip(data, { userId: user.id });
+            return { ok: true, id: result.id, tripId: result.id };
           },
-          { userId: user.id },
         );
-        return { ok: true, id: result.id };
       },
     },
     {

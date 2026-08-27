@@ -102,13 +102,14 @@ Tools are registered **dynamically** per current app context (see
 | --- | --- |
 | Auth / account | `auth-get-current-user`, `auth-login`, `auth-signup`, `auth-logout`, `account-update-preferences` |
 | Trip list | `trip-list` |
-| Trip | `trip-get`, `trip-create`, `trip-update`, `trip-update-sharing`, `trip-update-sections`, `trip-add-member`, `trip-update-member` |
-| Activity | `activity-get`, `activity-create`, `activity-update` |
+| Trip | `trip-open`, `trip-get`, `trip-create`, `trip-update`, `trip-update-sharing`, `trip-update-sections`, `trip-add-member`, `trip-update-member` |
+| Activity | `activity-get`, `activity-create`, `activity-create-many`, `activity-update` |
 | Accommodation | `accommodation-get`, `accommodation-create`, `accommodation-update` |
-| Day plan (stored internally as a macroplan) | `day-plan-get`, `day-plan-create`, `day-plan-update` |
+| Day plan (stored internally as a macroplan) | `day-plan-get`, `day-plan-create`, `day-plan-create-many`, `day-plan-update` |
 | Expense | `expense-get`, `expense-create`, `expense-update` |
 | Task | `task-list-create`, `task-list-update`, `task-create`, `task-get`, `task-update` |
 | Comment | `comment-list`, `comment-add`, `comment-update`, `comment-resolve` |
+| Places | `place-search` (candidate lookup only; never writes or silently chooses) |
 
 ## 5. Schema design
 
@@ -128,8 +129,8 @@ Tools are registered **dynamically** per current app context (see
 Run these from the repository root:
 
 ```bash
-# JSON-Schema/time validation plus partial trip-date update regression coverage.
-CI=1 pnpm exec vitest run src/webmcp/schema.test.ts src/webmcp/tripDates.test.ts
+# JSON-Schema/time, retry, tool-contract, and trip-date regression coverage.
+CI=1 pnpm exec vitest run src/webmcp
 
 # Formatting and linting for the integration and its App wiring.
 CI=1 pnpm exec biome check src/webmcp src/App.tsx
@@ -169,7 +170,7 @@ and invoke the page tools. Confirm the following registration lifecycle:
 | Page/state | Expected tools |
 | --- | --- |
 | `/login`, logged out | `auth-get-current-user`, `auth-login`, `auth-signup` |
-| Signed in at `/trip` | `auth-get-current-user`, `auth-logout`, `account-update-preferences`, `trip-list`, `trip-get`, `trip-create` |
+| Signed in at `/trip` | `auth-get-current-user`, `auth-logout`, `account-update-preferences`, `trip-list`, `trip-open`, `trip-get`, `trip-create`, `place-search` |
 | A loaded viewer/public `/trip/:id` | Signed-in tools plus entity read tools only |
 | A loaded editor `/trip/:id` | Viewer tools plus trip/entity create and update tools |
 | A loaded owner `/trip/:id` | Editor tools plus sharing, section-visibility, and member-role tools |
@@ -182,8 +183,8 @@ console error is emitted: the integration must be a feature-detected no-op.
 
 1. Call `auth-get-current-user`; sign in using `auth-login` or create the
    dedicated test user with `auth-signup`.
-2. Call `trip-create` with a unique title such as `WebMCP QA <timestamp>`;
-   open the returned trip in the UI so it is loaded into the store.
+2. Call `trip-create` with a unique title such as `WebMCP QA <timestamp>`, then
+   call `trip-open` with the returned id; no visual navigation is required.
 3. Verify `trip-get`, then use `trip-update`, `trip-update-sharing`, and
    `trip-update-sections`; refresh the page and confirm each change persisted.
    Also test a timezone-only `trip-update` and a single-date update to confirm
@@ -217,7 +218,27 @@ console error is emitted: the integration must be a feature-detected no-op.
 - No converting existing HTML forms to the WebMCP *declarative* API; the app is
   a store-driven SPA, so the imperative API is the correct fit.
 
-## 8. Reliability and itinerary-semantics follow-up plan
+## 8. Reliability and itinerary-semantics follow-up
+
+**Status:** The in-product gaps below were implemented on 2026-08-27.
+
+- `trip-open` hydrates a known trip without visual navigation; trip-scoped tools
+  are then registered from that stable context.
+- All WebMCP entity/trip create operations accept a browser-persistent
+  `idempotencyKey`. Same-key/same-input retries return the original result;
+  changed input is rejected, and concurrent calls are coalesced.
+- `day-plan-create-many` (31 items) and `activity-create-many` (50 items)
+  validate the full batch before writing and return an ordered, explicit
+  non-atomic partial-failure result.
+- Activities persist optional `dayPlanId` membership and `planningStatus`.
+  `day-plan-get` returns its attached `activityIds`.
+- `place-search` returns MapTiler candidates with canonical names, WGS84
+  coordinates, and suggested zoom. It never selects or writes a candidate.
+- Live transport schedules, venue events, and accommodation recommendations
+  remain deliberate non-capabilities. They need source-specific product and
+  commercial decisions; agents must research them externally and record the
+  source/uncertainty in notes. This prevents Ikuyo from implying that a
+  schedule, event, or lodging candidate was validated or booked.
 
 ### Problem observed
 

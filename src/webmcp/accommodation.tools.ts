@@ -2,6 +2,7 @@ import { dbAddAccommodation, dbUpdateAccommodation } from '../Accommodation/db';
 import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
+import { idempotencyKeySchema, runIdempotent } from './idempotency';
 import type { WebMCPTool } from './modelContext';
 import {
   asOptLatitude,
@@ -25,6 +26,7 @@ export function createAccommodationTools(): WebMCPTool[] {
         type: 'object',
         properties: {
           tripId: str('Trip id. Defaults to the currently open trip.'),
+          idempotencyKey: idempotencyKeySchema(),
           name: str('Accommodation name.'),
           address: str('Optional street address.'),
           checkIn: epochOrIso('Check-in time (ISO-8601 or epoch ms).'),
@@ -55,25 +57,46 @@ export function createAccommodationTools(): WebMCPTool[] {
             'checkIn and checkOut are required dates for an accommodation',
           );
         }
-        const result = await dbAddAccommodation(
-          {
-            name: asStr(input.name, 'name'),
-            address: asOptStr(input.address, 'address') ?? '',
-            timestampCheckIn: checkIn,
-            timestampCheckOut: checkOut,
-            phoneNumber: asOptStr(input.phoneNumber, 'phoneNumber') ?? '',
-            notes: asOptStr(input.notes, 'notes') ?? '',
-            locationLat: asOptLatitude(input.locationLat, 'locationLat'),
-            locationLng: asOptLongitude(input.locationLng, 'locationLng'),
-            locationZoom: asOptNum(input.locationZoom, 'locationZoom'),
-            timeZoneCheckIn:
-              asOptStr(input.timeZoneCheckIn, 'timeZoneCheckIn') ?? null,
-            timeZoneCheckOut:
-              asOptStr(input.timeZoneCheckOut, 'timeZoneCheckOut') ?? null,
+        const locationLat = asOptLatitude(input.locationLat, 'locationLat');
+        const locationLng = asOptLongitude(input.locationLng, 'locationLng');
+        if ((locationLat === undefined) !== (locationLng === undefined)) {
+          throw new Error(
+            'locationLat and locationLng must be supplied together',
+          );
+        }
+        if (checkOut <= checkIn) {
+          throw new Error('checkOut must be after checkIn');
+        }
+        const data = {
+          name: asStr(input.name, 'name'),
+          address: asOptStr(input.address, 'address') ?? '',
+          timestampCheckIn: checkIn,
+          timestampCheckOut: checkOut,
+          phoneNumber: asOptStr(input.phoneNumber, 'phoneNumber') ?? '',
+          notes: asOptStr(input.notes, 'notes') ?? '',
+          locationLat,
+          locationLng,
+          locationZoom: asOptNum(input.locationZoom, 'locationZoom'),
+          timeZoneCheckIn:
+            asOptStr(input.timeZoneCheckIn, 'timeZoneCheckIn') ?? null,
+          timeZoneCheckOut:
+            asOptStr(input.timeZoneCheckOut, 'timeZoneCheckOut') ?? null,
+        };
+        return runIdempotent(
+          'accommodation-create',
+          tripId,
+          input.idempotencyKey,
+          input,
+          async () => {
+            const result = await dbAddAccommodation(data, { tripId });
+            return {
+              ok: true,
+              id: result.id,
+              accommodationId: result.id,
+              mapped: locationLat != null && locationLng != null,
+            };
           },
-          { tripId },
         );
-        return { ok: true, id: result.id, accommodationId: result.id };
       },
     },
     {

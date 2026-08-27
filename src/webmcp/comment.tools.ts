@@ -8,6 +8,7 @@ import {
 import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
+import { idempotencyKeySchema, runIdempotent } from './idempotency';
 import type { WebMCPTool } from './modelContext';
 import { asOptStr, asStr, str, strEnum } from './schema';
 
@@ -56,6 +57,7 @@ export function createCommentTools(): WebMCPTool[] {
         type: 'object',
         properties: {
           tripId: str('Trip id. Defaults to the currently open trip.'),
+          idempotencyKey: idempotencyKeySchema(),
           content: str('Comment text.'),
           objectType: strEnum(
             'The type of object being commented on.',
@@ -99,11 +101,20 @@ export function createCommentTools(): WebMCPTool[] {
             );
           }
         }
-        const result = await dbAddComment(
-          { content: asStr(input.content, 'content') },
-          { userId: user.id, tripId, objectId, objectType, groupId },
+        const content = asStr(input.content, 'content');
+        return runIdempotent(
+          'comment-add',
+          `${tripId}:${objectType}:${objectId}`,
+          input.idempotencyKey,
+          input,
+          async () => {
+            const result = await dbAddComment(
+              { content },
+              { userId: user.id, tripId, objectId, objectType, groupId },
+            );
+            return { ok: true, commentId: result.id };
+          },
         );
-        return { ok: true, commentId: result.id };
       },
     },
     {

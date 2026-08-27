@@ -2,6 +2,7 @@ import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
 import { dbAddExpense, dbUpdateExpense } from '../Expense/db';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
+import { idempotencyKeySchema, runIdempotent } from './idempotency';
 import type { WebMCPTool } from './modelContext';
 import {
   asOptNum,
@@ -23,6 +24,7 @@ export function createExpenseTools(): WebMCPTool[] {
         type: 'object',
         properties: {
           tripId: str('Trip id. Defaults to the currently open trip.'),
+          idempotencyKey: idempotencyKeySchema(),
           title: str('Expense title.'),
           amount: num('Amount spent (numeric).'),
           currency: str('ISO 4217 currency code (e.g. JPY).'),
@@ -48,23 +50,29 @@ export function createExpenseTools(): WebMCPTool[] {
         const currency =
           (input.currency as string | undefined)?.toUpperCase() ??
           trip.currency;
-        const result = await dbAddExpense(
-          {
-            title: asStr(input.title, 'title'),
-            description: asOptStr(input.description, 'description') ?? '',
-            timestampIncurred:
-              toEpochMs(input.timestampIncurred, 'timestampIncurred') ??
-              Date.now(),
-            currency,
-            amount,
-            currencyConversionFactor: undefined,
-            amountInOriginCurrency: undefined,
-            timeZoneIncurred:
-              asOptStr(input.timeZoneIncurred, 'timeZoneIncurred') ?? null,
+        const data = {
+          title: asStr(input.title, 'title'),
+          description: asOptStr(input.description, 'description') ?? '',
+          timestampIncurred:
+            toEpochMs(input.timestampIncurred, 'timestampIncurred') ??
+            Date.now(),
+          currency,
+          amount,
+          currencyConversionFactor: undefined,
+          amountInOriginCurrency: undefined,
+          timeZoneIncurred:
+            asOptStr(input.timeZoneIncurred, 'timeZoneIncurred') ?? null,
+        };
+        return runIdempotent(
+          'expense-create',
+          tripId,
+          input.idempotencyKey,
+          input,
+          async () => {
+            const result = await dbAddExpense(data, { tripId });
+            return { ok: true, id: result.id, expenseId: result.id };
           },
-          { tripId },
         );
-        return { ok: true, id: result.id, expenseId: result.id };
       },
     },
     {

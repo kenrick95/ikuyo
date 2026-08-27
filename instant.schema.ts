@@ -40,6 +40,8 @@ const _schema = i.schema({
     }),
     activity: i.entity({
       createdAt: i.number(),
+      dayPlanId: i.string().optional(),
+      planningStatus: i.string().optional(),
       description: i.string(),
       lastUpdatedAt: i.number(),
       location: i.string(),

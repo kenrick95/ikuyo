@@ -27,6 +27,7 @@ describe('schema helpers', () => {
           format: 'date-time',
           description: 'ISO-8601 date-time.',
         },
+        { type: 'null', description: 'Clear an optional timestamp.' },
       ],
       description: 'when',
     });

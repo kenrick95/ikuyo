@@ -175,12 +175,6 @@ parameters:
 			path: app/Http/Controllers/Api/ContentController.php
 
 		-
-			message: '#^Parameter \#1 \$trip of method App\\Services\\TripAccessService\:\:canEdit\(\) expects App\\Models\\Trip, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
-			identifier: argument.type
-			count: 6
-			path: app/Http/Controllers/Api/ContentController.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model&object\{pivot\: Illuminate\\Database\\Eloquent\\Relations\\Pivot\}\:\:\$handle\.$#'
 			identifier: property.notFound
 			count: 1

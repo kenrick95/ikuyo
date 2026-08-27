@@ -67,63 +67,66 @@ function mergeApiTrip(
 /**
  * Fetch a backend trip and merge it into the store. `showLoading` controls
  * whether the tripMeta.loading flag is raised (initial load vs silent refresh).
- */
-/**
- * Fetch a backend trip and merge it into the store. `showLoading` controls
- * whether the tripMeta.loading flag is raised (initial load vs silent refresh).
  * Concurrent refreshes of the same trip are coalesced via an in-flight map so
  * the mutation refresh and the sync poll don't fire redundant requests.
  */
-const inFlightTrips = new Set<string>();
-async function fetchTripAndMerge(
+const inFlightTrips = new Map<string, Promise<void>>();
+function fetchTripAndMerge(
   set: (fn: (state: BoundStoreType) => Partial<TripSlice> | TripSlice) => void,
   tripId: string,
   showLoading: boolean,
   shouldAbort?: () => boolean,
 ): Promise<void> {
-  if (inFlightTrips.has(tripId)) return;
-  inFlightTrips.add(tripId);
-  try {
-    if (showLoading) {
-      set((state) => ({
-        tripMeta: {
-          ...state.tripMeta,
-          [tripId]: { loading: true, error: undefined },
-        },
-      }));
-    }
-    const payload = await apiGet<Record<string, unknown>>(
-      `/api/trips/${encodeURIComponent(tripId)}`,
-    );
-    if (shouldAbort?.()) return;
-    const trip = mapApiTrip(payload);
-    set(
-      (state) =>
-        ({
-          ...mergeApiTrip(state, trip),
+  const existing = inFlightTrips.get(tripId);
+  if (existing) return existing;
+  const promise = (async () => {
+    try {
+      if (showLoading) {
+        set((state) => ({
           tripMeta: {
             ...state.tripMeta,
-            [tripId]: { loading: false, error: undefined },
+            [tripId]: { loading: true, error: undefined },
           },
-        }) satisfies Partial<TripSlice>,
-    );
-  } catch (error: unknown) {
-    set(
-      (state) =>
-        ({
-          tripMeta: {
-            ...state.tripMeta,
-            [tripId]: {
-              loading: false,
-              error:
-                error instanceof Error ? error.message : 'Unable to load trip',
+        }));
+      }
+      const payload = await apiGet<Record<string, unknown>>(
+        `/api/trips/${encodeURIComponent(tripId)}`,
+      );
+      if (shouldAbort?.()) return;
+      const trip = mapApiTrip(payload);
+      set(
+        (state) =>
+          ({
+            ...mergeApiTrip(state, trip),
+            tripMeta: {
+              ...state.tripMeta,
+              [tripId]: { loading: false, error: undefined },
             },
-          },
-        }) satisfies Partial<TripSlice>,
-    );
-  } finally {
-    inFlightTrips.delete(tripId);
-  }
+          }) satisfies Partial<TripSlice>,
+      );
+    } catch (error: unknown) {
+      set(
+        (state) =>
+          ({
+            tripMeta: {
+              ...state.tripMeta,
+              [tripId]: {
+                loading: false,
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : 'Unable to load trip',
+              },
+            },
+          }) satisfies Partial<TripSlice>,
+      );
+      throw error;
+    } finally {
+      inFlightTrips.delete(tripId);
+    }
+  })();
+  inFlightTrips.set(tripId, promise);
+  return promise;
 }
 
 export const createTripSlice: StateCreator<
@@ -140,7 +143,8 @@ export const createTripSlice: StateCreator<
   setMutationAppliedHandler(() => {
     if (!backendTripReads) return;
     const tripId = get().currentTripId;
-    if (tripId) void fetchTripAndMerge(set, tripId, false);
+    if (tripId)
+      void fetchTripAndMerge(set, tripId, false).catch(() => undefined);
   });
   return {
     currentTripId: undefined,
@@ -306,14 +310,33 @@ export const createTripSlice: StateCreator<
     subscribeTrip: (tripId: string) => {
       if (!backendTripReads) return get().subscribeTripInstant(tripId);
       let disposed = false;
-      void fetchTripAndMerge(set, tripId, true, () => disposed);
+      void fetchTripAndMerge(set, tripId, true, () => disposed).catch(
+        () => undefined,
+      );
       return () => {
         disposed = true;
       };
     },
     refreshTrip: (tripId: string) => {
       if (!backendTripReads) return;
-      void fetchTripAndMerge(set, tripId, false);
+      void fetchTripAndMerge(set, tripId, false).catch(() => undefined);
+    },
+    loadTrip: async (tripId: string) => {
+      if (!backendTripReads) {
+        const existing = get().trip[tripId];
+        if (!existing) {
+          throw new Error(
+            'Opening a trip by id requires backend trip reads in this deployment.',
+          );
+        }
+        set({ currentTripId: tripId });
+        return existing;
+      }
+      await fetchTripAndMerge(set, tripId, true);
+      const trip = get().trip[tripId];
+      if (!trip) throw new Error(`Trip ${tripId} could not be loaded.`);
+      set({ currentTripId: tripId });
+      return trip;
     },
     setCurrentTripId: (tripId: string | undefined) => {
       set(() => ({

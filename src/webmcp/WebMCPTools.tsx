@@ -7,6 +7,7 @@ import { createCommentTools } from './comment.tools';
 import { createExpenseTools } from './expense.tools';
 import { createMacroplanTools } from './macroplan.tools';
 import type { WebMCPTool } from './modelContext';
+import { createPlaceTools } from './place.tools';
 import { createTaskTools } from './task.tools';
 import { createTripTools } from './trip.tools';
 import { useWebMCPTools } from './useWebMCPTools';
@@ -53,9 +54,14 @@ export function WebMCPTools() {
   // Authenticated: trip list/create/get tools that do not require a writable
   // trip membership.
   const tripReadWriteTools: WebMCPTool[] = authenticated
-    ? createTripTools().filter((tool) =>
-        ['trip-list', 'trip-get', 'trip-create'].includes(tool.name),
-      )
+    ? [
+        ...createTripTools().filter((tool) =>
+          ['trip-list', 'trip-open', 'trip-get', 'trip-create'].includes(
+            tool.name,
+          ),
+        ),
+        ...createPlaceTools(),
+      ]
     : [];
   useWebMCPTools(tripReadWriteTools, [authenticated]);
 

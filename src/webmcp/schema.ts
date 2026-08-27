@@ -29,6 +29,7 @@ export function epochOrIso(description: string): Record<string, unknown> {
         format: 'date-time',
         description: 'ISO-8601 date-time.',
       },
+      { type: 'null', description: 'Clear an optional timestamp.' },
     ],
     description,
   };
