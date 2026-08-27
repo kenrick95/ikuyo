@@ -95,6 +95,38 @@ export function asOptNum(
   return n;
 }
 
+/** Optional WGS84 latitude. */
+export function asOptLatitude(
+  value: unknown,
+  field: string,
+): number | null | undefined {
+  const latitude = asOptNum(value, field);
+  if (
+    latitude !== undefined &&
+    latitude !== null &&
+    (latitude < -90 || latitude > 90)
+  ) {
+    throw new Error(`${field} must be between -90 and 90`);
+  }
+  return latitude;
+}
+
+/** Optional WGS84 longitude. */
+export function asOptLongitude(
+  value: unknown,
+  field: string,
+): number | null | undefined {
+  const longitude = asOptNum(value, field);
+  if (
+    longitude !== undefined &&
+    longitude !== null &&
+    (longitude < -180 || longitude > 180)
+  ) {
+    throw new Error(`${field} must be between -180 and 180`);
+  }
+  return longitude;
+}
+
 /** Coerce optional string-or-null for nullable text fields. */
 export function asOptStr(
   value: unknown,

@@ -216,3 +216,97 @@ console error is emitted: the integration must be a feature-detected no-op.
   API layer.
 - No converting existing HTML forms to the WebMCP *declarative* API; the app is
   a store-driven SPA, so the imperative API is the correct fit.
+
+## 8. Reliability and itinerary-semantics follow-up plan
+
+### Problem observed
+
+During browser-assisted testing, a page route/context could change between a
+tool discovery and a later mutation. The browser then correctly rejected the
+stale WebMCP tool handle. Long sequences of individual create calls also made
+partial completion likely: some entries could be saved before the context
+expired.
+
+### Planned improvements
+
+1. Keep a minimal, stable trip-scoped tool set registered whenever an
+   authenticated trip id is known; do not require a particular view such as
+   Home or Timetable merely to expose entity tools.
+2. Make every create operation retry-safe with an optional caller-supplied
+   `idempotencyKey`. Return the existing entity for a repeated key rather than
+   creating a duplicate.
+3. Add bounded batch tools such as `day-plan-create-many` and
+   `activity-create-many`. Validate all input before writing; return ordered
+   per-item results and an explicit partial-failure contract.
+4. Avoid unnecessary route replacement/reload after a mutation. When routing
+   is necessary, immediately register the replacement tool set so an agent can
+   rediscover it predictably.
+5. Provide a route/context helper (for example `trip-open`) or make
+   `trip-get` hydrate the requested trip into the local store, so an agent can
+   enter a trip context without driving the visual UI.
+6. Extend the manual test matrix with a delayed approval/re-fetch scenario,
+   retries using the same idempotency key, and batch interruption after each
+   item.
+
+### `isIdea` semantics
+
+`isIdea` must mean **unscheduled backlog option**, not “scheduled but still
+tentative.” An activity belongs in the normal timetable when it has a planned
+time, even if its booking, exact train, or performance time needs later
+confirmation.
+
+Update the tool descriptions and examples accordingly:
+
+- `isIdea: true`: an option without a committed day/time, kept for possible
+  later use and intentionally absent from the timetable.
+- `isIdea: false` (the default): an activity scheduled on the itinerary,
+  including a provisional/estimated schedule.
+- Put uncertainty in `description`, for example: “Tentative: confirm the
+  October timetable when it is published.”
+
+For clearer machine guidance, consider adding an optional
+`planningStatus: "planned" | "tentative" | "confirmed"` field. This is
+separate from placement: all three statuses may be shown on the timetable;
+only `isIdea: true` keeps an item in the idea backlog. Do not infer
+`isIdea: true` solely from an uncertain time.
+
+### Location semantics and geocoding
+
+The current `activity-create` schema accepts location text and optional
+coordinates, but it does not geocode a place name. An agent that supplies only
+`location` therefore creates a valid activity without map coordinates.
+
+Revise the coordinate field descriptions to say that a mapped place should
+include both latitude and longitude (and the destination pair for a journey),
+with WGS84 decimal degrees. Also add either:
+
+1. a read-only `place-search` / `geocode` tool that returns canonical names,
+   coordinates, and an optional recommended zoom, or
+2. a write-time `geocodeLocation: true` option which resolves a supplied name
+   and returns the resolved coordinates plus a confidence/error result.
+
+Do not silently geocode ambiguous names. Return candidates and require an
+agent to choose one; this prevents a location label from being pinned in the
+wrong city. If coordinate lookup is unavailable, the tool should make the
+missing-map result explicit rather than implying that a location string will
+appear on the map.
+
+### Accommodation semantics and discovery
+
+Apply the same map contract to `accommodation-create` and
+`accommodation-update`: `name` and `address` are display/search text, not a
+geocode request. A mapped accommodation should include `locationLat` and
+`locationLng` in WGS84 decimal degrees (with optional `locationZoom`), or be
+resolved first through the shared `place-search` / `geocode` tool.
+
+Accommodation tools should also state that a record represents an actual
+planned stay and therefore requires check-in and check-out. An unselected
+hotel or rental belongs in the unscheduled idea backlog, not in the
+accommodation timeline.
+
+Add a read-only accommodation-discovery tool only if the product deliberately
+supports recommendations, for example `accommodation-search` with explicit
+destination, dates, guest count, price range, and preferences. It should
+return candidates only; creating an accommodation remains a separate action
+after the agent or user chooses one. This avoids inventing a hotel booking or
+silently assigning a stay when the traveller has not specified lodging needs.

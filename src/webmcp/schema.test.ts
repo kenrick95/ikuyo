@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import {
+  asOptLatitude,
+  asOptLongitude,
   asOptNum,
   asOptStr,
   asStr,
@@ -61,5 +63,12 @@ describe('schema helpers', () => {
     expect(asOptNum(4, 'f')).toBe(4);
     expect(asOptNum(undefined, 'f')).toBeUndefined();
     expect(() => asOptNum('oops', 'f')).toThrow(/f must be a number/);
+  });
+
+  test('WGS84 coordinate helpers validate their ranges', () => {
+    expect(asOptLatitude(1.35, 'lat')).toBe(1.35);
+    expect(asOptLongitude(103.82, 'lng')).toBe(103.82);
+    expect(() => asOptLatitude(91, 'lat')).toThrow(/-90 and 90/);
+    expect(() => asOptLongitude(181, 'lng')).toThrow(/-180 and 180/);
   });
 });

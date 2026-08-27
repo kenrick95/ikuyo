@@ -4,6 +4,8 @@ import { useBoundStore } from '../data/store';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
 import type { WebMCPTool } from './modelContext';
 import {
+  asOptLatitude,
+  asOptLongitude,
   asOptNum,
   asOptStr,
   asStr,
@@ -18,7 +20,7 @@ export function createAccommodationTools(): WebMCPTool[] {
     {
       name: 'accommodation-create',
       description:
-        'Creates a lodging/accommodation in a trip. Requires a name, check-in time, and check-out time.',
+        'Creates an actual planned lodging stay in a trip. Requires a name, check-in, and check-out. `address` is display text and is not geocoded automatically; supply the WGS84 coordinate pair to show it on the map. Keep unselected hotel options as unscheduled ideas, not accommodations.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -29,8 +31,12 @@ export function createAccommodationTools(): WebMCPTool[] {
           checkOut: epochOrIso('Check-out time (ISO-8601 or epoch ms).'),
           phoneNumber: str('Optional phone number.'),
           notes: str('Optional notes.'),
-          locationLat: num('Optional latitude.'),
-          locationLng: num('Optional longitude.'),
+          locationLat: num(
+            'WGS84 latitude (-90 to 90). Provide with locationLng to map this accommodation; address is not geocoded automatically.',
+          ),
+          locationLng: num(
+            'WGS84 longitude (-180 to 180). Provide with locationLat to map this accommodation; address is not geocoded automatically.',
+          ),
           locationZoom: num('Optional map zoom.'),
           timeZoneCheckIn: str('Optional IANA time zone for check-in.'),
           timeZoneCheckOut: str('Optional IANA time zone for check-out.'),
@@ -57,8 +63,8 @@ export function createAccommodationTools(): WebMCPTool[] {
             timestampCheckOut: checkOut,
             phoneNumber: asOptStr(input.phoneNumber, 'phoneNumber') ?? '',
             notes: asOptStr(input.notes, 'notes') ?? '',
-            locationLat: asOptNum(input.locationLat, 'locationLat'),
-            locationLng: asOptNum(input.locationLng, 'locationLng'),
+            locationLat: asOptLatitude(input.locationLat, 'locationLat'),
+            locationLng: asOptLongitude(input.locationLng, 'locationLng'),
             locationZoom: asOptNum(input.locationZoom, 'locationZoom'),
             timeZoneCheckIn:
               asOptStr(input.timeZoneCheckIn, 'timeZoneCheckIn') ?? null,
@@ -93,7 +99,7 @@ export function createAccommodationTools(): WebMCPTool[] {
     {
       name: 'accommodation-update',
       description:
-        'Updates an existing accommodation. Only provided fields are changed.',
+        'Updates an existing planned accommodation. Use a WGS84 coordinate pair to map it; address text is not geocoded automatically.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -130,9 +136,11 @@ export function createAccommodationTools(): WebMCPTool[] {
             asOptStr(input.phoneNumber, 'phoneNumber') ?? existing.phoneNumber,
           notes: asOptStr(input.notes, 'notes') ?? existing.notes,
           locationLat:
-            asOptNum(input.locationLat, 'locationLat') ?? existing.locationLat,
+            asOptLatitude(input.locationLat, 'locationLat') ??
+            existing.locationLat,
           locationLng:
-            asOptNum(input.locationLng, 'locationLng') ?? existing.locationLng,
+            asOptLongitude(input.locationLng, 'locationLng') ??
+            existing.locationLng,
           locationZoom:
             asOptNum(input.locationZoom, 'locationZoom') ??
             existing.locationZoom,

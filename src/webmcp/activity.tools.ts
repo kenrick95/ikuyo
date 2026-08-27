@@ -5,6 +5,8 @@ import { resolveActivityFlags } from './activityFlags';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
 import type { WebMCPTool } from './modelContext';
 import {
+  asOptLatitude,
+  asOptLongitude,
   asOptNum,
   asOptStr,
   asStr,
@@ -21,7 +23,7 @@ export function createActivityTools(): WebMCPTool[] {
     {
       name: 'activity-create',
       description:
-        'Creates one focused itinerary activity: a single place, journey, reservation, or event with a bounded time. For a full-day itinerary or a day trip with several stops, first create a day plan and then add separate activities for each stop. Do not combine several venues or a city-wide day into one activity. Set `type` to "flight" for an airplane/journey segment, "train" for a rail journey, or leave it as "activity" for a place or event; set `isIdea` true for a tentative idea rather than a confirmed plan.',
+        'Creates one focused itinerary activity. Use `isIdea: true` only for an unscheduled backlog option; a timed but tentative plan belongs on the timetable with `isIdea: false` and its uncertainty in `description`. For a mapped place, supply both WGS84 `locationLat` and `locationLng`; a location name is not geocoded automatically. Set `type` to "flight" for an airplane journey or "train" for a rail journey.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -33,14 +35,22 @@ export function createActivityTools(): WebMCPTool[] {
           location: str(
             'Optional primary location for this one activity; do not combine multiple stops.',
           ),
-          locationLat: num('Optional latitude of the location.'),
-          locationLng: num('Optional longitude of the location.'),
+          locationLat: num(
+            'WGS84 latitude (-90 to 90). Provide with locationLng for a mapped place; names are not geocoded automatically.',
+          ),
+          locationLng: num(
+            'WGS84 longitude (-180 to 180). Provide with locationLat for a mapped place; names are not geocoded automatically.',
+          ),
           locationZoom: num('Optional map zoom for the location.'),
           locationDestination: str(
             'Optional destination name (for A→B trips).',
           ),
-          locationDestinationLat: num('Optional destination latitude.'),
-          locationDestinationLng: num('Optional destination longitude.'),
+          locationDestinationLat: num(
+            'WGS84 destination latitude (-90 to 90); provide with locationDestinationLng for a mapped journey.',
+          ),
+          locationDestinationLng: num(
+            'WGS84 destination longitude (-180 to 180); provide with locationDestinationLat for a mapped journey.',
+          ),
           locationDestinationZoom: num('Optional destination map zoom.'),
           type: strEnum(
             'Activity kind: "flight" for an airplane flight, "train" for a train journey, or "activity" for a place or event (default).',
@@ -71,16 +81,16 @@ export function createActivityTools(): WebMCPTool[] {
             title: asStr(input.title, 'title'),
             description: (input.description as string | undefined) ?? '',
             location: asOptStr(input.location, 'location') ?? '',
-            locationLat: asOptNum(input.locationLat, 'locationLat'),
-            locationLng: asOptNum(input.locationLng, 'locationLng'),
+            locationLat: asOptLatitude(input.locationLat, 'locationLat'),
+            locationLng: asOptLongitude(input.locationLng, 'locationLng'),
             locationZoom: asOptNum(input.locationZoom, 'locationZoom'),
             locationDestination:
               asOptStr(input.locationDestination, 'locationDestination') ?? '',
-            locationDestinationLat: asOptNum(
+            locationDestinationLat: asOptLatitude(
               input.locationDestinationLat,
               'locationDestinationLat',
             ),
-            locationDestinationLng: asOptNum(
+            locationDestinationLng: asOptLongitude(
               input.locationDestinationLng,
               'locationDestinationLng',
             ),
@@ -123,7 +133,7 @@ export function createActivityTools(): WebMCPTool[] {
     {
       name: 'activity-update',
       description:
-        'Updates an existing activity. Only provided fields are changed. Use `type` = "flight" to mark it as an airplane flight, "train" for a train journey, or "activity" to clear it; use `isIdea` true/false to mark it as a tentative idea.',
+        'Updates an existing activity. `isIdea: true` means an unscheduled backlog option, not a tentative timetable entry. Use WGS84 coordinate pairs to map locations; names are not geocoded automatically.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -166,9 +176,11 @@ export function createActivityTools(): WebMCPTool[] {
             (input.description as string | undefined) ?? existing.description,
           location: asOptStr(input.location, 'location') ?? existing.location,
           locationLat:
-            asOptNum(input.locationLat, 'locationLat') ?? existing.locationLat,
+            asOptLatitude(input.locationLat, 'locationLat') ??
+            existing.locationLat,
           locationLng:
-            asOptNum(input.locationLng, 'locationLng') ?? existing.locationLng,
+            asOptLongitude(input.locationLng, 'locationLng') ??
+            existing.locationLng,
           locationZoom:
             asOptNum(input.locationZoom, 'locationZoom') ??
             existing.locationZoom,
@@ -176,11 +188,15 @@ export function createActivityTools(): WebMCPTool[] {
             asOptStr(input.locationDestination, 'locationDestination') ??
             existing.locationDestination,
           locationDestinationLat:
-            asOptNum(input.locationDestinationLat, 'locationDestinationLat') ??
-            existing.locationDestinationLat,
+            asOptLatitude(
+              input.locationDestinationLat,
+              'locationDestinationLat',
+            ) ?? existing.locationDestinationLat,
           locationDestinationLng:
-            asOptNum(input.locationDestinationLng, 'locationDestinationLng') ??
-            existing.locationDestinationLng,
+            asOptLongitude(
+              input.locationDestinationLng,
+              'locationDestinationLng',
+            ) ?? existing.locationDestinationLng,
           locationDestinationZoom:
             asOptNum(
               input.locationDestinationZoom,
