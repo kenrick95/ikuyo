@@ -6,97 +6,71 @@
 
 ## Submission identity
 
-**Project name:** Ikuyo — plan the trip together
+**Project name:** Ikuyo: plan your next adventure!
 
-**Tagline:** A WebMCP-native travel workspace where people and agents turn
-evolving travel intent into a living, shared itinerary.
-
-**Core claim:** An agent should be a capable trip-planning collaborator, not
-an opaque autopilot. Ikuyo gives the agent structured, permission-aware ways to
-work with the same itinerary a person sees, while the traveller retains control
-over consequential actions.
-
-## Use case
-
-### The person
-
-Maya is organising a four-day Kyoto trip for herself and a friend. She has a
-rough plan, one fixed museum booking, a budget, and several places she wants to
-consider. Her friend can view and comment, but cannot make itinerary changes.
-
-### The problem
-
-Planning is continuous coordination rather than one answer to one prompt.
-People need to preserve commitments, explore uncertain options, keep tasks and
-costs in one place, and revise the schedule when plans change. A chat response
-does not stay synchronized with the actual trip, while conventional agents have
-to guess their way through an app's UI.
-
-### What collaboration looks like
-
-Maya asks the agent to create a realistic first pass around the fixed booking,
-add a few unresolved ideas without scheduling them, create the practical
-checklist and shared costs, and then explain the remaining decisions. The agent
-uses Ikuyo's declared WebMCP tools to read live trip state and make structured
-updates. Maya sees the changes in the same itinerary, makes the final choices,
-and shares it with her friend.
-
-### Why WebMCP is essential
-
-WebMCP lets Ikuyo expose the product actions an agent needs as typed tools,
-instead of relying on brittle screen automation. The agent can discover the
-current trip, create and update itinerary objects, and read comments and costs
-from the live source of truth. Tool availability follows the user's role:
-viewers can read, editors can plan, and owners manage sharing. Destructive
-operations remain deliberate, human-confirmed UI actions.
+**Elevator pitch:** Full-fledged collaborative travel-planning application for humans and agents.
 
 ## Devpost description draft
 
 ### Inspiration
 
-Travel planning is a living conversation: plans change, bookings constrain the
-day, friends contribute ideas, and a useful itinerary must preserve all of that
-context. We wanted an agent to help with the work without replacing the person
-who owns the trip.
+Travel planning is a living conversation of ideas, changes, and constraints. A useful itinerary must preserve all of that context. I want to empower people with agents, not replace them in the planning process.
 
 ### What it does
 
-Ikuyo is a collaborative itinerary workspace where a traveller and an agent
-plan together. Through WebMCP, an agent can read the active trip and safely
-create or update activities, accommodation, day plans, tasks, expenses, and
-comments. The result is not a one-off generated itinerary; it is a shared plan
-that remains editable, visible, and understandable to the people travelling.
+Ikuyo is a collaborative itinerary workspace for travellers and their agents. Through WebMCP, agents can read a trip and create or update activities, accommodations, day plans, tasks, expenses, and comments. The result is not a one-off itinerary, but a shared plan that remains editable, visible, and understandable to the people travelling.
 
-### Why this is a strong fit for WebMCP
 
-The real value is structured collaboration with state that already lives on the
-web. Rather than clicking through an interface or maintaining a separate chat
-summary, the agent uses explicit, typed tools backed by the same data and
-mutation layer as Ikuyo's UI. This makes the interaction more reliable and
-keeps the human and agent aligned on one source of truth.
+#### The problem
 
-Ikuyo dynamically exposes tools according to the signed-in user, the open
-trip, and that user's role. Read-only tools are identified as safe to inspect;
-editing and sharing capabilities are limited by role; deletion and member
-removal stay behind existing human confirmation flows.
+Planning a trip with an agent is a back-and-forth process of tuning and refining, not one-shot prompting. People need to feel in control of their plans while staying flexible when they change. Chat apps do not feel flexible enough, while spreadsheets are too rigid.
 
-### What people and agents can do together now
+#### What collaboration looks like
 
-A traveller can provide intent and judgment — priorities, compromises, and the
-final say — while an agent turns that intent into a structured itinerary,
-updates it when constraints change, tracks the practical details, and reports
-what still needs a human decision. This is difficult with a conventional chat
-assistant because the trip's live state, permissions, and product operations
-are not available as dependable web-native actions.
+The user asks the agent to draft a realistic travel plan around the fixed bookings, with a few itinerary suggestions. The agent creates it using Ikuyo's WebMCP tools. The user then studies and revises the plan, asking the agent for more suggestions. The agent sees the latest changes through WebMCP and uses them to give further suggestions. This goes back and forth until both parties are happy with the final itinerary.
+
+#### Why Ikuyo does not have an in-app agent
+
+In today's landscape, LLMs evolve very quickly, and everyone's preferred agent changes often. Committing to a specific agent provider requires significant ongoing maintenance for Ikuyo. It also conflicts with my goal of keeping users in control. Instead of providing an agent for users, I expect them to bring their own agent to help with travel planning.
+
+#### Why WebMCP is essential
+
+Because I expect users to bring their own agents, they would otherwise need to copy and paste information between Ikuyo and an agent's chat interface. This is inefficient. Another option is for the agent to control Ikuyo through browser automation. That is not ideal either: Ikuyo is built for people, so an agent must read and guess at HTML elements before performing actions. This makes each operation slow and unreliable. WebMCP solves this by exposing Ikuyo's product actions as tools with typed input and output schemas.
+
+The agent can discover the current trip, create and update itinerary objects,
+and read comments and costs from the live source of truth. Tool availability
+follows the user's role: viewers can read, editors can plan, and owners manage
+sharing. Destructive operations remain deliberate, human-confirmed UI actions.
+
 
 ### How we built it
 
-Ikuyo registers WebMCP tools with `document.modelContext.registerTool`. Tool
-schemas are typed and validated, reads use the live client store, and writes
-go through the same existing API and optimistic-update layer used by the UI.
-Registration is feature-detected and context-scoped, then cleaned up with an
-`AbortSignal` when the page context changes. Unsupported browsers retain the
-normal Ikuyo experience.
+This project started in 2024, when I had the idea of making a Google Calendar-like web application for travel planning. The application uses React and Radix Themes for the frontend, MapTiler for maps, and PHP/Laravel/MySQL for the backend. It originally used InstantDB, but I migrated away from it in late August after its shutdown announcement. The calendar grid uses CSS Grid, and all frontend time and date calculations use Temporal.
+
+During this hackathon, I extended the application to support WebMCP, with the help of LLM agents (GPT-5.6). I imported Modern Web Guidance's WebMCP skill and used it while building. Afterward, I tested a range of prompts to fine-tune the tool descriptions so future agents can fill them in correctly.
+
+### Challenges we ran into
+
+The main challenge was treating WebMCP as more than another function for calling backend APIs. I had to consider it from the user's point of view and align the UI capabilities with the WebMCP tools, so they could call the existing backend APIs more efficiently. I also adjusted some backend API fields to make them more intuitive for agents to use.
+
+The application initially focused on people, so I naturally built it around adding or editing one object at a time. However, when agents performed operations one by one, they were still slow to reach the desired outcome even when the plan was already synthesised in the context. I then added batch versions of the WebMCP tools so agents could create and edit itinerary activities more efficiently.
+
+### Accomplishments that we're proud of
+
+I'm proud that this travel-planning application now integrates deeply with agentic capabilities. People can bring their preferred agents to interact with the site while remaining in control of their own travel plans.
+
+### What we learned
+
+I learned that building for agents is different from building for people. People receive hints through the visual UI, while agents can access only the tool descriptions. I therefore need to fine-tune the capabilities so agents can operate correctly and efficiently. I also learned that agents work faster than people, so they need ways to batch-create and batch-edit activities.
+
+
+### What's next for Ikuyo
+
+I have used Ikuyo to plan my own travels, and other people have shared that they completed trips using it. However, it still lacks some human-to-human collaboration capabilities, such as expense splitting and combining. It also needs better support for travel plans that span multiple regions and time zones. Those are the areas I plan to tackle next.
+
+
+
+
 
 ## Demo recording plan
 
