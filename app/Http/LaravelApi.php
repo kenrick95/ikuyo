@@ -6,8 +6,7 @@ namespace App\Http;
 
 /**
  * Minimal JSON HTTP client for the Laravel metadata endpoint.
- * Used by the SEO front controller once the backend is deployed; keeps the
- * InstantDB admin path as a fallback during the transition.
+ * Used by the SEO front controller for public-trip metadata.
  */
 final class LaravelApi
 {

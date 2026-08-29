@@ -15,21 +15,7 @@ return [
     // handling logs (trip resolution, matched route, fallback). Omitted on prod.
     'APP_ENV' => '',
 
-    // InstantDB app id (matches INSTANT_APP_ID).
-    'INSTANT_APP_ID' => '',
-
-    // InstantDB admin token (matches INSTANT_ADMIN_TOKEN / INSTANT_APP_ADMIN_TOKEN).
-    // Keep secret; used to query the admin API.
-    'INSTANT_ADMIN_TOKEN' => '',
-
-    // Optional: override the InstantDB API base (e.g. self-hosted). Defaults to
-    // https://api.instantdb.com. Do not include a trailing slash or path suffix.
-    'INSTANT_API_URI' => '',
-
-    // Post-cutover SEO source: set to 'laravel' and provide LARAVEL_API_URL to read
-    // public-trip metadata from the Laravel/MySQL backend instead of InstantDB.
-    // Defaults to 'instant' which keeps the InstantDB admin path.
-    'METADATA_SOURCE' => 'laravel',
+    // Laravel JSON API used for public-trip metadata.
     'LARAVEL_API_URL' => 'http://localhost:8999',
 
     // Absolute public site URL, no trailing slash, used to build og:url / og:image.

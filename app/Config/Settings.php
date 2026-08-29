@@ -33,39 +33,15 @@ final readonly class Settings
         return is_string($value) ? $value : $default;
     }
 
-    public function appId(): string
-    {
-        return $this->get('INSTANT_APP_ID');
-    }
-
-    public function adminToken(): string
-    {
-        return $this->get('INSTANT_ADMIN_TOKEN')
-            ?: $this->get('INSTANT_APP_ADMIN_TOKEN');
-    }
-
-    /** Full admin query URL (base optional, defaulting to Instant's API). */
-    public function adminQueryUri(): string
-    {
-        $uri = $this->get('INSTANT_API_URI', 'https://api.instantdb.com');
-        return rtrim($uri, '/') . '/admin/query';
-    }
-
     public function siteUrl(): string
     {
         return rtrim($this->get('SITE_URL'), '/') ?: '';
     }
 
-    /** Laravel metadata API base. Empty disables the Laravel source. */
+    /** Laravel metadata API base. */
     public function laravelApiUrl(): string
     {
         return rtrim($this->get('LARAVEL_API_URL'), '/');
-    }
-
-    /** `laravel` uses the Laravel API first; `instant` (default) uses InstantDB. */
-    public function metadataSource(): string
-    {
-        return strtolower($this->get('METADATA_SOURCE', 'instant'));
     }
 
     public function indexPath(): string

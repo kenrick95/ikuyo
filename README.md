@@ -41,19 +41,17 @@ everything else. Static assets are still served directly by the web server.
 ### Setup
 
 1. Copy `config.example.php` to `config.php` and fill in:
-   - `INSTANT_APP_ID`
-   - `INSTANT_ADMIN_TOKEN` (server-side secret, never exposed to clients)
+   - `LARAVEL_API_URL` (e.g. `https://api.ikuyo.kenrick95.org`)
    - `SITE_URL` (e.g. `https://ikuyo.kenrick95.org`)
-   - optionally `INDEX_HTML`, `INSTANT_API_URI`
+   - optionally `INDEX_HTML`
 2. Deploy `index.php`, `config.php`, and `.htaccess` at the web root, next to
    the built `dist/` contents (so `index.html` sits beside `index.php`).
 3. Ensure `.htaccess` rewrites SPA routes to `index.php` (already configured)
    while keeping static files served directly.
 4. `config.php` is gitignored; create it on the server.
 
-> ⚠️ The InstantDB admin API bypasses permission checks. `index.php` only
-> emits trip-specific metadata when the trip's `sharingLevel >= 2` (public), so
-> private trip titles/dates are never leaked through the preview path. Trip
-> metadata responses are served with `Cache-Control: no-store` so a trip that
-> becomes private is never served stale by a shared cache.
+> `index.php` only receives metadata for public trips from Laravel, so private
+> trip titles/dates are never exposed through the preview path. Trip metadata
+> responses are served with `Cache-Control: no-store` so a trip that becomes
+> private is never served stale by a shared cache.
 
