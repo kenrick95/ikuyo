@@ -23,6 +23,7 @@ import {
   getActivityType,
   getActivityTypeLabel,
 } from '../activityType';
+import { planningStatusLabel, toPlanningStatus } from '../PlanningStatusSelect';
 import s from './ActivityDialog.module.css';
 import { ActivityMap } from './ActivityDialogMap';
 import { ActivityDialogMode } from './ActivityDialogMode';
@@ -207,6 +208,16 @@ export function ActivityDialogContentView({
             Title
           </Heading>
           <Text>{activityTitle ?? <Skeleton>Activity Title</Skeleton>}</Text>
+          <Heading as="h2" size="4">
+            Planning status
+          </Heading>
+          <Text>
+            {activity ? (
+              planningStatusLabel[toPlanningStatus(activity.planningStatus)]
+            ) : (
+              <Skeleton>Planned</Skeleton>
+            )}
+          </Text>
           <Heading as="h2" size="4">
             Time
           </Heading>

@@ -26,6 +26,11 @@ import {
   updateActivityFlag,
 } from '../activityFlag';
 import { dbAddActivity, dbUpdateActivity } from '../db';
+import {
+  type PlanningStatus,
+  PlanningStatusSelect,
+  toPlanningStatus,
+} from '../PlanningStatusSelect';
 import { stationGeocodingRequest } from './TrainFormGeocoding';
 
 interface LocationCoordinateState {
@@ -102,6 +107,7 @@ export function TrainForm({
   activityLocationDestinationZoom,
   activityDescription,
   activityFlags,
+  activityPlanningStatus,
   onFormSuccess,
   onFormCancel,
 }: {
@@ -129,6 +135,7 @@ export function TrainForm({
   activityLocationDestinationZoom: number | null | undefined;
   activityDescription: string;
   activityFlags: number | null | undefined;
+  activityPlanningStatus?: string | null;
   onFormSuccess: () => void;
   onFormCancel: () => void;
 }) {
@@ -142,6 +149,7 @@ export function TrainForm({
   const idCoordinatesTo = useId();
   const idDescription = useId();
   const idIsIdea = useId();
+  const idPlanningStatus = useId();
 
   const publishToast = useBoundStore((state) => state.publishToast);
   const setTripLocalState = useBoundStore((state) => state.setTripLocalState);
@@ -149,6 +157,9 @@ export function TrainForm({
 
   const [isIdea, setIsIdea] = useState(() =>
     hasActivityFlag(activityFlags, ActivityFlag.IsIdea),
+  );
+  const [planningStatus, setPlanningStatus] = useState<PlanningStatus>(() =>
+    toPlanningStatus(activityPlanningStatus),
   );
 
   const [startDateTime, setStartDateTime] = useState<
@@ -411,6 +422,7 @@ export function TrainForm({
             : null,
           timeZoneEnd: endZonedDateTime ? endZonedDateTime.timeZoneId : null,
           flags,
+          planningStatus,
         });
         publishToast({
           root: {},
@@ -460,6 +472,7 @@ export function TrainForm({
             timeZoneEnd: endZonedDateTime ? endZonedDateTime.timeZoneId : null,
 
             flags,
+            planningStatus,
           },
           { tripId },
         );
@@ -481,6 +494,7 @@ export function TrainForm({
     startTimeZone,
     endTimeZone,
     isIdea,
+    planningStatus,
     locationFieldsState,
     mode,
     onFormSuccess,
@@ -680,6 +694,11 @@ export function TrainForm({
           </Text>
         </Text>
         <Switch id={idIsIdea} checked={isIdea} onCheckedChange={setIsIdea} />
+        <PlanningStatusSelect
+          id={idPlanningStatus}
+          value={planningStatus}
+          onValueChange={setPlanningStatus}
+        />
 
         <Text as="label" htmlFor={idDescription}>
           Notes

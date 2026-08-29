@@ -26,6 +26,11 @@ import {
   updateActivityFlag,
 } from '../activityFlag';
 import { dbAddActivity, dbUpdateActivity } from '../db';
+import {
+  type PlanningStatus,
+  PlanningStatusSelect,
+  toPlanningStatus,
+} from '../PlanningStatusSelect';
 import { airportGeocodingRequest } from './FlightFormGeocoding';
 
 interface LocationCoordinateState {
@@ -102,6 +107,7 @@ export function FlightForm({
   activityLocationDestinationZoom,
   activityDescription,
   activityFlags,
+  activityPlanningStatus,
   onFormSuccess,
   onFormCancel,
 }: {
@@ -129,6 +135,7 @@ export function FlightForm({
   activityLocationDestinationZoom: number | null | undefined;
   activityDescription: string;
   activityFlags: number | null | undefined;
+  activityPlanningStatus?: string | null;
   onFormSuccess: () => void;
   onFormCancel: () => void;
 }) {
@@ -142,6 +149,7 @@ export function FlightForm({
   const idCoordinatesTo = useId();
   const idDescription = useId();
   const idIsIdea = useId();
+  const idPlanningStatus = useId();
 
   const publishToast = useBoundStore((state) => state.publishToast);
   const setTripLocalState = useBoundStore((state) => state.setTripLocalState);
@@ -149,6 +157,9 @@ export function FlightForm({
 
   const [isIdea, setIsIdea] = useState(() =>
     hasActivityFlag(activityFlags, ActivityFlag.IsIdea),
+  );
+  const [planningStatus, setPlanningStatus] = useState<PlanningStatus>(() =>
+    toPlanningStatus(activityPlanningStatus),
   );
 
   const [startDateTime, setStartDateTime] = useState<
@@ -410,6 +421,7 @@ export function FlightForm({
             : null,
           timeZoneEnd: endZonedDateTime ? endZonedDateTime.timeZoneId : null,
           flags,
+          planningStatus,
         });
         publishToast({
           root: {},
@@ -459,6 +471,7 @@ export function FlightForm({
             timeZoneEnd: endZonedDateTime ? endZonedDateTime.timeZoneId : null,
 
             flags,
+            planningStatus,
           },
           { tripId },
         );
@@ -480,6 +493,7 @@ export function FlightForm({
     startTimeZone,
     endTimeZone,
     isIdea,
+    planningStatus,
     locationFieldsState,
     mode,
     onFormSuccess,
@@ -679,6 +693,11 @@ export function FlightForm({
           </Text>
         </Text>
         <Switch id={idIsIdea} checked={isIdea} onCheckedChange={setIsIdea} />
+        <PlanningStatusSelect
+          id={idPlanningStatus}
+          value={planningStatus}
+          onValueChange={setPlanningStatus}
+        />
 
         <Text as="label" htmlFor={idDescription}>
           Notes

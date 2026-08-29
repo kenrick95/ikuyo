@@ -94,6 +94,7 @@ export function ActivityDialogContentEdit({
     activityLocationZoom: activity?.locationZoom,
     activityLocation: activity?.location ?? '',
     activityDescription: activity?.description ?? '',
+    activityPlanningStatus: activity?.planningStatus,
     activityLocationDestination: activity?.locationDestination,
     activityLocationDestinationLat: activity?.locationDestinationLat,
     activityLocationDestinationLng: activity?.locationDestinationLng,

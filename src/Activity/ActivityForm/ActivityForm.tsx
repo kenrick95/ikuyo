@@ -14,6 +14,11 @@ import {
   updateActivityFlag,
 } from '../activityFlag';
 import { dbAddActivity, dbUpdateActivity } from '../db';
+import {
+  type PlanningStatus,
+  PlanningStatusSelect,
+  toPlanningStatus,
+} from '../PlanningStatusSelect';
 import { geocodingRequest } from './ActivityFormGeocoding';
 import {
   ActivityFormMode,
@@ -118,6 +123,7 @@ export function ActivityForm({
 
   activityDescription,
   activityFlags,
+  activityPlanningStatus,
 
   onFormSuccess,
   onFormCancel,
@@ -148,6 +154,7 @@ export function ActivityForm({
   activityLocationDestinationZoom: number | null | undefined;
 
   activityFlags: number | null | undefined;
+  activityPlanningStatus?: string | null;
 
   activityDescription: string;
 
@@ -163,6 +170,7 @@ export function ActivityForm({
   const idLocationDestination = useId();
   const idCoordinatesDestination = useId();
   const idIsIdea = useId();
+  const idPlanningStatus = useId();
 
   const idDescription = useId();
   const idCoordinates = useId();
@@ -175,6 +183,9 @@ export function ActivityForm({
   const [isIdea, setIsIdea] = useState(() => {
     return hasActivityFlag(activityFlags, ActivityFlag.IsIdea);
   });
+  const [planningStatus, setPlanningStatus] = useState<PlanningStatus>(() =>
+    toPlanningStatus(activityPlanningStatus),
+  );
 
   // State for DateTime pickers
   const [startDateTime, setStartDateTime] = useState<
@@ -510,6 +521,7 @@ export function ActivityForm({
           timeZoneStart: timeStartDate ? timeStartDate.timeZoneId : null,
           timeZoneEnd: timeEndDate ? timeEndDate.timeZoneId : null,
           flags: flags,
+          planningStatus,
         });
         resetToast();
         publishToast({
@@ -553,6 +565,7 @@ export function ActivityForm({
               ? locationFieldsState.zoom[0]
               : null,
             locationDestination,
+            planningStatus,
             locationDestinationLat:
               locationFieldsState.enabled[1] && locationFieldsState.count === 2
                 ? locationFieldsState.lat[1]
@@ -612,6 +625,7 @@ export function ActivityForm({
     startTimeZone,
     endTimeZone,
     isIdea,
+    planningStatus,
     tripId,
     tripTimeZone,
     tripStartDateTime,
@@ -664,6 +678,11 @@ export function ActivityForm({
           id={idIsIdea}
           checked={isIdea}
           onCheckedChange={setIsIdea}
+        />
+        <PlanningStatusSelect
+          id={idPlanningStatus}
+          value={planningStatus}
+          onValueChange={setPlanningStatus}
         />
 
         <Text as="label" htmlFor={idTwoLocationEnabled}>
