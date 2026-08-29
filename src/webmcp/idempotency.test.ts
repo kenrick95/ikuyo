@@ -54,7 +54,9 @@ describe('runIdempotent', () => {
   });
 
   it('rejects concurrent calls that reuse a key with different input', async () => {
-    let resolveCreate: ((result: { ok: boolean; id: string }) => void) | undefined;
+    let resolveCreate:
+      | ((result: { ok: boolean; id: string }) => void)
+      | undefined;
     const create = vi.fn(
       () =>
         new Promise<{ ok: boolean; id: string }>((resolve) => {
