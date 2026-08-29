@@ -15,7 +15,7 @@ export function createPlaceTools(): WebMCPTool[] {
     {
       name: 'place-search',
       description:
-        'Searches for place candidates without modifying trip data. Returns canonical labels, WGS84 coordinates, recommended zoom, and a copy-ready `place` object. Ambiguous results are never chosen automatically; select one candidate and pass candidate.place verbatim to an activity or accommodation tool.',
+        'Searches for place candidates without modifying trip data. Returns canonical labels, WGS84 coordinates, recommended zoom, and a copy-ready `place` object. Ambiguous results are never chosen automatically; select one candidate and pass candidate.place verbatim to an activity or accommodation tool. If no suitable candidate is found or the result remains ambiguous, search Google Maps to identify and verify the place coordinates before writing.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -78,8 +78,10 @@ export function createPlaceTools(): WebMCPTool[] {
           candidates,
           instruction:
             candidates.length === 0
-              ? 'No coordinates found; keep the missing-map state explicit.'
-              : 'Choose a candidate explicitly, then pass its `place` object verbatim to the `place` input of activity-create, activity-create-many, accommodation-create, or their update tools.',
+              ? 'No coordinates found. Search Google Maps to identify and verify the place coordinates; if that is still unavailable, keep the missing-map state explicit.'
+              : candidates.length === 1
+                ? 'Pass this candidate’s `place` object verbatim to the `place` input of activity-create, activity-create-many, accommodation-create, or their update tools.'
+                : 'Choose a candidate explicitly. If the candidates remain ambiguous, search Google Maps to identify and verify the place coordinates before writing.',
         };
       },
     },

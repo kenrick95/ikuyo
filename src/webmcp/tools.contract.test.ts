@@ -54,6 +54,7 @@ describe('WebMCP reliability contracts', () => {
   it('returns a copy-ready place object for mapped writes', () => {
     const tool = named('place-search', createPlaceTools());
     expect(tool.description).toContain('candidate.place');
+    expect(tool.description).toContain('Google Maps');
   });
 
   it('exposes bounded day-plan batches with retry keys', () => {
