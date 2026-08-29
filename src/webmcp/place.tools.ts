@@ -15,7 +15,7 @@ export function createPlaceTools(): WebMCPTool[] {
     {
       name: 'place-search',
       description:
-        'Searches for place candidates without modifying trip data. Returns canonical labels, WGS84 coordinates, and recommended zoom. Ambiguous results are never chosen automatically; select one candidate and pass its coordinates to an activity or accommodation tool.',
+        'Searches for place candidates without modifying trip data. Returns canonical labels, WGS84 coordinates, recommended zoom, and a copy-ready `place` object. Ambiguous results are never chosen automatically; select one candidate and pass candidate.place verbatim to an activity or accommodation tool.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -54,15 +54,24 @@ export function createPlaceTools(): WebMCPTool[] {
           asStr(input.query, 'query'),
           options,
         );
-        const candidates = result.features.map((feature) => ({
-          id: feature.id,
-          name: feature.text,
-          canonicalName: feature.place_name,
-          longitude: feature.center[0],
-          latitude: feature.center[1],
-          recommendedZoom: calculateZoomFromFeature(feature),
-          placeTypes: feature.place_type,
-        }));
+        const candidates = result.features.map((feature) => {
+          const recommendedZoom = calculateZoomFromFeature(feature);
+          return {
+            id: feature.id,
+            name: feature.text,
+            canonicalName: feature.place_name,
+            longitude: feature.center[0],
+            latitude: feature.center[1],
+            recommendedZoom,
+            placeTypes: feature.place_type,
+            place: {
+              label: feature.place_name,
+              latitude: feature.center[1],
+              longitude: feature.center[0],
+              zoom: recommendedZoom,
+            },
+          };
+        });
         return {
           ok: true,
           ambiguous: candidates.length !== 1,
@@ -70,7 +79,7 @@ export function createPlaceTools(): WebMCPTool[] {
           instruction:
             candidates.length === 0
               ? 'No coordinates found; keep the missing-map state explicit.'
-              : 'Choose a candidate explicitly before writing coordinates.',
+              : 'Choose a candidate explicitly, then pass its `place` object verbatim to the `place` input of activity-create, activity-create-many, accommodation-create, or their update tools.',
         };
       },
     },

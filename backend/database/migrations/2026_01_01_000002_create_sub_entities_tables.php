@@ -76,9 +76,9 @@ return new class extends Migration
             // Real backups contain extreme amounts (up to 10^13) with tiny
             // conversion factors (down to 1e-13); widen beyond DECIMAL(12,2/6).
             $table->decimal('amount', 30, 10);
-            $table->decimal('amount_in_origin_currency', 30, 10);
+            $table->decimal('amount_in_origin_currency', 30, 10)->nullable();
             $table->string('currency', 8);
-            $table->decimal('currency_conversion_factor', 30, 16);
+            $table->decimal('currency_conversion_factor', 30, 16)->nullable();
             $table->string('title');
             // Real expense descriptions reach ~770 chars; must be TEXT.
             $table->text('description')->nullable();

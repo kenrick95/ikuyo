@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../data/db', () => ({ db: {} }));
 
+import { createAccommodationTools } from './accommodation.tools';
 import { createActivityTools } from './activity.tools';
+import { createExpenseTools, resolveExpenseConversion } from './expense.tools';
 import { createMacroplanTools } from './macroplan.tools';
 import { createPlaceTools } from './place.tools';
 import { createTripTools } from './trip.tools';
@@ -34,6 +36,22 @@ describe('WebMCP reliability contracts', () => {
     expect(activities.items.properties).toHaveProperty('idempotencyKey');
     expect(activities.items.properties).toHaveProperty('dayPlanId');
     expect(activities.items.properties).toHaveProperty('planningStatus');
+    expect(activities.items.properties).toHaveProperty('place');
+    expect(tool.description).toContain('place-search');
+    expect(tool.description).toContain('accommodation-create');
+  });
+
+  it('accepts place-search candidates and trip-date defaults for lodging', () => {
+    const tool = named('accommodation-create', createAccommodationTools());
+    expect(tool.inputSchema.required).toEqual(['name']);
+    expect(tool.inputSchema.properties).toHaveProperty('place');
+    expect(tool.description).toContain('activity-create');
+    expect(tool.description).toContain('trip bounds');
+  });
+
+  it('returns a copy-ready place object for mapped writes', () => {
+    const tool = named('place-search', createPlaceTools());
+    expect(tool.description).toContain('candidate.place');
   });
 
   it('exposes bounded day-plan batches with retry keys', () => {
@@ -44,5 +62,46 @@ describe('WebMCP reliability contracts', () => {
     };
     expect(dayPlans.maxItems).toBe(31);
     expect(dayPlans.items.properties).toHaveProperty('idempotencyKey');
+  });
+
+  it('allows unconverted foreign-currency expenses and fills same-currency conversions', () => {
+    const tool = named('expense-create', createExpenseTools());
+    expect(tool.inputSchema.properties).toHaveProperty(
+      'currencyConversionFactor',
+    );
+    expect(tool.inputSchema.properties).toHaveProperty(
+      'amountInOriginCurrency',
+    );
+    expect(tool.description).toContain('look up the exchange rate online');
+    expect(
+      resolveExpenseConversion({
+        amount: 1_000,
+        currency: 'JPY',
+        originCurrency: 'SGD',
+        currencyConversionFactor: undefined,
+        amountInOriginCurrency: undefined,
+      }),
+    ).toEqual({
+      currencyConversionFactor: undefined,
+      amountInOriginCurrency: undefined,
+    });
+    expect(
+      resolveExpenseConversion({
+        amount: 1_000,
+        currency: 'JPY',
+        originCurrency: 'JPY',
+        currencyConversionFactor: undefined,
+        amountInOriginCurrency: undefined,
+      }),
+    ).toEqual({ currencyConversionFactor: 1, amountInOriginCurrency: 1_000 });
+    expect(() =>
+      resolveExpenseConversion({
+        amount: 1_000,
+        currency: 'JPY',
+        originCurrency: 'SGD',
+        currencyConversionFactor: 110,
+        amountInOriginCurrency: undefined,
+      }),
+    ).toThrow('must be provided together');
   });
 });

@@ -4,6 +4,7 @@ import { useBoundStore } from '../data/store';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
 import { idempotencyKeySchema, runIdempotent } from './idempotency';
 import type { WebMCPTool } from './modelContext';
+import { asOptPlaceCandidate, placeCandidateSchema } from './placeCandidate';
 import {
   asOptLatitude,
   asOptLongitude,
@@ -21,7 +22,7 @@ export function createAccommodationTools(): WebMCPTool[] {
     {
       name: 'accommodation-create',
       description:
-        'Creates an actual planned lodging stay in a trip. Requires a name, check-in, and check-out. `address` is display text and is not geocoded automatically; supply the WGS84 coordinate pair to show it on the map. Keep unselected hotel options as unscheduled ideas, not accommodations.',
+        'Creates a lodging entry. Always use this—not activity-create—for a hotel, hostel, ryokan, or other overnight stay, including tentative recommendations and shortlists. If check-in and check-out are both omitted, the loaded trip bounds are used. Put recommendation or booking status in notes. For a mapped hotel, first call place-search and pass the selected candidate.place object through `place`.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -29,6 +30,7 @@ export function createAccommodationTools(): WebMCPTool[] {
           idempotencyKey: idempotencyKeySchema(),
           name: str('Accommodation name.'),
           address: str('Optional street address.'),
+          place: placeCandidateSchema(),
           checkIn: epochOrIso('Check-in time (ISO-8601 or epoch ms).'),
           checkOut: epochOrIso('Check-out time (ISO-8601 or epoch ms).'),
           phoneNumber: str('Optional phone number.'),
@@ -43,22 +45,45 @@ export function createAccommodationTools(): WebMCPTool[] {
           timeZoneCheckIn: str('Optional IANA time zone for check-in.'),
           timeZoneCheckOut: str('Optional IANA time zone for check-out.'),
         },
-        required: ['name', 'checkIn', 'checkOut'],
+        required: ['name'],
       },
       async execute(input) {
         assertWritable('creating an accommodation');
         requireAuthUser();
         const tripId = resolveTripId(input.tripId);
         requireLoadedTrip(tripId);
-        const checkIn = toEpochMs(input.checkIn, 'checkIn');
-        const checkOut = toEpochMs(input.checkOut, 'checkOut');
-        if (checkIn == null || checkOut == null) {
+        const trip = useBoundStore.getState().trip[tripId];
+        const inputCheckIn = toEpochMs(input.checkIn, 'checkIn');
+        const inputCheckOut = toEpochMs(input.checkOut, 'checkOut');
+        if (
+          (inputCheckIn == null) !== (inputCheckOut == null) &&
+          (inputCheckIn !== undefined || inputCheckOut !== undefined)
+        ) {
           throw new Error(
-            'checkIn and checkOut are required dates for an accommodation',
+            'Provide both checkIn and checkOut, or omit both to use the loaded trip bounds',
           );
         }
-        const locationLat = asOptLatitude(input.locationLat, 'locationLat');
-        const locationLng = asOptLongitude(input.locationLng, 'locationLng');
+        const checkIn = inputCheckIn ?? trip.timestampStart;
+        const checkOut = inputCheckOut ?? trip.timestampEnd;
+        const place = asOptPlaceCandidate(input.place);
+        const manualLocationLat = asOptLatitude(
+          input.locationLat,
+          'locationLat',
+        );
+        const manualLocationLng = asOptLongitude(
+          input.locationLng,
+          'locationLng',
+        );
+        if (
+          place &&
+          (manualLocationLat !== undefined || manualLocationLng !== undefined)
+        ) {
+          throw new Error(
+            'Use either place-search `place` or manual locationLat/locationLng, not both',
+          );
+        }
+        const locationLat = place?.latitude ?? manualLocationLat;
+        const locationLng = place?.longitude ?? manualLocationLng;
         if ((locationLat === undefined) !== (locationLng === undefined)) {
           throw new Error(
             'locationLat and locationLng must be supplied together',
@@ -69,18 +94,20 @@ export function createAccommodationTools(): WebMCPTool[] {
         }
         const data = {
           name: asStr(input.name, 'name'),
-          address: asOptStr(input.address, 'address') ?? '',
+          address: asOptStr(input.address, 'address') ?? place?.label ?? '',
           timestampCheckIn: checkIn,
           timestampCheckOut: checkOut,
           phoneNumber: asOptStr(input.phoneNumber, 'phoneNumber') ?? '',
           notes: asOptStr(input.notes, 'notes') ?? '',
           locationLat,
           locationLng,
-          locationZoom: asOptNum(input.locationZoom, 'locationZoom'),
+          locationZoom:
+            place?.zoom ?? asOptNum(input.locationZoom, 'locationZoom'),
           timeZoneCheckIn:
-            asOptStr(input.timeZoneCheckIn, 'timeZoneCheckIn') ?? null,
+            asOptStr(input.timeZoneCheckIn, 'timeZoneCheckIn') ?? trip.timeZone,
           timeZoneCheckOut:
-            asOptStr(input.timeZoneCheckOut, 'timeZoneCheckOut') ?? null,
+            asOptStr(input.timeZoneCheckOut, 'timeZoneCheckOut') ??
+            trip.timeZone,
         };
         return runIdempotent(
           'accommodation-create',
@@ -94,6 +121,11 @@ export function createAccommodationTools(): WebMCPTool[] {
               id: result.id,
               accommodationId: result.id,
               mapped: locationLat != null && locationLng != null,
+              datesDefaulted: inputCheckIn == null && inputCheckOut == null,
+              nextAction:
+                locationLat == null || locationLng == null
+                  ? 'This lodging is unmapped. Call place-search, choose a candidate, and pass candidate.place to accommodation-update.'
+                  : undefined,
             };
           },
         );
@@ -122,13 +154,14 @@ export function createAccommodationTools(): WebMCPTool[] {
     {
       name: 'accommodation-update',
       description:
-        'Updates an existing planned accommodation. Use a WGS84 coordinate pair to map it; address text is not geocoded automatically.',
+        'Updates a lodging entry. For a mapped hotel, first call place-search and pass the selected candidate.place object through `place`.',
       inputSchema: {
         type: 'object',
         properties: {
           accommodationId: str('The accommodation id.'),
           name: str('New name.'),
           address: str('New address.'),
+          place: placeCandidateSchema(),
           checkIn: epochOrIso('New check-in time (ISO-8601 or epoch ms).'),
           checkOut: epochOrIso('New check-out time (ISO-8601 or epoch ms).'),
           phoneNumber: str('New phone number.'),
@@ -147,10 +180,22 @@ export function createAccommodationTools(): WebMCPTool[] {
         const id = asStr(input.accommodationId, 'accommodationId');
         const existing = useBoundStore.getState().accommodation[id];
         if (!existing) throw new Error(`Accommodation ${id} is not loaded.`);
+        const place = asOptPlaceCandidate(input.place);
+        if (
+          place &&
+          (input.locationLat !== undefined || input.locationLng !== undefined)
+        ) {
+          throw new Error(
+            'Use either place-search `place` or manual locationLat/locationLng, not both',
+          );
+        }
         await dbUpdateAccommodation({
           id,
           name: (input.name as string | undefined) ?? existing.name,
-          address: asOptStr(input.address, 'address') ?? existing.address,
+          address:
+            asOptStr(input.address, 'address') ??
+            place?.label ??
+            existing.address,
           timestampCheckIn:
             toEpochMs(input.checkIn, 'checkIn') ?? existing.timestampCheckIn,
           timestampCheckOut:
@@ -159,12 +204,15 @@ export function createAccommodationTools(): WebMCPTool[] {
             asOptStr(input.phoneNumber, 'phoneNumber') ?? existing.phoneNumber,
           notes: asOptStr(input.notes, 'notes') ?? existing.notes,
           locationLat:
+            place?.latitude ??
             asOptLatitude(input.locationLat, 'locationLat') ??
             existing.locationLat,
           locationLng:
+            place?.longitude ??
             asOptLongitude(input.locationLng, 'locationLng') ??
             existing.locationLng,
           locationZoom:
+            place?.zoom ??
             asOptNum(input.locationZoom, 'locationZoom') ??
             existing.locationZoom,
           timeZoneCheckIn:
