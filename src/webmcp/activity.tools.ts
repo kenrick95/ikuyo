@@ -5,6 +5,7 @@ import { resolveActivityFlags } from './activityFlags';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
 import { idempotencyKeySchema, runIdempotent } from './idempotency';
 import type { WebMCPTool } from './modelContext';
+import { asOptPlaceCandidate, placeCandidateSchema } from './placeCandidate';
 import {
   asOptLatitude,
   asOptLongitude,
@@ -37,6 +38,7 @@ function activityProperties() {
       'Optional free-text description; record uncertainty and source notes here.',
     ),
     location: str('Optional primary location; text alone is not geocoded.'),
+    place: placeCandidateSchema(),
     locationLat: num('WGS84 latitude; provide together with locationLng.'),
     locationLng: num('WGS84 longitude; provide together with locationLat.'),
     locationZoom: num('Optional map zoom for the location.'),
@@ -71,6 +73,12 @@ function parseActivity(input: Record<string, unknown>) {
   const end = toEpochMs(input.timestampEnd, 'timestampEnd');
   const lat = asOptLatitude(input.locationLat, 'locationLat');
   const lng = asOptLongitude(input.locationLng, 'locationLng');
+  const place = asOptPlaceCandidate(input.place);
+  if (place && (lat !== undefined || lng !== undefined)) {
+    throw new Error(
+      'Use either place-search `place` or manual locationLat/locationLng, not both',
+    );
+  }
   const destinationLat = asOptLatitude(
     input.locationDestinationLat,
     'locationDestinationLat',
@@ -117,10 +125,10 @@ function parseActivity(input: Record<string, unknown>) {
       planningStatus: planningStatus as 'planned' | 'tentative' | 'confirmed',
       title: asStr(input.title, 'title'),
       description: (input.description as string | undefined) ?? '',
-      location: asOptStr(input.location, 'location') ?? '',
-      locationLat: lat,
-      locationLng: lng,
-      locationZoom: asOptNum(input.locationZoom, 'locationZoom'),
+      location: asOptStr(input.location, 'location') ?? place?.label ?? '',
+      locationLat: place?.latitude ?? lat,
+      locationLng: place?.longitude ?? lng,
+      locationZoom: place?.zoom ?? asOptNum(input.locationZoom, 'locationZoom'),
       locationDestination:
         asOptStr(input.locationDestination, 'locationDestination') ?? '',
       locationDestinationLat: destinationLat,
@@ -158,6 +166,11 @@ async function createActivity(input: Record<string, unknown>) {
           parsed.data.locationLat != null && parsed.data.locationLng != null,
         dayPlanId: parsed.data.dayPlanId,
         planningStatus: parsed.data.planningStatus,
+        nextAction:
+          parsed.data.location &&
+          (parsed.data.locationLat == null || parsed.data.locationLng == null)
+            ? 'This physical place is unmapped. Call place-search, choose a candidate, and pass candidate.place to activity-update.'
+            : undefined,
       };
     },
   );
@@ -168,7 +181,7 @@ export function createActivityTools(): WebMCPTool[] {
     {
       name: 'activity-create',
       description:
-        'Creates one focused itinerary activity. Use `isIdea: true` only for an unscheduled backlog option; a timed but tentative plan belongs on the timetable with `isIdea: false` and its uncertainty in `description`. For a mapped place, supply both WGS84 `locationLat` and `locationLng`; a location name is not geocoded automatically. Set `type` to "flight" for an airplane journey or "train" for a rail journey.',
+        'Creates one focused itinerary activity. Do not use this for hotels, hostels, ryokan, or other lodging; use accommodation-create instead, including for tentative hotel recommendations. For a physical place, first call place-search and pass the selected candidate.place object through `place` so the activity is mapped. Use `isIdea: true` only for an unscheduled backlog option; a timed but tentative plan belongs on the timetable with `isIdea: false`. Set `type` to "flight" for an airplane journey or "train" for a rail journey.',
       inputSchema: {
         type: 'object',
         properties: activityProperties(),
@@ -183,7 +196,7 @@ export function createActivityTools(): WebMCPTool[] {
     {
       name: 'activity-create-many',
       description:
-        'Creates up to 50 activities. Every item is validated before the first write. Writes are ordered and non-atomic; on interruption the result identifies the committed prefix, and item idempotency keys make retrying safe.',
+        'Creates up to 50 activities. Do not put hotels or other lodging here; use accommodation-create. Before creating physical-place activities, call place-search for each distinct place and pass each selected candidate.place object through the item `place` field. Every item is validated before the first write. Writes are ordered and non-atomic; on interruption the result identifies the committed prefix, and item idempotency keys make retrying safe.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -242,6 +255,12 @@ export function createActivityTools(): WebMCPTool[] {
           atomic: false,
           committedCount: results.length,
           results,
+          unmappedActivityIds: results
+            .filter((result) => result.mapped !== true)
+            .map((result) => result.activityId),
+          nextAction: results.some((result) => result.mapped !== true)
+            ? 'Some activities are unmapped. For each physical place, call place-search, choose a candidate, and pass candidate.place to activity-update.'
+            : undefined,
         };
       },
     },
@@ -282,6 +301,7 @@ export function createActivityTools(): WebMCPTool[] {
           title: str('New title.'),
           description: str('New description.'),
           location: str('New location name.'),
+          place: placeCandidateSchema(),
           locationLat: num('New location latitude.'),
           locationLng: num('New location longitude.'),
           locationZoom: num('New location map zoom.'),
@@ -330,6 +350,15 @@ export function createActivityTools(): WebMCPTool[] {
           'timestampStart',
         );
         const timestampEnd = toEpochMs(input.timestampEnd, 'timestampEnd');
+        const place = asOptPlaceCandidate(input.place);
+        if (
+          place &&
+          (input.locationLat !== undefined || input.locationLng !== undefined)
+        ) {
+          throw new Error(
+            'Use either place-search `place` or manual locationLat/locationLng, not both',
+          );
+        }
         const nextTimestampStart =
           timestampStart !== undefined
             ? timestampStart
@@ -364,14 +393,20 @@ export function createActivityTools(): WebMCPTool[] {
           title: (input.title as string | undefined) ?? existing.title,
           description:
             (input.description as string | undefined) ?? existing.description,
-          location: asOptStr(input.location, 'location') ?? existing.location,
+          location:
+            asOptStr(input.location, 'location') ??
+            place?.label ??
+            existing.location,
           locationLat:
+            place?.latitude ??
             asOptLatitude(input.locationLat, 'locationLat') ??
             existing.locationLat,
           locationLng:
+            place?.longitude ??
             asOptLongitude(input.locationLng, 'locationLng') ??
             existing.locationLng,
           locationZoom:
+            place?.zoom ??
             asOptNum(input.locationZoom, 'locationZoom') ??
             existing.locationZoom,
           locationDestination:
