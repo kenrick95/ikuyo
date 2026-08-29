@@ -28,7 +28,9 @@ import {
   RouteTripsPublic,
 } from './Routes/routes';
 import { ImperativeToastRoot } from './Toast/ImperativeToast';
+import { GoatCounterTelemetry } from './telemetry/GoatCounterTelemetry';
 import { useSubscribeTheme, useTheme } from './theme/hooks';
+import { WebMCPTools } from './webmcp/WebMCPTools';
 
 const PageLanding = withLoading()(
   React.lazy(() => import('./Landing/PageLanding')),
@@ -172,6 +174,8 @@ function App() {
             </Route>
           </Switch>
           <DialogRoot />
+          <GoatCounterTelemetry />
+          <WebMCPTools />
         </Router>
       </Theme>
       <ImperativeToastRoot />

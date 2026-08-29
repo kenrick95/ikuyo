@@ -26,7 +26,6 @@ jobs:
       SENTRY_ENABLED: ${{ vars.SENTRY_ENABLED }}
       SENTRY_RELEASE: ${{ github.sha }}
       # Backend-migration flags (set in Settings → Secrets and variables → Actions → Variables)
-      IKUYO_API_URL: ${{ vars.IKUYO_API_URL }}
       IKUYO_BACKEND_AUTH: ${{ vars.IKUYO_BACKEND_AUTH }}
       IKUYO_BACKEND_TRIP_READS: ${{ vars.IKUYO_BACKEND_TRIP_READS }}
       IKUYO_BACKEND_ACTIVITY_WRITES: ${{ vars.IKUYO_BACKEND_ACTIVITY_WRITES }}

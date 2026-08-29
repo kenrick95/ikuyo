@@ -172,6 +172,8 @@ export type DbTripQueryReturnType = {
   }[];
   activity: {
     id: string;
+    dayPlanId?: string | null;
+    planningStatus?: string | null;
     title: string;
     description: string;
     createdAt: number;
@@ -384,6 +386,8 @@ export interface TripSlice {
   subscribeTrip: (id: string) => () => void;
   /** Re-fetch a backend trip and merge changes into the store (no loading flash). */
   refreshTrip: (id: string) => void;
+  /** Load a trip on demand and make it the current non-visual tool context. */
+  loadTrip: (id: string) => Promise<TripSliceTrip>;
 
   getTrip: (id: string | undefined) => TripSliceTrip | undefined;
   getTripMeta: (id: string | undefined) => TripSliceTripMeta | undefined;

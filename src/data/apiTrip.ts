@@ -1,5 +1,6 @@
 import type { DbTripQueryReturnType } from '../Trip/store/types';
 
+// biome-ignore lint/suspicious/noExplicitAny: Laravel payload is normalized field-by-field below.
 type ApiTrip = Record<string, any>;
 
 /** MySQL DECIMAL/BIGINT values can arrive as strings; coerce to numbers. */
@@ -17,6 +18,8 @@ export function mapApiTrip(trip: ApiTrip): DbTripQueryReturnType {
     taskListId: row.task_list_id,
     commentGroupId: row.comment_group_id,
     userId: row.user_id,
+    dayPlanId: row.dayPlanId ?? row.macroplanId ?? row.macro_plan_id,
+    planningStatus: row.planningStatus ?? row.planning_status,
     timestampStart: toNum(row.timestampStart ?? row.timestamp_start_ms),
     timestampEnd: toNum(row.timestampEnd ?? row.timestamp_end_ms),
     timeZone: row.timeZone ?? row.timezone,

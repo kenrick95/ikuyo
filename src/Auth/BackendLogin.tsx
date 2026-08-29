@@ -10,6 +10,7 @@ import { RouteTrips } from '../Routes/routes';
 import s from './Auth.module.css';
 
 type Mode = 'login' | 'signup' | 'guest' | 'forgot' | 'reset';
+type LoginStep = 'email' | 'password';
 
 type LookupResult = { known: boolean; needsPasswordSetup: boolean };
 
@@ -32,7 +33,7 @@ export function BackendLogin() {
   );
   // Within login mode, 'email' asks for the email first; only accounts that
   // actually have a password ever reach the 'password' step.
-  const [loginStep, setLoginStep] = useState<'email' | 'password'>('email');
+  const [loginStep, setLoginStep] = useState<LoginStep>('email');
   const [loginEmail, setLoginEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [, setLocation] = useLocation();
@@ -206,6 +207,64 @@ export function BackendLogin() {
     ],
   );
 
+  const returnToLogin = () => {
+    setMode('login');
+    setLoginStep('email');
+  };
+
+  return (
+    <form onSubmit={submit}>
+      <Flex direction="column" gap="2">
+        <LoginHeading mode={mode} />
+        {mode === 'login' && loginStep === 'email' && (
+          <EmailScreen
+            email={loginEmail}
+            loading={loading}
+            onEmailChange={setLoginEmail}
+            onForgotPassword={() => {
+              setPrefillEmail(loginEmail.trim().toLowerCase());
+              setMode('forgot');
+            }}
+            onTryGuest={() => setMode('guest')}
+          />
+        )}
+        {mode === 'login' && loginStep === 'password' && (
+          <PasswordScreen
+            email={loginEmail}
+            loading={loading}
+            onUseDifferentEmail={() => {
+              setLoginStep('email');
+              setLoginEmail('');
+            }}
+            onTryGuest={() => setMode('guest')}
+          />
+        )}
+        {mode === 'signup' && (
+          <SignupScreen
+            email={prefillEmail}
+            loading={loading}
+            onBack={returnToLogin}
+          />
+        )}
+        {mode === 'forgot' && (
+          <ForgotPasswordScreen
+            email={prefillEmail || loginEmail}
+            loading={loading}
+            onBack={returnToLogin}
+          />
+        )}
+        {mode === 'reset' && (
+          <ResetPasswordScreen resetToken={resetToken} loading={loading} />
+        )}
+        {mode === 'guest' && (
+          <GuestScreen loading={loading} onBack={returnToLogin} />
+        )}
+      </Flex>
+    </form>
+  );
+}
+
+function LoginHeading({ mode }: { mode: Mode }) {
   const title =
     mode === 'forgot'
       ? 'Recover your password'
@@ -214,165 +273,228 @@ export function BackendLogin() {
         : mode === 'signup'
           ? 'Create your account'
           : 'Log in to Ikuyo!';
+
   return (
-    <form onSubmit={submit}>
-      <Flex direction="column" gap="2">
-        <Heading>
-          <img src={imgUrl} className={s.logo} alt="Ikuyo!" /> {title}
-        </Heading>
-        {mode === 'login' && loginStep === 'email' && (
-          <>
-            <label htmlFor="backend-login-email">Email</label>
-            <TextField.Root
-              id="backend-login-email"
-              name="email"
-              type="email"
-              placeholder="you@example.com"
-              required
-              autoComplete="email"
-            />
-            <Text size="1" color="gray">
-              Enter your email to log in or create a new account.
-            </Text>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setMode('forgot')}
-            >
-              Forgot password?
-            </Button>
-          </>
-        )}
-        {mode === 'login' && loginStep === 'password' && (
-          <>
-            <label htmlFor="backend-login-email">Email</label>
-            <TextField.Root
-              id="backend-login-email"
-              name="email"
-              type="email"
-              value={loginEmail}
-              readOnly
-              required
-              autoComplete="email"
-            />
-            <label htmlFor="backend-login-password">Password</label>
-            <TextField.Root
-              id="backend-login-password"
-              name="password"
-              type="password"
-              placeholder="Password"
-              required
-              autoComplete="current-password"
-            />
-          </>
-        )}
-        {mode === 'signup' && (
-          <>
-            <label htmlFor="backend-signup-email">Email</label>
-            <TextField.Root
-              id="backend-signup-email"
-              name="email"
-              type="email"
-              defaultValue={prefillEmail}
-              placeholder="you@example.com"
-              required
-              autoComplete="email"
-            />
-            <label htmlFor="backend-signup-password">Password</label>
-            <TextField.Root
-              id="backend-signup-password"
-              name="password"
-              type="password"
-              placeholder="Password (8+ characters)"
-              required
-              minLength={8}
-              autoComplete="new-password"
-            />
-          </>
-        )}
-        {mode === 'forgot' && (
-          <>
-            <label htmlFor="backend-forgot-email">Email</label>
-            <TextField.Root
-              id="backend-forgot-email"
-              name="email"
-              defaultValue={prefillEmail || loginEmail}
-              type="email"
-              placeholder="you@example.com"
-              required
-            />
-            <Text size="1" color="gray">
-              Enter your email and we'll send you a link to reset your password.
-            </Text>
-          </>
-        )}
-        {mode === 'reset' && (
-          <>
-            <input type="hidden" name="resetToken" value={resetToken} />
-            <label htmlFor="backend-reset-password">New password</label>
-            <TextField.Root
-              id="backend-reset-password"
-              name="password"
-              type="password"
-              placeholder="New password (8+ characters)"
-              required
-              minLength={8}
-              autoComplete="new-password"
-            />
-            <Text size="1" color="gray">
-              Enter a new password, then you'll be signed in.
-            </Text>
-          </>
-        )}
-        <Button type="submit" loading={loading}>
-          {mode === 'guest'
-            ? 'Continue as guest'
-            : mode === 'signup'
-              ? 'Create account'
-              : mode === 'forgot'
-                ? 'Send reset link'
-                : mode === 'reset'
-                  ? 'Set password'
-                  : mode === 'login' && loginStep === 'password'
-                    ? 'Log in'
-                    : 'Continue'}
-        </Button>
-        {mode === 'login' && (
-          <>
-            {loginStep === 'password' && (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => {
-                  setLoginStep('email');
-                  setLoginEmail('');
-                }}
-              >
-                Use a different email
-              </Button>
-            )}
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setMode('guest')}
-            >
-              Try as guest
-            </Button>
-          </>
-        )}
-        {mode !== 'login' && (
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => {
-              setMode('login');
-              setLoginStep('email');
-            }}
-          >
-            Back to login
-          </Button>
-        )}
-      </Flex>
-    </form>
+    <Heading>
+      <img src={imgUrl} className={s.logo} alt="Ikuyo!" /> {title}
+    </Heading>
+  );
+}
+
+function EmailScreen({
+  email,
+  loading,
+  onEmailChange,
+  onForgotPassword,
+  onTryGuest,
+}: {
+  email: string;
+  loading: boolean;
+  onEmailChange: (email: string) => void;
+  onForgotPassword: () => void;
+  onTryGuest: () => void;
+}) {
+  return (
+    <>
+      <label htmlFor="backend-login-email">Email</label>
+      <TextField.Root
+        id="backend-login-email"
+        name="email"
+        type="email"
+        value={email}
+        onChange={(event) => onEmailChange(event.currentTarget.value)}
+        placeholder="you@example.com"
+        required
+        autoComplete="username"
+        autoFocus
+      />
+      <Text size="1" color="gray">
+        Enter your email to log in or create a new account.
+      </Text>
+      <Button type="submit" loading={loading}>
+        Continue
+      </Button>
+      <Button type="button" variant="ghost" onClick={onForgotPassword}>
+        Forgot password?
+      </Button>
+      <Button type="button" variant="ghost" onClick={onTryGuest}>
+        Try as guest
+      </Button>
+    </>
+  );
+}
+
+function PasswordScreen({
+  email,
+  loading,
+  onUseDifferentEmail,
+  onTryGuest,
+}: {
+  email: string;
+  loading: boolean;
+  onUseDifferentEmail: () => void;
+  onTryGuest: () => void;
+}) {
+  return (
+    <>
+      <label htmlFor="backend-login-email">Email</label>
+      <TextField.Root
+        id="backend-login-email"
+        name="email"
+        type="email"
+        value={email}
+        readOnly
+        required
+        autoComplete="username"
+      />
+      <label htmlFor="backend-login-password">Password</label>
+      <TextField.Root
+        id="backend-login-password"
+        name="password"
+        type="password"
+        placeholder="Password"
+        required
+        autoComplete="current-password"
+        autoFocus
+      />
+      <Button type="submit" loading={loading}>
+        Log in
+      </Button>
+      <Button type="button" variant="ghost" onClick={onUseDifferentEmail}>
+        Use a different email
+      </Button>
+      <Button type="button" variant="ghost" onClick={onTryGuest}>
+        Try as guest
+      </Button>
+    </>
+  );
+}
+
+function SignupScreen({
+  email,
+  loading,
+  onBack,
+}: {
+  email: string;
+  loading: boolean;
+  onBack: () => void;
+}) {
+  return (
+    <>
+      <label htmlFor="backend-signup-email">Email</label>
+      <TextField.Root
+        id="backend-signup-email"
+        name="email"
+        type="email"
+        defaultValue={email}
+        placeholder="you@example.com"
+        required
+        autoComplete="email"
+      />
+      <label htmlFor="backend-signup-password">Password</label>
+      <TextField.Root
+        id="backend-signup-password"
+        name="password"
+        type="password"
+        placeholder="Password (8+ characters)"
+        required
+        minLength={8}
+        autoComplete="new-password"
+        autoFocus
+      />
+      <Button type="submit" loading={loading}>
+        Create account
+      </Button>
+      <BackToLoginButton onClick={onBack} />
+    </>
+  );
+}
+
+function ForgotPasswordScreen({
+  email,
+  loading,
+  onBack,
+}: {
+  email: string;
+  loading: boolean;
+  onBack: () => void;
+}) {
+  return (
+    <>
+      <label htmlFor="backend-forgot-email">Email</label>
+      <TextField.Root
+        id="backend-forgot-email"
+        name="email"
+        defaultValue={email}
+        type="email"
+        placeholder="you@example.com"
+        required
+        autoFocus={!email}
+      />
+      <Text size="1" color="gray">
+        Enter your email and we'll send you a link to reset your password.
+      </Text>
+      <Button type="submit" loading={loading} autoFocus={Boolean(email)}>
+        Send reset link
+      </Button>
+      <BackToLoginButton onClick={onBack} />
+    </>
+  );
+}
+
+function ResetPasswordScreen({
+  resetToken,
+  loading,
+}: {
+  resetToken: string;
+  loading: boolean;
+}) {
+  return (
+    <>
+      <input type="hidden" name="resetToken" value={resetToken} />
+      <label htmlFor="backend-reset-password">New password</label>
+      <TextField.Root
+        id="backend-reset-password"
+        name="password"
+        type="password"
+        placeholder="New password (8+ characters)"
+        required
+        minLength={8}
+        autoComplete="new-password"
+        autoFocus
+      />
+      <Text size="1" color="gray">
+        Enter a new password, then you'll be signed in.
+      </Text>
+      <Button type="submit" loading={loading}>
+        Set password
+      </Button>
+    </>
+  );
+}
+
+function GuestScreen({
+  loading,
+  onBack,
+}: {
+  loading: boolean;
+  onBack: () => void;
+}) {
+  return (
+    <>
+      <Text color="gray">Create a temporary account to explore Ikuyo.</Text>
+      <Button type="submit" loading={loading} autoFocus>
+        Continue as guest
+      </Button>
+      <BackToLoginButton onClick={onBack} />
+    </>
+  );
+}
+
+function BackToLoginButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Button type="button" variant="ghost" onClick={onClick}>
+      Back to login
+    </Button>
   );
 }

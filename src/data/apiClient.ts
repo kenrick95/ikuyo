@@ -1,7 +1,5 @@
 import { assertWritable } from './backendConfig';
 
-const API_BASE_URL = (process.env.IKUYO_API_URL ?? '').replace(/\/$/, '');
-
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -19,16 +17,12 @@ export type CursorPage<T> = {
   hasMore: boolean;
 };
 
-function url(path: string): string {
-  return `${API_BASE_URL}${path}`;
-}
-
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
   headers.set('Accept', 'application/json');
   if (init.body && !headers.has('Content-Type'))
     headers.set('Content-Type', 'application/json');
-  const response = await fetch(url(path), {
+  const response = await fetch(path, {
     ...init,
     headers,
     credentials: 'include',
