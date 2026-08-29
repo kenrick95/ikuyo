@@ -1,7 +1,15 @@
-import { dbAddAccommodation, dbUpdateAccommodation } from '../Accommodation/db';
+import {
+  dbAddAccommodation,
+  dbDeleteAccommodation,
+  dbUpdateAccommodation,
+} from '../Accommodation/db';
 import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
+import {
+  deletionConfirmationSchema,
+  requireDeletionConfirmation,
+} from './destructive';
 import { idempotencyKeySchema, runIdempotent } from './idempotency';
 import type { WebMCPTool } from './modelContext';
 import { asOptPlaceCandidate, placeCandidateSchema } from './placeCandidate';
@@ -129,6 +137,110 @@ export function createAccommodationTools(): WebMCPTool[] {
             };
           },
         );
+      },
+    },
+    {
+      name: 'accommodation-create-many',
+      description:
+        'Creates up to 50 lodging entries for confirmed or planned stays. Each item is processed in order and may use place-search `place` coordinates. Writes are non-atomic; per-item idempotency keys make retrying safe.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          tripId: str('Trip id applied to lodgings that omit tripId.'),
+          accommodations: {
+            type: 'array',
+            minItems: 1,
+            maxItems: 50,
+            description: 'Ordered lodging entries to create.',
+            items: {
+              type: 'object',
+              properties: {
+                idempotencyKey: idempotencyKeySchema(),
+                name: str('Accommodation name.'),
+                address: str('Optional street address.'),
+                place: placeCandidateSchema(),
+                checkIn: epochOrIso('Check-in time (ISO-8601 or epoch ms).'),
+                checkOut: epochOrIso('Check-out time (ISO-8601 or epoch ms).'),
+                phoneNumber: str('Optional phone number.'),
+                notes: str('Optional notes.'),
+                locationLat: num('WGS84 latitude (-90 to 90).'),
+                locationLng: num('WGS84 longitude (-180 to 180).'),
+                locationZoom: num('Optional map zoom.'),
+                timeZoneCheckIn: str('Optional IANA time zone for check-in.'),
+                timeZoneCheckOut: str('Optional IANA time zone for check-out.'),
+              },
+              required: ['name'],
+            },
+          },
+        },
+        required: ['accommodations'],
+      },
+      async execute(input) {
+        assertWritable('creating accommodations');
+        requireAuthUser();
+        if (
+          !Array.isArray(input.accommodations) ||
+          input.accommodations.length < 1 ||
+          input.accommodations.length > 50
+        ) {
+          throw new Error('accommodations must contain between 1 and 50 items');
+        }
+        const createOne = createAccommodationTools().find(
+          (tool) => tool.name === 'accommodation-create',
+        );
+        if (!createOne) throw new Error('accommodation-create is unavailable');
+        const results: Array<Record<string, unknown>> = [];
+        for (let index = 0; index < input.accommodations.length; index++) {
+          const item = input.accommodations[index];
+          if (!item || typeof item !== 'object')
+            throw new Error(`accommodations[${index}] must be an object`);
+          try {
+            results.push(
+              (await createOne.execute({
+                tripId: input.tripId,
+                ...(item as Record<string, unknown>),
+              })) as Record<string, unknown>,
+            );
+          } catch (error) {
+            return {
+              ok: false,
+              atomic: false,
+              committedCount: results.length,
+              failedIndex: index,
+              results,
+              error: error instanceof Error ? error.message : String(error),
+            };
+          }
+        }
+        return {
+          ok: true,
+          atomic: false,
+          committedCount: results.length,
+          results,
+        };
+      },
+    },
+    {
+      name: 'accommodation-delete',
+      description:
+        'Destructive: permanently deletes one accommodation stay from the trip. Call only after the user explicitly confirms the exact lodging deletion.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          accommodationId: str('The accommodation id to permanently delete.'),
+          confirmDelete: deletionConfirmationSchema(),
+        },
+        required: ['accommodationId', 'confirmDelete'],
+      },
+      async execute(input) {
+        assertWritable('deleting an accommodation');
+        requireAuthUser();
+        const accommodationId = asStr(input.accommodationId, 'accommodationId');
+        if (!useBoundStore.getState().accommodation[accommodationId])
+          throw new Error(`Accommodation ${accommodationId} is not loaded.`);
+        requireDeletionConfirmation(input.confirmDelete);
+        await dbDeleteAccommodation(accommodationId);
+        return { ok: true, deletedAccommodationId: accommodationId };
       },
     },
     {

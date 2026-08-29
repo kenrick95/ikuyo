@@ -1,7 +1,11 @@
 import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
-import { dbAddExpense, dbUpdateExpense } from '../Expense/db';
+import { dbAddExpense, dbDeleteExpense, dbUpdateExpense } from '../Expense/db';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
+import {
+  deletionConfirmationSchema,
+  requireDeletionConfirmation,
+} from './destructive';
 import { idempotencyKeySchema, runIdempotent } from './idempotency';
 import type { WebMCPTool } from './modelContext';
 import {
@@ -132,6 +136,185 @@ export function createExpenseTools(): WebMCPTool[] {
             return { ok: true, id: result.id, expenseId: result.id };
           },
         );
+      },
+    },
+    {
+      name: 'expense-create-many',
+      description:
+        'Creates up to 50 expenses in one trip, for example when importing receipts or a day of cash spending. Every item is validated before the first write. Writes are ordered and non-atomic; per-item idempotency keys make retrying safe.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          tripId: str('Trip id applied to expenses that omit tripId.'),
+          expenses: {
+            type: 'array',
+            minItems: 1,
+            maxItems: 50,
+            description: 'Ordered expenses to create.',
+            items: {
+              type: 'object',
+              properties: {
+                idempotencyKey: idempotencyKeySchema(),
+                title: str('Expense title.'),
+                amount: num('Amount spent (numeric).'),
+                currency: str('ISO 4217 currency code (e.g. JPY).'),
+                currencyConversionFactor: num(
+                  'Optional conversion factor from origin currency to expense currency. Provide together with amountInOriginCurrency.',
+                ),
+                amountInOriginCurrency: num(
+                  'Optional amount in the trip origin currency. Provide together with currencyConversionFactor.',
+                ),
+                description: str('Optional description.'),
+                timestampIncurred: epochOrIso(
+                  'Optional date incurred (ISO-8601 or epoch ms).',
+                ),
+                timeZoneIncurred: str(
+                  'Optional IANA time zone where it was incurred.',
+                ),
+              },
+              required: ['title', 'amount'],
+            },
+          },
+        },
+        required: ['expenses'],
+      },
+      async execute(input) {
+        assertWritable('creating expenses');
+        requireAuthUser();
+        if (
+          !Array.isArray(input.expenses) ||
+          input.expenses.length < 1 ||
+          input.expenses.length > 50
+        ) {
+          throw new Error('expenses must contain between 1 and 50 items');
+        }
+        const tripId = resolveTripId(input.tripId);
+        requireLoadedTrip(tripId);
+        const trip = useBoundStore.getState().trip[tripId];
+        const items = input.expenses.map((item, index) => {
+          if (!item || typeof item !== 'object')
+            throw new Error(`expenses[${index}] must be an object`);
+          const merged: Record<string, unknown> = {
+            tripId,
+            ...(item as Record<string, unknown>),
+          };
+          const amount = asOptNum(merged.amount, 'amount');
+          if (amount === undefined || amount === null)
+            throw new Error('amount is required and must be a number');
+          const currency =
+            (merged.currency as string | undefined)?.toUpperCase() ??
+            trip.currency;
+          resolveExpenseConversion({
+            amount,
+            currency,
+            originCurrency: trip.originCurrency,
+            currencyConversionFactor: asOptNum(
+              merged.currencyConversionFactor,
+              'currencyConversionFactor',
+            ),
+            amountInOriginCurrency: asOptNum(
+              merged.amountInOriginCurrency,
+              'amountInOriginCurrency',
+            ),
+          });
+          asStr(merged.title, 'title');
+          toEpochMs(merged.timestampIncurred, 'timestampIncurred');
+          return merged;
+        });
+        const results: Array<Record<string, unknown>> = [];
+        for (let index = 0; index < items.length; index++) {
+          try {
+            const item = items[index];
+            const amount = asOptNum(item.amount, 'amount');
+            if (amount === undefined || amount === null) {
+              throw new Error('amount is required and must be a number');
+            }
+            const currency =
+              (item.currency as string | undefined)?.toUpperCase() ??
+              trip.currency;
+            const conversion = resolveExpenseConversion({
+              amount,
+              currency,
+              originCurrency: trip.originCurrency,
+              currencyConversionFactor: asOptNum(
+                item.currencyConversionFactor,
+                'currencyConversionFactor',
+              ),
+              amountInOriginCurrency: asOptNum(
+                item.amountInOriginCurrency,
+                'amountInOriginCurrency',
+              ),
+            });
+            results.push(
+              await runIdempotent(
+                'expense-create',
+                tripId,
+                item.idempotencyKey,
+                item,
+                async () => {
+                  const result = await dbAddExpense(
+                    {
+                      title: asStr(item.title, 'title'),
+                      description:
+                        asOptStr(item.description, 'description') ?? '',
+                      timestampIncurred:
+                        toEpochMs(
+                          item.timestampIncurred,
+                          'timestampIncurred',
+                        ) ?? Date.now(),
+                      currency,
+                      amount,
+                      ...conversion,
+                      timeZoneIncurred:
+                        asOptStr(item.timeZoneIncurred, 'timeZoneIncurred') ??
+                        null,
+                    },
+                    { tripId },
+                  );
+                  return { ok: true, id: result.id, expenseId: result.id };
+                },
+              ),
+            );
+          } catch (error) {
+            return {
+              ok: false,
+              atomic: false,
+              committedCount: results.length,
+              failedIndex: index,
+              results,
+              error: error instanceof Error ? error.message : String(error),
+            };
+          }
+        }
+        return {
+          ok: true,
+          atomic: false,
+          committedCount: results.length,
+          results,
+        };
+      },
+    },
+    {
+      name: 'expense-delete',
+      description:
+        'Destructive: permanently deletes one expense from the trip. Call only after the user explicitly confirms the exact expense deletion.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          expenseId: str('The expense id to permanently delete.'),
+          confirmDelete: deletionConfirmationSchema(),
+        },
+        required: ['expenseId', 'confirmDelete'],
+      },
+      async execute(input) {
+        assertWritable('deleting an expense');
+        requireAuthUser();
+        const expenseId = asStr(input.expenseId, 'expenseId');
+        if (!useBoundStore.getState().expense[expenseId])
+          throw new Error(`Expense ${expenseId} is not loaded.`);
+        requireDeletionConfirmation(input.confirmDelete);
+        await dbDeleteExpense(expenseId);
+        return { ok: true, deletedExpenseId: expenseId };
       },
     },
     {
