@@ -7,6 +7,7 @@ use App\Models\Trip;
 use App\Models\TripUser;
 use App\Models\User;
 use App\Services\TripAccessService;
+use App\Services\UserHandleGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -62,9 +63,10 @@ class UserController extends Controller
     public function addMember(Request $request, Trip $trip): JsonResponse
     {
         $data = $request->validate(['email' => ['required', 'email'], 'role' => ['required', 'integer', 'in:1,2']]);
+        $handle = app(UserHandleGenerator::class)->generate();
         $user = User::firstOrCreate(
             ['email' => $data['email']],
-            ['id' => (string) Str::uuid(), 'handle' => 'guest_' . Str::lower(Str::random(12)), 'activated' => false],
+            ['id' => (string) Str::uuid(), 'handle' => $handle, 'handle_key' => strtolower($handle), 'activated' => false],
         );
         $trip->users()->syncWithoutDetaching([$user->id => [
             'id' => (string) Str::uuid(), 'role' => $data['role'], 'created_at_ms' => $this->nowMs(), 'updated_at_ms' => $this->nowMs(),

@@ -60,6 +60,7 @@ class ApiMigrationTest extends TestCase
         $this->assertSame('newuser@example.com', $user['email']);
         $this->assertTrue((bool) $user['activated']);
         $this->assertNotNull($user['handle']);
+        $this->assertMatchesRegularExpression('/^[a-z]+_[a-z]+_[1-9][0-9]{3}$/', $user['handle']);
         // Session established: /api/auth/me returns the new user without extra login.
         $this->getJson('/api/auth/me')->assertOk()->assertJsonPath('user.email', 'newuser@example.com');
     }

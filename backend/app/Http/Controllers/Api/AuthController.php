@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\PasswordResetMail;
 use App\Mail\VerifyEmailMail;
 use App\Models\User;
+use App\Services\UserHandleGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -76,7 +77,7 @@ class AuthController extends Controller
             'password' => ['required', 'string', 'min:8'],
         ]);
 
-        $handle = $this->uniqueHandle();
+        $handle = app(UserHandleGenerator::class)->generate();
         $user = User::create([
             'id' => (string) Str::uuid(),
             'handle' => $handle,
@@ -93,31 +94,10 @@ class AuthController extends Controller
         return response()->json(['user' => $this->user($user)], 201);
     }
 
-    /** Build a unique handle without leaking the email (mirrors src/User/handle.ts). */
-    private function uniqueHandle(): string
-    {
-        for ($attempt = 0; $attempt < 16; $attempt++) {
-            // Random handle is not derived from the email, so it cannot leak PII.
-            $words = ['koala', 'sakura', 'petra', 'delta', 'azure', 'nimbus', 'quill', 'ember', 'sol', 'mira'];
-            $candidate = $words[array_rand($words)] . '_' . strtolower(Str::random(5));
-            if (! self::handleKeyInUse($candidate)) {
-                return $candidate;
-            }
-        }
-
-        return 'user_' . strtolower(Str::random(12));
-    }
-
-    private static function handleKeyInUse(string $handle): bool
-    {
-        return User::where('handle_key', strtolower($handle))->exists();
-    }
-
     public function guest(Request $request): JsonResponse
     {
         $id = (string) Str::uuid();
-        // Ensure a unique handle (`Str::random` collisions are unlikely but possible).
-        $handle = $this->uniqueHandle();
+        $handle = app(UserHandleGenerator::class)->generate();
         $user = User::create([
             'id' => $id,
             'handle' => $handle,
