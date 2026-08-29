@@ -39,11 +39,11 @@ export function resolveExpenseConversion({
   }
   if (
     currencyConversionFactor !== undefined &&
-    (currencyConversionFactor <= 0 || amountInOriginCurrency! <= 0)
+    amountInOriginCurrency !== undefined
   ) {
-    throw new Error('Expense conversion values must be greater than zero.');
-  }
-  if (currencyConversionFactor !== undefined) {
+    if (currencyConversionFactor <= 0 || amountInOriginCurrency <= 0) {
+      throw new Error('Expense conversion values must be greater than zero.');
+    }
     return { currencyConversionFactor, amountInOriginCurrency };
   }
   if (currency === originCurrency?.toUpperCase()) {
