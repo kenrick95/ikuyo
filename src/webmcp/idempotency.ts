@@ -1,6 +1,9 @@
 const STORAGE_PREFIX = 'ikuyo:webmcp:idempotency:';
 const memory = new Map<string, string>();
-const inFlight = new Map<string, Promise<object>>();
+const inFlight = new Map<
+  string,
+  { fingerprint: string; promise: Promise<object> }
+>();
 
 type StoredResult<T> = { fingerprint: string; result: T };
 
@@ -98,9 +101,16 @@ export async function runIdempotent<T extends object>(
     return { ...saved.result, idempotentReplay: true };
   }
   const pending = inFlight.get(storageKey);
-  if (pending) return (await pending) as T;
+  if (pending) {
+    if (pending.fingerprint !== fingerprint) {
+      throw new Error(
+        'idempotencyKey was already used for different input in this operation and scope',
+      );
+    }
+    return (await pending.promise) as T;
+  }
   const promise = create();
-  inFlight.set(storageKey, promise);
+  inFlight.set(storageKey, { fingerprint, promise });
   try {
     const result = await promise;
     const serialized = JSON.stringify({ fingerprint, result });

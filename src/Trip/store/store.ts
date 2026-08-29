@@ -73,7 +73,6 @@ function fetchTripAndMerge(
   set: (fn: (state: BoundStoreType) => Partial<TripSlice> | TripSlice) => void,
   tripId: string,
   showLoading: boolean,
-  shouldAbort?: () => boolean,
 ): Promise<void> {
   const existing = inFlightTrips.get(tripId);
   if (existing) return existing;
@@ -90,7 +89,6 @@ function fetchTripAndMerge(
       const payload = await apiGet<Record<string, unknown>>(
         `/api/trips/${encodeURIComponent(tripId)}`,
       );
-      if (shouldAbort?.()) return;
       const trip = mapApiTrip(payload);
       set(
         (state) =>
@@ -192,13 +190,10 @@ export const createTripSlice: StateCreator<
       });
     },
     subscribeTrip: (tripId: string) => {
-      let disposed = false;
-      void fetchTripAndMerge(set, tripId, true, () => disposed).catch(
-        () => undefined,
-      );
-      return () => {
-        disposed = true;
-      };
+      void fetchTripAndMerge(set, tripId, true).catch(() => undefined);
+      // Trip data belongs to the shared store; the in-flight fetch is kept so
+      // another consumer (including WebMCP's trip-open) can safely await it.
+      return () => undefined;
     },
     refreshTrip: (tripId: string) => {
       void fetchTripAndMerge(set, tripId, false).catch(() => undefined);

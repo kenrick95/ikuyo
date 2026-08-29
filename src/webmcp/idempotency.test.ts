@@ -52,4 +52,34 @@ describe('runIdempotent', () => {
     ]);
     expect(create).toHaveBeenCalledTimes(1);
   });
+
+  it('rejects concurrent calls that reuse a key with different input', async () => {
+    let resolveCreate: ((result: { ok: boolean; id: string }) => void) | undefined;
+    const create = vi.fn(
+      () =>
+        new Promise<{ ok: boolean; id: string }>((resolve) => {
+          resolveCreate = resolve;
+        }),
+    );
+    const first = runIdempotent(
+      'activity-create',
+      'trip-4',
+      'retry-4',
+      { title: 'Museum' },
+      create,
+    );
+
+    await expect(
+      runIdempotent(
+        'activity-create',
+        'trip-4',
+        'retry-4',
+        { title: 'Park' },
+        create,
+      ),
+    ).rejects.toThrow('different input');
+    resolveCreate?.({ ok: true, id: 'one' });
+    await expect(first).resolves.toEqual({ ok: true, id: 'one' });
+    expect(create).toHaveBeenCalledTimes(1);
+  });
 });
