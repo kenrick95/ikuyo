@@ -4,6 +4,7 @@ vi.mock('../data/db', () => ({ db: {} }));
 
 import { createAccommodationTools } from './accommodation.tools';
 import { createActivityTools } from './activity.tools';
+import { createExpenseTools, resolveExpenseConversion } from './expense.tools';
 import { createMacroplanTools } from './macroplan.tools';
 import { createPlaceTools } from './place.tools';
 import { createTripTools } from './trip.tools';
@@ -61,5 +62,46 @@ describe('WebMCP reliability contracts', () => {
     };
     expect(dayPlans.maxItems).toBe(31);
     expect(dayPlans.items.properties).toHaveProperty('idempotencyKey');
+  });
+
+  it('allows unconverted foreign-currency expenses and fills same-currency conversions', () => {
+    const tool = named('expense-create', createExpenseTools());
+    expect(tool.inputSchema.properties).toHaveProperty(
+      'currencyConversionFactor',
+    );
+    expect(tool.inputSchema.properties).toHaveProperty(
+      'amountInOriginCurrency',
+    );
+    expect(tool.description).toContain('look up the exchange rate online');
+    expect(
+      resolveExpenseConversion({
+        amount: 1_000,
+        currency: 'JPY',
+        originCurrency: 'SGD',
+        currencyConversionFactor: undefined,
+        amountInOriginCurrency: undefined,
+      }),
+    ).toEqual({
+      currencyConversionFactor: undefined,
+      amountInOriginCurrency: undefined,
+    });
+    expect(
+      resolveExpenseConversion({
+        amount: 1_000,
+        currency: 'JPY',
+        originCurrency: 'JPY',
+        currencyConversionFactor: undefined,
+        amountInOriginCurrency: undefined,
+      }),
+    ).toEqual({ currencyConversionFactor: 1, amountInOriginCurrency: 1_000 });
+    expect(() =>
+      resolveExpenseConversion({
+        amount: 1_000,
+        currency: 'JPY',
+        originCurrency: 'SGD',
+        currencyConversionFactor: 110,
+        amountInOriginCurrency: undefined,
+      }),
+    ).toThrow('must be provided together');
   });
 });

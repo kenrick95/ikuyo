@@ -14,12 +14,53 @@ import {
   toEpochMs,
 } from './schema';
 
+export function resolveExpenseConversion({
+  amount,
+  currency,
+  originCurrency,
+  currencyConversionFactor,
+  amountInOriginCurrency,
+}: {
+  amount: number;
+  currency: string;
+  originCurrency: string | undefined;
+  currencyConversionFactor: number | null | undefined;
+  amountInOriginCurrency: number | null | undefined;
+}) {
+  currencyConversionFactor ??= undefined;
+  amountInOriginCurrency ??= undefined;
+  if (
+    (currencyConversionFactor === undefined) !==
+    (amountInOriginCurrency === undefined)
+  ) {
+    throw new Error(
+      'currencyConversionFactor and amountInOriginCurrency must be provided together.',
+    );
+  }
+  if (
+    currencyConversionFactor !== undefined &&
+    (currencyConversionFactor <= 0 || amountInOriginCurrency! <= 0)
+  ) {
+    throw new Error('Expense conversion values must be greater than zero.');
+  }
+  if (currencyConversionFactor !== undefined) {
+    return { currencyConversionFactor, amountInOriginCurrency };
+  }
+  if (currency === originCurrency?.toUpperCase()) {
+    return { currencyConversionFactor: 1, amountInOriginCurrency: amount };
+  }
+  return {
+    currencyConversionFactor: undefined,
+    amountInOriginCurrency: undefined,
+  };
+}
+
 export function createExpenseTools(): WebMCPTool[] {
   return [
     {
       name: 'expense-create',
       description:
-        'Records an expense in a trip. Requires a title and amount; currency defaults to the trip currency.',
+        'Records an expense in a trip. Requires a title and amount; currency defaults to the trip currency. When the expense currency differs from the trip origin currency and no conversion is supplied, first look up the exchange rate online for the incurred date, then provide both conversion values. currencyConversionFactor is expense-currency units per 1 origin-currency unit; amountInOriginCurrency equals amount divided by that factor. Conversion is automatically 1:1 when the currencies match. If a reliable rate cannot be found, conversion may be omitted.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -28,6 +69,12 @@ export function createExpenseTools(): WebMCPTool[] {
           title: str('Expense title.'),
           amount: num('Amount spent (numeric).'),
           currency: str('ISO 4217 currency code (e.g. JPY).'),
+          currencyConversionFactor: num(
+            'Optional conversion factor from origin currency to expense currency. Provide together with amountInOriginCurrency.',
+          ),
+          amountInOriginCurrency: num(
+            'Optional amount in the trip origin currency. Provide together with currencyConversionFactor.',
+          ),
           description: str('Optional description.'),
           timestampIncurred: epochOrIso(
             'Optional date incurred (ISO-8601 or epoch ms).',
@@ -50,6 +97,19 @@ export function createExpenseTools(): WebMCPTool[] {
         const currency =
           (input.currency as string | undefined)?.toUpperCase() ??
           trip.currency;
+        const conversion = resolveExpenseConversion({
+          amount,
+          currency,
+          originCurrency: trip.originCurrency,
+          currencyConversionFactor: asOptNum(
+            input.currencyConversionFactor,
+            'currencyConversionFactor',
+          ),
+          amountInOriginCurrency: asOptNum(
+            input.amountInOriginCurrency,
+            'amountInOriginCurrency',
+          ),
+        });
         const data = {
           title: asStr(input.title, 'title'),
           description: asOptStr(input.description, 'description') ?? '',
@@ -58,8 +118,7 @@ export function createExpenseTools(): WebMCPTool[] {
             Date.now(),
           currency,
           amount,
-          currencyConversionFactor: undefined,
-          amountInOriginCurrency: undefined,
+          ...conversion,
           timeZoneIncurred:
             asOptStr(input.timeZoneIncurred, 'timeZoneIncurred') ?? null,
         };
@@ -97,7 +156,7 @@ export function createExpenseTools(): WebMCPTool[] {
     {
       name: 'expense-update',
       description:
-        'Updates an existing expense (amount, title, description, date, currency). Only provided fields are changed.',
+        'Updates an existing expense (amount, title, description, date, currency, or conversion). Conversion values must be provided together. Only provided fields are changed.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -105,6 +164,12 @@ export function createExpenseTools(): WebMCPTool[] {
           title: str('New title.'),
           amount: num('New amount.'),
           currency: str('New ISO 4217 currency.'),
+          currencyConversionFactor: num(
+            'New conversion factor. Provide together with amountInOriginCurrency.',
+          ),
+          amountInOriginCurrency: num(
+            'New amount in the trip origin currency. Provide together with currencyConversionFactor.',
+          ),
           description: str('New description.'),
           timestampIncurred: epochOrIso(
             'New incurred date (ISO-8601 or epoch ms).',
@@ -120,6 +185,30 @@ export function createExpenseTools(): WebMCPTool[] {
         const existing = useBoundStore.getState().expense[id];
         if (!existing) throw new Error(`Expense ${id} is not loaded.`);
         const amount = asOptNum(input.amount, 'amount') ?? existing.amount;
+        const hasConversionUpdate =
+          input.currencyConversionFactor !== undefined ||
+          input.amountInOriginCurrency !== undefined;
+        const conversion = hasConversionUpdate
+          ? resolveExpenseConversion({
+              amount,
+              currency:
+                (input.currency as string | undefined)?.toUpperCase() ??
+                existing.currency,
+              originCurrency:
+                useBoundStore.getState().trip[existing.tripId]?.originCurrency,
+              currencyConversionFactor: asOptNum(
+                input.currencyConversionFactor,
+                'currencyConversionFactor',
+              ),
+              amountInOriginCurrency: asOptNum(
+                input.amountInOriginCurrency,
+                'amountInOriginCurrency',
+              ),
+            })
+          : {
+              currencyConversionFactor: existing.currencyConversionFactor,
+              amountInOriginCurrency: existing.amountInOriginCurrency,
+            };
         await dbUpdateExpense({
           id,
           title: (input.title as string | undefined) ?? existing.title,
@@ -132,8 +221,7 @@ export function createExpenseTools(): WebMCPTool[] {
             (input.currency as string | undefined)?.toUpperCase() ??
             existing.currency,
           amount,
-          currencyConversionFactor: existing.currencyConversionFactor,
-          amountInOriginCurrency: existing.amountInOriginCurrency,
+          ...conversion,
           timeZoneIncurred:
             asOptStr(input.timeZoneIncurred, 'timeZoneIncurred') ??
             existing.timeZoneIncurred,

@@ -331,6 +331,34 @@ class ApiMigrationTest extends TestCase
         ]);
     }
 
+    public function test_expense_api_accepts_foreign_currency_without_a_conversion(): void
+    {
+        $user = $this->user();
+        $trip = Trip::create([
+            'id' => (string) Str::uuid(), 'title' => 'Expense API', 'region' => 'JP', 'currency' => 'JPY',
+            'origin_currency' => 'SGD', 'timezone' => 'Asia/Tokyo', 'timestamp_start_ms' => 1, 'timestamp_end_ms' => 2,
+            'sharing_level' => 0,
+        ]);
+        $trip->users()->attach($user->id, ['id' => (string) Str::uuid(), 'role' => 0, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
+
+        $response = $this->actingAs($user)->postJson('/api/trips/' . $trip->id . '/expenses', [
+            'title' => 'Ramen Ichiran',
+            'amount' => 1000,
+            'currency' => 'JPY',
+            'description' => 'Ramen at Ichiran.',
+            'timestampIncurred' => 1791423000000,
+            'timeZoneIncurred' => 'Asia/Tokyo',
+        ]);
+
+        $response->assertCreated();
+        $this->assertDatabaseHas('expenses', [
+            'id' => $response->json('id'),
+            'trip_id' => $trip->id,
+            'amount_in_origin_currency' => null,
+            'currency_conversion_factor' => null,
+        ]);
+    }
+
     public function test_public_section_visibility_hides_expenses_from_anonymous_users(): void
     {
         $trip = Trip::create([
