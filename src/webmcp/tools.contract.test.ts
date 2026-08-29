@@ -4,9 +4,11 @@ vi.mock('../data/db', () => ({ db: {} }));
 
 import { createAccommodationTools } from './accommodation.tools';
 import { createActivityTools } from './activity.tools';
+import { createCommentTools } from './comment.tools';
 import { createExpenseTools, resolveExpenseConversion } from './expense.tools';
 import { createMacroplanTools } from './macroplan.tools';
 import { createPlaceTools } from './place.tools';
+import { createTaskTools } from './task.tools';
 import { createTripTools } from './trip.tools';
 
 function named(name: string, tools: ReturnType<typeof createTripTools>) {
@@ -103,5 +105,32 @@ describe('WebMCP reliability contracts', () => {
         amountInOriginCurrency: undefined,
       }),
     ).toThrow('must be provided together');
+  });
+
+  it('exposes bounded batch tools for repeated trip entities', () => {
+    const batches = [
+      [createTaskTools(), 'task-create-many', 'tasks'],
+      [createTaskTools(), 'task-list-create-many', 'taskLists'],
+      [createExpenseTools(), 'expense-create-many', 'expenses'],
+      [
+        createAccommodationTools(),
+        'accommodation-create-many',
+        'accommodations',
+      ],
+      [createCommentTools(), 'comment-add-many', 'comments'],
+    ] as const;
+    for (const [tools, name, field] of batches) {
+      const tool = tools.find((candidate) => candidate.name === name);
+      expect(tool?.inputSchema.properties[field]).toMatchObject({
+        type: 'array',
+        maxItems: 50,
+      });
+      expect(tool?.description).toContain('non-atomic');
+    }
+    expect(
+      createTaskTools().some(
+        (tool) => tool.name === 'task-list-create-with-tasks',
+      ),
+    ).toBe(true);
   });
 });

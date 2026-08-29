@@ -118,6 +118,79 @@ export function createCommentTools(): WebMCPTool[] {
       },
     },
     {
+      name: 'comment-add-many',
+      description:
+        'Adds up to 50 comments within one trip, useful for importing notes. Each item identifies its target object. Writes are ordered and non-atomic; per-item idempotency keys make retrying safe.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          tripId: str('Trip id applied to comments that omit tripId.'),
+          comments: {
+            type: 'array',
+            minItems: 1,
+            maxItems: 50,
+            description: 'Ordered comments to add.',
+            items: {
+              type: 'object',
+              properties: {
+                idempotencyKey: idempotencyKeySchema(),
+                content: str('Comment text.'),
+                objectType: strEnum('The target object type.', OBJECT_TYPES),
+                objectId: str('The target object id.'),
+                groupId: str('Optional existing comment-group id.'),
+              },
+              required: ['content', 'objectType', 'objectId'],
+            },
+          },
+        },
+        required: ['comments'],
+      },
+      async execute(input) {
+        assertWritable('adding comments');
+        requireAuthUser();
+        if (
+          !Array.isArray(input.comments) ||
+          input.comments.length < 1 ||
+          input.comments.length > 50
+        ) {
+          throw new Error('comments must contain between 1 and 50 items');
+        }
+        const createOne = createCommentTools().find(
+          (tool) => tool.name === 'comment-add',
+        );
+        if (!createOne) throw new Error('comment-add is unavailable');
+        const results: Array<Record<string, unknown>> = [];
+        for (let index = 0; index < input.comments.length; index++) {
+          const item = input.comments[index];
+          if (!item || typeof item !== 'object')
+            throw new Error(`comments[${index}] must be an object`);
+          try {
+            results.push(
+              (await createOne.execute({
+                tripId: input.tripId,
+                ...(item as Record<string, unknown>),
+              })) as Record<string, unknown>,
+            );
+          } catch (error) {
+            return {
+              ok: false,
+              atomic: false,
+              committedCount: results.length,
+              failedIndex: index,
+              results,
+              error: error instanceof Error ? error.message : String(error),
+            };
+          }
+        }
+        return {
+          ok: true,
+          atomic: false,
+          committedCount: results.length,
+          results,
+        };
+      },
+    },
+    {
       name: 'comment-update',
       description: 'Edits the text of an existing comment.',
       inputSchema: {

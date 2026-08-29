@@ -20,6 +20,150 @@ const VALID_STATUS: number[] = [
   TaskStatus.Cancelled,
 ];
 
+function taskListProperties() {
+  return {
+    tripId: str('Trip id. Defaults to the currently open trip.'),
+    idempotencyKey: idempotencyKeySchema(),
+    title: str('Task list title.'),
+  };
+}
+
+function taskProperties() {
+  return {
+    idempotencyKey: idempotencyKeySchema(),
+    title: str('Task title.'),
+    description: str('Optional description.'),
+    status: int(
+      'Task status: 0=todo, 1=in-progress, 2=done, 3=archived, 4=cancelled. Default 0.',
+    ),
+    dueAt: epochOrIso('Optional due time (ISO-8601 or epoch ms).'),
+  };
+}
+
+function requireBatch(
+  value: unknown,
+  name: string,
+): Array<Record<string, unknown>> {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 50)
+    throw new Error(`${name} must contain between 1 and 50 items`);
+  return value.map((item, index) => {
+    if (!item || typeof item !== 'object')
+      throw new Error(`${name}[${index}] must be an object`);
+    return item as Record<string, unknown>;
+  });
+}
+
+function parseTaskList(input: Record<string, unknown>) {
+  const tripId = resolveTripId(input.tripId);
+  requireLoadedTrip(tripId);
+  return {
+    tripId,
+    data: { title: asStr(input.title, 'title'), index: 0, status: 0 },
+  };
+}
+
+async function createTaskList(input: Record<string, unknown>) {
+  const parsed = parseTaskList(input);
+  return runIdempotent(
+    'task-list-create',
+    parsed.tripId,
+    input.idempotencyKey,
+    input,
+    async () => {
+      const result = await dbAddTaskList(parsed.data, {
+        tripId: parsed.tripId,
+      });
+      return { ok: true, id: result.id, taskListId: result.id };
+    },
+  );
+}
+
+function parseTask(input: Record<string, unknown>, index?: number) {
+  const taskListId = asStr(input.taskListId, 'taskListId');
+  const existingList = useBoundStore.getState().taskList[taskListId];
+  if (!existingList) throw new Error(`Task list ${taskListId} is not loaded.`);
+  const status =
+    input.status === undefined ? TaskStatus.Todo : Number(input.status);
+  if (!VALID_STATUS.includes(status)) throw new Error('status is out of range');
+  const dueAt = toEpochMs(input.dueAt, 'dueAt');
+  return {
+    taskListId,
+    data: {
+      index: index ?? existingList.taskIds.length,
+      title: asStr(input.title, 'title'),
+      description: (input.description as string | undefined) ?? '',
+      status,
+      dueAt: dueAt ?? null,
+      completedAt: status === TaskStatus.Done ? Date.now() : null,
+    },
+  };
+}
+
+async function createTask(input: Record<string, unknown>, index?: number) {
+  const parsed = parseTask(input, index);
+  return runIdempotent(
+    'task-create',
+    parsed.taskListId,
+    input.idempotencyKey,
+    input,
+    async () => {
+      const result = await dbAddTask(parsed.data, {
+        taskListId: parsed.taskListId,
+      });
+      return { ok: true, id: result.id, taskId: result.id };
+    },
+  );
+}
+
+async function createTaskBatch(
+  taskListId: string,
+  tasks: Array<Record<string, unknown>>,
+) {
+  const list = useBoundStore.getState().taskList[taskListId];
+  if (!list) throw new Error(`Task list ${taskListId} is not loaded.`);
+  const firstIndex = list.taskIds.length;
+  const items = tasks.map((task) => ({ taskListId, ...task }));
+  items.forEach((item, index) => {
+    parseTask(item, firstIndex + index);
+  });
+  const results: Array<Record<string, unknown>> = [];
+  for (let index = 0; index < items.length; index++) {
+    try {
+      results.push(await createTask(items[index], firstIndex + index));
+    } catch (error) {
+      return {
+        ok: false,
+        atomic: false,
+        committedCount: results.length,
+        failedIndex: index,
+        results,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+  return { ok: true, atomic: false, committedCount: results.length, results };
+}
+
+async function createListBatch(items: Array<Record<string, unknown>>) {
+  items.forEach(parseTaskList);
+  const results: Array<Record<string, unknown>> = [];
+  for (let index = 0; index < items.length; index++) {
+    try {
+      results.push(await createTaskList(items[index]));
+    } catch (error) {
+      return {
+        ok: false,
+        atomic: false,
+        committedCount: results.length,
+        failedIndex: index,
+        results,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+  return { ok: true, atomic: false, committedCount: results.length, results };
+}
+
 export function createTaskTools(): WebMCPTool[] {
   return [
     {
@@ -28,32 +172,86 @@ export function createTaskTools(): WebMCPTool[] {
         'Creates a task list (column) within a trip. Tasks are created under a task-list id.',
       inputSchema: {
         type: 'object',
-        properties: {
-          tripId: str('Trip id. Defaults to the currently open trip.'),
-          idempotencyKey: idempotencyKeySchema(),
-          title: str('Task list title.'),
-        },
+        properties: taskListProperties(),
         required: ['title'],
       },
       async execute(input) {
         assertWritable('creating a task list');
         requireAuthUser();
-        const tripId = resolveTripId(input.tripId);
-        requireLoadedTrip(tripId);
-        const title = asStr(input.title, 'title');
-        return runIdempotent(
-          'task-list-create',
-          tripId,
-          input.idempotencyKey,
-          input,
-          async () => {
-            const result = await dbAddTaskList(
-              { title, index: 0, status: 0 },
-              { tripId },
-            );
-            return { ok: true, id: result.id, taskListId: result.id };
+        return createTaskList(input);
+      },
+    },
+    {
+      name: 'task-list-create-many',
+      description:
+        'Creates up to 50 task lists. Every item is validated before the first write. Writes are ordered and non-atomic; per-item idempotency keys make retrying safe.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          tripId: str('Trip id applied to lists that omit tripId.'),
+          taskLists: {
+            type: 'array',
+            minItems: 1,
+            maxItems: 50,
+            description: 'Ordered task lists to create.',
+            items: {
+              type: 'object',
+              properties: taskListProperties(),
+              required: ['title'],
+            },
           },
+        },
+        required: ['taskLists'],
+      },
+      async execute(input) {
+        assertWritable('creating task lists');
+        requireAuthUser();
+        return createListBatch(
+          requireBatch(input.taskLists, 'taskLists').map((item) => ({
+            tripId: input.tripId,
+            ...item,
+          })),
         );
+      },
+    },
+    {
+      name: 'task-list-create-with-tasks',
+      description:
+        'Creates one task list and up to 50 tasks in it. All input is validated before writing. Writes are ordered and non-atomic; use a list idempotencyKey and per-task idempotency keys to safely retry a partial result.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          ...taskListProperties(),
+          tasks: {
+            type: 'array',
+            minItems: 1,
+            maxItems: 50,
+            description: 'Tasks to create in the new list.',
+            items: {
+              type: 'object',
+              properties: taskProperties(),
+              required: ['title'],
+            },
+          },
+        },
+        required: ['title', 'tasks'],
+      },
+      async execute(input) {
+        assertWritable('creating a task list and tasks');
+        requireAuthUser();
+        const tasks = requireBatch(input.tasks, 'tasks');
+        parseTaskList(input);
+        tasks.forEach((task) => {
+          asStr(task.title, 'title');
+          const status =
+            task.status === undefined ? TaskStatus.Todo : Number(task.status);
+          if (!VALID_STATUS.includes(status))
+            throw new Error('status is out of range');
+          toEpochMs(task.dueAt, 'dueAt');
+        });
+        const list = await createTaskList(input);
+        const batch = await createTaskBatch(list.taskListId, tasks);
+        return { ...batch, taskListId: list.taskListId, taskList: list };
       },
     },
     {
@@ -91,45 +289,44 @@ export function createTaskTools(): WebMCPTool[] {
         type: 'object',
         properties: {
           taskListId: str('The task list id to add the task to.'),
-          idempotencyKey: idempotencyKeySchema(),
-          title: str('Task title.'),
-          description: str('Optional description.'),
-          status: int(
-            'Task status: 0=todo, 1=in-progress, 2=done, 3=archived, 4=cancelled. Default 0.',
-          ),
-          dueAt: epochOrIso('Optional due time (ISO-8601 or epoch ms).'),
+          ...taskProperties(),
         },
         required: ['taskListId', 'title'],
       },
       async execute(input) {
         assertWritable('creating a task');
         requireAuthUser();
-        const taskListId = asStr(input.taskListId, 'taskListId');
-        const existingList = useBoundStore.getState().taskList[taskListId];
-        if (!existingList)
-          throw new Error(`Task list ${taskListId} is not loaded.`);
-        const status =
-          input.status !== undefined ? Number(input.status) : TaskStatus.Todo;
-        if (!VALID_STATUS.includes(status))
-          throw new Error('status is out of range');
-        const dueAt = toEpochMs(input.dueAt, 'dueAt');
-        const data = {
-          index: existingList.taskIds.length,
-          title: asStr(input.title, 'title'),
-          description: (input.description as string | undefined) ?? '',
-          status,
-          dueAt: dueAt ?? null,
-          completedAt: status === TaskStatus.Done ? Date.now() : null,
-        };
-        return runIdempotent(
-          'task-create',
-          taskListId,
-          input.idempotencyKey,
-          input,
-          async () => {
-            const result = await dbAddTask(data, { taskListId });
-            return { ok: true, id: result.id, taskId: result.id };
+        return createTask(input);
+      },
+    },
+    {
+      name: 'task-create-many',
+      description:
+        'Creates up to 50 tasks in one existing task list. Every item is validated before the first write. Writes are ordered and non-atomic; per-item idempotency keys make retrying safe.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          taskListId: str('The task list id to add all tasks to.'),
+          tasks: {
+            type: 'array',
+            minItems: 1,
+            maxItems: 50,
+            description: 'Ordered tasks to create.',
+            items: {
+              type: 'object',
+              properties: taskProperties(),
+              required: ['title'],
+            },
           },
+        },
+        required: ['taskListId', 'tasks'],
+      },
+      async execute(input) {
+        assertWritable('creating tasks');
+        requireAuthUser();
+        return createTaskBatch(
+          asStr(input.taskListId, 'taskListId'),
+          requireBatch(input.tasks, 'tasks'),
         );
       },
     },
@@ -138,9 +335,7 @@ export function createTaskTools(): WebMCPTool[] {
       description: 'Returns a task from the locally loaded state by id.',
       inputSchema: {
         type: 'object',
-        properties: {
-          taskId: str('The task id.'),
-        },
+        properties: { taskId: str('The task id.') },
         required: ['taskId'],
       },
       annotations: { readOnlyHint: true },
