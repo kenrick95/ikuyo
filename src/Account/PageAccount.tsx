@@ -202,14 +202,14 @@ export function PageAccount(_props: RouteComponentProps) {
               <Text weight="light" size="1">
                 {isGuest
                   ? '(sign in with email to change)'
-                  : '(4-16 characters; lowercase alphabets, numbers, or underscore only)'}
+                  : '(4-64 characters; lowercase alphabets, numbers, or underscore only)'}
               </Text>
             </Text>
             <TextField.Root
               defaultValue={currentUser?.handle}
               name="handle"
               type="text"
-              pattern="[a-z0-9_]{4,16}"
+              pattern="[a-z0-9_]{4,64}"
               id={idHandle}
               disabled={isGuest}
               readOnly={isGuest}
