@@ -13,9 +13,8 @@ declare(strict_types=1);
  * (`RewriteCond %{REQUEST_FILENAME} !-f`), so this script is only reached for
  * non-file, non-dir requests.
  *
- * Metadata source: defaults to the InstantDB admin API. Set METADATA_SOURCE=laravel
- * (plus LARAVEL_API_URL) in config.php to read public-trip metadata from the
- * Laravel/MySQL backend instead; see app/Trip/PublicTrip.php.
+ * Metadata source: the Laravel/MySQL backend. Configure LARAVEL_API_URL in
+ * config.php; see app/Trip/PublicTrip.php.
  */use App\Routing\FrontController;
 
 // PSR-4 style autoload for the `App\` namespace.

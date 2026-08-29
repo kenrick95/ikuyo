@@ -95,14 +95,15 @@ export const createTripsSlice: StateCreator<
         merge();
       } catch (error) {
         if (disposed) return;
-        if (activeLoaded && pastLoaded) {
-          set(() => ({
-            tripsLoading: false,
-            tripsLoadingMore: false,
-            tripsError:
-              error instanceof Error ? error.message : 'Unable to load trips',
-          }));
-        }
+        // The initial active/past requests run concurrently. An error in either
+        // one must dismiss the initial spinner; otherwise the list is stuck
+        // loading forever when only one request fails.
+        set(() => ({
+          tripsLoading: false,
+          tripsLoadingMore: false,
+          tripsError:
+            error instanceof Error ? error.message : 'Unable to load trips',
+        }));
       }
     };
 
