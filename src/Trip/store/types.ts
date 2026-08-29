@@ -383,7 +383,6 @@ export interface TripSlice {
   ) => void;
 
   /** return: unsubscribe function */
-  subscribeTripInstant: (id: string) => () => void;
   subscribeTrip: (id: string) => () => void;
   /** Re-fetch a backend trip and merge changes into the store (no loading flash). */
   refreshTrip: (id: string) => void;

@@ -1,6 +1,4 @@
 import { patchMutation } from '../../../data/apiClient';
-import { backendActivityWrites } from '../../../data/backendConfig';
-import { db } from '../../../data/db';
 import {
   optimisticActivityPatch,
   optimisticRun,
@@ -48,73 +46,45 @@ export async function dbSwapDayActivities({
     activities.map((activity) => [activity.id, activity]),
   );
 
-  if (backendActivityWrites) {
-    return optimisticRun(
-      ['activity'],
-      () => {
-        for (const update of updates) {
-          optimisticActivityPatch(update.id, {
+  return optimisticRun(
+    ['activity'],
+    () => {
+      for (const update of updates) {
+        optimisticActivityPatch(update.id, {
+          timestampStart: update.timestampStart,
+          timestampEnd: update.timestampEnd,
+        });
+      }
+    },
+    async () => {
+      await patchMutation(
+        `/api/trips/${encodeURIComponent(activities[0]?.tripId ?? '')}/activities/batch`,
+        {
+          activities: updates.map((update) => ({
+            id: update.id,
             timestampStart: update.timestampStart,
             timestampEnd: update.timestampEnd,
-          });
-        }
-      },
-      async () => {
-        await patchMutation(
-          `/api/trips/${encodeURIComponent(activities[0]?.tripId ?? '')}/activities/batch`,
-          {
-            activities: updates.map((update) => ({
-              id: update.id,
-              timestampStart: update.timestampStart,
-              timestampEnd: update.timestampEnd,
-            })),
-          },
-        );
-        return {
-          movedCount: updates.length,
-          undo: async () => {
-            await patchMutation(
-              `/api/trips/${encodeURIComponent(activities[0]?.tripId ?? '')}/activities/batch`,
-              {
-                activities: updates.map((update) => {
-                  const original = originalById.get(update.id);
-                  return {
-                    id: update.id,
-                    timestampStart: original?.timestampStart,
-                    timestampEnd: original?.timestampEnd,
-                  };
-                }),
-              },
-            );
-          },
-        };
-      },
-    );
-  }
-
-  await db.transact(
-    updates.map((update) => {
-      return db.tx.activity[update.id].merge({
-        timestampStart: update.timestampStart,
-        timestampEnd: update.timestampEnd,
-        lastUpdatedAt: Date.now(),
-      });
-    }),
-  );
-
-  return {
-    movedCount: updates.length,
-    undo: async () => {
-      await db.transact(
-        updates.map((update) => {
-          const original = originalById.get(update.id);
-          return db.tx.activity[update.id].merge({
-            timestampStart: original?.timestampStart,
-            timestampEnd: original?.timestampEnd,
-            lastUpdatedAt: Date.now(),
-          });
-        }),
+          })),
+        },
       );
+      return {
+        movedCount: updates.length,
+        undo: async () => {
+          await patchMutation(
+            `/api/trips/${encodeURIComponent(activities[0]?.tripId ?? '')}/activities/batch`,
+            {
+              activities: updates.map((update) => {
+                const original = originalById.get(update.id);
+                return {
+                  id: update.id,
+                  timestampStart: original?.timestampStart,
+                  timestampEnd: original?.timestampEnd,
+                };
+              }),
+            },
+          );
+        },
+      };
     },
-  };
+  );
 }

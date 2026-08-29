@@ -1,8 +1,6 @@
-import { id } from '@instantdb/core';
 import type { DbCommentGroup } from '../Comment/db';
 import { deleteMutation, postMutation, putMutation } from '../data/apiClient';
-import { backendActivityWrites } from '../data/backendConfig';
-import { db } from '../data/db';
+import { id } from '../data/id';
 import {
   optimisticActivityPatch,
   optimisticActivityRemove,
@@ -76,148 +74,66 @@ export async function dbAddActivity(
     tripId: string;
   },
 ) {
-  if (backendActivityWrites) {
-    // Optimistic: insert locally with a client-generated id, send the same id so
-    // the server persists it, and roll back on failure.
-    const newId = id();
-    return optimisticRun(
-      ['activity', 'trip'],
-      () => {
-        const now = Date.now();
-        optimisticActivityUpsert(tripId, {
-          ...newActivity,
-          id: newId,
-          createdAt: now,
-          lastUpdatedAt: now,
-          tripId,
-          commentGroupId: undefined,
-        } as TripSliceActivity);
-      },
-      async () => {
-        const result = await postMutation<{ id: string }>(
-          `/api/trips/${encodeURIComponent(tripId)}/activities`,
-          { ...newActivity, id: newId },
-        );
-        return {
-          transaction: result,
-          id: result.id,
-          undo: async () =>
-            deleteMutation(
-              `/api/trips/${encodeURIComponent(tripId)}/activities/${encodeURIComponent(result.id)}`,
-            ),
-        };
-      },
-    );
-  }
-
+  // Optimistic: insert locally with a client-generated id, send the same id so
+  // the server persists it, and roll back on failure.
   const newId = id();
-  const transaction = await db.transact(
-    db.tx.activity[newId]
-      .create({
+  return optimisticRun(
+    ['activity', 'trip'],
+    () => {
+      const now = Date.now();
+      optimisticActivityUpsert(tripId, {
         ...newActivity,
-        createdAt: Date.now(),
-        lastUpdatedAt: Date.now(),
-      })
-      .link({
-        trip: tripId,
-      }),
+        id: newId,
+        createdAt: now,
+        lastUpdatedAt: now,
+        tripId,
+        commentGroupId: undefined,
+      } as TripSliceActivity);
+    },
+    async () => {
+      const result = await postMutation<{ id: string }>(
+        `/api/trips/${encodeURIComponent(tripId)}/activities`,
+        { ...newActivity, id: newId },
+      );
+      return {
+        transaction: result,
+        id: result.id,
+        undo: async () =>
+          deleteMutation(
+            `/api/trips/${encodeURIComponent(tripId)}/activities/${encodeURIComponent(result.id)}`,
+          ),
+      };
+    },
   );
+}
 
-  return {
-    transaction,
-    id: newId,
-    undo: async () => {
-      return await db.transact(db.tx.activity[newId].delete());
-    },
-  };
-}
 export async function dbDeleteActivity(activityId: string) {
-  if (backendActivityWrites) {
-    const state = useBoundStore.getState();
-    const activity = state.activity[activityId];
-    const tripId = activity?.tripId;
-    return optimisticRun(
-      ['activity', 'trip'],
-      () => {
-        if (tripId) optimisticActivityRemove(tripId, activityId);
-      },
-      () => deleteMutation(`/api/activities/${encodeURIComponent(activityId)}`),
-    );
-  }
-  const commentGroups = await db.queryOnce({
-    commentGroup: {
-      comment: { $: { fields: ['id'] } },
-      $: {
-        where: {
-          'object.type': 'activity',
-          'object.activity.id': activityId,
-        },
-        fields: ['id'],
-      },
+  const state = useBoundStore.getState();
+  const activity = state.activity[activityId];
+  const tripId = activity?.tripId;
+  return optimisticRun(
+    ['activity', 'trip'],
+    () => {
+      if (tripId) optimisticActivityRemove(tripId, activityId);
     },
-  });
-  const commentGroupIds = commentGroups.data.commentGroup.map(
-    (commentGroup) => commentGroup.id,
+    () => deleteMutation(`/api/activities/${encodeURIComponent(activityId)}`),
   );
-  const commentIds = commentGroups.data.commentGroup.flatMap((commentGroup) =>
-    commentGroup.comment.map((comment) => comment.id),
-  );
-  // TODO: change to soft delete so we can easily undo
-  return db.transact([
-    ...commentGroupIds.map((commentGroupId) =>
-      db.tx.commentGroup[commentGroupId].delete(),
-    ),
-    ...commentGroupIds.map((commentGroupId) =>
-      // CommentGroupObject has same id as commentGroup
-      db.tx.commentGroupObject[commentGroupId].delete(),
-    ),
-    ...commentIds.map((commentId) => db.tx.comment[commentId].delete()),
-    db.tx.activity[activityId].delete(),
-  ]);
 }
+
 export async function dbUpdateActivity(
   activity: Omit<DbActivity, 'createdAt' | 'lastUpdatedAt' | 'trip'>,
 ) {
-  if (backendActivityWrites) {
-    return optimisticRun(
-      ['activity'],
-      () => optimisticActivityPatch(activity.id, activity),
-      async () => {
-        const result = await putMutation<DbActivity>(
-          `/api/activities/${encodeURIComponent(activity.id)}`,
-          activity,
-        );
-        return { transaction: result, undo: async () => undefined };
-      },
-    );
-  }
-
-  const snapshot = await db.queryOnce({
-    activity: {
-      $: {
-        where: { id: activity.id },
-      },
-    },
-  });
-
-  const transaction = await db.transact(
-    db.tx.activity[activity.id].merge({
-      ...activity,
-      lastUpdatedAt: Date.now(),
-    }),
-  );
-
-  return {
-    transaction,
-    undo: async () => {
-      return await db.transact(
-        db.tx.activity[activity.id].merge({
-          ...snapshot.data.activity[0],
-          lastUpdatedAt: Date.now(),
-        }),
+  return optimisticRun(
+    ['activity'],
+    () => optimisticActivityPatch(activity.id, activity),
+    async () => {
+      const result = await putMutation<DbActivity>(
+        `/api/activities/${encodeURIComponent(activity.id)}`,
+        activity,
       );
+      return { transaction: result, undo: async () => undefined };
     },
-  };
+  );
 }
 
 export async function dbDuplicateActivityDragEnd(
@@ -230,87 +146,38 @@ export async function dbDuplicateActivityDragEnd(
     timestampEnd: number;
   },
 ) {
-  if (backendActivityWrites) {
-    const state = useBoundStore.getState();
-    const activity = state.activity[activityId];
-    const tripId = activity?.tripId;
-    const newId = id();
-    return optimisticRun(
-      ['activity', 'trip'],
-      () => {
-        if (tripId && activity) {
-          optimisticActivityUpsert(tripId, {
-            ...activity,
-            id: newId,
-            timestampStart,
-            timestampEnd,
-            createdAt: Date.now(),
-            lastUpdatedAt: Date.now(),
-            flags: updateActivityFlag(
-              activity.flags,
-              ActivityFlag.IsIdea,
-              false,
-            ),
-          });
-        }
-      },
-      async () => {
-        const result = await postMutation<{ id: string }>(
-          `/api/activities/${encodeURIComponent(activityId)}/duplicate`,
-          { timestampStart, timestampEnd, id: newId },
-        );
-        return {
-          id: result.id,
-          transaction: result,
-          undo: async () =>
-            deleteMutation(`/api/activities/${encodeURIComponent(result.id)}`),
-        };
-      },
-    );
-  }
-  const res = await db.queryOnce({
-    activity: {
-      $: {
-        where: { id: activityId },
-      },
-      trip: {
-        $: {
-          fields: ['id'],
-        },
-      },
-    },
-  });
-  const activity = res.data.activity[0];
-  if (!activity) {
-    throw new Error(`Activity with id ${activityId} not found`);
-  }
-  const tripId = activity?.trip?.id;
-  if (!tripId) {
-    throw new Error(`Activity with id ${activityId} has no trip`);
-  }
-  delete activity.trip;
+  const state = useBoundStore.getState();
+  const activity = state.activity[activityId];
+  const tripId = activity?.tripId;
   const newId = id();
-  const transaction = await db.transact(
-    db.tx.activity[newId]
-      .create({
-        ...activity,
-        timestampStart,
-        timestampEnd,
-        createdAt: Date.now(),
-        lastUpdatedAt: Date.now(),
-        flags: updateActivityFlag(activity.flags, ActivityFlag.IsIdea, false),
-      })
-      .link({
-        trip: tripId,
-      }),
-  );
-  return {
-    id: newId,
-    transaction,
-    undo: async () => {
-      return await db.transact(db.tx.activity[newId].delete());
+  return optimisticRun(
+    ['activity', 'trip'],
+    () => {
+      if (tripId && activity) {
+        optimisticActivityUpsert(tripId, {
+          ...activity,
+          id: newId,
+          timestampStart,
+          timestampEnd,
+          createdAt: Date.now(),
+          lastUpdatedAt: Date.now(),
+          flags: updateActivityFlag(activity.flags, ActivityFlag.IsIdea, false),
+        });
+      }
     },
-  };
+    async () => {
+      const result = await postMutation<{ id: string }>(
+        `/api/activities/${encodeURIComponent(activityId)}/duplicate`,
+        { timestampStart, timestampEnd, id: newId },
+      );
+      return {
+        id: result.id,
+        transaction: result,
+        undo: async () =>
+          deleteMutation(`/api/activities/${encodeURIComponent(result.id)}`),
+      };
+    },
+  );
 }
 
 export async function dbUpdateActivityDragEnd(
@@ -323,63 +190,23 @@ export async function dbUpdateActivityDragEnd(
     timestampEnd: number;
   },
 ) {
-  if (backendActivityWrites) {
-    return optimisticRun(
-      ['activity'],
-      () => {
-        const existing = useBoundStore.getState().activity[activityId];
-        optimisticActivityPatch(activityId, {
-          timestampStart,
-          timestampEnd,
-          flags: updateActivityFlag(
-            existing?.flags,
-            ActivityFlag.IsIdea,
-            false,
-          ),
-          lastUpdatedAt: Date.now(),
-        });
-      },
-      async () => {
-        const result = await postMutation<DbActivity>(
-          `/api/activities/${encodeURIComponent(activityId)}/drag-end`,
-          { timestampStart, timestampEnd },
-        );
-        return { transaction: result, undo: async () => undefined };
-      },
-    );
-  }
-  const res = await db.queryOnce({
-    activity: {
-      $: {
-        where: { id: activityId },
-      },
+  return optimisticRun(
+    ['activity'],
+    () => {
+      const existing = useBoundStore.getState().activity[activityId];
+      optimisticActivityPatch(activityId, {
+        timestampStart,
+        timestampEnd,
+        flags: updateActivityFlag(existing?.flags, ActivityFlag.IsIdea, false),
+        lastUpdatedAt: Date.now(),
+      });
     },
-  });
-  const activitySnapshot = res.data.activity[0];
-  if (!activitySnapshot) {
-    throw new Error(`Activity with id ${activityId} not found`);
-  }
-  const transaction = await db.transact(
-    db.tx.activity[activitySnapshot.id].merge({
-      timestampStart,
-      timestampEnd,
-      lastUpdatedAt: Date.now(),
-      flags: updateActivityFlag(
-        activitySnapshot.flags,
-        ActivityFlag.IsIdea,
-        false,
-      ),
-    }),
-  );
-  return {
-    transaction,
-    undo: async () => {
-      return await db.transact(
-        db.tx.activity[activitySnapshot.id].merge({
-          ...activitySnapshot,
-          lastUpdatedAt: Date.now(),
-        }),
+    async () => {
+      const result = await postMutation<DbActivity>(
+        `/api/activities/${encodeURIComponent(activityId)}/drag-end`,
+        { timestampStart, timestampEnd },
       );
+      return { transaction: result, undo: async () => undefined };
     },
-  };
+  );
 }

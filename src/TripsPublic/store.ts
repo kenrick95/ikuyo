@@ -1,7 +1,5 @@
 import type { StateCreator } from 'zustand';
 import { type CursorPage, get } from '../data/apiClient';
-import { backendTripReads } from '../data/backendConfig';
-import { db } from '../data/db';
 import type { BoundStoreType } from '../data/store';
 
 export type TripsPublicSliceTrip = {
@@ -65,9 +63,6 @@ export const createTripsPublicSlice: StateCreator<
     tripsPublicLoadMore: undefined,
     tripsPublicLoadingMore: null,
     subscribeTripsPublic: () => {
-      if (!backendTripReads) {
-        return subscribeTripsPublicInstant(set);
-      }
       let disposed = false;
       let nextCursor: string | null = null;
 
@@ -126,67 +121,3 @@ export const createTripsPublicSlice: StateCreator<
     },
   };
 };
-
-/** Original InstantDB-backed public-trip directory (default when backend reads are disabled). */
-function subscribeTripsPublicInstant(
-  set: (fn: (state: any) => Partial<TripsPublicSlice>) => void,
-): () => void {
-  let loadingMore = false;
-  let hasMore = false;
-  const query = db.subscribeInfiniteQuery(
-    {
-      trip: {
-        $: {
-          limit: PAGE_SIZE,
-          order: { serverCreatedAt: 'desc' },
-          where: {
-            sharingLevel: 3,
-            // Match the backend: only trips that have at least one activity.
-            'activity.id': { $isNull: false },
-          },
-        },
-        tripUser: { $: { where: { role: 'owner' } }, user: {} },
-        activity: {},
-      },
-    },
-    ({ data, error, canLoadNextPage }) => {
-      if (error) {
-        set(() => ({
-          tripsPublicLoading: false,
-          tripsPublicError: error.message,
-          tripsPublicHasMore: null,
-          tripsPublicLoadingMore: null,
-        }));
-        return;
-      }
-      const trips = (data?.trip ?? []).map((trip) => ({
-        id: trip.id,
-        title: trip.title,
-        timestampStart: trip.timestampStart,
-        timestampEnd: trip.timestampEnd,
-        timeZone: trip.timeZone,
-        createdAt: trip.createdAt,
-        lastUpdatedAt: trip.lastUpdatedAt,
-        ownerHandle: trip.tripUser?.[0]?.user?.[0]?.handle ?? null,
-        activityCount: trip.activity?.length ?? 0,
-      }));
-      hasMore = canLoadNextPage ?? false;
-      loadingMore = false;
-      set(() => ({
-        tripsPublic: trips,
-        tripsPublicLoading: false,
-        tripsPublicHasMore: hasMore,
-        tripsPublicLoadingMore: false,
-      }));
-    },
-  );
-  set(() => ({
-    tripsPublicLoadMore: () => {
-      if (loadingMore || !hasMore) return;
-      loadingMore = true;
-      set(() => ({ tripsPublicLoadingMore: true }));
-      query.loadNextPage();
-    },
-  }));
-  return () => query.unsubscribe();
-}

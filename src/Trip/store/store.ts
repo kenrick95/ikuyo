@@ -1,8 +1,6 @@
 import type { StateCreator } from 'zustand';
 import { get as apiGet, setMutationAppliedHandler } from '../../data/apiClient';
 import { mapApiTrip } from '../../data/apiTrip';
-import { backendTripReads } from '../../data/backendConfig';
-import { db } from '../../data/db';
 import type { BoundStoreType } from '../../data/store';
 import {
   deriveNewAccommodationState,
@@ -141,7 +139,6 @@ export const createTripSlice: StateCreator<
   // change without waiting for the periodic sync poll. No-op when no trip page
   // is open (currentTripId unset, e.g. login or the trips list).
   setMutationAppliedHandler(() => {
-    if (!backendTripReads) return;
     const tripId = get().currentTripId;
     if (tripId)
       void fetchTripAndMerge(set, tripId, false).catch(() => undefined);
@@ -194,121 +191,7 @@ export const createTripSlice: StateCreator<
         };
       });
     },
-    subscribeTripInstant: (tripId: string) => {
-      console.log('subscribeTrip', { tripId });
-      set((state) => ({
-        tripMeta: {
-          ...state.tripMeta,
-          [tripId]: {
-            loading: true,
-            error: undefined,
-          },
-        },
-      }));
-      return db.subscribeQuery(
-        {
-          trip: {
-            $: {
-              where: {
-                id: tripId,
-              },
-              limit: 1,
-            },
-            activity: {},
-            accommodation: {},
-            macroplan: {},
-            expense: {},
-            taskList: {
-              task: {},
-            },
-            tripUser: {
-              user: {
-                $: { fields: ['id', 'handle', 'activated', 'email'] },
-              },
-            },
-            commentGroup: {
-              comment: {
-                user: {
-                  $: { fields: ['id', 'handle', 'activated'] },
-                },
-              },
-              object: {
-                activity: { $: { fields: ['id', 'title'] } },
-                accommodation: { $: { fields: ['id', 'name'] } },
-                expense: { $: { fields: ['id', 'title'] } },
-                trip: { $: { fields: ['id', 'title'] } },
-                macroplan: { $: { fields: ['id', 'name'] } },
-                task: { $: { fields: ['id', 'title'] } },
-                $: {
-                  fields: ['type', 'createdAt', 'lastUpdatedAt', 'id'],
-                },
-              },
-            },
-          },
-        },
-        ({ data, error }) => {
-          console.log('subscribeTrip callback', { tripId, data, error });
-          const trip = data?.trip?.[0] satisfies
-            | DbTripQueryReturnType
-            | undefined;
-
-          if (!trip) {
-            set((state) => ({
-              tripMeta: {
-                ...state.tripMeta,
-                [tripId]: {
-                  loading: false,
-                  error: error?.message,
-                },
-              },
-            }));
-            return;
-          }
-          set((state) => {
-            const newAccommodationState = deriveNewAccommodationState(
-              state,
-              trip,
-            );
-            const newActivityState = deriveNewActivityState(state, trip);
-            const newMacroplanState = deriveNewMacroplanState(state, trip);
-            const newCommentGroupState = deriveNewCommentGroupState(
-              state,
-              trip,
-            );
-            const newTripUserState = deriveNewTripUserState(state, trip);
-            const newExpenseState = deriveNewExpenseState(state, trip);
-            const { newCommentState, newCommentUserState } =
-              deriveNewCommentAndCommentUserState(state, trip);
-            const { taskListState, taskState } =
-              deriveNewTripTaskListAndTaskState(state, trip);
-            const newTripState = deriveNewTripState(state, trip);
-
-            return {
-              trip: newTripState,
-              accommodation: newAccommodationState,
-              activity: newActivityState,
-              macroplan: newMacroplanState,
-              commentGroup: newCommentGroupState,
-              expense: newExpenseState,
-              tripUser: newTripUserState,
-              comment: newCommentState,
-              commentUser: newCommentUserState,
-              task: taskState,
-              taskList: taskListState,
-              tripMeta: {
-                ...state.tripMeta,
-                [tripId]: {
-                  loading: false,
-                  error: error?.message,
-                },
-              },
-            } satisfies Partial<TripSlice>;
-          });
-        },
-      );
-    },
     subscribeTrip: (tripId: string) => {
-      if (!backendTripReads) return get().subscribeTripInstant(tripId);
       let disposed = false;
       void fetchTripAndMerge(set, tripId, true, () => disposed).catch(
         () => undefined,
@@ -318,20 +201,9 @@ export const createTripSlice: StateCreator<
       };
     },
     refreshTrip: (tripId: string) => {
-      if (!backendTripReads) return;
       void fetchTripAndMerge(set, tripId, false).catch(() => undefined);
     },
     loadTrip: async (tripId: string) => {
-      if (!backendTripReads) {
-        const existing = get().trip[tripId];
-        if (!existing) {
-          throw new Error(
-            'Opening a trip by id requires backend trip reads in this deployment.',
-          );
-        }
-        set({ currentTripId: tripId });
-        return existing;
-      }
       await fetchTripAndMerge(set, tripId, true);
       const trip = get().trip[tripId];
       if (!trip) throw new Error(`Trip ${tripId} could not be loaded.`);

@@ -9,7 +9,7 @@ import { activitiesToIcs, downloadIcs } from '../../Activity/icsExport';
 import { TrainNewDialog } from '../../Activity/TrainNewDialog';
 import { useCurrentUser } from '../../Auth/hooks';
 import { UserAvatarMenu } from '../../Auth/UserAvatarMenu';
-import { db } from '../../data/db';
+import { postMutation } from '../../data/apiClient';
 import { useBoundStore } from '../../data/store';
 import { MacroplanNewDialog } from '../../Macroplan/MacroplanNewDialog';
 import { RouteAccount, RouteLogin, RouteTrips } from '../../Routes/routes';
@@ -278,7 +278,10 @@ export function TripMenu() {
           <DropdownMenu.Item
             className={s.onlyForXs}
             onClick={() => {
-              void db.auth.signOut().then(() => {
+              const clearSession = useBoundStore.getState().clearSession;
+              void postMutation('/api/auth/logout', {}).then(() => {
+                clearSession();
+                useBoundStore.getState().subscribeUser();
                 setLocation(RouteLogin.asRootRoute());
               });
             }}

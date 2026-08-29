@@ -19,7 +19,6 @@ jobs:
     permissions:
       contents: read
     env:
-      INSTANT_APP_ID: ${{ vars.INSTANT_APP_ID }}
       MAPTILER_API_KEY: ${{ vars.MAPTILER_API_KEY }}
       MAPTILER_MAP_STYLE_LIGHT: ${{ vars.MAPTILER_MAP_STYLE_LIGHT }}
       MAPTILER_MAP_STYLE_DARK: ${{ vars.MAPTILER_MAP_STYLE_DARK }}
