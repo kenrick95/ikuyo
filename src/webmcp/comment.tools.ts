@@ -2,12 +2,17 @@ import {
   COMMENT_GROUP_OBJECT_TYPE,
   type DbCommentGroupObjectType,
   dbAddComment,
+  dbDeleteComment,
   dbUpdateComment,
   dbUpdateCommentGroupStatus,
 } from '../Comment/db';
 import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
+import {
+  deletionConfirmationSchema,
+  requireDeletionConfirmation,
+} from './destructive';
 import { idempotencyKeySchema, runIdempotent } from './idempotency';
 import type { WebMCPTool } from './modelContext';
 import { asOptStr, asStr, str, strEnum } from './schema';
@@ -188,6 +193,29 @@ export function createCommentTools(): WebMCPTool[] {
           committedCount: results.length,
           results,
         };
+      },
+    },
+    {
+      name: 'comment-delete',
+      description:
+        'Destructive: permanently deletes one comment. If it is the only comment in its thread, the empty comment thread is also deleted. Call only after the user explicitly confirms the exact comment deletion.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          commentId: str('The comment id to permanently delete.'),
+          confirmDelete: deletionConfirmationSchema(),
+        },
+        required: ['commentId', 'confirmDelete'],
+      },
+      async execute(input) {
+        assertWritable('deleting a comment');
+        requireAuthUser();
+        const commentId = asStr(input.commentId, 'commentId');
+        const comment = useBoundStore.getState().comment[commentId];
+        if (!comment) throw new Error(`Comment ${commentId} is not loaded.`);
+        requireDeletionConfirmation(input.confirmDelete);
+        await dbDeleteComment(commentId, comment.commentGroupId);
+        return { ok: true, deletedCommentId: commentId };
       },
     },
     {

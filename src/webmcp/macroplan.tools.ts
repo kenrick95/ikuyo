@@ -1,7 +1,15 @@
 import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
-import { dbAddMacroplan, dbUpdateMacroplan } from '../Macroplan/db';
+import {
+  dbAddMacroplan,
+  dbDeleteMacroplan,
+  dbUpdateMacroplan,
+} from '../Macroplan/db';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
+import {
+  deletionConfirmationSchema,
+  requireDeletionConfirmation,
+} from './destructive';
 import { idempotencyKeySchema, runIdempotent } from './idempotency';
 import type { WebMCPTool } from './modelContext';
 import { asOptStr, asStr, str } from './schema';
@@ -151,6 +159,29 @@ export function createMacroplanTools(): WebMCPTool[] {
           committedCount: results.length,
           results,
         };
+      },
+    },
+    {
+      name: 'day-plan-delete',
+      description:
+        'Destructive: permanently deletes one day plan. Call only after the user explicitly confirms the exact day-plan deletion.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          dayPlanId: str('The day-plan id to permanently delete.'),
+          confirmDelete: deletionConfirmationSchema(),
+        },
+        required: ['dayPlanId', 'confirmDelete'],
+      },
+      async execute(input) {
+        assertWritable('deleting a day plan');
+        requireAuthUser();
+        const dayPlanId = asStr(input.dayPlanId, 'dayPlanId');
+        if (!useBoundStore.getState().macroplan[dayPlanId])
+          throw new Error(`Day plan ${dayPlanId} is not loaded.`);
+        requireDeletionConfirmation(input.confirmDelete);
+        await dbDeleteMacroplan(dayPlanId);
+        return { ok: true, deletedDayPlanId: dayPlanId };
       },
     },
     {

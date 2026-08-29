@@ -1,8 +1,16 @@
-import { dbAddActivity, dbUpdateActivity } from '../Activity/db';
+import {
+  dbAddActivity,
+  dbDeleteActivity,
+  dbUpdateActivity,
+} from '../Activity/db';
 import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
 import { resolveActivityFlags } from './activityFlags';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
+import {
+  deletionConfirmationSchema,
+  requireDeletionConfirmation,
+} from './destructive';
 import { idempotencyKeySchema, runIdempotent } from './idempotency';
 import type { WebMCPTool } from './modelContext';
 import { asOptPlaceCandidate, placeCandidateSchema } from './placeCandidate';
@@ -262,6 +270,29 @@ export function createActivityTools(): WebMCPTool[] {
             ? 'Some activities are unmapped. For each physical place, call place-search, choose a candidate, and pass candidate.place to activity-update.'
             : undefined,
         };
+      },
+    },
+    {
+      name: 'activity-delete',
+      description:
+        'Destructive: permanently deletes one activity from the trip. Call only after the user explicitly confirms the exact activity deletion.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          activityId: str('The activity id to permanently delete.'),
+          confirmDelete: deletionConfirmationSchema(),
+        },
+        required: ['activityId', 'confirmDelete'],
+      },
+      async execute(input) {
+        assertWritable('deleting an activity');
+        requireAuthUser();
+        const activityId = asStr(input.activityId, 'activityId');
+        if (!useBoundStore.getState().activity[activityId])
+          throw new Error(`Activity ${activityId} is not loaded.`);
+        requireDeletionConfirmation(input.confirmDelete);
+        await dbDeleteActivity(activityId);
+        return { ok: true, deletedActivityId: activityId };
       },
     },
     {

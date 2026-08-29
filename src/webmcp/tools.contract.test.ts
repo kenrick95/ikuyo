@@ -134,4 +134,24 @@ describe('WebMCP reliability contracts', () => {
       ),
     ).toBe(true);
   });
+
+  it('marks deletion tools as destructive and requires explicit confirmation', () => {
+    const deletionTools = [
+      [createActivityTools(), 'activity-delete'],
+      [createAccommodationTools(), 'accommodation-delete'],
+      [createExpenseTools(), 'expense-delete'],
+      [createTaskTools(), 'task-delete'],
+      [createTaskTools(), 'task-list-delete'],
+      [createMacroplanTools(), 'day-plan-delete'],
+      [createCommentTools(), 'comment-delete'],
+    ] as const;
+    for (const [tools, name] of deletionTools) {
+      const tool = tools.find((candidate) => candidate.name === name);
+      expect(tool?.description).toContain('Destructive:');
+      expect(tool?.inputSchema.required).toContain('confirmDelete');
+      expect(tool?.inputSchema.properties.confirmDelete).toMatchObject({
+        enum: ['DELETE'],
+      });
+    }
+  });
 });

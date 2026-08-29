@@ -1,7 +1,11 @@
 import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
-import { dbAddExpense, dbUpdateExpense } from '../Expense/db';
+import { dbAddExpense, dbDeleteExpense, dbUpdateExpense } from '../Expense/db';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
+import {
+  deletionConfirmationSchema,
+  requireDeletionConfirmation,
+} from './destructive';
 import { idempotencyKeySchema, runIdempotent } from './idempotency';
 import type { WebMCPTool } from './modelContext';
 import {
@@ -288,6 +292,29 @@ export function createExpenseTools(): WebMCPTool[] {
           committedCount: results.length,
           results,
         };
+      },
+    },
+    {
+      name: 'expense-delete',
+      description:
+        'Destructive: permanently deletes one expense from the trip. Call only after the user explicitly confirms the exact expense deletion.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          expenseId: str('The expense id to permanently delete.'),
+          confirmDelete: deletionConfirmationSchema(),
+        },
+        required: ['expenseId', 'confirmDelete'],
+      },
+      async execute(input) {
+        assertWritable('deleting an expense');
+        requireAuthUser();
+        const expenseId = asStr(input.expenseId, 'expenseId');
+        if (!useBoundStore.getState().expense[expenseId])
+          throw new Error(`Expense ${expenseId} is not loaded.`);
+        requireDeletionConfirmation(input.confirmDelete);
+        await dbDeleteExpense(expenseId);
+        return { ok: true, deletedExpenseId: expenseId };
       },
     },
     {

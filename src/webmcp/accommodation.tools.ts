@@ -1,7 +1,15 @@
-import { dbAddAccommodation, dbUpdateAccommodation } from '../Accommodation/db';
+import {
+  dbAddAccommodation,
+  dbDeleteAccommodation,
+  dbUpdateAccommodation,
+} from '../Accommodation/db';
 import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
+import {
+  deletionConfirmationSchema,
+  requireDeletionConfirmation,
+} from './destructive';
 import { idempotencyKeySchema, runIdempotent } from './idempotency';
 import type { WebMCPTool } from './modelContext';
 import { asOptPlaceCandidate, placeCandidateSchema } from './placeCandidate';
@@ -210,6 +218,29 @@ export function createAccommodationTools(): WebMCPTool[] {
           committedCount: results.length,
           results,
         };
+      },
+    },
+    {
+      name: 'accommodation-delete',
+      description:
+        'Destructive: permanently deletes one accommodation stay from the trip. Call only after the user explicitly confirms the exact lodging deletion.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          accommodationId: str('The accommodation id to permanently delete.'),
+          confirmDelete: deletionConfirmationSchema(),
+        },
+        required: ['accommodationId', 'confirmDelete'],
+      },
+      async execute(input) {
+        assertWritable('deleting an accommodation');
+        requireAuthUser();
+        const accommodationId = asStr(input.accommodationId, 'accommodationId');
+        if (!useBoundStore.getState().accommodation[accommodationId])
+          throw new Error(`Accommodation ${accommodationId} is not loaded.`);
+        requireDeletionConfirmation(input.confirmDelete);
+        await dbDeleteAccommodation(accommodationId);
+        return { ok: true, deletedAccommodationId: accommodationId };
       },
     },
     {

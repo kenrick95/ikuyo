@@ -3,11 +3,17 @@ import { useBoundStore } from '../data/store';
 import {
   dbAddTask,
   dbAddTaskList,
+  dbDeleteTask,
+  dbDeleteTaskList,
   dbUpdateTask,
   dbUpdateTaskList,
 } from '../Task/db';
 import { TaskStatus } from '../Task/TaskStatus';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
+import {
+  deletionConfirmationSchema,
+  requireDeletionConfirmation,
+} from './destructive';
 import { idempotencyKeySchema, runIdempotent } from './idempotency';
 import type { WebMCPTool } from './modelContext';
 import { asStr, epochOrIso, int, str, toEpochMs } from './schema';
@@ -255,6 +261,29 @@ export function createTaskTools(): WebMCPTool[] {
       },
     },
     {
+      name: 'task-list-delete',
+      description:
+        'Destructive: permanently deletes one task list and every task in it. Call only after the user explicitly confirms the exact task-list deletion.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          taskListId: str('The task-list id to permanently delete.'),
+          confirmDelete: deletionConfirmationSchema(),
+        },
+        required: ['taskListId', 'confirmDelete'],
+      },
+      async execute(input) {
+        assertWritable('deleting a task list');
+        requireAuthUser();
+        const taskListId = asStr(input.taskListId, 'taskListId');
+        if (!useBoundStore.getState().taskList[taskListId])
+          throw new Error(`Task list ${taskListId} is not loaded.`);
+        requireDeletionConfirmation(input.confirmDelete);
+        await dbDeleteTaskList(taskListId);
+        return { ok: true, deletedTaskListId: taskListId };
+      },
+    },
+    {
       name: 'task-list-update',
       description: 'Renames a task list.',
       inputSchema: {
@@ -328,6 +357,29 @@ export function createTaskTools(): WebMCPTool[] {
           asStr(input.taskListId, 'taskListId'),
           requireBatch(input.tasks, 'tasks'),
         );
+      },
+    },
+    {
+      name: 'task-delete',
+      description:
+        'Destructive: permanently deletes one task. Call only after the user explicitly confirms the exact task deletion.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          taskId: str('The task id to permanently delete.'),
+          confirmDelete: deletionConfirmationSchema(),
+        },
+        required: ['taskId', 'confirmDelete'],
+      },
+      async execute(input) {
+        assertWritable('deleting a task');
+        requireAuthUser();
+        const taskId = asStr(input.taskId, 'taskId');
+        const task = useBoundStore.getState().task[taskId];
+        if (!task) throw new Error(`Task ${taskId} is not loaded.`);
+        requireDeletionConfirmation(input.confirmDelete);
+        await dbDeleteTask(taskId, task.taskListId);
+        return { ok: true, deletedTaskId: taskId };
       },
     },
     {
