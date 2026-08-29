@@ -1,0 +1,17 @@
+# Copy to lefthook-local.yml when Git is started by a Windows GUI that does
+# not inherit the Node.js installation directory. Lefthook expands $PATH.
+pre-commit:
+  commands:
+    check:
+      glob: "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc,css}"
+      env:
+        PATH: C:\Program Files\nodejs;$PATH
+      run: pnpm biome check --write --no-errors-on-unmatched --files-ignore-unknown=true --colors=off {staged_files}
+      stage_fixed: true
+
+validate:
+  commands:
+    frontend-types:
+      env:
+        PATH: C:\Program Files\nodejs;$PATH
+      run: pnpm typecheck

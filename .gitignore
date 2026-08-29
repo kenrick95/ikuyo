@@ -1,6 +1,8 @@
 # Local
 .DS_Store
 *.local
+lefthook-local.yml
+.codex/hooks.json
 *.log*
 
 # Dist

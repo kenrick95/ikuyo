@@ -1,7 +1,26 @@
+ai:
+  codex:
+    Stop: validate
+
+# Runs after a Codex turn. Keep this read-only so the agent can report failures
+# without unexpectedly rewriting the worktree.
+validate:
+  parallel: true
+  commands:
+    frontend-types:
+      run: pnpm typecheck
+    php-style:
+      run: cd backend && ./vendor/bin/pint --test
+    php-static:
+      run: cd backend && ./vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+
 pre-commit:
   commands:
     check:
       glob: "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc,css}"
+      # Git GUI processes on this Windows project may not inherit Node.js.
+      env:
+        PATH: C:\Program Files\nodejs;$PATH
       run: pnpm biome check --write --no-errors-on-unmatched --files-ignore-unknown=true --colors=off {staged_files}
       stage_fixed: true
     # PHP syntax check (fast) on staged PHP files (paths are repo-root-relative).
