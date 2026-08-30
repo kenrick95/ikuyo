@@ -5,6 +5,7 @@ import { useBoundStore } from '../data/store';
 import type { TripSliceTrip } from '../Trip/store/types';
 import { AccommodationForm } from './AccommodationForm/AccommodationForm';
 import { AccommodationFormMode } from './AccommodationForm/AccommodationFormMode';
+import { getDefaultAccommodationCheckInDate } from './defaultCheckInDate';
 
 export function AccommodationNewDialog({
   trip,
@@ -18,6 +19,9 @@ export function AccommodationNewDialog({
   const popDialog = useBoundStore((state) => state.popDialog);
   const askToConfirmPopDialog = useBoundStore(
     (state) => state.askToConfirmPopDialog,
+  );
+  const accommodations = useBoundStore((state) =>
+    state.getAccommodations(trip.accommodationIds),
   );
   const handleFormCancel = useCallback(() => {
     askToConfirmPopDialog();
@@ -63,13 +67,16 @@ export function AccommodationNewDialog({
       ];
     }
 
+    const defaultCheckInDate = getDefaultAccommodationCheckInDate(
+      trip,
+      accommodations,
+    );
+
     // Default behavior when no prefillData
     return [
-      Temporal.Instant.fromEpochMilliseconds(trip.timestampStart)
-        .toZonedDateTimeISO(trip.timeZone)
-        // Usually check-in is 3pm of the first day
-        .with({ hour: 15 })
-        .toPlainDateTime(),
+      defaultCheckInDate
+        // Usually check-in is 3pm of the selected day
+        .toPlainDateTime({ hour: 15 }),
       Temporal.Instant.fromEpochMilliseconds(trip.timestampEnd)
         .toZonedDateTimeISO(trip.timeZone)
         .subtract({
@@ -81,7 +88,7 @@ export function AccommodationNewDialog({
       trip.timeZone,
       trip.timeZone,
     ];
-  }, [trip, prefillData]);
+  }, [trip, accommodations, prefillData]);
 
   return (
     <Dialog.Root open>
