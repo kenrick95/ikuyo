@@ -3,6 +3,8 @@ import type {
   TripSliceAccommodation,
   TripSliceTrip,
 } from '../Trip/store/types';
+import { TripSharingLevel } from '../Trip/tripSharingLevel';
+import { TripUserRole } from '../User/TripUserRole';
 import { getDefaultAccommodationCheckInDate } from './defaultCheckInDate';
 
 const timeZone = 'Asia/Singapore';
@@ -23,6 +25,21 @@ const trip = {
   timestampEnd: timestamp(6, 0),
   timeZone,
   accommodationIds: [],
+  title: 'Test',
+  region: 'SG',
+  currency: 'SGD',
+  originCurrency: 'SGD',
+  originRegion: 'SG',
+  originTimeZone: 'Asia/Singapore',
+  sharingLevel: TripSharingLevel.Private,
+  activityIds: [],
+  expenseIds: [],
+  taskListIds: [],
+  tripUserIds: [],
+  macroplanIds: [],
+  commentGroupIds: [],
+  currentUserRole: TripUserRole.Owner,
+  isCurrentUserTripMember: true,
 } as TripSliceTrip;
 
 function accommodation(
