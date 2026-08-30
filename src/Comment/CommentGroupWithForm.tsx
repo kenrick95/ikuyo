@@ -34,10 +34,11 @@ export function CommentGroupWithForm({
   const { trip } = useTrip(tripId);
   const userCanComment = useMemo(() => {
     return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
+      trip?.archivedAt == null &&
+      (trip?.currentUserRole === TripUserRole.Owner ||
+        trip?.currentUserRole === TripUserRole.Editor)
     );
-  }, [trip?.currentUserRole]);
+  }, [trip]);
   const sectionVisibility = trip ? getSectionVisibility(trip) : null;
 
   return (

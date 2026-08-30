@@ -199,6 +199,63 @@ class ApiMigrationTest extends TestCase
         $this->assertDatabaseHas('trips', ['title' => 'Copy', 'sharing_level' => 0]);
     }
 
+    public function test_owner_can_archive_and_unarchive_a_trip(): void
+    {
+        $owner = $this->user();
+        $editor = $this->user();
+        $trip = Trip::create([
+            'id' => (string) Str::uuid(), 'title' => 'Archive me', 'region' => 'JP', 'currency' => 'JPY',
+            'timezone' => 'Asia/Tokyo', 'timestamp_start_ms' => 1000, 'timestamp_end_ms' => 2000,
+            'sharing_level' => 0,
+        ]);
+        $trip->users()->attach($owner->id, ['id' => (string) Str::uuid(), 'role' => 0, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
+        $trip->users()->attach($editor->id, ['id' => (string) Str::uuid(), 'role' => 1, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
+
+        $archivedAt = $this->actingAs($owner)->patchJson('/api/trips/' . $trip->id . '/archive', ['archived' => true])
+            ->assertOk()->json('archivedAt');
+        $this->assertIsInt($archivedAt);
+        $this->actingAs($owner)->patchJson('/api/trips/' . $trip->id . '/archive', ['archived' => true])
+            ->assertOk()->assertJsonPath('archivedAt', $archivedAt);
+        $this->actingAs($editor)->patchJson('/api/trips/' . $trip->id . '/archive', ['archived' => false])
+            ->assertForbidden();
+
+        $this->actingAs($owner)->getJson('/api/trips?status=active&now=0')
+            ->assertOk()->assertJsonCount(0, 'data');
+        $this->actingAs($owner)->getJson('/api/trips?status=archived')
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.archivedAt', $archivedAt);
+
+        $this->actingAs($owner)->patchJson('/api/trips/' . $trip->id . '/archive', ['archived' => false])
+            ->assertOk()->assertJsonPath('archivedAt', null);
+        $this->actingAs($owner)->getJson('/api/trips?status=active&now=0')
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.archivedAt', null);
+    }
+
+    public function test_archived_trip_locks_content_but_allows_sharing_and_deletion(): void
+    {
+        $owner = $this->user();
+        $trip = Trip::create([
+            'id' => (string) Str::uuid(), 'title' => 'Read-only', 'region' => 'JP', 'currency' => 'JPY',
+            'timezone' => 'Asia/Tokyo', 'timestamp_start_ms' => 1000, 'timestamp_end_ms' => 2000,
+            'sharing_level' => 0, 'archived_at_ms' => 3000,
+        ]);
+        $trip->users()->attach($owner->id, ['id' => (string) Str::uuid(), 'role' => 0, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
+        $activity = $trip->activities()->create(['id' => (string) Str::uuid(), 'title' => 'Existing', 'location' => '', 'description' => '']);
+
+        $this->actingAs($owner)->putJson('/api/trips/' . $trip->id, ['title' => 'Blocked'])
+            ->assertConflict();
+        $this->actingAs($owner)->postJson('/api/trips/' . $trip->id . '/activities', [])
+            ->assertConflict();
+        $this->actingAs($owner)->putJson('/api/activities/' . $activity->id, ['title' => 'Blocked'])
+            ->assertConflict();
+        $this->actingAs($owner)->postJson('/api/trips/' . $trip->id . '/duplicate', [
+            'title' => 'Blocked copy', 'startDateMs' => 3000, 'endDateMs' => 4000,
+        ])->assertConflict();
+
+        $this->actingAs($owner)->patchJson('/api/trips/' . $trip->id . '/sharing', ['sharingLevel' => 2])
+            ->assertOk()->assertJsonPath('sharingLevel', 2);
+        $this->actingAs($owner)->deleteJson('/api/trips/' . $trip->id)->assertOk();
+    }
+
     public function test_sync_returns_delete_tombstone_after_entity_deletion(): void
     {
         $user = $this->user();

@@ -23,7 +23,9 @@ class ContentController extends Controller
 {
     public function activityDestroy(Request $request, Activity $activity, TripAccessService $access): JsonResponse
     {
-        abort_unless($request->user() && $access->canEdit($this->tripFor($activity), $request->user()), 403);
+        $trip = $this->tripFor($activity);
+        abort_unless($request->user() && $access->canEdit($trip, $request->user()), 403);
+        $access->ensureContentWritable($trip);
         DB::transaction(function () use ($activity): void {
             $this->deleteRelatedComments('activity', $activity->id);
             $activity->delete();
@@ -37,6 +39,7 @@ class ContentController extends Controller
         $trip = $activity->trip;
         abort_unless($trip instanceof Trip, 404);
         abort_unless($request->user() && $access->canEdit($trip, $request->user()), 403);
+        $access->ensureContentWritable($trip);
         $this->validateActivityPlanning($request, $trip);
         $activity->fill($this->mapFields($request->except(['id', 'trip_id', 'created_at_ms', 'updated_at_ms'])));
         $activity->save();
@@ -47,6 +50,7 @@ class ContentController extends Controller
     public function activityBatchUpdate(Request $request, Trip $trip, TripAccessService $access): JsonResponse
     {
         abort_unless($request->user() && $access->canEdit($trip, $request->user()), 403);
+        $access->ensureContentWritable($trip);
         $updates = $request->validate([
             'activities' => ['required', 'array', 'max:1000'],
             'activities.*.id' => ['required', 'string'],
@@ -69,6 +73,7 @@ class ContentController extends Controller
     public function activityDragEnd(Request $request, Trip $trip, string $activity, TripAccessService $access): JsonResponse
     {
         abort_unless($request->user() && $access->canEdit($trip, $request->user()), 403);
+        $access->ensureContentWritable($trip);
         $record = $trip->activities()->whereKey($activity)->firstOrFail();
         $data = $request->validate(['timestampStart' => ['nullable', 'integer'], 'timestampEnd' => ['nullable', 'integer']]);
         $record->update([
@@ -83,6 +88,7 @@ class ContentController extends Controller
     public function activityDuplicate(Request $request, Trip $trip, string $activity, TripAccessService $access): JsonResponse
     {
         abort_unless($request->user() && $access->canEdit($trip, $request->user()), 403);
+        $access->ensureContentWritable($trip);
         $record = $trip->activities()->whereKey($activity)->firstOrFail();
         $data = $request->validate([
             'timestampStart' => ['nullable', 'integer'],
@@ -102,7 +108,9 @@ class ContentController extends Controller
 
     public function activityDragEndById(Request $request, Activity $activity, TripAccessService $access): JsonResponse
     {
-        abort_unless($request->user() && $access->canEdit($this->tripFor($activity), $request->user()), 403);
+        $trip = $this->tripFor($activity);
+        abort_unless($request->user() && $access->canEdit($trip, $request->user()), 403);
+        $access->ensureContentWritable($trip);
         $data = $request->validate(['timestampStart' => ['nullable', 'integer'], 'timestampEnd' => ['nullable', 'integer']]);
         $activity->update(['timestamp_start_ms' => $data['timestampStart'] ?? null, 'timestamp_end_ms' => $data['timestampEnd'] ?? null, 'flags' => ((int) $activity->flags) & ~1]);
 
@@ -111,7 +119,9 @@ class ContentController extends Controller
 
     public function activityDuplicateById(Request $request, Activity $activity, TripAccessService $access): JsonResponse
     {
-        abort_unless($request->user() && $access->canEdit($this->tripFor($activity), $request->user()), 403);
+        $trip = $this->tripFor($activity);
+        abort_unless($request->user() && $access->canEdit($trip, $request->user()), 403);
+        $access->ensureContentWritable($trip);
         $data = $request->validate([
             'timestampStart' => ['nullable', 'integer'],
             'timestampEnd' => ['nullable', 'integer'],
@@ -132,6 +142,7 @@ class ContentController extends Controller
         $record = $this->recordById($entity, $entityId);
         $trip = $this->tripFor($record);
         abort_unless($request->user() && $access->canEdit($trip, $request->user()), 403);
+        $access->ensureContentWritable($trip);
         if ($record instanceof Activity) {
             $this->validateActivityPlanning($request, $trip);
         }
@@ -144,7 +155,9 @@ class ContentController extends Controller
     public function byIdDestroy(Request $request, string $entity, string $entityId, TripAccessService $access): JsonResponse
     {
         $record = $this->recordById($entity, $entityId);
-        abort_unless($request->user() && $access->canEdit($this->tripFor($record), $request->user()), 403);
+        $trip = $this->tripFor($record);
+        abort_unless($request->user() && $access->canEdit($trip, $request->user()), 403);
+        $access->ensureContentWritable($trip);
         $this->deleteEntityDescGraph($record);
         $record->delete();
 

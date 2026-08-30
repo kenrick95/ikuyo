@@ -32,10 +32,11 @@ export function TripHeading() {
 
   const userCanModifyTrip = useMemo(() => {
     return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
+      trip?.archivedAt == null &&
+      (trip?.currentUserRole === TripUserRole.Owner ||
+        trip?.currentUserRole === TripUserRole.Editor)
     );
-  }, [trip?.currentUserRole]);
+  }, [trip]);
 
   return (
     <Flex align="start" gap="1" wrap="wrap">

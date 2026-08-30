@@ -35,6 +35,7 @@ export function WebMCPTools() {
   const tripLoaded = Boolean(currentTrip);
   const canEdit =
     currentTrip?.isCurrentUserTripMember === true &&
+    currentTrip.archivedAt == null &&
     (currentTrip.currentUserRole === TripUserRole.Owner ||
       currentTrip.currentUserRole === TripUserRole.Editor);
   const canManage =

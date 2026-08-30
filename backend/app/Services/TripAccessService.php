@@ -32,4 +32,9 @@ class TripAccessService
     {
         return $this->role($trip, $user) === 0;
     }
+
+    public function ensureContentWritable(Trip $trip): void
+    {
+        abort_if($trip->archived_at_ms !== null, 409, 'Archived trips are read-only.');
+    }
 }

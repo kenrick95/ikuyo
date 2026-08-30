@@ -39,10 +39,11 @@ export function ActivityDialogContentView({
   const { trip } = useTrip(activity?.tripId);
   const userCanEditOrDelete = useMemo(() => {
     return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
+      trip?.archivedAt == null &&
+      (trip?.currentUserRole === TripUserRole.Owner ||
+        trip?.currentUserRole === TripUserRole.Editor)
     );
-  }, [trip?.currentUserRole]);
+  }, [trip]);
 
   const activityStartDateTime =
     activity && trip && activity.timestampStart != null

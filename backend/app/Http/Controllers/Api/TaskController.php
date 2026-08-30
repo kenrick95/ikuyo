@@ -64,6 +64,7 @@ class TaskController extends Controller
         $taskList->load('trip');
         $access = app(TripAccessService::class);
         abort_unless($access->canEdit($taskList->trip, $request->user()), 403);
+        $access->ensureContentWritable(Trip::query()->findOrFail($taskList->trip_id));
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
@@ -162,6 +163,7 @@ class TaskController extends Controller
         $taskList->load('trip');
         $access = app(TripAccessService::class);
         abort_unless($access->canEdit($taskList->trip, $request->user()), 403);
+        $access->ensureContentWritable(Trip::query()->findOrFail($taskList->trip_id));
         $data = $request->validate(['title' => ['sometimes', 'string', 'max:255'], 'index' => ['sometimes', 'integer'], 'status' => ['sometimes', 'integer']]);
         $taskList->update($data);
 
@@ -174,6 +176,7 @@ class TaskController extends Controller
         $task->load('taskList.trip');
         $access = app(TripAccessService::class);
         abort_unless($access->canEdit($task->taskList->trip, $request->user()), 403);
+        $access->ensureContentWritable(Trip::query()->findOrFail($task->taskList->trip_id));
         DB::transaction(function () use ($task): void {
             $this->deleteTaskComments($task->id);
             $task->delete();
@@ -188,6 +191,7 @@ class TaskController extends Controller
         $taskList->load('trip');
         $access = app(TripAccessService::class);
         abort_unless($access->canEdit($taskList->trip, $request->user()), 403);
+        $access->ensureContentWritable(Trip::query()->findOrFail($taskList->trip_id));
         DB::transaction(function () use ($taskList): void {
             foreach ($taskList->tasks as $task) {
                 $this->deleteTaskComments($task->id);
@@ -240,6 +244,7 @@ class TaskController extends Controller
         $task->load('taskList.trip');
         $access = app(TripAccessService::class);
         abort_unless($access->canEdit($task->taskList->trip, $request->user()), 403);
+        $access->ensureContentWritable(Trip::query()->findOrFail($task->taskList->trip_id));
         $data = $request->validate(['index' => ['required', 'integer']]);
         $task->update(['index' => $data['index']]);
 
@@ -252,8 +257,10 @@ class TaskController extends Controller
         $task->load('taskList.trip');
         $access = app(TripAccessService::class);
         abort_unless($access->canEdit($task->taskList->trip, $request->user()), 403);
+        $trip = Trip::query()->findOrFail($task->taskList->trip_id);
+        $access->ensureContentWritable($trip);
         $data = $request->validate(['toTaskListId' => ['required', 'string'], 'newIndex' => ['required', 'integer', 'min:0']]);
-        $target = $task->taskList->trip->taskLists()->whereKey($data['toTaskListId'])->firstOrFail();
+        $target = TaskList::query()->where('trip_id', $trip->id)->findOrFail($data['toTaskListId']);
         $task->update(['task_list_id' => $target->id, 'index' => $data['newIndex']]);
 
         return response()->json($task->fresh());
@@ -265,6 +272,7 @@ class TaskController extends Controller
         $task->load('taskList.trip');
         $access = app(TripAccessService::class);
         abort_unless($access->canEdit($task->taskList->trip, $request->user()), 403);
+        $access->ensureContentWritable(Trip::query()->findOrFail($task->taskList->trip_id));
         $data = $request->validate(['title' => ['sometimes', 'string', 'max:255'], 'description' => ['nullable', 'string'], 'index' => ['sometimes', 'integer'], 'status' => ['sometimes', 'integer'], 'dueAt' => ['nullable', 'integer'], 'completedAt' => ['nullable', 'integer']]);
         $updates = [];
         foreach (['title', 'description', 'index', 'status', 'dueAt', 'completedAt'] as $field) {

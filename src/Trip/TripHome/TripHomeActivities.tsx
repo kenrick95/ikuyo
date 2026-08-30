@@ -15,10 +15,11 @@ export function TripHomeActivities() {
   const activities = useTripActivities(trip?.activityIds ?? []);
   const userCanModifyTrip = useMemo(() => {
     return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
+      trip?.archivedAt == null &&
+      (trip?.currentUserRole === TripUserRole.Owner ||
+        trip?.currentUserRole === TripUserRole.Editor)
     );
-  }, [trip?.currentUserRole]);
+  }, [trip]);
 
   // Determine if trip is {stating soon, or current}
   const isTripStartingOrCurrent = useMemo(() => {

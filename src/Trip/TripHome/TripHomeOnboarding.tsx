@@ -30,10 +30,11 @@ export function TripHomeOnboarding() {
 
   const userCanModifyTrip = useMemo(() => {
     return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
+      trip?.archivedAt == null &&
+      (trip?.currentUserRole === TripUserRole.Owner ||
+        trip?.currentUserRole === TripUserRole.Editor)
     );
-  }, [trip?.currentUserRole]);
+  }, [trip]);
 
   const [, setLocation] = useLocation();
   const openActivityNewDialog = useCallback(() => {

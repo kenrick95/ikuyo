@@ -120,10 +120,11 @@ function ExpenseCardView({
 
   const userCanEditOrDelete = useMemo(() => {
     return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
+      trip?.archivedAt == null &&
+      (trip?.currentUserRole === TripUserRole.Owner ||
+        trip?.currentUserRole === TripUserRole.Editor)
     );
-  }, [trip?.currentUserRole]);
+  }, [trip]);
   return (
     <Collapsible open={isExpanded} onOpenChange={setIsExpanded} asChild>
       <Inset className={s.cardContent}>

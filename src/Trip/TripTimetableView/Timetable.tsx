@@ -291,10 +291,11 @@ export function Timetable() {
 
   const userCanModifyTrip = useMemo(() => {
     return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
+      trip?.archivedAt == null &&
+      (trip?.currentUserRole === TripUserRole.Owner ||
+        trip?.currentUserRole === TripUserRole.Editor)
     );
-  }, [trip?.currentUserRole]);
+  }, [trip]);
 
   // Days available for the day-swap context menu (derived once, not per header).
   const tripDays = useMemo(() => {

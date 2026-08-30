@@ -28,10 +28,11 @@ export function MacroplanDialogContentView({
   const { trip } = useTrip(macroplan?.tripId);
   const userCanEditOrDelete = useMemo(() => {
     return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
+      trip?.archivedAt == null &&
+      (trip?.currentUserRole === TripUserRole.Owner ||
+        trip?.currentUserRole === TripUserRole.Editor)
     );
-  }, [trip?.currentUserRole]);
+  }, [trip]);
   const macroplanDateRangeString =
     trip && macroplan
       ? formatMacroplanDateRange({

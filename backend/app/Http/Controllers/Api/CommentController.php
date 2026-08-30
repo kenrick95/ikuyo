@@ -88,7 +88,9 @@ class CommentController extends Controller
     public function updateStatusById(Request $request, string $group): JsonResponse
     {
         $record = CommentGroup::with('trip')->findOrFail($group);
-        abort_unless($request->user() && app(TripAccessService::class)->canEdit($record->trip, $request->user()), 403);
+        $access = app(TripAccessService::class);
+        abort_unless($request->user() && $access->canEdit($record->trip, $request->user()), 403);
+        $access->ensureContentWritable(Trip::query()->findOrFail($record->trip_id));
         $record->update($request->validate(['status' => ['required', 'integer', 'in:0,1']]));
 
         return response()->json($record);
@@ -97,8 +99,10 @@ class CommentController extends Controller
     public function updateById(Request $request, string $comment): JsonResponse
     {
         $record = Comment::with('commentGroup.trip')->findOrFail($comment);
-        abort_unless($request->user() && app(TripAccessService::class)->canEdit($record->commentGroup->trip, $request->user()), 403);
-        abort_unless($record->user_id === $request->user()->id || app(TripAccessService::class)->canManage($record->commentGroup->trip, $request->user()), 403);
+        $access = app(TripAccessService::class);
+        abort_unless($request->user() && $access->canEdit($record->commentGroup->trip, $request->user()), 403);
+        $access->ensureContentWritable(Trip::query()->findOrFail($record->commentGroup->trip_id));
+        abort_unless($record->user_id === $request->user()->id || $access->canManage($record->commentGroup->trip, $request->user()), 403);
         $record->update($request->validate(['content' => ['required', 'string']]));
 
         return response()->json($record->fresh('user'));
@@ -107,8 +111,10 @@ class CommentController extends Controller
     public function destroyById(Request $request, string $comment): JsonResponse
     {
         $record = Comment::with('commentGroup.trip')->findOrFail($comment);
-        abort_unless($request->user() && app(TripAccessService::class)->canEdit($record->commentGroup->trip, $request->user()), 403);
-        abort_unless($record->user_id === $request->user()->id || app(TripAccessService::class)->canManage($record->commentGroup->trip, $request->user()), 403);
+        $access = app(TripAccessService::class);
+        abort_unless($request->user() && $access->canEdit($record->commentGroup->trip, $request->user()), 403);
+        $access->ensureContentWritable(Trip::query()->findOrFail($record->commentGroup->trip_id));
+        abort_unless($record->user_id === $request->user()->id || $access->canManage($record->commentGroup->trip, $request->user()), 403);
         DB::transaction(function () use ($record): void {
             $group = $record->commentGroup;
             $record->delete();

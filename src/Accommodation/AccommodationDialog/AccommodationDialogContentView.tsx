@@ -52,10 +52,11 @@ export function AccommodationDialogContentView({
   const currentUser = useDeepBoundStore((state) => state.currentUser);
   const userCanEditOrDelete = useMemo(() => {
     return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
+      trip?.archivedAt == null &&
+      (trip?.currentUserRole === TripUserRole.Owner ||
+        trip?.currentUserRole === TripUserRole.Editor)
     );
-  }, [trip?.currentUserRole]);
+  }, [trip]);
 
   const goToEditMode = useCallback(() => {
     setMode(AccommodationDialogMode.Edit);

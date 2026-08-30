@@ -38,15 +38,26 @@ class TripController extends Controller
             ->where('trip_user.user_id', $userId)
             ->distinct();
 
-        if ($request->query('status') === 'active') {
+        $status = $request->query('status');
+        if ($status === 'archived') {
+            $query->whereNotNull('archived_at_ms');
+        } else {
+            $query->whereNull('archived_at_ms');
+        }
+
+        if ($status === 'active') {
             $query->where('timestamp_end_ms', '>=', $now);
-        } elseif ($request->query('status') === 'past') {
+        } elseif ($status === 'past') {
             $query->where('timestamp_end_ms', '<', $now);
         }
 
-        $trips = $query->orderBy('timestamp_end_ms', 'desc')
-            ->orderBy('trips.id') // deterministic tiebreak for equal timestamp_end_ms
-            ->cursorPaginate(min($request->integer('limit', 50), 100));
+        if ($status === 'archived') {
+            $query->orderByDesc('archived_at_ms')->orderBy('trips.id');
+        } else {
+            $query->orderBy('timestamp_end_ms', 'desc')->orderBy('trips.id'); // deterministic tiebreak for equal timestamp_end_ms
+        }
+
+        $trips = $query->cursorPaginate(min($request->integer('limit', 50), 100));
 
         return response()->json([
             'data' => collect($trips->items())->map(fn (Trip $trip): array => [
@@ -55,6 +66,7 @@ class TripController extends Controller
                 'timestampStart' => $trip->timestamp_start_ms,
                 'timestampEnd' => $trip->timestamp_end_ms,
                 'timeZone' => $trip->timezone,
+                'archivedAt' => $trip->archived_at_ms,
                 'createdAt' => $trip->created_at_ms,
                 'lastUpdatedAt' => $trip->updated_at_ms,
             ])->values(),
@@ -81,6 +93,7 @@ class TripController extends Controller
             'timestampStart' => $trip->timestamp_start_ms,
             'timestampEnd' => $trip->timestamp_end_ms,
             'timeZone' => $trip->timezone,
+            'archivedAt' => $trip->archived_at_ms,
             'createdAt' => $trip->created_at_ms,
             'lastUpdatedAt' => $trip->updated_at_ms,
             'ownerHandle' => $trip->users->first()?->handle,
@@ -169,6 +182,14 @@ class TripController extends Controller
         $trip->update(['sharing_level' => $request->validate(['sharingLevel' => ['required', 'integer', 'in:0,2,3']])['sharingLevel']]);
 
         return response()->json($this->serializeTrip($trip->fresh()));
+    }
+
+    public function archive(Request $request, Trip $trip): JsonResponse
+    {
+        $archived = $request->validate(['archived' => ['required', 'boolean']])['archived'];
+        $trip->update(['archived_at_ms' => $archived ? ($trip->archived_at_ms ?? $this->nowMs()) : null]);
+
+        return response()->json($this->serializeTrip($trip->fresh('users')));
     }
 
     public function sections(Request $request, Trip $trip): JsonResponse
@@ -327,6 +348,7 @@ class TripController extends Controller
             'originCurrency' => $trip->origin_currency,
             'originRegion' => $trip->origin_region,
             'originTimeZone' => $trip->origin_timezone,
+            'archivedAt' => $trip->archived_at_ms,
             'sharingLevel' => $trip->sharing_level,
             'publicShowExpenses' => $trip->public_show_expenses,
             'publicShowTasks' => $trip->public_show_tasks,

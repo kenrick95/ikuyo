@@ -16,10 +16,11 @@ export function TripHomeTasks() {
   const { trip } = useCurrentTrip();
   const userCanModifyTrip = useMemo(() => {
     return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
+      trip?.archivedAt == null &&
+      (trip?.currentUserRole === TripUserRole.Owner ||
+        trip?.currentUserRole === TripUserRole.Editor)
     );
-  }, [trip?.currentUserRole]);
+  }, [trip]);
 
   // Get all task lists and tasks
   const allTaskLists = useTripAllTaskLists(trip?.id);
@@ -120,7 +121,7 @@ export function TripHomeTasks() {
         ) : null}
       </Heading>
       <Flex gap="2" direction="column">
-        {displayTasks.length === 0 ? (
+        {displayTasks.length === 0 && userCanModifyTrip ? (
           <Button variant="outline" asChild style={{ alignSelf: 'start' }}>
             <Link to={RouteTripTaskList.asRouteTarget()}>Add first task</Link>
           </Button>

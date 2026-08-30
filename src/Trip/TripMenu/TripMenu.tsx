@@ -14,7 +14,9 @@ import { useBoundStore } from '../../data/store';
 import { MacroplanNewDialog } from '../../Macroplan/MacroplanNewDialog';
 import { RouteAccount, RouteLogin, RouteTrips } from '../../Routes/routes';
 import { TripUserRole } from '../../User/TripUserRole';
+import { canModifyTripContent } from '../permissions';
 import { useCurrentTrip } from '../store/hooks';
+import { TripArchiveDialog } from '../TripDialog/TripArchiveDialog';
 import { TripDeleteDialog } from '../TripDialog/TripDeleteDialog';
 import { TripDuplicateDialog } from '../TripDialog/TripDuplicateDialog';
 import { TripEditDialog } from '../TripDialog/TripEditDialog';
@@ -30,11 +32,8 @@ export function TripMenu() {
     return trip?.currentUserRole === TripUserRole.Owner;
   }, [trip?.currentUserRole]);
   const userCanModifyTrip = useMemo(() => {
-    return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
-    );
-  }, [trip?.currentUserRole]);
+    return canModifyTripContent(trip);
+  }, [trip]);
   const pushDialog = useBoundStore((state) => state.pushDialog);
 
   const handlePrintTrip = useCallback(
@@ -148,9 +147,9 @@ export function TripMenu() {
           </DropdownMenu.Item>
 
           <DropdownMenu.Item
-            disabled={!user}
+            disabled={!user || trip?.archivedAt != null}
             onClick={
-              user
+              user && trip?.archivedAt == null
                 ? () => {
                     if (trip) {
                       pushDialog(TripDuplicateDialog, { trip });
@@ -216,9 +215,9 @@ export function TripMenu() {
           </DropdownMenu.Item>
 
           <DropdownMenu.Item
-            disabled={!userCanModifyTrip}
+            disabled={!userIsOwner}
             onClick={
-              userCanModifyTrip
+              userIsOwner
                 ? () => {
                     if (trip) {
                       pushDialog(TripDeleteDialog, { trip });
@@ -228,6 +227,21 @@ export function TripMenu() {
             }
           >
             Delete trip
+          </DropdownMenu.Item>
+
+          <DropdownMenu.Item
+            disabled={!userIsOwner}
+            onClick={
+              userIsOwner
+                ? () => {
+                    if (trip) {
+                      pushDialog(TripArchiveDialog, { trip });
+                    }
+                  }
+                : undefined
+            }
+          >
+            {trip?.archivedAt == null ? 'Archive trip' : 'Unarchive trip'}
           </DropdownMenu.Item>
 
           <DropdownMenu.Separator />

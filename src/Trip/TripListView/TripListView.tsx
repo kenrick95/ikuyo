@@ -45,10 +45,11 @@ export function TripListView() {
   const tripMacroplans = useTripMacroplans(trip?.macroplanIds ?? []);
   const userCanEditOrDelete = useMemo(() => {
     return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
+      trip?.archivedAt == null &&
+      (trip?.currentUserRole === TripUserRole.Owner ||
+        trip?.currentUserRole === TripUserRole.Editor)
     );
-  }, [trip?.currentUserRole]);
+  }, [trip]);
 
   // Ref for the list container to enable scrolling
   const listContainerRef = useRef<HTMLDivElement>(null);

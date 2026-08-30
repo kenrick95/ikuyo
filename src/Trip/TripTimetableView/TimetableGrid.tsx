@@ -29,10 +29,11 @@ function TimetableGridInner({ days, scrollContainerRef }: TimetableGridProps) {
   const { trip } = useCurrentTrip();
   const userCanModifyTrip = useMemo(() => {
     return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
+      trip?.archivedAt == null &&
+      (trip?.currentUserRole === TripUserRole.Owner ||
+        trip?.currentUserRole === TripUserRole.Editor)
     );
-  }, [trip?.currentUserRole]);
+  }, [trip]);
   const pushDialog = useBoundStore((state) => state.pushDialog);
 
   const openActivityNewDialog = useCallback(

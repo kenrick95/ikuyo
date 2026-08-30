@@ -34,10 +34,11 @@ export function TaskDialogContentView({
   const { trip } = useTrip(taskList?.tripId);
   const userCanEditOrDelete = useMemo(() => {
     return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
+      trip?.archivedAt == null &&
+      (trip?.currentUserRole === TripUserRole.Owner ||
+        trip?.currentUserRole === TripUserRole.Editor)
     );
-  }, [trip?.currentUserRole]);
+  }, [trip]);
 
   const descriptions = useParseTextIntoNodes(task?.description);
   const currentUser = useDeepBoundStore((state) => state.currentUser);

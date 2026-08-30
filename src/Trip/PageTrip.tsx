@@ -1,4 +1,4 @@
-import { Container, Spinner, Text } from '@radix-ui/themes';
+import { Callout, Container, Spinner, Text } from '@radix-ui/themes';
 import React, { useEffect } from 'react';
 import {
   Link,
@@ -128,6 +128,16 @@ function PageTripInner({
     <>
       <DocTitle title={trip?.title ?? 'Trip'} />
       <TripNavbar />
+      {trip?.archivedAt != null ? (
+        <Container>
+          <Callout.Root my="2" color="gray" role="note">
+            <Callout.Icon>
+              <span aria-hidden>🔒</span>
+            </Callout.Icon>
+            <Callout.Text>Archived — content is read-only.</Callout.Text>
+          </Callout.Root>
+        </Container>
+      ) : null}
       {!trip ? (
         loading ? (
           <Spinner size="2" />

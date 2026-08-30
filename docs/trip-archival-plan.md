@@ -15,9 +15,9 @@ it. Archival is an explicit state; it is not inferred from the trip end date.
 2. Add an owner-only, idempotent archive mutation. It sets `archived_at_ms`
    and updates `updated_at_ms`. The matching unarchive mutation clears it.
 3. Treat archival as a server-enforced content write lock. The read APIs,
-   direct trip URL, exports, print, and duplicate remain available. Content
-   mutations return a clear `409 Conflict` when archived, but owners may still
-   change sharing and membership or delete the trip.
+   direct trip URL, exports, and print remain available. Content mutations,
+   including duplication, return a clear `409 Conflict` when archived, but
+   owners may still change sharing and membership or delete the trip.
 4. Put archiving and unarchiving in the owner section of the trip menu. Both
    actions use a confirmation dialog; the archive dialog explains that the
    trip content will become read-only. While archived, hide or disable content
@@ -70,24 +70,24 @@ it. Archival is an explicit state; it is not inferred from the trip end date.
 - List tests: archived trips are absent from active/past, returned only by the
   archived query, pagination remains stable, and unarchive restores normal
   grouping.
-- Authorization matrix tests: all content, task, comment, direct-ID, and bulk
-  mutations are rejected for archived trips; owner sharing, member management,
-  and deletion remain permitted; reads, print/export, and duplication continue
-  to work.
+- Authorization matrix tests: all content, task, comment, direct-ID, bulk,
+  and duplicate mutations are rejected for archived trips; owner sharing,
+  member management, and deletion remain permitted; reads and print/export
+  continue to work.
 - UI tests: owner controls, confirmation, read-only banner, archive retrieval,
   and unarchive refresh behavior.
 
 ## Confirmed behavior
 
 - Only owners may archive or unarchive. Editors and viewers retain their
-  existing read, print, export, and duplicate permissions.
+  existing read, print, and export permissions.
 - Archival preserves the trip's existing private/shared/public visibility.
 - Archival may occur at any time.
 - Archived trips are retrieved from a separate Archived Trips page linked from
   the normal trips page. This page has one chronological list rather than
   upcoming/ongoing/past groups.
 - Archival locks every content mutation, including trip metadata, comments,
-  tasks, and expenses. Owner sharing changes, member additions/removals, and
-  trip deletion remain allowed.
+  tasks, expenses, and duplication. Owner sharing changes, member
+  additions/removals, and trip deletion remain allowed.
 - A future policy may require archiving before deletion; it is explicitly out
   of scope for this change.

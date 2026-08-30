@@ -29,10 +29,11 @@ export function TripExpenseViewCards() {
   const [expenseMode, setExpenseMode] = useState(ExpenseMode.View);
   const userCanModifyExpense = useMemo(() => {
     return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
+      trip?.archivedAt == null &&
+      (trip?.currentUserRole === TripUserRole.Owner ||
+        trip?.currentUserRole === TripUserRole.Editor)
     );
-  }, [trip?.currentUserRole]);
+  }, [trip]);
   const handleAddExpenseClick = useCallback(() => {
     setExpenseMode(ExpenseMode.Add);
   }, []);
