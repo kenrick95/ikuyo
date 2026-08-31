@@ -21,14 +21,14 @@ import {
   Tooltip,
 } from '@radix-ui/themes';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { CommentGroupWithForm } from '../Comment/CommentGroupWithForm';
 import { COMMENT_GROUP_OBJECT_TYPE } from '../Comment/db';
 import { dangerToken } from '../common/ui';
 import { useBoundStore, useDeepBoundStore } from '../data/store';
+import { canModifyTripContent } from '../Trip/permissions';
 import { useTrip } from '../Trip/store/hooks';
 import type { TripSliceExpense } from '../Trip/store/types';
-import { TripUserRole } from '../User/TripUserRole';
 import { formatCurrencyAmount } from './currency';
 import { dbDeleteExpense } from './db';
 import s from './ExpenseCard.module.css';
@@ -118,13 +118,7 @@ function ExpenseCardView({
       });
   }, [expense.id, expense.title, publishToast]);
 
-  const userCanEditOrDelete = useMemo(() => {
-    return (
-      trip?.archivedAt == null &&
-      (trip?.currentUserRole === TripUserRole.Owner ||
-        trip?.currentUserRole === TripUserRole.Editor)
-    );
-  }, [trip]);
+  const userCanEditOrDelete = canModifyTripContent(trip);
   return (
     <Collapsible open={isExpanded} onOpenChange={setIsExpanded} asChild>
       <Inset className={s.cardContent}>

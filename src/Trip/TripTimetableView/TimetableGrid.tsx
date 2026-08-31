@@ -1,12 +1,12 @@
 import type { RefObject } from 'react';
-import React, { type MouseEvent, memo, useCallback, useMemo } from 'react';
+import React, { type MouseEvent, memo, useCallback } from 'react';
 import { AccommodationNewDialog } from '../../Accommodation/AccommodationNewDialog';
 import { ActivityNewDialog } from '../../Activity/ActivityNewDialog';
 import { FlightNewDialog } from '../../Activity/FlightNewDialog';
 import { TrainNewDialog } from '../../Activity/TrainNewDialog';
 import { useBoundStore } from '../../data/store';
 import { MacroplanNewDialog } from '../../Macroplan/MacroplanNewDialog';
-import { TripUserRole } from '../../User/TripUserRole';
+import { canModifyTripContent } from '../permissions';
 import { useCurrentTrip } from '../store/hooks';
 import { TimetableDragTarget } from './TimetableDragTarget';
 import { pad2 } from './time';
@@ -27,13 +27,7 @@ function TimetableGridInner({ days, scrollContainerRef }: TimetableGridProps) {
   const timeIntervals = [0, 30];
 
   const { trip } = useCurrentTrip();
-  const userCanModifyTrip = useMemo(() => {
-    return (
-      trip?.archivedAt == null &&
-      (trip?.currentUserRole === TripUserRole.Owner ||
-        trip?.currentUserRole === TripUserRole.Editor)
-    );
-  }, [trip]);
+  const userCanModifyTrip = canModifyTripContent(trip);
   const pushDialog = useBoundStore((state) => state.pushDialog);
 
   const openActivityNewDialog = useCallback(

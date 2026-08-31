@@ -8,3 +8,7 @@ export function canModifyTripContent(trip: TripSliceTrip | undefined): boolean {
       trip?.currentUserRole === TripUserRole.Editor)
   );
 }
+
+export function isTripOwner(trip: TripSliceTrip | undefined): boolean {
+  return trip?.currentUserRole === TripUserRole.Owner;
+}

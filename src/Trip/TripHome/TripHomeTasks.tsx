@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { Link } from 'wouter';
 import { RouteTripTaskList } from '../../Routes/routes';
 import { TaskStatus } from '../../Task/TaskStatus';
-import { TripUserRole } from '../../User/TripUserRole';
+import { canModifyTripContent } from '../permissions';
 import {
   useCurrentTrip,
   useTripAllTaskLists,
@@ -14,13 +14,7 @@ import { TaskCard, TaskCardUseCase } from '../TripTask/TaskCard';
 
 export function TripHomeTasks() {
   const { trip } = useCurrentTrip();
-  const userCanModifyTrip = useMemo(() => {
-    return (
-      trip?.archivedAt == null &&
-      (trip?.currentUserRole === TripUserRole.Owner ||
-        trip?.currentUserRole === TripUserRole.Editor)
-    );
-  }, [trip]);
+  const userCanModifyTrip = canModifyTripContent(trip);
 
   // Get all task lists and tasks
   const allTaskLists = useTripAllTaskLists(trip?.id);

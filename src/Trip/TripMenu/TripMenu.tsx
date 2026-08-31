@@ -1,6 +1,6 @@
 import { HamburgerMenuIcon } from '@radix-ui/react-icons';
 import { Button, DropdownMenu, Flex } from '@radix-ui/themes';
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { Link, useLocation } from 'wouter';
 import { AccommodationNewDialog } from '../../Accommodation/AccommodationNewDialog';
 import { ActivityNewDialog } from '../../Activity/ActivityNewDialog';
@@ -13,8 +13,7 @@ import { postMutation } from '../../data/apiClient';
 import { useBoundStore } from '../../data/store';
 import { MacroplanNewDialog } from '../../Macroplan/MacroplanNewDialog';
 import { RouteAccount, RouteLogin, RouteTrips } from '../../Routes/routes';
-import { TripUserRole } from '../../User/TripUserRole';
-import { canModifyTripContent } from '../permissions';
+import { canModifyTripContent, isTripOwner } from '../permissions';
 import { useCurrentTrip } from '../store/hooks';
 import { TripArchiveDialog } from '../TripDialog/TripArchiveDialog';
 import { TripDeleteDialog } from '../TripDialog/TripDeleteDialog';
@@ -28,12 +27,8 @@ export function TripMenu() {
   const [, setLocation] = useLocation();
   const { trip } = useCurrentTrip();
   const user = useCurrentUser();
-  const userIsOwner = useMemo(() => {
-    return trip?.currentUserRole === TripUserRole.Owner;
-  }, [trip?.currentUserRole]);
-  const userCanModifyTrip = useMemo(() => {
-    return canModifyTripContent(trip);
-  }, [trip]);
+  const userIsOwner = isTripOwner(trip);
+  const userCanModifyTrip = canModifyTripContent(trip);
   const pushDialog = useBoundStore((state) => state.pushDialog);
 
   const handlePrintTrip = useCallback(

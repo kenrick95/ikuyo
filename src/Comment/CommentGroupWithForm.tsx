@@ -1,10 +1,9 @@
 import { LockClosedIcon } from '@radix-ui/react-icons';
 import { Flex, Spinner, Text } from '@radix-ui/themes';
-import { useMemo } from 'react';
 import type { DbUser } from '../data/types';
+import { canModifyTripContent } from '../Trip/permissions';
 import { getSectionVisibility } from '../Trip/sectionVisibility';
 import { useTrip, useTripCommentGroup } from '../Trip/store/hooks';
-import { TripUserRole } from '../User/TripUserRole';
 import { CommentForm } from './CommentForm';
 import { CommentGroup } from './CommentGroup';
 import { CommentMode } from './CommentMode';
@@ -32,13 +31,7 @@ export function CommentGroupWithForm({
 }) {
   const commentGroup = useTripCommentGroup(commentGroupId);
   const { trip } = useTrip(tripId);
-  const userCanComment = useMemo(() => {
-    return (
-      trip?.archivedAt == null &&
-      (trip?.currentUserRole === TripUserRole.Owner ||
-        trip?.currentUserRole === TripUserRole.Editor)
-    );
-  }, [trip]);
+  const userCanComment = canModifyTripContent(trip);
   const sectionVisibility = trip ? getSectionVisibility(trip) : null;
 
   return (

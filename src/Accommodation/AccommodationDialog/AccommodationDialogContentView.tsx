@@ -7,16 +7,16 @@ import {
   Text,
 } from '@radix-ui/themes';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { CommentGroupWithForm } from '../../Comment/CommentGroupWithForm';
 import { COMMENT_GROUP_OBJECT_TYPE } from '../../Comment/db';
 import { toFormat } from '../../common/dateTime/temporalFormatter';
 import { useParseTextIntoNodes } from '../../common/text/parseTextIntoNodes';
 import type { DialogContentProps } from '../../Dialog/DialogRoute';
 import { useDeepBoundStore } from '../../data/store';
+import { canModifyTripContent } from '../../Trip/permissions';
 import { useTrip } from '../../Trip/store/hooks';
 import type { TripSliceAccommodation } from '../../Trip/store/types';
-import { TripUserRole } from '../../User/TripUserRole';
 import s from './AccommodationDialog.module.css';
 import { AccommodationMap } from './AccommodationDialogMap';
 import { AccommodationDialogMode } from './AccommodationDialogMode';
@@ -50,13 +50,7 @@ export function AccommodationDialogContentView({
       : undefined;
   const notes = useParseTextIntoNodes(accommodation?.notes);
   const currentUser = useDeepBoundStore((state) => state.currentUser);
-  const userCanEditOrDelete = useMemo(() => {
-    return (
-      trip?.archivedAt == null &&
-      (trip?.currentUserRole === TripUserRole.Owner ||
-        trip?.currentUserRole === TripUserRole.Editor)
-    );
-  }, [trip]);
+  const userCanEditOrDelete = canModifyTripContent(trip);
 
   const goToEditMode = useCallback(() => {
     setMode(AccommodationDialogMode.Edit);

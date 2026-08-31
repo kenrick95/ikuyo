@@ -9,14 +9,14 @@ import {
   Text,
 } from '@radix-ui/themes';
 import clsx from 'clsx';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { downloadCsv, expensesToCsv } from '../Expense/csvExport';
 import { ExpenseCard } from '../Expense/ExpenseCard';
 import { ExpenseHeaderCard } from '../Expense/ExpenseHeaderCard';
 import { ExpenseInlineCardForm } from '../Expense/ExpenseInlineCardForm';
 import { ExpenseMode } from '../Expense/ExpenseMode';
 import { DocTitle } from '../Nav/DocTitle';
-import { TripUserRole } from '../User/TripUserRole';
+import { canModifyTripContent } from './permissions';
 import { getSectionVisibility } from './sectionVisibility';
 import { useCurrentTrip, useTripExpenses } from './store/hooks';
 import s from './TripExpenseViewCards.module.css';
@@ -27,13 +27,7 @@ export function TripExpenseViewCards() {
   const expenseIds = trip?.expenseIds ?? [];
   const expenses = useTripExpenses(expenseIds);
   const [expenseMode, setExpenseMode] = useState(ExpenseMode.View);
-  const userCanModifyExpense = useMemo(() => {
-    return (
-      trip?.archivedAt == null &&
-      (trip?.currentUserRole === TripUserRole.Owner ||
-        trip?.currentUserRole === TripUserRole.Editor)
-    );
-  }, [trip]);
+  const userCanModifyExpense = canModifyTripContent(trip);
   const handleAddExpenseClick = useCallback(() => {
     setExpenseMode(ExpenseMode.Add);
   }, []);

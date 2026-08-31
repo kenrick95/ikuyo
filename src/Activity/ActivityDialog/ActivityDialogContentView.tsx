@@ -14,9 +14,9 @@ import { toFormat } from '../../common/dateTime/temporalFormatter';
 import { useParseTextIntoNodes } from '../../common/text/parseTextIntoNodes';
 import type { DialogContentProps } from '../../Dialog/DialogRoute';
 import { useDeepBoundStore } from '../../data/store';
+import { canModifyTripContent } from '../../Trip/permissions';
 import { useTrip } from '../../Trip/store/hooks';
 import type { TripSliceActivity } from '../../Trip/store/types';
-import { TripUserRole } from '../../User/TripUserRole';
 import { getActivityDisplayTitle } from '../activityTitle';
 import {
   ActivityType,
@@ -37,13 +37,7 @@ export function ActivityDialogContentView({
   loading,
 }: DialogContentProps<TripSliceActivity>) {
   const { trip } = useTrip(activity?.tripId);
-  const userCanEditOrDelete = useMemo(() => {
-    return (
-      trip?.archivedAt == null &&
-      (trip?.currentUserRole === TripUserRole.Owner ||
-        trip?.currentUserRole === TripUserRole.Editor)
-    );
-  }, [trip]);
+  const userCanEditOrDelete = canModifyTripContent(trip);
 
   const activityStartDateTime =
     activity && trip && activity.timestampStart != null

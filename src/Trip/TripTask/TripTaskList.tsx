@@ -27,7 +27,7 @@ import {
   dbUpdateTaskIndexes,
   dbUpdateTaskListIndexes,
 } from '../../Task/db';
-import { TripUserRole } from '../../User/TripUserRole';
+import { canModifyTripContent } from '../permissions';
 import { getSectionVisibility } from '../sectionVisibility';
 import {
   useCurrentTrip,
@@ -79,13 +79,7 @@ export function TripTaskList() {
     }),
   );
 
-  const userCanCreate = useMemo(() => {
-    return (
-      trip?.archivedAt == null &&
-      (trip?.currentUserRole === TripUserRole.Owner ||
-        trip?.currentUserRole === TripUserRole.Editor)
-    );
-  }, [trip]);
+  const userCanCreate = canModifyTripContent(trip);
 
   const handleCreateTaskList = useCallback(() => {
     setShowInlineForm(true);
