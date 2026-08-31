@@ -1,4 +1,4 @@
-import { Badge, Card, Text } from '@radix-ui/themes';
+import { Card, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { Link } from 'wouter';
 import { RouteTrip, RouteTripHome } from '../Routes/routes';
@@ -52,9 +52,6 @@ export function TripCard({
             tripStartDateTime={tripStartDateTime}
             tripEndDateTime={tripEndDateTime}
           />
-          {trip.archivedAt != null ? (
-            <Badge color="gray">Archived</Badge>
-          ) : null}
         </Link>
       </Card>
     </li>

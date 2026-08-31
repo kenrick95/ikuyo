@@ -1,4 +1,4 @@
-import { Box, Flex } from '@radix-ui/themes';
+import { Box, Callout, Flex } from '@radix-ui/themes';
 import { TripMap } from '../../Map/TripMap';
 import { DocTitle } from '../../Nav/DocTitle';
 import { useCurrentTrip } from '../store/hooks';
@@ -38,6 +38,14 @@ export function TripHome() {
         className={s.mainColumn}
       >
         <TripHeading />
+        {trip?.archivedAt != null ? (
+          <Callout.Root color="gray" role="note">
+            <Callout.Icon>
+              <span aria-hidden>🔒</span>
+            </Callout.Icon>
+            <Callout.Text>Archived — content is read-only.</Callout.Text>
+          </Callout.Root>
+        ) : null}
         <TripHomeOnboarding />
         <TripHomeActivities />
         <Box display={{ initial: 'none', sm: 'block' }} mt="2" height="100%">
