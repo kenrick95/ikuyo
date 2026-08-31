@@ -176,7 +176,7 @@ class TaskController extends Controller
         $task->load('taskList.trip');
         $access = app(TripAccessService::class);
         abort_unless($access->canEdit($task->taskList->trip, $request->user()), 403);
-        $access->ensureContentWritable(Trip::query()->findOrFail($task->taskList->trip_id));
+        $access->ensureContentWritable(Trip::query()->findOrFail($task->taskList()->value('trip_id')));
         DB::transaction(function () use ($task): void {
             $this->deleteTaskComments($task->id);
             $task->delete();
@@ -244,7 +244,7 @@ class TaskController extends Controller
         $task->load('taskList.trip');
         $access = app(TripAccessService::class);
         abort_unless($access->canEdit($task->taskList->trip, $request->user()), 403);
-        $access->ensureContentWritable(Trip::query()->findOrFail($task->taskList->trip_id));
+        $access->ensureContentWritable(Trip::query()->findOrFail($task->taskList()->value('trip_id')));
         $data = $request->validate(['index' => ['required', 'integer']]);
         $task->update(['index' => $data['index']]);
 
@@ -257,7 +257,7 @@ class TaskController extends Controller
         $task->load('taskList.trip');
         $access = app(TripAccessService::class);
         abort_unless($access->canEdit($task->taskList->trip, $request->user()), 403);
-        $trip = Trip::query()->findOrFail($task->taskList->trip_id);
+        $trip = Trip::query()->findOrFail($task->taskList()->value('trip_id'));
         $access->ensureContentWritable($trip);
         $data = $request->validate(['toTaskListId' => ['required', 'string'], 'newIndex' => ['required', 'integer', 'min:0']]);
         $target = TaskList::query()->where('trip_id', $trip->id)->findOrFail($data['toTaskListId']);
@@ -272,7 +272,7 @@ class TaskController extends Controller
         $task->load('taskList.trip');
         $access = app(TripAccessService::class);
         abort_unless($access->canEdit($task->taskList->trip, $request->user()), 403);
-        $access->ensureContentWritable(Trip::query()->findOrFail($task->taskList->trip_id));
+        $access->ensureContentWritable(Trip::query()->findOrFail($task->taskList()->value('trip_id')));
         $data = $request->validate(['title' => ['sometimes', 'string', 'max:255'], 'description' => ['nullable', 'string'], 'index' => ['sometimes', 'integer'], 'status' => ['sometimes', 'integer'], 'dueAt' => ['nullable', 'integer'], 'completedAt' => ['nullable', 'integer']]);
         $updates = [];
         foreach (['title', 'description', 'index', 'status', 'dueAt', 'completedAt'] as $field) {

@@ -101,7 +101,7 @@ class CommentController extends Controller
         $record = Comment::with('commentGroup.trip')->findOrFail($comment);
         $access = app(TripAccessService::class);
         abort_unless($request->user() && $access->canEdit($record->commentGroup->trip, $request->user()), 403);
-        $access->ensureContentWritable(Trip::query()->findOrFail($record->commentGroup->trip_id));
+        $access->ensureContentWritable(Trip::query()->findOrFail($record->commentGroup()->value('trip_id')));
         abort_unless($record->user_id === $request->user()->id || $access->canManage($record->commentGroup->trip, $request->user()), 403);
         $record->update($request->validate(['content' => ['required', 'string']]));
 
@@ -113,7 +113,7 @@ class CommentController extends Controller
         $record = Comment::with('commentGroup.trip')->findOrFail($comment);
         $access = app(TripAccessService::class);
         abort_unless($request->user() && $access->canEdit($record->commentGroup->trip, $request->user()), 403);
-        $access->ensureContentWritable(Trip::query()->findOrFail($record->commentGroup->trip_id));
+        $access->ensureContentWritable(Trip::query()->findOrFail($record->commentGroup()->value('trip_id')));
         abort_unless($record->user_id === $request->user()->id || $access->canManage($record->commentGroup->trip, $request->user()), 403);
         DB::transaction(function () use ($record): void {
             $group = $record->commentGroup;
