@@ -1,21 +1,48 @@
 import type { Line } from './constants';
 
 export function createGeoJsonData(allLines: Line[]): GeoJSON.FeatureCollection {
+  const curveFactors = createCurveFactors(allLines);
   return {
     type: 'FeatureCollection',
-    features: allLines.map((line) =>
-      createLineGeoJSON(
+    features: allLines.flatMap((line) => {
+      const route = createLineGeoJSON(
         { lng: line.from.lng, lat: line.from.lat },
         { lng: line.to.lng, lat: line.to.lat },
-      ),
-    ),
+        curveFactors.get(line.id),
+      );
+      const arrowPoint = route.geometry.coordinates.at(-6) ?? [
+        line.to.lng,
+        line.to.lat,
+      ];
+
+      return [
+        {
+          ...route,
+          properties: { routeType: line.type },
+        },
+        {
+          type: 'Feature' as const,
+          properties: {
+            routeType: line.type,
+            rotation: calculateArrowRotation(
+              route.geometry.coordinates.at(-7),
+              arrowPoint,
+            ),
+          },
+          geometry: {
+            type: 'Point' as const,
+            coordinates: arrowPoint,
+          },
+        },
+      ];
+    }),
   };
 }
 export function createLineGeoJSON(
   from: { lng: number; lat: number },
   to: { lng: number; lat: number },
+  curveFactor = 0.05,
 ) {
-  const curveFactor = 0.05;
   const controlPoint = calculateCurveControlPoint(from, to, curveFactor);
   const coordinates = buildCurvePolyline(from, to, controlPoint, 50);
   return {
@@ -26,6 +53,50 @@ export function createLineGeoJSON(
       coordinates: coordinates.map((point) => [point.lng, point.lat]),
     },
   };
+}
+
+/**
+ * Assign each repeated or reverse route its own curve lane. Sorting by id makes
+ * the result stable when the activity list is re-rendered.
+ */
+function createCurveFactors(allLines: Line[]): Map<string, number> {
+  const routesByEndpoints = new Map<string, Line[]>();
+  for (const line of allLines) {
+    const endpoints = [coordinateKey(line.from), coordinateKey(line.to)].sort();
+    const key = endpoints.join('|');
+    const routes = routesByEndpoints.get(key) ?? [];
+    routes.push(line);
+    routesByEndpoints.set(key, routes);
+  }
+
+  const curveFactors = new Map<string, number>();
+  for (const routes of routesByEndpoints.values()) {
+    routes.sort((a, b) => a.id.localeCompare(b.id));
+    routes.forEach((route, index) => {
+      curveFactors.set(route.id, 0.05 * curveLane(index));
+    });
+  }
+  return curveFactors;
+}
+
+function coordinateKey(point: { lat: number; lng: number }): string {
+  return `${point.lat.toFixed(6)},${point.lng.toFixed(6)}`;
+}
+
+function curveLane(index: number): number {
+  if (index === 0) return 1;
+  const magnitude = Math.ceil(index / 2) + 1;
+  return index % 2 === 1 ? -magnitude : magnitude;
+}
+
+function calculateArrowRotation(
+  previous: number[] | undefined,
+  point: number[] | undefined,
+): number {
+  if (!previous || !point) return 0;
+  const deltaLng = point[0] - previous[0];
+  const deltaLat = point[1] - previous[1];
+  return (Math.atan2(deltaLat, deltaLng) * 180) / Math.PI;
 }
 
 /**
