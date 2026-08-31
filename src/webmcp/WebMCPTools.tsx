@@ -54,9 +54,13 @@ export function WebMCPTools() {
   const tripReadWriteTools: WebMCPTool[] = authenticated
     ? [
         ...createTripTools().filter((tool) =>
-          ['trip-list', 'trip-open', 'trip-get', 'trip-create'].includes(
-            tool.name,
-          ),
+          [
+            'trip-list',
+            'trip-list-archived',
+            'trip-open',
+            'trip-get',
+            'trip-create',
+          ].includes(tool.name),
         ),
         ...createPlaceTools(),
       ]
@@ -91,6 +95,7 @@ export function WebMCPTools() {
                 [
                   'trip-update-sharing',
                   'trip-update-sections',
+                  'trip-set-archived',
                   'trip-add-member',
                   'trip-update-member',
                 ].includes(tool.name),
