@@ -8,7 +8,7 @@ import {
   Text,
 } from '@radix-ui/themes';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { CommentGroupWithForm } from '../../../Comment/CommentGroupWithForm';
 import { COMMENT_GROUP_OBJECT_TYPE } from '../../../Comment/db';
 import { toFormat } from '../../../common/dateTime/temporalFormatter';
@@ -16,7 +16,7 @@ import { useParseTextIntoNodes } from '../../../common/text/parseTextIntoNodes';
 import type { DialogContentProps } from '../../../Dialog/DialogRoute';
 import { useDeepBoundStore } from '../../../data/store';
 import { getStatusColor, getStatusLabel } from '../../../Task/TaskStatus';
-import { TripUserRole } from '../../../User/TripUserRole';
+import { canModifyTripContent } from '../../permissions';
 import { useTrip, useTripTaskList } from '../../store/hooks';
 import type { TripSliceTask } from '../../store/types';
 import s from './TaskDialog.module.css';
@@ -32,12 +32,7 @@ export function TaskDialogContentView({
 }: DialogContentProps<TripSliceTask>) {
   const taskList = useTripTaskList(task?.taskListId ?? '');
   const { trip } = useTrip(taskList?.tripId);
-  const userCanEditOrDelete = useMemo(() => {
-    return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
-    );
-  }, [trip?.currentUserRole]);
+  const userCanEditOrDelete = canModifyTripContent(trip);
 
   const descriptions = useParseTextIntoNodes(task?.description);
   const currentUser = useDeepBoundStore((state) => state.currentUser);

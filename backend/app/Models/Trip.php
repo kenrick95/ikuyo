@@ -22,6 +22,7 @@ class Trip extends Model
     protected function casts(): array
     {
         return [
+            'archived_at_ms' => 'integer',
             // Nullable section-visibility flags: null = visible, 0/'0' = hidden.
             'public_show_expenses' => 'boolean',
             'public_show_tasks' => 'boolean',

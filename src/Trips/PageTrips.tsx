@@ -21,6 +21,7 @@ import {
   RouteAccountUpgrade,
   RouteTripNew,
   RouteTrips,
+  RouteTripsArchived,
   RouteTripsPublic,
 } from '../Routes/routes';
 import { TripGroup, type TripGroupType } from '../Trip/TripGroup';
@@ -119,6 +120,9 @@ export function PageTrips(_props: RouteComponentProps) {
             Load more
           </Button>
         ) : null}
+        <Button mx="2" my="4" size="2" color="gray" variant="outline" asChild>
+          <Link to={RouteTripsArchived.asRootRoute()}>Archived Trips</Link>
+        </Button>
         <Button mx="2" my="4" size="2" color="gray" variant="outline" asChild>
           <Link to={RouteTripsPublic.asRootRoute()}>Explore Public Trips</Link>
         </Button>

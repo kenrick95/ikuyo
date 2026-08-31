@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AuthorizeTripAccess;
+use App\Http\Middleware\EnsureTripContentWritable;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // All authenticated mutations remain CSRF-protected.
         $middleware->alias([
             'trip.access' => AuthorizeTripAccess::class,
+            'trip.writable' => EnsureTripContentWritable::class,
         ]);
 
         // The frontend models empty strings as "" (matching InstantDB's required

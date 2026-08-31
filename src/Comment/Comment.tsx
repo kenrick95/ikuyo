@@ -24,7 +24,7 @@ import {
   RouteTripTimetableViewActivity,
   RouteTripTimetableViewMacroplan,
 } from '../Routes/routes';
-import { useTripCommentGroup } from '../Trip/store/hooks';
+import { useTrip, useTripCommentGroup } from '../Trip/store/hooks';
 import type { TripSliceCommentWithUser } from '../Trip/store/types';
 import s from './Comment.module.css';
 import { CommentForm } from './CommentForm';
@@ -44,6 +44,7 @@ function CommentInner({
 }) {
   const currentUser = useDeepBoundStore((state) => state.currentUser);
   const commentGroup = useTripCommentGroup(comment.commentGroupId);
+  const { trip } = useTrip(commentGroup?.tripId);
 
   const { user } = comment;
   const isCommentOwnedByCurrentUser = useMemo(() => {
@@ -216,7 +217,9 @@ function CommentInner({
                 {nodes}
               </Text>
             </Card>
-            {showControls && isCommentOwnedByCurrentUser ? (
+            {showControls &&
+            isCommentOwnedByCurrentUser &&
+            trip?.archivedAt == null ? (
               <Flex align="baseline" gap="2">
                 <Button
                   size="1"

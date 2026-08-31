@@ -51,8 +51,8 @@ import {
   RouteTripTimetableViewActivity,
   RouteTripTimetableViewMacroplan,
 } from '../../Routes/routes';
-import { TripUserRole } from '../../User/TripUserRole';
 import { IdeaSidebar } from '../Ideas/IdeaSidebar';
+import { canModifyTripContent } from '../permissions';
 import {
   useCurrentTrip,
   useTripAccommodations,
@@ -289,12 +289,7 @@ export function Timetable() {
     }
   }, [trip, hasScrolledForTrip]);
 
-  const userCanModifyTrip = useMemo(() => {
-    return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
-    );
-  }, [trip?.currentUserRole]);
+  const userCanModifyTrip = canModifyTripContent(trip);
 
   // Days available for the day-swap context menu (derived once, not per header).
   const tripDays = useMemo(() => {

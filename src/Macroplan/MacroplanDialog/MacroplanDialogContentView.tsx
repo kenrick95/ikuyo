@@ -6,15 +6,15 @@ import {
   Skeleton,
   Text,
 } from '@radix-ui/themes';
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { CommentGroupWithForm } from '../../Comment/CommentGroupWithForm';
 import { COMMENT_GROUP_OBJECT_TYPE } from '../../Comment/db';
 import { useParseTextIntoNodes } from '../../common/text/parseTextIntoNodes';
 import type { DialogContentProps } from '../../Dialog/DialogRoute';
 import { useDeepBoundStore } from '../../data/store';
+import { canModifyTripContent } from '../../Trip/permissions';
 import { useTrip } from '../../Trip/store/hooks';
 import type { TripSliceMacroplan } from '../../Trip/store/types';
-import { TripUserRole } from '../../User/TripUserRole';
 import { formatMacroplanDateRange } from '../time';
 import s from './MacroplanDialog.module.css';
 import { MacroplanDialogMode } from './MacroplanDialogMode';
@@ -26,12 +26,7 @@ export function MacroplanDialogContentView({
   DialogTitleSection,
 }: DialogContentProps<TripSliceMacroplan>) {
   const { trip } = useTrip(macroplan?.tripId);
-  const userCanEditOrDelete = useMemo(() => {
-    return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
-    );
-  }, [trip?.currentUserRole]);
+  const userCanEditOrDelete = canModifyTripContent(trip);
   const macroplanDateRangeString =
     trip && macroplan
       ? formatMacroplanDateRange({

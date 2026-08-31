@@ -4,6 +4,7 @@ import { useBoundStore } from '../data/store';
 import {
   dbAddTrip,
   dbAddUserToTrip,
+  dbSetTripArchived,
   dbUpdateTrip,
   dbUpdateTripSectionVisibility,
   dbUpdateTripSharingLevel,
@@ -16,7 +17,7 @@ import {
 import { TripUserRole } from '../User/TripUserRole';
 import { idempotencyKeySchema, runIdempotent } from './idempotency';
 import type { WebMCPTool } from './modelContext';
-import { asOptStr, asStr, int, str, strEnum } from './schema';
+import { asOptStr, asStr, bool, int, str, strEnum } from './schema';
 import { epochToTripDate, resolveTripDates } from './tripDates';
 
 type TripSummary = {
@@ -25,6 +26,7 @@ type TripSummary = {
   timestampStart: number;
   timestampEnd: number;
   timeZone: string;
+  archivedAt?: number;
 };
 
 function requireAuthUser(): { id: string } {
@@ -65,6 +67,7 @@ function tripSnapshot(id: string): Record<string, unknown> {
     taskListIds: t.taskListIds,
     tripUserIds: t.tripUserIds,
     commentGroupIds: t.commentGroupIds,
+    archivedAt: t.archivedAt,
   };
 }
 
@@ -83,6 +86,13 @@ async function listTripsFromApi(): Promise<TripSummary[]> {
   return [...active, ...past];
 }
 
+async function listArchivedTripsFromApi(): Promise<TripSummary[]> {
+  const page = await apiGet<CursorPage<TripSummary>>(
+    '/api/trips?status=archived&limit=100',
+  );
+  return page.data;
+}
+
 export function createTripTools(): WebMCPTool[] {
   // Owners cannot be assigned through the UI or backend member endpoints.
   const memberRoleValues = [TripUserRole.Viewer, TripUserRole.Editor];
@@ -90,12 +100,24 @@ export function createTripTools(): WebMCPTool[] {
     {
       name: 'trip-list',
       description:
-        'Lists the current user’s trips (id, title, dates, timezone). Fetches the latest from the backend.',
+        'Lists the current user’s non-archived trips (id, title, dates, timezone). Fetches the latest from the backend.',
       inputSchema: { type: 'object', properties: {} },
       annotations: { readOnlyHint: true },
       async execute() {
         requireAuthUser();
         const trips = await listTripsFromApi();
+        return { ok: true, trips };
+      },
+    },
+    {
+      name: 'trip-list-archived',
+      description:
+        'Lists the current user’s archived trips (id, title, dates, timezone, archivedAt), newest archived first. Fetches the latest from the backend.',
+      inputSchema: { type: 'object', properties: {} },
+      annotations: { readOnlyHint: true },
+      async execute() {
+        requireAuthUser();
+        const trips = await listArchivedTripsFromApi();
         return { ok: true, trips };
       },
     },
@@ -297,6 +319,30 @@ export function createTripTools(): WebMCPTool[] {
         }
         await dbUpdateTripSharingLevel(tripId, level);
         return { ok: true, tripId, sharingLevel: level };
+      },
+    },
+    {
+      name: 'trip-set-archived',
+      description:
+        'Archives or unarchives a trip. Only owners may change this state. Archiving makes trip content read-only; sharing, members, and deletion remain available.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          tripId: str('Trip id. Defaults to the currently open trip.'),
+          archived: bool('True to archive, false to unarchive.'),
+        },
+        required: ['archived'],
+      },
+      async execute(input) {
+        assertWritable('changing trip archive state');
+        requireAuthUser();
+        const tripId =
+          (input.tripId as string | undefined) ?? requireCurrentTrip();
+        if (typeof input.archived !== 'boolean') {
+          throw new Error('archived is required and must be a boolean');
+        }
+        await dbSetTripArchived(tripId, input.archived);
+        return { ok: true, tripId, archived: input.archived };
       },
     },
     {

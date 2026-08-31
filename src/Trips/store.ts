@@ -11,6 +11,7 @@ export type TripsSliceTrip = {
   timeZone: string;
   createdAt: number;
   lastUpdatedAt: number;
+  archivedAt?: number | null;
 };
 export type TripsSlice = {
   trips: { [queryKey: string]: TripsSliceTrip[] };
@@ -24,6 +25,13 @@ export type TripsSlice = {
   tripsHasMore: null | boolean;
   tripsLoadMore: undefined | (() => void);
   tripsLoadingMore: null | boolean;
+  archivedTrips: { [queryKey: string]: TripsSliceTrip[] };
+  archivedTripsLoading: boolean;
+  archivedTripsError: string | null;
+  archivedTripsHasMore: null | boolean;
+  archivedTripsLoadMore: undefined | (() => void);
+  archivedTripsLoadingMore: null | boolean;
+  subscribeArchivedTrips: (currentUserId: string) => () => void;
 };
 
 type ApiTrip = {
@@ -34,7 +42,21 @@ type ApiTrip = {
   timeZone: string;
   createdAt: number;
   lastUpdatedAt: number;
+  archivedAt?: number;
 };
+
+function toTripsSliceTrip(trip: ApiTrip): TripsSliceTrip {
+  return {
+    ...trip,
+    // MySQL BIGINT ms fields can be JSON strings; coerce so TripCard's
+    // Temporal.Instant.fromEpochMilliseconds does not fail.
+    timestampStart: Number(trip.timestampStart),
+    timestampEnd: Number(trip.timestampEnd),
+    createdAt: Number(trip.createdAt),
+    lastUpdatedAt: Number(trip.lastUpdatedAt),
+    archivedAt: trip.archivedAt == null ? undefined : Number(trip.archivedAt),
+  };
+}
 
 export const createTripsSlice: StateCreator<
   BoundStoreType,
@@ -48,6 +70,12 @@ export const createTripsSlice: StateCreator<
   tripsHasMore: null,
   tripsLoadMore: undefined,
   tripsLoadingMore: null,
+  archivedTrips: {},
+  archivedTripsLoading: false,
+  archivedTripsError: null,
+  archivedTripsHasMore: null,
+  archivedTripsLoadMore: undefined,
+  archivedTripsLoadingMore: null,
   subscribeTrips: (currentUserId, now) => {
     const queryKey = getQueryKey(currentUserId);
     let disposed = false;
@@ -57,15 +85,6 @@ export const createTripsSlice: StateCreator<
     let activeLoaded = false;
     let pastLoaded = false;
 
-    const toTrip = (trip: ApiTrip): TripsSliceTrip => ({
-      ...trip,
-      // MySQL BIGINT ms fields can be JSON strings; coerce so TripCard's
-      // Temporal.Instant.fromEpochMilliseconds does not fail.
-      timestampStart: Number(trip.timestampStart),
-      timestampEnd: Number(trip.timestampEnd),
-      createdAt: Number(trip.createdAt),
-      lastUpdatedAt: Number(trip.lastUpdatedAt),
-    });
     const merge = () => {
       if (disposed || !activeLoaded || !pastLoaded) return;
       set((state) => ({
@@ -84,12 +103,12 @@ export const createTripsSlice: StateCreator<
         const page = await get<CursorPage<ApiTrip>>(`/api/trips?${params}`);
         if (disposed) return;
         if (append) {
-          pastTrips = [...pastTrips, ...page.data.map(toTrip)];
+          pastTrips = [...pastTrips, ...page.data.map(toTripsSliceTrip)];
           pastCursor = page.nextCursor;
           pastLoaded = true;
           set(() => ({ tripsHasMore: page.hasMore, tripsLoadingMore: false }));
         } else {
-          activeTrips = page.data.map(toTrip);
+          activeTrips = page.data.map(toTripsSliceTrip);
           activeLoaded = true;
         }
         merge();
@@ -124,6 +143,62 @@ export const createTripsSlice: StateCreator<
     return () => {
       disposed = true;
       set(() => ({ tripsLoadMore: undefined }));
+    };
+  },
+  subscribeArchivedTrips: (currentUserId) => {
+    const queryKey = getQueryKey(currentUserId);
+    let disposed = false;
+    let cursor: string | null = null;
+    let archivedTrips: TripsSliceTrip[] = [];
+    const load = async (append = false): Promise<void> => {
+      try {
+        const params = new URLSearchParams({
+          status: 'archived',
+          limit: append ? '10' : '100',
+        });
+        if (append && cursor) params.set('cursor', cursor);
+        const page = await get<CursorPage<ApiTrip>>(`/api/trips?${params}`);
+        if (disposed) return;
+        archivedTrips = append
+          ? [...archivedTrips, ...page.data.map(toTripsSliceTrip)]
+          : page.data.map(toTripsSliceTrip);
+        cursor = page.nextCursor;
+        set((state) => ({
+          archivedTrips: { ...state.archivedTrips, [queryKey]: archivedTrips },
+          archivedTripsLoading: false,
+          archivedTripsLoadingMore: false,
+          archivedTripsHasMore: page.hasMore,
+        }));
+      } catch (error: unknown) {
+        if (disposed) return;
+        set(() => ({
+          archivedTripsLoading: false,
+          archivedTripsLoadingMore: false,
+          archivedTripsError:
+            error instanceof Error
+              ? error.message
+              : 'Unable to load archived trips',
+        }));
+      }
+    };
+    set(() => ({
+      archivedTripsLoading: true,
+      archivedTripsError: null,
+      archivedTripsLoadingMore: false,
+    }));
+    void load();
+    set(() => ({
+      archivedTripsLoadMore: () => {
+        const state = getState();
+        if (state.archivedTripsLoadingMore || !state.archivedTripsHasMore)
+          return;
+        set(() => ({ archivedTripsLoadingMore: true }));
+        void load(true);
+      },
+    }));
+    return () => {
+      disposed = true;
+      set(() => ({ archivedTripsLoadMore: undefined }));
     };
   },
   getTripsGrouped: (currentUserId, now) => {

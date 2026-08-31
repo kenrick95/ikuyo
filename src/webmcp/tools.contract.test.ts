@@ -28,6 +28,18 @@ describe('WebMCP reliability contracts', () => {
     });
   });
 
+  it('exposes archived-trip listing and owner archive state controls', () => {
+    const tools = createTripTools();
+    expect(named('trip-list-archived', tools)).toMatchObject({
+      annotations: { readOnlyHint: true },
+    });
+    const archive = named('trip-set-archived', tools);
+    expect(archive.inputSchema.required).toContain('archived');
+    expect(archive.inputSchema.properties.archived).toMatchObject({
+      type: 'boolean',
+    });
+  });
+
   it('exposes bounded activity batches and itinerary relationship fields', () => {
     const tool = named('activity-create-many', createActivityTools());
     const activities = tool.inputSchema.properties.activities as {

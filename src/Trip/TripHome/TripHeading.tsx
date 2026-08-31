@@ -1,9 +1,9 @@
 import { Pencil2Icon } from '@radix-ui/react-icons';
 import { Badge, Button, Flex, Heading } from '@radix-ui/themes';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { useBoundStore } from '../../data/store';
-import { TripUserRole } from '../../User/TripUserRole';
+import { canModifyTripContent } from '../permissions';
 import { useCurrentTrip } from '../store/hooks';
 import { TripEditDialog } from '../TripDialog/TripEditDialog';
 import { TripStatusBadge } from '../TripStatusBadge';
@@ -30,12 +30,7 @@ export function TripHeading() {
     }
   }, [trip, pushDialog]);
 
-  const userCanModifyTrip = useMemo(() => {
-    return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
-    );
-  }, [trip?.currentUserRole]);
+  const userCanModifyTrip = canModifyTripContent(trip);
 
   return (
     <Flex align="start" gap="1" wrap="wrap">

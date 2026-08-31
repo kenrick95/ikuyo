@@ -25,6 +25,7 @@ export function mapApiTrip(trip: ApiTrip): DbTripQueryReturnType {
     timeZone: row.timeZone ?? row.timezone,
     createdAt: toNum(row.createdAt ?? row.created_at_ms),
     lastUpdatedAt: toNum(row.lastUpdatedAt ?? row.updated_at_ms),
+    archivedAt: toNum(row.archivedAt ?? row.archived_at_ms),
     timestampCheckIn: toNum(row.timestampCheckIn ?? row.check_in_ms),
     timestampCheckOut: toNum(row.timestampCheckOut ?? row.check_out_ms),
     timeZoneCheckIn: row.timeZoneCheckIn ?? row.tz_check_in,

@@ -27,7 +27,7 @@ import { useShouldDisableDragAndDrop } from '../../common/deviceUtils';
 import { dangerToken } from '../../common/ui';
 import { useBoundStore } from '../../data/store';
 import { dbUpdateTaskList } from '../../Task/db';
-import { TripUserRole } from '../../User/TripUserRole';
+import { canModifyTripContent } from '../permissions';
 import { useCurrentTrip, useTripTaskList, useTripTasks } from '../store/hooks';
 import { TaskCard, TaskCardUseCase } from './TaskCard';
 import { TaskInlineForm } from './TaskInlineForm/TaskInlineForm';
@@ -53,12 +53,7 @@ export function TaskList({
   const publishToast = useBoundStore((state) => state.publishToast);
   const pushDialog = useBoundStore((state) => state.pushDialog);
 
-  const userCanEditOrDelete = useMemo(() => {
-    return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
-    );
-  }, [trip?.currentUserRole]);
+  const userCanEditOrDelete = canModifyTripContent(trip);
 
   // Focus the input when editing starts
   useEffect(() => {

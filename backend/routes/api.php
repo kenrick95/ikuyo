@@ -60,32 +60,34 @@ Route::middleware('web')->group(function (): void {
         ->middleware(['auth', 'trip.access:manage']);
 
     Route::put('/trips/{trip}', [TripController::class, 'update'])
-        ->middleware(['auth', 'trip.access:edit']);
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
     Route::post('/trips/{trip}/duplicate', [TripController::class, 'duplicate'])
-        ->middleware(['auth', 'trip.access:edit']);
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
+    Route::patch('/trips/{trip}/archive', [TripController::class, 'archive'])
+        ->middleware(['auth', 'trip.access:manage']);
     Route::patch('/trips/{trip}/sharing', [TripController::class, 'sharing'])
         ->middleware(['auth', 'trip.access:manage']);
     Route::patch('/trips/{trip}/sections', [TripController::class, 'sections'])
-        ->middleware(['auth', 'trip.access:manage']);
+        ->middleware(['auth', 'trip.access:manage', 'trip.writable']);
 
     Route::get('/trips/{trip}/{entity}', [ContentController::class, 'index'])
         ->whereIn('entity', ['activities', 'accommodations', 'macroplans', 'expenses'])
         ->middleware('trip.access:view');
     Route::patch('/trips/{trip}/activities/batch', [ContentController::class, 'activityBatchUpdate'])
-        ->middleware(['auth', 'trip.access:edit']);
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
     Route::post('/trips/{trip}/{entity}', [ContentController::class, 'store'])
         ->whereIn('entity', ['activities', 'accommodations', 'macroplans', 'expenses'])
-        ->middleware(['auth', 'trip.access:edit']);
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
     Route::put('/trips/{trip}/{entity}/{entityId}', [ContentController::class, 'update'])
         ->whereIn('entity', ['activities', 'accommodations', 'macroplans', 'expenses'])
-        ->middleware(['auth', 'trip.access:edit']);
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
     Route::delete('/trips/{trip}/{entity}/{entityId}', [ContentController::class, 'destroy'])
         ->whereIn('entity', ['activities', 'accommodations', 'macroplans', 'expenses'])
-        ->middleware(['auth', 'trip.access:edit']);
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
     Route::post('/trips/{trip}/activities/{activity}/drag-end', [ContentController::class, 'activityDragEnd'])
-        ->middleware(['auth', 'trip.access:edit']);
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
     Route::post('/trips/{trip}/activities/{activity}/duplicate', [ContentController::class, 'activityDuplicate'])
-        ->middleware(['auth', 'trip.access:edit']);
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
 
     Route::post('/task-lists/{taskList}/tasks', [TaskController::class, 'storeTaskById'])
         ->middleware('auth');
@@ -103,23 +105,23 @@ Route::middleware('web')->group(function (): void {
         ->middleware('auth');
 
     Route::post('/trips/{trip}/task-lists', [TaskController::class, 'storeList'])
-        ->middleware(['auth', 'trip.access:edit']);
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
     Route::put('/trips/{trip}/task-lists/{taskList}', [TaskController::class, 'updateList'])
-        ->middleware(['auth', 'trip.access:edit']);
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
     Route::delete('/trips/{trip}/task-lists/{taskList}', [TaskController::class, 'destroyList'])
-        ->middleware(['auth', 'trip.access:edit']);
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
     Route::post('/trips/{trip}/task-lists/{taskList}/tasks', [TaskController::class, 'storeTask'])
-        ->middleware(['auth', 'trip.access:edit']);
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
     Route::put('/trips/{trip}/task-lists/{taskList}/tasks/{task}', [TaskController::class, 'updateTask'])
-        ->middleware(['auth', 'trip.access:edit']);
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
     Route::delete('/trips/{trip}/task-lists/{taskList}/tasks/{task}', [TaskController::class, 'destroyTask'])
-        ->middleware(['auth', 'trip.access:edit']);
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
     Route::patch('/trips/{trip}/tasks/reorder', [TaskController::class, 'reorderTasks'])
-        ->middleware(['auth', 'trip.access:edit']);
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
     Route::patch('/trips/{trip}/task-lists/reorder', [TaskController::class, 'reorderLists'])
-        ->middleware(['auth', 'trip.access:edit']);
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
     Route::post('/trips/{trip}/tasks/{task}/move', [TaskController::class, 'moveTask'])
-        ->middleware(['auth', 'trip.access:edit']);
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
 
     Route::patch('/comment-groups/{group}/status', [CommentController::class, 'updateStatusById'])
         ->middleware('auth');
@@ -129,13 +131,13 @@ Route::middleware('web')->group(function (): void {
         ->middleware('auth');
 
     Route::post('/trips/{trip}/comment-groups', [CommentController::class, 'store'])
-        ->middleware(['auth', 'trip.access:edit']);
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
     Route::patch('/trips/{trip}/comment-groups/{group}/status', [CommentController::class, 'updateStatus'])
-        ->middleware(['auth', 'trip.access:edit']);
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
     Route::put('/trips/{trip}/comment-groups/{group}/comments/{comment}', [CommentController::class, 'update'])
-        ->middleware(['auth', 'trip.access:edit']);
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
     Route::delete('/trips/{trip}/comment-groups/{group}/comments/{comment}', [CommentController::class, 'destroy'])
-        ->middleware(['auth', 'trip.access:edit']);
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
 
     Route::get('/users/me', [UserController::class, 'me'])->middleware('auth');
     Route::post('/users/check-email', [UserController::class, 'checkEmail']);

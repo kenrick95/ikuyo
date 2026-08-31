@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { Link } from 'wouter';
 import { RouteTripTaskList } from '../../Routes/routes';
 import { TaskStatus } from '../../Task/TaskStatus';
-import { TripUserRole } from '../../User/TripUserRole';
+import { canModifyTripContent } from '../permissions';
 import {
   useCurrentTrip,
   useTripAllTaskLists,
@@ -14,12 +14,7 @@ import { TaskCard, TaskCardUseCase } from '../TripTask/TaskCard';
 
 export function TripHomeTasks() {
   const { trip } = useCurrentTrip();
-  const userCanModifyTrip = useMemo(() => {
-    return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
-    );
-  }, [trip?.currentUserRole]);
+  const userCanModifyTrip = canModifyTripContent(trip);
 
   // Get all task lists and tasks
   const allTaskLists = useTripAllTaskLists(trip?.id);
@@ -120,7 +115,7 @@ export function TripHomeTasks() {
         ) : null}
       </Heading>
       <Flex gap="2" direction="column">
-        {displayTasks.length === 0 ? (
+        {displayTasks.length === 0 && userCanModifyTrip ? (
           <Button variant="outline" asChild style={{ alignSelf: 'start' }}>
             <Link to={RouteTripTaskList.asRouteTarget()}>Add first task</Link>
           </Button>

@@ -3,7 +3,7 @@ import { Button, Flex } from '@radix-ui/themes';
 import { useCallback, useMemo } from 'react';
 import { useLocation } from 'wouter';
 import { RouteTripTimetableView } from '../../Routes/routes';
-import { TripUserRole } from '../../User/TripUserRole';
+import { canModifyTripContent } from '../permissions';
 import {
   useCurrentTrip,
   useTripAccommodations,
@@ -28,12 +28,7 @@ export function TripHomeOnboarding() {
     return Temporal.ZonedDateTime.compare(now, tripStart) >= 0;
   }, [trip]);
 
-  const userCanModifyTrip = useMemo(() => {
-    return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
-    );
-  }, [trip?.currentUserRole]);
+  const userCanModifyTrip = canModifyTripContent(trip);
 
   const [, setLocation] = useLocation();
   const openActivityNewDialog = useCallback(() => {

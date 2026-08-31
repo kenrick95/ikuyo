@@ -26,7 +26,7 @@ import {
   RouteTripListViewActivity,
   RouteTripListViewMacroplan,
 } from '../../Routes/routes';
-import { TripUserRole } from '../../User/TripUserRole';
+import { canModifyTripContent } from '../permissions';
 import {
   useCurrentTrip,
   useTripAccommodations,
@@ -43,12 +43,7 @@ export function TripListView() {
     trip?.accommodationIds ?? [],
   );
   const tripMacroplans = useTripMacroplans(trip?.macroplanIds ?? []);
-  const userCanEditOrDelete = useMemo(() => {
-    return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
-    );
-  }, [trip?.currentUserRole]);
+  const userCanEditOrDelete = canModifyTripContent(trip);
 
   // Ref for the list container to enable scrolling
   const listContainerRef = useRef<HTMLDivElement>(null);

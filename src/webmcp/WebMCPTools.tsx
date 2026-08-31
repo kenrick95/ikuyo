@@ -1,5 +1,5 @@
 import { useBoundStore } from '../data/store';
-import { TripUserRole } from '../User/TripUserRole';
+import { canModifyTripContent, isTripOwner } from '../Trip/permissions';
 import { createAccommodationTools } from './accommodation.tools';
 import { createActivityTools } from './activity.tools';
 import { createAuthTools } from './auth.tools';
@@ -35,11 +35,9 @@ export function WebMCPTools() {
   const tripLoaded = Boolean(currentTrip);
   const canEdit =
     currentTrip?.isCurrentUserTripMember === true &&
-    (currentTrip.currentUserRole === TripUserRole.Owner ||
-      currentTrip.currentUserRole === TripUserRole.Editor);
+    canModifyTripContent(currentTrip);
   const canManage =
-    currentTrip?.isCurrentUserTripMember === true &&
-    currentTrip.currentUserRole === TripUserRole.Owner;
+    currentTrip?.isCurrentUserTripMember === true && isTripOwner(currentTrip);
 
   // Do not advertise login/signup to an already authenticated assistant, or
   // account/logout tools to a logged-out one.
@@ -56,9 +54,13 @@ export function WebMCPTools() {
   const tripReadWriteTools: WebMCPTool[] = authenticated
     ? [
         ...createTripTools().filter((tool) =>
-          ['trip-list', 'trip-open', 'trip-get', 'trip-create'].includes(
-            tool.name,
-          ),
+          [
+            'trip-list',
+            'trip-list-archived',
+            'trip-open',
+            'trip-get',
+            'trip-create',
+          ].includes(tool.name),
         ),
         ...createPlaceTools(),
       ]
@@ -93,6 +95,7 @@ export function WebMCPTools() {
                 [
                   'trip-update-sharing',
                   'trip-update-sections',
+                  'trip-set-archived',
                   'trip-add-member',
                   'trip-update-member',
                 ].includes(tool.name),

@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { Link } from 'wouter';
 import { Activity } from '../../Activity/Activity';
 import { RouteTripListView } from '../../Routes/routes';
-import { TripUserRole } from '../../User/TripUserRole';
+import { canModifyTripContent } from '../permissions';
 import { useCurrentTrip, useTripActivities } from '../store/hooks';
 import type { TripSliceActivityWithTime } from '../store/types';
 import { TripViewMode } from '../TripViewMode';
@@ -13,12 +13,7 @@ export function TripHomeActivities() {
   const { trip } = useCurrentTrip();
   // Get activities and expenses for new features
   const activities = useTripActivities(trip?.activityIds ?? []);
-  const userCanModifyTrip = useMemo(() => {
-    return (
-      trip?.currentUserRole === TripUserRole.Owner ||
-      trip?.currentUserRole === TripUserRole.Editor
-    );
-  }, [trip?.currentUserRole]);
+  const userCanModifyTrip = canModifyTripContent(trip);
 
   // Determine if trip is {stating soon, or current}
   const isTripStartingOrCurrent = useMemo(() => {

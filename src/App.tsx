@@ -25,6 +25,7 @@ import {
   RouteTrip,
   RouteTripNew,
   RouteTrips,
+  RouteTripsArchived,
   RouteTripsPublic,
 } from './Routes/routes';
 import { ImperativeToastRoot } from './Toast/ImperativeToast';
@@ -39,6 +40,9 @@ const PageTerms = withLoading()(React.lazy(() => import('./Docs/Terms')));
 const PagePrivacy = withLoading()(React.lazy(() => import('./Docs/Privacy')));
 const PageLogin = withLoading()(React.lazy(() => import('./Auth/Auth')));
 const PageTrips = withLoading()(React.lazy(() => import('./Trips/PageTrips')));
+const PageTripsArchived = withLoading()(
+  React.lazy(() => import('./Trips/PageTripsArchived')),
+);
 const PageTripsPublic = withLoading()(
   React.lazy(() => import('./TripsPublic/PageTripsPublic')),
 );
@@ -155,6 +159,10 @@ function App() {
             ) : null}
             <Route path={RouteLogin.routePath} component={PageLogin} />
             <Route path={RouteTrips.routePath} component={PageTrips} />
+            <Route
+              path={RouteTripsArchived.routePath}
+              component={PageTripsArchived}
+            />
             <Route
               path={RouteTripsPublic.routePath}
               component={PageTripsPublic}

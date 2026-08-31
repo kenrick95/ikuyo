@@ -60,6 +60,8 @@ export type DbTrip = {
   originRegion: string;
   /** origin's IANA time zone. Optional for backward compat */
   originTimeZone: string;
+  /** ms when archived; undefined while active */
+  archivedAt?: number;
 
   /** 0: private; 1: group (removed, no longer in use); 2: public but unlisted; 3: public listed in public directory */
   sharingLevel: TripSharingLevelType;
@@ -189,6 +191,12 @@ export async function dbUpdateTripSharingLevel(
         sharingLevel,
       }),
   );
+}
+
+export async function dbSetTripArchived(tripId: string, archived: boolean) {
+  return patchMutation(`/api/trips/${encodeURIComponent(tripId)}/archive`, {
+    archived,
+  });
 }
 
 export async function dbDeleteTrip(trip: TripSliceTrip) {

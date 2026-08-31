@@ -71,6 +71,11 @@ export function TripNavbar() {
           <Link to={RouteTripHome.asRouteTarget()} className={s.tripTitle}>
             {trip?.title ?? <Skeleton>Trip title</Skeleton>}
           </Link>
+          {trip?.archivedAt != null ? (
+            <Badge color="gray" size="1">
+              Archived
+            </Badge>
+          ) : null}
           <DoubleArrowRightIcon className={s.tripTitleDivider} />
           {selector}
         </Heading>,
