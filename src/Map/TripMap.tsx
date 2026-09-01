@@ -18,6 +18,7 @@ import s from './TripMap.module.css';
 import '@maptiler/sdk/style.css';
 import { Spinner } from '@radix-ui/themes';
 import { createPortal } from 'react-dom';
+import { getActivityType } from '../Activity/activityType';
 import { getRegionDisplayName } from '../data/intl/regions';
 import { getTripStatus } from '../Trip/getTripStatus';
 import {
@@ -33,7 +34,12 @@ import type {
 import { ThemeAppearance } from '../theme/constants';
 import { useTheme } from '../theme/hooks';
 import { filterOutliersForBounds } from './boundsUtils';
-import { LocationType, type MarkerLocation } from './constants';
+import {
+  type Line,
+  LocationType,
+  type MarkerLocation,
+  RouteType,
+} from './constants';
 import { createGeoJsonData } from './geometry';
 import { createMarkerElement } from './marker';
 import { AccommodationPopup } from './popups/AccommodationPopup';
@@ -198,10 +204,7 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
     return locations;
   }, [activities, accommodationsWithLocation, trip]);
   const allLines = useMemo(() => {
-    const lines: {
-      from: { lat: number; lng: number };
-      to: { lat: number; lng: number };
-    }[] = [];
+    const lines: Line[] = [];
     for (const activity of activities) {
       if (
         activity.locationLat != null &&
@@ -210,6 +213,7 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
         activity.locationDestinationLng != null
       ) {
         lines.push({
+          id: activity.id,
           from: {
             lat: activity.locationLat,
             lng: activity.locationLng,
@@ -218,6 +222,7 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
             lat: activity.locationDestinationLat,
             lng: activity.locationDestinationLng,
           },
+          type: getActivityType(activity.flags),
         });
       }
     }
@@ -358,7 +363,10 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
       const addLineLayer = () => {
         if (!map.current || !allLines.length) return;
 
-        // Remove existing line soruce & layer if it exists
+        // Remove existing route source and layers if they exist.
+        if (map.current.getLayer(routeArrowLayerId)) {
+          map.current.removeLayer(routeArrowLayerId);
+        }
         if (map.current.getLayer(routeLineLayerId)) {
           map.current.removeLayer(routeLineLayerId);
         }
@@ -380,8 +388,17 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
             'line-join': 'round',
             'line-cap': 'round',
           },
+          filter: ['==', '$type', 'LineString'],
           paint: {
-            'line-color': 'hsla(0, 100%, 60%, 0.9)',
+            'line-color': [
+              'match',
+              ['get', 'routeType'],
+              RouteType.Flight,
+              '#64748b',
+              RouteType.Train,
+              '#7c3f76',
+              '#f05252',
+            ],
             'line-width': 2,
             'line-dasharray': [2, 4],
           },
@@ -393,18 +410,25 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
           type: 'symbol',
           source: routeSourceId,
           layout: {
-            'symbol-placement': 'line-center',
-            'symbol-avoid-edges': true,
+            'text-rotate': ['get', 'rotation'],
             'text-field': '▶',
-            'text-size': 16,
-            'text-rotate': 0,
+            'text-size': 12,
             'text-allow-overlap': true,
             'text-keep-upright': false,
             'text-pitch-alignment': 'map',
             'text-rotation-alignment': 'map',
           },
+          filter: ['==', '$type', 'Point'],
           paint: {
-            'text-color': 'hsla(0, 100%, 60%, 0.9)',
+            'text-color': [
+              'match',
+              ['get', 'routeType'],
+              RouteType.Flight,
+              '#64748b',
+              RouteType.Train,
+              '#7c3f76',
+              '#f05252',
+            ],
           },
         });
       };
