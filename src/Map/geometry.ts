@@ -89,14 +89,16 @@ function curveLane(index: number): number {
   return index % 2 === 1 ? -magnitude : magnitude;
 }
 
-function calculateArrowRotation(
+export function calculateArrowRotation(
   previous: number[] | undefined,
   point: number[] | undefined,
 ): number {
   if (!previous || !point) return 0;
   const deltaLng = point[0] - previous[0];
   const deltaLat = point[1] - previous[1];
-  return (Math.atan2(deltaLat, deltaLng) * 180) / Math.PI;
+  // MapLibre rotates text clockwise, while latitude increases northward.
+  const rotation = (-Math.atan2(deltaLat, deltaLng) * 180) / Math.PI;
+  return rotation === 0 ? 0 : rotation;
 }
 
 /**
