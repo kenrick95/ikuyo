@@ -12,6 +12,8 @@
   flex: 0 0 auto;
   position: sticky;
   top: 0;
+  /* Keep sticky day headers above hovered/focused activity cards (z-index: 3). */
+  z-index: 4;
   background: var(--color-panel-solid);
   border-bottom: 1px solid var(--gray-7);
   padding-top: var(--space-1);
