@@ -2,11 +2,11 @@
 
 ## Recommendation and scope
 
-Start with read-only access to explicitly prepared trips in an already-open
-tab, plus a downloadable itinerary for use after closing the browser. Keep
-service workers out of this implementation. Offline editing is a separate,
-later phase because reliable retries and collaboration conflicts need backend
-support, regardless of whether a service worker is used.
+Use a minimal service worker to make the app itself reopen offline, and keep
+explicitly prepared, read-only trip snapshots in IndexedDB. Limit the worker to
+versioned app files and navigation; the application owns trip data, permissions,
+and reconnect behavior. Keep a downloadable itinerary as a fallback. Offline
+editing remains a separate phase requiring reliable retries and conflict handling.
 
 This is a proposal, not an implemented feature. The initial scope favors
 travelers looking up their itinerary when connectivity drops.
@@ -14,18 +14,20 @@ travelers looking up their itinerary when connectivity drops.
 | Scenario | Initial behavior |
 | --- | --- |
 | Open a trip online, prepare it, then lose connectivity | Read supported trip sections and show when the snapshot was saved. |
-| Navigate between prepared trips in the same running app | Read saved trips whose required code has finished loading. |
+| Navigate between prepared trips | Read saved trips using precached screens and detail dialogs. |
 | Open an unprepared trip offline | Explain that it needs to be opened online first; offer saved trips. |
-| Reload, open a new tab, or resume a browser-discarded tab offline | Not guaranteed; use the downloaded itinerary. |
+| Reload, open a new tab, or resume a browser-discarded tab offline | Load the installed app shell and prepared trips, provided browser storage remains available. |
+| First-ever visit offline, or browser storage cleared/evicted | Offline launch is unavailable; use a previously downloaded itinerary. |
+| A new app version is ready | Offer an explicit update; keep the current version usable until safe activation. |
 | Reopen a downloaded itinerary offline | Read a standalone local file without the website or session. |
 | Edit, complete tasks, comment, or change sharing offline | Disabled in the initial release. |
 | Use maps, geocoding, or external links offline | Explain that these require connectivity; keep saved addresses and coordinates visible. |
 
-Persisting data does not make the website itself available on a fresh offline
-navigation. IndexedDB and the HTTP cache cannot guarantee loading the HTML and
-all required assets. A service worker can intercept navigation and supply those
-assets, but brings the lifecycle the user wants to avoid. Do not advertise
-reliable offline app launches or rely on ordinary browser caching as a contract.
+The service worker supplies the HTML, JS, and CSS on offline navigation;
+IndexedDB supplies saved trip data. Neither is a backup against browser storage
+eviction. Mark a trip ready only after both the app installation and snapshot
+save have succeeded. No background sync, API response cache, or offline writes
+are included in the initial worker.
 See [MDN's offline operation guide](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Guides/Offline_and_background_operation).
 
 ## Existing foundations and gaps
@@ -52,13 +54,18 @@ See [MDN's offline operation guide](https://developer.mozilla.org/en-US/docs/Web
   durable offline write queue. WebMCP provides additional mutation entry points.
 - `src/Trip/TripMenu/print.ts` already generates itinerary HTML with
   `tripToHtml`; the trip menu exposes printing. Reuse this for a portable copy.
-- `src/main.tsx` intentionally unregisters old service workers. Keep that
-  behavior. The PHP front controller's private/public metadata behavior and
-  existing API cache protections do not need to change.
+- `src/main.tsx` currently unregisters all service workers after startup.
+  Replace this with explicit registration and an update coordinator. Roll out
+  removal of that cleanup before enabling registration, so older running tabs
+  cannot immediately unregister the new worker. Scope legacy cleanup to known
+  obsolete registrations/caches; never delete every cache on the origin.
+- The PHP front controller renders public-trip preview metadata. Preserve that
+  server path for uncontrolled requests and crawlers; the worker must cache a
+  generic static shell, never trip-specific PHP HTML or authenticated responses.
 
 ## Implementation phases
 
-### 1. Ship a portable itinerary first
+### 1. Keep a portable itinerary fallback
 
 Add “Download itinerary” beside Print, using `tripToHtml` to create a standalone
 HTML download. Include trip title, snapshot time, day plans, scheduled and
@@ -84,8 +91,10 @@ tasks, and comments, including display relationships. Preserve date, time-zone,
 and currency values through the existing mapper.
 
 “Prepare for offline use” must fetch successfully, validate the snapshot, commit
-it atomically, and load required view code before reporting readiness. An empty
-collection is valid; a missing required collection is incomplete. Trip list
+it atomically, and verify the active worker's complete app cache before reporting
+readiness. The initial page may need one controlled reload; do not show success
+while installation is merely pending. An empty collection is valid; a missing
+required collection is incomplete. Trip list
 cards alone never count as prepared trips. Do not save optimistic changes or
 copy the old unscoped localStorage cache into trusted offline snapshots.
 
@@ -93,7 +102,8 @@ Keep Zustand as the UI state. Hydrate a selected snapshot through shared trip
 normalization instead of creating a second rendering model. Refresh prepared
 snapshots from successful full-trip responses, preserving the last complete
 snapshot if a new fetch or storage write fails. Track data-saved status separately
-from code-ready status, since code readiness lasts only for the current tab.
+from the installed shell version and cache readiness; recheck on startup and
+after updates or missing-asset errors.
 
 Provide saved-trip listing, per-trip removal, and “Remove all saved trips”.
 Bound storage with an explicit trip/size budget; do not silently evict trips
@@ -146,30 +156,104 @@ guarantee or show success after a failed save. See
 Offline copies cannot learn about remote revocation until reconnect. Make this
 limitation explicit when preparing private trips, as with downloaded files.
 
-### 4. Prepare code as well as data
+### 4. Install a minimal, versioned app shell
 
-Extract shared import loaders for the supported trip views and their read-only
-detail dialogs. Preparing a trip should execute those imports and wait for all
-required JS/CSS dependencies; merely adding prefetch hints is insufficient.
-Audit nested dynamic imports and external assets. Include saved-trip navigation
-and recoverable chunk-load errors. Skip the map SDK and show a text fallback.
+Add production-only registration at a stable same-origin `/sw.js` URL with root
+scope over HTTPS. Disable registration on ordinary development servers and use
+a production-like HTTPS or localhost preview for worker tests. Serve the worker
+with revalidation (`Cache-Control: no-cache`) and exclude it from SPA rewrites;
+use immutable caching for content-hashed assets.
 
-Keep the UI wording precise: “Ready in this tab; download an itinerary to reopen
-offline.” If the tab is discarded or reloaded, that readiness is lost even when
-the data survives. Test the production build, where chunk and CSS behavior can
-differ from development.
+Generate a revisioned precache manifest from Rsbuild output. Prefer a build-time
+Workbox integration if it fits the Rspack pipeline; verify compatibility in an
+implementation spike rather than assuming a Vite plugin applies. Include generic
+shell HTML and the complete JS/CSS dependency closure for saved-trip navigation,
+home, list, timetable, expenses, tasks, comments, and read-only dialogs. Audit
+nested chunks, fonts, icons, and public-path URLs. Maps/geocoding remain online
+features; exclude their dependencies only if they are not needed to boot the
+supported views. Measure installation size and enforce a build budget.
 
-No app-shell cache or service-worker update flow is introduced. Continue normal
-deployments, retain old hashed assets for a defined deployment grace period so
-open tabs can finish loading, and offer an online reload for missing chunks.
-Do not force reloads while offline. Repository schema compatibility, rather
-than a cached application shell, governs which saved data new code can read.
+For controlled, allowlisted SPA navigations, serve the active release's cached
+generic shell consistently, online and offline, so HTML matches its assets.
+Keep the requested URL for client routing. First visits and crawlers continue
+through the PHP front controller. Exclude `/api`, authentication callbacks,
+server-only paths, downloads, and non-GET requests from shell fallback. Serve
+only manifest-listed static assets from the app cache; pass other requests to
+the network. Never cache API responses, session/CSRF endpoints, mutations,
+trip-specific metadata HTML, map tiles, or third-party responses.
 
-### 5. Consider offline editing only after the read path is proven
+Install into a release-specific cache without modifying the active release.
+Reject installation if any required asset is missing, invalid, or cannot be
+stored; do not accept an HTML SPA fallback as a successful JS download. Partial
+candidate caches must never become active and should be cleaned on a later
+successful run. Report “Ready offline” only with an active complete shell and a
+complete selected trip snapshot. New tabs can then reopen prepared trips without
+prefetching screens in each tab.
 
-An optional later phase can run entirely in the foreground without a service
-worker: persist an outbox transactionally before confirming a local edit, then
-sync when the app is open and online. Closing the tab pauses delivery.
+### 5. Make app updates explicit and safe
+
+The default is install, wait, then activate when no old clients remain. Do not
+call `skipWaiting()` unconditionally or use `clients.claim()` to take over
+arbitrary existing pages. A routine reload does not necessarily activate a
+waiting worker because the old client can overlap the navigation. See the
+[service-worker lifecycle](https://web.dev/articles/service-worker-lifecycle).
+
+1. Check for updates on online startup and throttled foreground/reconnect
+   events using registration updates. Render the current app immediately;
+   updates must not block reading a trip.
+2. Download and validate the next release in the background. Keep the active
+   release and snapshots intact if installation fails or connectivity drops.
+3. Once a candidate is installed and waiting, show “Update available” with
+   “Update and reload” and “Later”. Later continues the current release, including
+   offline use. Do not force a reload while offline or while edits are unsaved.
+4. On acceptance, coordinate all in-scope app tabs via worker messaging and
+   client enumeration. Pause new mutations and wait for in-flight writes and
+   snapshot transactions to finish. Every existing tab must acknowledge that
+   it has no unsaved form data and is ready to reload. A dirty, suspended,
+   unresponsive, or newly discovered tab blocks immediate activation; explain
+   that other tabs must be saved/closed. A timeout is not consent. Use an
+   activation lock and recheck the client set before proceeding.
+5. Only after this handshake, message the waiting worker to `skipWaiting()`.
+   Listen for `controllerchange` in participating tabs and reload once per
+   target build. Ignore first-install events and prevent reload loops. If the
+   client set cannot be coordinated safely, use the default close-all-tabs
+   activation path instead. See [update guidance](https://web.dev/learn/pwa/update).
+6. Retain the previous release cache during the transition. Serve its immutable
+   hashed assets by exact URL if an old page requests them; never resolve its
+   shell or unversioned assets from an arbitrary cache. Delete an old release
+   only once no clients still need it; unknown client versions defer cleanup.
+   This also covers tabs opening or resuming around the activation handshake.
+   If storage cannot hold both releases, defer the update rather than deleting
+   the working cache. Review Workbox's automatic activation cleanup against
+   these retention requirements before adopting its defaults.
+
+Publish versioned assets and a release-specific generic shell first, then the
+worker referencing that exact release last. Keep the PHP entry point available
+throughout deployment. Retain previous hashed assets on the server for a defined
+grace period as well as in browser caches; never replace a hashed URL's contents.
+Test interrupted deployments and a missing chunk before enabling updates.
+
+Keep backend APIs compatible with returning older frontends for a documented
+support window; supporting only the previous release may be insufficient for
+long offline trips. After that window, require an online update before editing
+but preserve readable snapshots where compatible. Version IndexedDB separately:
+prefer additive migrations, handle blocked upgrades from other tabs, and never
+delete a saved trip just because a new app build activates. Reject unsupported
+schemas with a recovery path instead of partially interpreting them.
+
+For rollback, publish a new worker revision pointing at a known-good shell,
+using the same install/wait/update flow and verifying saved-data compatibility.
+Disabling new registration alone cannot disable already installed workers.
+Prepare a tested recovery worker at the same `/sw.js` URL that passes through
+to the network and retires only Ikuyo app caches when it is safe. Preserve trip
+snapshots and avoid origin-wide clearing. Recovery requires connectivity and
+does not instantly reach offline users.
+
+### 6. Consider offline editing only after the read path is proven
+
+An optional later phase can sync entirely in the foreground without extending
+the service worker: persist an outbox and local edit atomically before confirming
+success, then sync when the app is open and online. Closing the tab pauses delivery.
 
 Before enabling it, add server-side idempotency keys and durable deduplication,
 entity revisions/conditional updates, dependency ordering for creates, and
@@ -180,10 +264,8 @@ transport failures, and expose pending/failed/conflicting changes with recovery
 actions. The current WebMCP retry cache is not a server-side delivery guarantee.
 Start with a narrow mutation type rather than queueing arbitrary HTTP requests.
 
-If reliable offline reopening of the full interactive app becomes essential,
-revisit that requirement explicitly. Options are a minimal versioned app-shell
-service worker or a packaged app with bundled assets; both are additional scope.
-Keep the portable itinerary as the no-service-worker solution for now.
+The app-shell worker does not solve write ordering or conflicts. Background
+Sync is optional future work, not a dependency for reliable foreground replay.
 
 ## Verification and rollout
 
@@ -199,10 +281,20 @@ Keep the portable itinerary as the no-service-worker solution for now.
 4. Exercise a production build with networking disabled after preparation.
    Visit every promised view and detail dialog, including ones never opened
    before disconnection. Check maps degrade without breaking itinerary views.
-5. Test two tabs, expired sessions, storage eviction, browser restart, tab
-   discard, and deployment while a tab is open. Fresh offline navigation is an
-   explicitly unsupported app case; the downloaded itinerary must still open.
-6. Release saved-trip support behind a feature flag after the download ships.
+5. Test fresh offline navigation to root and nested trip URLs after installation,
+   browser restart, tab discard, expired sessions, and eviction. With storage
+   intact, prepared trips must reopen; first visits and cleared storage remain
+   unsupported. Verify API/auth requests never receive cached HTML or data.
+6. Test v1-to-v2 updates in a production build: acceptance, postponement, offline
+   download interruption, missing/invalid chunks, quota failure, multiple tabs,
+   unsaved forms, in-flight mutations, suspended/new tabs, blocked DB migration,
+   rollback, and recovery. Assert no partial release activation, lost edits,
+   reload loop, premature cache deletion, or loss of readable saved trips.
+   Cover Chromium, Firefox, and Safari including real mobile browsers.
+7. Stage rollout: remove legacy unregister behavior first; verify precaching
+   and updates in staging; enable registration and saved trips for a small
+   cohort before wider release. Keep downloads independently available.
    Monitor preparation failures and reconnect recovery without recording trip
    contents. No backend changes are expected for the initial read-only scope;
-   offline editing requires a separate backend/API design and rollout.
+   deployment/header changes and API compatibility policy are required.
+   Offline editing requires a separate backend/API design and rollout.
