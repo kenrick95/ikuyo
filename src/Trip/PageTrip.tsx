@@ -1,5 +1,5 @@
 import { Container, Spinner, Text } from '@radix-ui/themes';
-import React, { useEffect } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import {
   Link,
   Redirect,
@@ -7,57 +7,43 @@ import {
   type RouteComponentProps,
   Switch,
 } from 'wouter';
-import { withLoading } from '../Loading/withLoading';
 import { DocTitle } from '../Nav/DocTitle';
+import { RouteTransition } from '../Routes/RouteTransition';
 
-const Timetable = withLoading()(
-  React.lazy(() =>
-    import('./TripTimetableView/Timetable').then((module) => {
-      return { default: module.Timetable };
-    }),
-  ),
+const Timetable = React.lazy(() =>
+  import('./TripTimetableView/Timetable').then((module) => {
+    return { default: module.Timetable };
+  }),
 );
-const ActivityList = withLoading()(
-  React.lazy(() =>
-    import('./TripListView/TripListView').then((module) => {
-      return { default: module.TripListView };
-    }),
-  ),
+const ActivityList = React.lazy(() =>
+  import('./TripListView/TripListView').then((module) => {
+    return { default: module.TripListView };
+  }),
 );
-const ExpenseList = withLoading()(
-  React.lazy(() =>
-    import('./TripExpenseViewCards').then((module) => {
-      return { default: module.TripExpenseViewCards };
-    }),
-  ),
+const ExpenseList = React.lazy(() =>
+  import('./TripExpenseViewCards').then((module) => {
+    return { default: module.TripExpenseViewCards };
+  }),
 );
-const PageTripMap = withLoading()(
-  React.lazy(() =>
-    import('./TripMapView').then((module) => {
-      return { default: module.PageTripMap };
-    }),
-  ),
+const PageTripMap = React.lazy(() =>
+  import('./TripMapView').then((module) => {
+    return { default: module.PageTripMap };
+  }),
 );
-const TripHome = withLoading()(
-  React.lazy(() =>
-    import('./TripHome/TripHome').then((module) => {
-      return { default: module.TripHome };
-    }),
-  ),
+const TripHome = React.lazy(() =>
+  import('./TripHome/TripHome').then((module) => {
+    return { default: module.TripHome };
+  }),
 );
-const TripComment = withLoading()(
-  React.lazy(() =>
-    import('./TripComment').then((module) => {
-      return { default: module.TripComment };
-    }),
-  ),
+const TripComment = React.lazy(() =>
+  import('./TripComment').then((module) => {
+    return { default: module.TripComment };
+  }),
 );
-const TripTaskList = withLoading()(
-  React.lazy(() =>
-    import('./TripTask/TripTaskList').then((module) => {
-      return { default: module.TripTaskList };
-    }),
-  ),
+const TripTaskList = React.lazy(() =>
+  import('./TripTask/TripTaskList').then((module) => {
+    return { default: module.TripTaskList };
+  }),
 );
 
 import { useCurrentUser } from '../Auth/hooks';
@@ -101,15 +87,15 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   const { trip, loading, error } = useTrip(tripId);
 
   return (
-    <div
-      className={s.page}
-      style={{
-        viewTransitionName: getTripCardViewTransitionName(tripId),
-        viewTransitionClass: 'vt-trip-card',
-      }}
+    <RouteTransition
+      name={getTripCardViewTransitionName(tripId)}
+      default="none"
+      share="vt-trip-card"
     >
-      <PageTripInner trip={trip} loading={loading} error={error} />
-    </div>
+      <div className={s.page}>
+        <PageTripInner trip={trip} loading={loading} error={error} />
+      </div>
+    </RouteTransition>
   );
 }
 
@@ -149,28 +135,38 @@ function PageTripInner({
       ) : null}
       {!tripDefinitelyNotFound ? <TripMenuFloating /> : null}
       {!tripDefinitelyNotFound ? (
-        <Switch>
-          <Route
-            path={RouteTripTimetableView.routePath}
-            component={Timetable}
-            nest
-          />
-          <Route
-            path={RouteTripListView.routePath}
-            component={ActivityList}
-            nest
-          />
-          <Route path={RouteTripMap.routePath} component={PageTripMap} />
-          <Route path={RouteTripExpenses.routePath} component={ExpenseList} />
-          <Route path={RouteTripComment.routePath} component={TripComment} />
-          <Route
-            path={RouteTripTaskList.routePath}
-            component={TripTaskList}
-            nest
-          />
-          <Route path={RouteTripHome.routePath} component={TripHome} />
-          <Redirect replace to={RouteTripHome.routePath} />
-        </Switch>
+        <Suspense fallback={<Spinner m="3" />}>
+          <RouteTransition default="vt-content">
+            <Switch>
+              <Route
+                path={RouteTripTimetableView.routePath}
+                component={Timetable}
+                nest
+              />
+              <Route
+                path={RouteTripListView.routePath}
+                component={ActivityList}
+                nest
+              />
+              <Route path={RouteTripMap.routePath} component={PageTripMap} />
+              <Route
+                path={RouteTripExpenses.routePath}
+                component={ExpenseList}
+              />
+              <Route
+                path={RouteTripComment.routePath}
+                component={TripComment}
+              />
+              <Route
+                path={RouteTripTaskList.routePath}
+                component={TripTaskList}
+                nest
+              />
+              <Route path={RouteTripHome.routePath} component={TripHome} />
+              <Redirect replace to={RouteTripHome.routePath} />
+            </Switch>
+          </RouteTransition>
+        </Suspense>
       ) : null}
     </>
   );
