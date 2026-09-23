@@ -1,0 +1,38 @@
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+::view-transition-group(.vt-trip-card),
+::view-transition-group(.vt-content) {
+  animation-duration: 200ms;
+  animation-timing-function: ease;
+}
+
+::view-transition-group(.vt-chrome) {
+  animation-duration: 0s;
+}
+
+::view-transition-old(.vt-chrome),
+::view-transition-new(.vt-chrome) {
+  animation: none;
+}
+
+.route-pending {
+  position: fixed;
+  right: var(--space-3);
+  top: var(--space-3);
+  z-index: 200;
+  padding: var(--space-2);
+  background: var(--color-panel-solid);
+  border-radius: var(--radius-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    /* biome-ignore lint/complexity/noImportantStyles: Reduced motion must override every transition preset. */
+    animation: none !important;
+  }
+}

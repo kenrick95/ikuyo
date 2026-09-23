@@ -169,6 +169,7 @@ function Trips({
             isLoading ? (
               <Skeleton>
                 <TripCard
+                  placeholder
                   className={s.tripLi}
                   trip={{
                     id: 'skeleton',

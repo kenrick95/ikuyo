@@ -1,19 +1,38 @@
 # React ViewTransition integration plan
 
+## Implementation notes
+
+The branch implements the navigation migration described below. `TransitionRouter`
+owns a shared React route snapshot, including query/hash/history state, and marks
+eligible application navigation as a React transition. Browser history events,
+dialog routes, reduced motion, and unsupported browsers use urgent navigation.
+Authentication redirects now run inside the configured router.
+
+`RouteTransition` applies the motion policy to React boundaries. Trip cards and
+pages share a React name; navigation chrome and map/content boundaries replace
+the old DOM names. Stable Suspense boundaries retain the current route while
+lazy code loads, with a pending indicator. Trip data still arrives separately.
+Radix retains control of dialog and segmented-indicator animations.
+
+Set `IKUYO_VIEW_TRANSITIONS=false` at build time to disable these animations
+while retaining the same route-state and history behavior. This does not restore
+the old native transition engine. The sections below record the design and
+verification criteria; Navigation API traversal and map-to-map morphing remain
+outside this implementation.
+
 ## Direction
 
 Replace imperative browser transition orchestration and manually assigned DOM
 transition names with React 19.3's `<ViewTransition>`. Keep Wouter, existing
 routes, Radix dialogs, and Zustand domain state. Start with navigation and the
 existing trip-card-to-page effect; avoid adding animations to editing, polling,
-or drag-and-drop as part of this migration. This document proposes work only.
+or drag-and-drop as part of this migration.
 
 The latest fetched `main` (`0682b9c`) already declares and locks React,
 React DOM, and their types at 19.3, with Wouter 3.11. React confirms that
 `ViewTransition` is stable in [React 19.3](https://react.dev/blog/2026/09/09/react-19-3).
-No experimental React dependency is needed. The local installed Wouter is still
-3.10, so implementation must first install the frozen lockfile and verify the
-actual installed exports/types rather than relying on the current node_modules.
+No experimental React dependency is needed. Use the frozen lockfile and verify
+installed exports/types rather than relying on an older local node_modules.
 
 React manages browser transition capture and names for participating boundaries.
 Use generated names normally, but keep a stable `name` prop for matching separate

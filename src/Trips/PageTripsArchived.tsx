@@ -69,6 +69,7 @@ export function PageTripsArchived(_props: RouteComponentProps) {
             {loading ? (
               <Skeleton>
                 <TripCard
+                  placeholder
                   className={s.tripLi}
                   trip={{
                     id: 'skeleton',

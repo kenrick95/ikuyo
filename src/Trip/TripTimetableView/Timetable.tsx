@@ -51,6 +51,7 @@ import {
   RouteTripTimetableViewActivity,
   RouteTripTimetableViewMacroplan,
 } from '../../Routes/routes';
+import { useRouteSnapshot } from '../../Routes/TransitionRouter';
 import { IdeaSidebar } from '../Ideas/IdeaSidebar';
 import { canModifyTripContent } from '../permissions';
 import {
@@ -508,11 +509,12 @@ export function Timetable() {
   }, [isSidebarVisible]);
 
   const pushDialog = useBoundStore((state) => state.pushDialog);
+  const route = useRouteSnapshot();
   useEffect(() => {
     if (!trip) return;
-    const dialogState = history.state?.dialog as
-      | TimetableDialogState
-      | undefined;
+    const routeState = route.state as { dialog?: TimetableDialogState } | null;
+    const dialogState = routeState?.dialog;
+    if (!dialogState || history.state !== route.state) return;
     if (dialogState === TimetableDialogState.ActivityNew) {
       pushDialog(ActivityNewDialog, { trip });
     } else if (dialogState === TimetableDialogState.AccommodationNew) {
@@ -522,11 +524,11 @@ export function Timetable() {
     }
     // Immediately clear the dialog state from history to prevent it from unable to close dialog
     history.replaceState(
-      { ...history.state, dialog: undefined },
+      { ...routeState, dialog: undefined },
       '',
       window.location.href,
     );
-  }, [pushDialog, trip]);
+  }, [pushDialog, trip, route]);
 
   return (
     <Section py="0">

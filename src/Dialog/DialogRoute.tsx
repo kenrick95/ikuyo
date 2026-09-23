@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { type RouteComponentProps, useLocation } from 'wouter';
 import { dangerToken } from '../common/ui';
+import { useRouteSnapshot } from '../Routes/TransitionRouter';
 import { CommonDialogMaxWidth, CommonLargeDialogMaxWidth } from './ui';
 
 export const DialogMode = {
@@ -77,7 +78,9 @@ export function createDialogRoute<DataType>({
 }) {
   function DialogRoute({ params }: RouteComponentProps<{ id: string }>) {
     const [, setLocation] = useLocation();
-    const modeFromState = history.state?.mode;
+    const route = useRouteSnapshot();
+    const modeFromState = (route.state as { mode?: DialogModeType } | null)
+      ?.mode;
     const initialMode = modeFromState ?? DialogMode.View;
     const [state, dispatch] = useReducer(
       (state: DialogStateType, action: DialogActionType) => {

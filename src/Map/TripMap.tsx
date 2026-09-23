@@ -20,6 +20,7 @@ import { Spinner } from '@radix-ui/themes';
 import { createPortal } from 'react-dom';
 import { getActivityType } from '../Activity/activityType';
 import { getRegionDisplayName } from '../data/intl/regions';
+import { RouteTransition } from '../Routes/RouteTransition';
 import { getTripStatus } from '../Trip/getTripStatus';
 import {
   useCurrentTrip,
@@ -528,11 +529,9 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
   return (
     <div className={s.mapWrapper}>
       {currentTripLoading ? <Spinner size="3" m="3" /> : null}
-      <div
-        ref={mapContainer}
-        className={s.map}
-        style={{ viewTransitionName: `trip-map-${trip?.id}` }}
-      />
+      <RouteTransition default="vt-content">
+        <div ref={mapContainer} className={s.map} />
+      </RouteTransition>
       {Object.values(popupPortals).map((popupPortal) => {
         switch (popupPortal.type) {
           case LocationType.Accommodation:

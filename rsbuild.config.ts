@@ -131,6 +131,9 @@ export default defineConfig({
       'process.env.IKUYO_READ_ONLY_MODE': JSON.stringify(
         process.env.IKUYO_READ_ONLY_MODE === 'true',
       ),
+      'process.env.IKUYO_VIEW_TRANSITIONS': JSON.stringify(
+        process.env.IKUYO_VIEW_TRANSITIONS !== 'false',
+      ),
       'process.env.SENTRY_ENABLED': JSON.stringify(isSentryEnabled),
       'process.env.SENTRY_DSN': JSON.stringify(SENTRY_DSN),
       'process.env.SENTRY_RELEASE': JSON.stringify(SENTRY_RELEASE),

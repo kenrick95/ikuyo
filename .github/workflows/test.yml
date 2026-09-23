@@ -35,6 +35,7 @@ jobs:
       IKUYO_BACKEND_TRIP_WRITES: ${{ vars.IKUYO_BACKEND_TRIP_WRITES }}
       IKUYO_MAINTENANCE_MODE: ${{ vars.IKUYO_MAINTENANCE_MODE }}
       IKUYO_READ_ONLY_MODE: ${{ vars.IKUYO_READ_ONLY_MODE }}
+      IKUYO_VIEW_TRANSITIONS: ${{ vars.IKUYO_VIEW_TRANSITIONS }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
