@@ -45,12 +45,17 @@ export function isDialogRoute(pathname: string): boolean {
   );
 }
 
+function isAuthOrAccountRoute(pathname: string): boolean {
+  return /^\/(?:login|account)(?:\/|$)/.test(pathname);
+}
+
 function canAnimate(from: string, to: string): boolean {
   return (
     from !== to &&
     !isDialogRoute(from) &&
     !isDialogRoute(to) &&
-    !/^\/(?:login|account)(?:\/|$)/.test(to) &&
+    !isAuthOrAccountRoute(from) &&
+    !isAuthOrAccountRoute(to) &&
     typeof document.startViewTransition === 'function' &&
     document.visibilityState !== 'hidden' &&
     !window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -150,7 +155,10 @@ export function TransitionRouter({
     <RouteContext.Provider value={value}>
       <RouteMotionContext.Provider
         value={
-          transitions && motionAllowed && !isDialogRoute(snapshot.pathname)
+          transitions &&
+          motionAllowed &&
+          !isDialogRoute(snapshot.pathname) &&
+          !isAuthOrAccountRoute(snapshot.pathname)
         }
       >
         <Router hook={useRouteLocation} searchHook={useRouteSearch}>

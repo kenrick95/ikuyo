@@ -6,7 +6,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { lazy, type ReactNode, Suspense } from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { Link, Route, Switch, useLocation, useSearch } from 'wouter';
 import {
   isDialogRoute,
@@ -59,7 +59,7 @@ afterEach(() => {
   Reflect.deleteProperty(document, 'startViewTransition');
 });
 
-it('shares committed route, search and history state with nested routers', () => {
+test('shares committed route, search and history state with nested routers', () => {
   const beforeNavigate = vi.fn();
   render(
     <TransitionRouter beforeNavigate={beforeNavigate}>
@@ -91,7 +91,7 @@ it('shares committed route, search and history state with nested routers', () =>
   expect(beforeNavigate).toHaveBeenCalledTimes(3);
 });
 
-it('observes direct history and same-path state changes without another history entry', () => {
+test('observes direct history and same-path state changes without another history entry', () => {
   render(
     <TransitionRouter>
       <Snapshot />
@@ -108,7 +108,7 @@ it('observes direct history and same-path state changes without another history 
   expect(history.length).toBe(initialLength);
 });
 
-it('restores back/forward navigation', async () => {
+test('restores back/forward navigation', async () => {
   render(
     <TransitionRouter>
       <Snapshot />
@@ -125,7 +125,7 @@ it('restores back/forward navigation', async () => {
   );
 });
 
-it('retains the committed route while a destination suspends, and discards superseded navigation', async () => {
+test('retains the committed route while a destination suspends, and discards superseded navigation', async () => {
   // No ViewTransition boundaries here: this tests React scheduling, not a mock animation.
   Object.defineProperty(document, 'startViewTransition', {
     configurable: true,
@@ -171,13 +171,13 @@ it('retains the committed route while a destination suspends, and discards super
 });
 
 describe('dialog navigation policy', () => {
-  it.each([
+  test.each([
     '/trip/a/list/activity/b',
     '/trip/a/timetable/accommodation/b',
     '/trip/a/list/macroplan/b',
     '/trip/a/tasks/task/b',
   ])('excludes %s', (path) => expect(isDialogRoute(path)).toBe(true));
-  it.each([
+  test.each([
     '/trip/a/list',
     '/trip/a/timetable',
     '/trip/a/tasks',
@@ -185,7 +185,15 @@ describe('dialog navigation policy', () => {
   ])('permits %s', (path) => expect(isDialogRoute(path)).toBe(false));
 });
 
-it.each(['dialog', 'reduced-motion', 'disabled', 'unsupported', 'explicit'])(
+test.each([
+  'dialog',
+  'reduced-motion',
+  'disabled',
+  'unsupported',
+  'explicit',
+  'auth-target',
+  'auth-source',
+])(
   'commits %s navigation urgently even when the next screen suspends',
   (mode) => {
     if (mode !== 'unsupported') {
@@ -204,7 +212,15 @@ it.each(['dialog', 'reduced-motion', 'disabled', 'unsupported', 'explicit'])(
         })),
       );
     }
-    const target = mode === 'dialog' ? '/trip/one/list/activity/a' : '/slow';
+    if (mode === 'auth-source') {
+      window.history.replaceState(null, '', '/account/settings');
+    }
+    const target =
+      mode === 'dialog'
+        ? '/trip/one/list/activity/a'
+        : mode === 'auth-target'
+          ? '/login'
+          : '/slow';
     const Slow = lazy(
       () => new Promise<{ default: () => ReactNode }>(() => {}),
     );
