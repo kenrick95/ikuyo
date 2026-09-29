@@ -11,6 +11,7 @@ use App\Models\Task;
 use App\Models\TaskList;
 use App\Models\Trip;
 use App\Models\User;
+use App\Services\UserHandleGenerator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -136,13 +137,38 @@ class AdminModeTest extends TestCase
         $admin = $this->user('admin');
         $trip = $this->trip($owner);
 
-        $this->actingAs($admin)->deleteJson('/api/admin/trips/' . $trip->id)->assertOk();
+        $this->actingAs($admin)->deleteJson('/api/admin/trips/' . $trip->id)
+            ->assertOk()->assertJsonPath('deletedAt', Trip::withTrashed()->findOrFail($trip->id)->getRawOriginal('deleted_at'));
         $this->assertSoftDeleted('trips', ['id' => $trip->id]);
         $this->actingAs($owner)->getJson('/api/trips/' . $trip->id)->assertNotFound();
         $this->actingAs($admin)->getJson('/api/admin/users/' . $owner->id . '/trips')
             ->assertOk()->assertJsonPath('data.0.id', $trip->id);
-        $this->actingAs($admin)->postJson('/api/admin/trips/' . $trip->id . '/restore')->assertOk();
+        $this->actingAs($admin)->postJson('/api/admin/trips/' . $trip->id . '/restore')
+            ->assertOk()->assertJsonPath('deletedAt', null);
         $this->actingAs($owner)->getJson('/api/trips/' . $trip->id)->assertOk();
+    }
+
+    public function test_deleted_trip_membership_cannot_be_removed_by_id(): void
+    {
+        $owner = $this->user();
+        $admin = $this->user('admin');
+        $trip = $this->trip($owner);
+        $member = DB::table('trip_user')->where('trip_id', $trip->id)->value('id');
+        $trip->delete();
+
+        $this->actingAs($admin)->deleteJson('/api/members/' . $member)->assertNotFound();
+        $this->assertDatabaseHas('trip_user', ['id' => $member]);
+    }
+
+    public function test_deleted_user_handle_remains_reserved(): void
+    {
+        $user = $this->user();
+        $handle = $user->handle;
+        $user->update(['handle_key' => strtolower($handle)]);
+        $user->delete();
+
+        $this->assertTrue((new \ReflectionMethod(UserHandleGenerator::class, 'inUse'))
+            ->invoke(app(UserHandleGenerator::class), $handle));
     }
 
     public function test_profile_cannot_grant_admin_role(): void
@@ -302,6 +328,72 @@ class AdminModeTest extends TestCase
         $this->actingAs($admin)->getJson('/api/admin/audit-events?trip=' . $trip->id)
             ->assertOk()->assertJsonCount(3, 'data')->assertJsonPath('data.0.targetId', $activity->id);
         $this->assertDatabaseCount('admin_audit_events', 3);
+    }
+
+    public function test_nested_admin_edits_audit_the_leaf_task_and_comment(): void
+    {
+        $owner = $this->user();
+        $admin = $this->user('admin');
+        $trip = $this->trip($owner);
+        $list = TaskList::create([
+            'id' => (string) Str::uuid(), 'trip_id' => $trip->id,
+            'title' => 'List', 'index' => 0, 'status' => 0,
+        ]);
+        $task = Task::create([
+            'id' => (string) Str::uuid(), 'task_list_id' => $list->id,
+            'title' => 'Before', 'index' => 0, 'status' => 0,
+        ]);
+        $group = CommentGroup::create([
+            'id' => (string) Str::uuid(), 'trip_id' => $trip->id, 'status' => 0,
+        ]);
+        $comment = Comment::create([
+            'id' => (string) Str::uuid(), 'comment_group_id' => $group->id,
+            'user_id' => $owner->id, 'content' => 'Before',
+        ]);
+
+        $this->actingAs($admin)->putJson('/api/trips/' . $trip->id . '/task-lists/' . $list->id . '/tasks/' . $task->id, [
+            'title' => 'After',
+        ])->assertOk();
+        $this->actingAs($admin)->putJson('/api/trips/' . $trip->id . '/comment-groups/' . $group->id . '/comments/' . $comment->id, [
+            'content' => 'After',
+        ])->assertOk();
+
+        foreach ([['task', $task->id, 'title'], ['comment', $comment->id, 'content']] as [$type, $id, $field]) {
+            $event = DB::table('admin_audit_events')->where('target_type', $type)->where('target_id', $id)->first();
+            $this->assertNotNull($event);
+            $this->assertSame($trip->id, $event->trip_id);
+            $this->assertSame([$field], json_decode($event->details, true, 512, JSON_THROW_ON_ERROR)['fields']);
+        }
+    }
+
+    public function test_admin_deleting_last_comment_removes_empty_group_and_object(): void
+    {
+        $owner = $this->user();
+        $admin = $this->user('admin');
+        $trip = $this->trip($owner);
+        $group = CommentGroup::create([
+            'id' => (string) Str::uuid(), 'trip_id' => $trip->id, 'status' => 0,
+        ]);
+        CommentGroupObject::create([
+            'id' => $group->id, 'comment_group_id' => $group->id,
+            'object_type' => 0, 'object_id' => $trip->id,
+        ]);
+        $first = Comment::create([
+            'id' => (string) Str::uuid(), 'comment_group_id' => $group->id,
+            'user_id' => $owner->id, 'content' => 'First',
+        ]);
+        $last = Comment::create([
+            'id' => (string) Str::uuid(), 'comment_group_id' => $group->id,
+            'user_id' => $owner->id, 'content' => 'Last',
+        ]);
+        $url = '/api/admin/trips/' . $trip->id . '/content/comments/';
+
+        $this->actingAs($admin)->deleteJson($url . $first->id)->assertOk();
+        $this->assertNotNull(CommentGroup::find($group->id));
+        $this->actingAs($admin)->deleteJson($url . $last->id)->assertOk();
+        $this->assertSoftDeleted('comments', ['id' => $last->id]);
+        $this->assertSoftDeleted('comment_groups', ['id' => $group->id]);
+        $this->assertSoftDeleted('comment_group_objects', ['comment_group_id' => $group->id]);
     }
 
     public function test_admin_sync_of_another_trip_is_audited_and_unscoped_sync_excludes_it(): void

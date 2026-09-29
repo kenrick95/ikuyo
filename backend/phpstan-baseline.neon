@@ -451,12 +451,6 @@ parameters:
 			path: app/Http/Controllers/Api/UserController.php
 
 		-
-			message: '#^Parameter \#1 \$trip of method App\\Services\\TripAccessService\:\:canManage\(\) expects App\\Models\\Trip, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Api/UserController.php
-
-		-
 			message: '#^Method App\\Models\\Accommodation\:\:trip\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\BelongsTo does not specify its types\: TRelatedModel, TDeclaringModel$#'
 			identifier: missingType.generics
 			count: 1

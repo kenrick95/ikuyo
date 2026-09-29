@@ -178,13 +178,31 @@ export default function PageAdmin() {
     setContentNextCursor(null);
   }
 
-  async function change(path: string, restore: boolean) {
+  async function change(path: string, restore: boolean, tripId?: string) {
     setBusy(true);
     setError(undefined);
     try {
-      if (restore) await postMutation(`${path}/restore`, {});
-      else await deleteMutation(path);
+      const result = restore
+        ? await postMutation<{ deletedAt: string | null }>(
+            `${path}/restore`,
+            {},
+          )
+        : await deleteMutation<{ deletedAt: string | null }>(path);
       await refresh();
+      if (tripId) {
+        setTrips((previous) =>
+          previous.map((trip) =>
+            trip.id === tripId
+              ? { ...trip, deletedAt: result.deletedAt }
+              : trip,
+          ),
+        );
+        setSelectedTrip((previous) =>
+          previous?.id === tripId
+            ? { ...previous, deletedAt: result.deletedAt }
+            : previous,
+        );
+      }
       setAuditRefresh((value) => value + 1);
     } catch (reason) {
       setError(String(reason));
@@ -326,6 +344,7 @@ export default function PageAdmin() {
                           void change(
                             `/api/admin/trips/${encodeURIComponent(trip.id)}`,
                             !!trip.deletedAt,
+                            trip.id,
                           );
                         }
                       }}

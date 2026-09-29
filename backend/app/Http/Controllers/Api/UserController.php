@@ -99,6 +99,7 @@ class UserController extends Controller
     {
         abort_unless($request->user(), 401);
         $membership = TripUser::with('trip')->whereKey($member)->firstOrFail();
+        abort_unless($membership->trip instanceof Trip, 404);
         $access = app(TripAccessService::class);
         abort_unless($access->canManage($membership->trip, $request->user()), 403);
         $membership->delete();

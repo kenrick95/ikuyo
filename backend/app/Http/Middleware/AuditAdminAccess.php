@@ -47,7 +47,7 @@ class AuditAdminAccess
         $targetId = $tripId;
         $table = $tripId ? 'trips' : null;
 
-        foreach (['activity', 'taskList', 'task', 'group', 'comment', 'member', 'entityId'] as $parameter) {
+        foreach (['entityId', 'comment', 'task', 'activity', 'taskList', 'group', 'member'] as $parameter) {
             $id = $this->id($route->parameter($parameter));
             if (! $id) {
                 continue;

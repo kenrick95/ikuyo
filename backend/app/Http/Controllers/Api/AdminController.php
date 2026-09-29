@@ -178,16 +178,17 @@ class AdminController extends Controller
 
     public function deleteTrip(string $trip): JsonResponse
     {
-        Trip::findOrFail($trip)->delete();
+        $record = Trip::findOrFail($trip);
+        $record->delete();
 
-        return response()->json(['ok' => true]);
+        return response()->json(['ok' => true, 'deletedAt' => $record->getRawOriginal('deleted_at')]);
     }
 
     public function restoreTrip(string $trip): JsonResponse
     {
         Trip::onlyTrashed()->findOrFail($trip)->restore();
 
-        return response()->json(['ok' => true]);
+        return response()->json(['ok' => true, 'deletedAt' => null]);
     }
 
     public function deleteContent(string $trip, string $entity, string $entityId): JsonResponse
@@ -202,6 +203,16 @@ class AdminController extends Controller
             }
             if ($record instanceof CommentGroup) {
                 $this->softDeleteCommentGroup($record);
+
+                return;
+            }
+            if ($record instanceof Comment) {
+                $group = CommentGroup::findOrFail($record->comment_group_id);
+                $record->delete();
+                if (! $group->comments()->exists()) {
+                    $group->object()->delete();
+                    $group->delete();
+                }
 
                 return;
             }
