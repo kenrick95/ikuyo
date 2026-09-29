@@ -110,6 +110,9 @@ function evictTrip(state: BoundStoreType, tripId: string, error: string) {
     },
     currentTripId:
       state.currentTripId === tripId ? undefined : state.currentTripId,
+    dialogs: [],
+    isConfirmingPopDialogActive: false,
+    confirmingDialogProps: undefined,
     accommodation: withoutTrip(state.accommodation, tripId),
     activity: withoutTrip(state.activity, tripId),
     macroplan: withoutTrip(state.macroplan, tripId),
@@ -145,10 +148,12 @@ function fetchTripAndMerge(
   tripId: string,
   showLoading: boolean,
 ): Promise<void> {
-  const existing = inFlightTrips.get(tripId);
+  const sessionUserId = get().currentUser?.id;
+  const sessionEpoch = get().sessionEpoch;
+  const key = JSON.stringify([tripId, sessionUserId, sessionEpoch]);
+  const existing = inFlightTrips.get(key);
   if (existing) return existing;
   const promise = (async () => {
-    const sessionUserId = get().currentUser?.id;
     try {
       if (showLoading) {
         set((state) => ({
@@ -161,7 +166,11 @@ function fetchTripAndMerge(
       const payload = await apiGet<Record<string, unknown>>(
         `/api/trips/${encodeURIComponent(tripId)}`,
       );
-      if (get().currentUser?.id !== sessionUserId) return;
+      if (
+        get().currentUser?.id !== sessionUserId ||
+        get().sessionEpoch !== sessionEpoch
+      )
+        return;
       const trip = mapApiTrip(payload);
       set(
         (state) =>
@@ -174,7 +183,11 @@ function fetchTripAndMerge(
           }) satisfies Partial<TripSlice>,
       );
     } catch (error: unknown) {
-      if (get().currentUser?.id !== sessionUserId) throw error;
+      if (
+        get().currentUser?.id !== sessionUserId ||
+        get().sessionEpoch !== sessionEpoch
+      )
+        throw error;
       if (error instanceof ApiError && error.status === 401) {
         get().clearSession();
         throw error;
@@ -203,10 +216,10 @@ function fetchTripAndMerge(
       );
       throw error;
     } finally {
-      inFlightTrips.delete(tripId);
+      inFlightTrips.delete(key);
     }
   })();
-  inFlightTrips.set(tripId, promise);
+  inFlightTrips.set(key, promise);
   return promise;
 }
 

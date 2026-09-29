@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Accommodation;
 use App\Models\Activity;
 use App\Models\Comment;
+use App\Models\CommentGroup;
 use App\Models\CommentGroupObject;
 use App\Models\Expense;
 use App\Models\MacroPlan;
@@ -259,10 +260,11 @@ class ContentController extends Controller
         if (! $object) {
             return;
         }
-        $group = $object->commentGroup;
+        $group = CommentGroup::query()->find($object->comment_group_id);
         if (! $group) {
             return;
         }
+        $group->comments()->update(['deleted_with_group' => true]);
         $group->comments()->delete();
         $object->delete();
         $group->delete();

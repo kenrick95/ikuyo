@@ -12,6 +12,8 @@ class Comment extends Model
 {
     protected $guarded = [];
 
+    protected $hidden = ['deleted_with_group'];
+
     use HasMsTimestamps, SoftDeletes;
 
     public $incrementing = false;

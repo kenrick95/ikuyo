@@ -16,6 +16,7 @@ export interface UserSlice {
   authUser: undefined | AuthUser;
   authUserLoading: boolean;
   authUserError: string | null;
+  sessionEpoch: number;
 
   currentUser: DbUser | undefined;
   setCurrentUser: (user: DbUser | undefined) => void;
@@ -34,6 +35,7 @@ export const createUserSlice: StateCreator<
     authUser: undefined,
     authUserLoading: true,
     authUserError: null,
+    sessionEpoch: 0,
 
     currentUser: undefined,
     subscribeUser: () => {
@@ -41,7 +43,12 @@ export const createUserSlice: StateCreator<
       void apiGet<{ user: DbUser | null }>('/api/auth/me')
         .then(({ user }) => {
           if (disposed) return;
-          if (!user) get().clearSession();
+          if (
+            !user ||
+            (get().currentUser && get().currentUser?.id !== user.id)
+          ) {
+            get().clearSession();
+          }
           set(() => ({
             authUser: user
               ? { id: user.id, email: user.email ?? null }
@@ -82,7 +89,11 @@ export const createUserSlice: StateCreator<
         const response = await apiGet<{ user: DbUser | null }>('/api/auth/me');
         const user = response.user;
         if (!user) get().clearSession();
-        else set(() => ({ currentUser: user }));
+        else {
+          if (get().currentUser && get().currentUser?.id !== user.id)
+            get().clearSession();
+          set(() => ({ currentUser: user }));
+        }
       } catch (error) {
         get().clearSession();
         throw error;
@@ -92,9 +103,13 @@ export const createUserSlice: StateCreator<
       // Wipe the cached user and every cached domain collection so a different
       // user logging in on the same browser never sees the previous session's
       // trips. Also remove the persisted localStorage snapshot.
-      set(() => ({
+      set((state) => ({
+        sessionEpoch: state.sessionEpoch + 1,
         currentUser: undefined,
         authUser: undefined,
+        dialogs: [],
+        isConfirmingPopDialogActive: false,
+        confirmingDialogProps: undefined,
         currentTripId: undefined,
         tripMeta: {},
         trip: {},

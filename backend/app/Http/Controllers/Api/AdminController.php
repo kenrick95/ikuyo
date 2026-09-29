@@ -210,6 +210,7 @@ class AdminController extends Controller
                 $group = CommentGroup::findOrFail($record->comment_group_id);
                 $record->delete();
                 if (! $group->comments()->exists()) {
+                    DB::table('comments')->where('id', $record->id)->update(['deleted_with_group' => true]);
                     $group->object()->delete();
                     $group->delete();
                 }
@@ -251,8 +252,9 @@ class AdminController extends Controller
             $record->restore();
             if ($record instanceof CommentGroup) {
                 CommentGroupObject::onlyTrashed()->where('comment_group_id', $record->id)->first()?->restore();
-                foreach (Comment::onlyTrashed()->where('comment_group_id', $record->id)->get() as $comment) {
+                foreach (Comment::onlyTrashed()->where('comment_group_id', $record->id)->where('deleted_with_group', true)->get() as $comment) {
                     $comment->restore();
+                    $comment->update(['deleted_with_group' => false]);
                 }
             }
         });
@@ -299,6 +301,7 @@ class AdminController extends Controller
 
     private function softDeleteCommentGroup(CommentGroup $group): void
     {
+        $group->comments()->update(['deleted_with_group' => true]);
         foreach ($group->comments as $comment) {
             $comment->delete();
         }

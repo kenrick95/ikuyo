@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\CommentGroup;
 use App\Models\CommentGroupObject;
 use App\Models\Task;
 use App\Models\TaskList;
@@ -208,8 +209,9 @@ class TaskController extends Controller
         if (! $object) {
             return;
         }
-        $group = $object->commentGroup;
+        $group = CommentGroup::query()->find($object->comment_group_id);
         if ($group) {
+            $group->comments()->update(['deleted_with_group' => true]);
             $group->comments()->delete();
             $group->delete();
         }

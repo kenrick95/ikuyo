@@ -47,6 +47,8 @@ export const createDialogSlice: StateCreator<
       set(() => {
         return {
           dialogs: [],
+          isConfirmingPopDialogActive: false,
+          confirmingDialogProps: undefined,
         };
       });
     },

@@ -394,6 +394,44 @@ class AdminModeTest extends TestCase
         $this->assertSoftDeleted('comments', ['id' => $last->id]);
         $this->assertSoftDeleted('comment_groups', ['id' => $group->id]);
         $this->assertSoftDeleted('comment_group_objects', ['comment_group_id' => $group->id]);
+        $this->actingAs($admin)->postJson('/api/admin/trips/' . $trip->id . '/content/comment-groups/' . $group->id . '/restore')
+            ->assertOk();
+        $this->assertNotNull(Comment::find($last->id));
+    }
+
+    public function test_group_restore_preserves_comments_deleted_before_the_group(): void
+    {
+        $owner = $this->user();
+        $admin = $this->user('admin');
+        $trip = $this->trip($owner);
+        $activity = Activity::create([
+            'id' => (string) Str::uuid(), 'trip_id' => $trip->id,
+            'title' => 'Place', 'location' => '', 'description' => '',
+        ]);
+        $group = CommentGroup::create([
+            'id' => (string) Str::uuid(), 'trip_id' => $trip->id, 'status' => 0,
+        ]);
+        CommentGroupObject::create([
+            'id' => $group->id, 'comment_group_id' => $group->id,
+            'object_type' => 1, 'object_id' => $activity->id,
+        ]);
+        $earlier = Comment::create([
+            'id' => (string) Str::uuid(), 'comment_group_id' => $group->id,
+            'user_id' => $owner->id, 'content' => 'Delete intentionally',
+        ]);
+        $withGroup = Comment::create([
+            'id' => (string) Str::uuid(), 'comment_group_id' => $group->id,
+            'user_id' => $owner->id, 'content' => 'Restore with group',
+        ]);
+        $url = '/api/admin/trips/' . $trip->id . '/content/';
+
+        $this->actingAs($admin)->deleteJson($url . 'comments/' . $earlier->id)->assertOk();
+        $this->actingAs($admin)->deleteJson($url . 'activities/' . $activity->id)->assertOk();
+        $this->actingAs($admin)->postJson($url . 'activities/' . $activity->id . '/restore')->assertOk();
+        $this->actingAs($admin)->postJson($url . 'comment-groups/' . $group->id . '/restore')->assertOk();
+
+        $this->assertSoftDeleted('comments', ['id' => $earlier->id]);
+        $this->assertNotNull(Comment::find($withGroup->id));
     }
 
     public function test_admin_sync_of_another_trip_is_audited_and_unscoped_sync_excludes_it(): void
