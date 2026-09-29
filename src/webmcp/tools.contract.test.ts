@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../data/db', () => ({ db: {} }));
+// This contract test inspects tool metadata; it never calls MapTiler.
+vi.mock('@maptiler/sdk', () => ({
+  config: { session: false },
+  geocoding: { forward: vi.fn() },
+}));
 
 import { createAccommodationTools } from './accommodation.tools';
 import { createActivityTools } from './activity.tools';
