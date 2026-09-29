@@ -36,19 +36,26 @@ class AdminController extends Controller
     public function users(Request $request): JsonResponse
     {
         $search = trim((string) $request->query('search', ''));
-        $query = User::query()->select(['id', 'handle', 'email', 'role']);
+        $query = User::withTrashed()->select(['id', 'handle', 'email', 'role', 'deleted_at']);
         if ($search !== '') {
             $query->where(fn (Builder $q) => $q
                 ->where('handle', 'like', '%' . $search . '%')
                 ->orWhere('email', 'like', '%' . $search . '%'));
         }
 
-        return response()->json($query->orderBy('handle')->limit(30)->get());
+        return response()->json($query->orderBy('handle')->limit(30)->get()->map(fn (User $user): array => [
+            'id' => $user->id,
+            'handle' => $user->handle,
+            'email' => $user->email,
+            'role' => $user->role,
+            'deletedAt' => $user->trashed() ? $user->getRawOriginal('deleted_at') : null,
+        ]));
     }
 
-    public function trips(Request $request, User $user): JsonResponse
+    public function trips(Request $request, string $user): JsonResponse
     {
-        $trips = Trip::withTrashed()->whereHas('users', fn (Builder $q) => $q->whereKey($user->id))
+        User::withTrashed()->findOrFail($user);
+        $trips = Trip::withTrashed()->whereIn('id', DB::table('trip_user')->where('user_id', $user)->select('trip_id'))
             ->orderByDesc('created_at_ms')->orderBy('id')
             ->cursorPaginate(min(max($request->integer('limit', 50), 1), 100));
 
@@ -59,6 +66,27 @@ class AdminController extends Controller
             'archivedAt' => $trip->archived_at_ms,
             'deletedAt' => $trip->trashed() ? $trip->getRawOriginal('deleted_at') : null,
         ])->values(), 'nextCursor' => $trips->nextCursor()?->encode(), 'hasMore' => $trips->hasMorePages()]);
+    }
+
+    public function deleteUser(Request $request, string $user): JsonResponse
+    {
+        DB::transaction(function () use ($request, $user): void {
+            $target = User::whereKey($user)->lockForUpdate()->firstOrFail();
+            abort_if($target->id === $request->user()?->id || $target->isAdmin(), 403);
+
+            $target->forceFill(['reset_token' => null, 'reset_token_at' => null])->save();
+            $target->delete();
+            DB::table((string) config('session.table', 'sessions'))->where('user_id', $target->id)->delete();
+        });
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function restoreUser(string $user): JsonResponse
+    {
+        User::onlyTrashed()->findOrFail($user)->restore();
+
+        return response()->json(['ok' => true]);
     }
 
     public function content(string $trip): JsonResponse

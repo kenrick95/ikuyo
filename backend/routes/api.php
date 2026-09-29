@@ -38,6 +38,8 @@ Route::middleware('web')->group(function (): void {
     Route::middleware(['auth', 'admin'])->prefix('admin')->group(function (): void {
         Route::get('/users', [AdminController::class, 'users']);
         Route::get('/users/{user}/trips', [AdminController::class, 'trips']);
+        Route::delete('/users/{user}', [AdminController::class, 'deleteUser']);
+        Route::post('/users/{user}/restore', [AdminController::class, 'restoreUser']);
         Route::get('/trips/{trip}/content', [AdminController::class, 'content']);
         Route::delete('/trips/{trip}', [AdminController::class, 'deleteTrip']);
         Route::post('/trips/{trip}/restore', [AdminController::class, 'restoreTrip']);

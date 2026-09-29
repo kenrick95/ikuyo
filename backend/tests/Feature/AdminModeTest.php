@@ -11,6 +11,8 @@ use App\Models\TaskList;
 use App\Models\Trip;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -136,6 +138,53 @@ class AdminModeTest extends TestCase
 
         $this->actingAs($user)->patchJson('/api/users/me', ['role' => 'admin'])->assertOk();
         $this->assertSame('user', $user->fresh()->role);
+    }
+
+    public function test_admin_can_soft_delete_and_restore_an_account_without_losing_its_trips(): void
+    {
+        $admin = $this->user('admin');
+        $owner = $this->user();
+        $owner->update([
+            'password_hash' => Hash::make('test-password'),
+            'reset_token' => hash('sha256', 'reset-link'),
+            'reset_token_at' => now()->addHour()->getTimestampMs(),
+        ]);
+        $trip = $this->trip($owner);
+        DB::table('sessions')->insert([
+            'id' => 'deleted-user-session',
+            'user_id' => $owner->id,
+            'payload' => '',
+            'last_activity' => time(),
+        ]);
+
+        $this->actingAs($owner)->deleteJson('/api/admin/users/' . $admin->id)->assertForbidden();
+        $this->actingAs($admin)->deleteJson('/api/admin/users/' . $admin->id)->assertForbidden();
+        $this->actingAs($admin)->deleteJson('/api/admin/users/' . $owner->id)->assertOk();
+        $this->assertSoftDeleted('users', ['id' => $owner->id]);
+        $this->assertNull(User::find($owner->id));
+        $this->assertDatabaseMissing('sessions', ['id' => 'deleted-user-session']);
+        $this->assertNull(User::withTrashed()->findOrFail($owner->id)->reset_token);
+        $this->getJson('/api/admin/users?search=' . $owner->handle)
+            ->assertOk()->assertJsonPath('0.id', $owner->id)->assertJsonPath('0.deletedAt', User::withTrashed()->findOrFail($owner->id)->getRawOriginal('deleted_at'));
+        $this->getJson('/api/admin/users/' . $owner->id . '/trips')
+            ->assertOk()->assertJsonPath('data.0.id', $trip->id);
+        $this->postJson('/api/auth/login', ['email' => $owner->email, 'password' => 'test-password'])
+            ->assertStatus(422);
+
+        $this->actingAs($admin)->postJson('/api/admin/users/' . $owner->id . '/restore')->assertOk();
+        $this->assertNotNull(User::find($owner->id));
+        $this->postJson('/api/auth/login', ['email' => $owner->email, 'password' => 'test-password'])
+            ->assertOk()->assertJsonPath('user.id', $owner->id);
+        $this->assertDatabaseHas('trip_user', ['trip_id' => $trip->id, 'user_id' => $owner->id]);
+    }
+
+    public function test_admin_cannot_soft_delete_another_admin(): void
+    {
+        $admin = $this->user('admin');
+        $otherAdmin = $this->user('admin');
+
+        $this->actingAs($admin)->deleteJson('/api/admin/users/' . $otherAdmin->id)->assertForbidden();
+        $this->assertNotNull(User::find($otherAdmin->id));
     }
 
     public function test_tasks_under_a_deleted_list_cannot_be_reached_by_direct_id(): void

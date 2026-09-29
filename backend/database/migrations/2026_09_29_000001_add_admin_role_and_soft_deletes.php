@@ -15,6 +15,7 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table): void {
             $table->string('role', 16)->default('user');
+            $table->softDeletes();
         });
 
         foreach (self::CONTENT_TABLES as $name) {
@@ -32,6 +33,7 @@ return new class extends Migration
             });
         }
         Schema::table('users', function (Blueprint $table): void {
+            $table->dropSoftDeletes();
             $table->dropColumn('role');
         });
     }

@@ -18,7 +18,13 @@ import { deleteMutation, get, postMutation } from '../data/apiClient';
 import { DocTitle } from '../Nav/DocTitle';
 import { Navbar } from '../Nav/Navbar';
 
-type AdminUser = { id: string; handle: string; email: string | null };
+type AdminUser = {
+  id: string;
+  handle: string;
+  email: string | null;
+  role: 'user' | 'admin';
+  deletedAt: string | null;
+};
 type AdminTrip = {
   id: string;
   title: string;
@@ -138,6 +144,27 @@ export default function PageAdmin() {
     }
   }
 
+  async function changeUser(user: AdminUser) {
+    setBusy(true);
+    setError(undefined);
+    try {
+      const path = `/api/admin/users/${encodeURIComponent(user.id)}`;
+      if (user.deletedAt) await postMutation(`${path}/restore`, {});
+      else await deleteMutation(path);
+      const updated = await get<AdminUser[]>(
+        `/api/admin/users?search=${encodeURIComponent(submittedSearch)}`,
+      );
+      setUsers(updated);
+      if (selectedUser?.id === user.id) {
+        setSelectedUser(updated.find((entry) => entry.id === user.id));
+      }
+    } catch (reason) {
+      setError(String(reason));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <>
       <DocTitle title="Admin" />
@@ -181,16 +208,38 @@ export default function PageAdmin() {
             </form>
             <Heading size="4">Users</Heading>
             {users.map((user) => (
-              <Button
-                key={user.id}
-                variant={selectedUser?.id === user.id ? 'solid' : 'outline'}
-                onClick={() => {
-                  setSelectedUser(user);
-                  setSelectedTrip(undefined);
-                }}
-              >
-                {user.handle} {user.email ? `(${user.email})` : '(guest)'}
-              </Button>
+              <Flex key={user.id} align="center" gap="2" wrap="wrap">
+                <Button
+                  variant={selectedUser?.id === user.id ? 'solid' : 'outline'}
+                  onClick={() => {
+                    setSelectedUser(user);
+                    setSelectedTrip(undefined);
+                  }}
+                >
+                  {user.handle} {user.email ? `(${user.email})` : '(guest)'}
+                </Button>
+                {user.role === 'admin' ? <Badge>Admin</Badge> : null}
+                {user.deletedAt ? <Badge color="red">Deleted</Badge> : null}
+                {user.role !== 'admin' ? (
+                  <Button
+                    color={user.deletedAt ? 'green' : 'red'}
+                    variant="soft"
+                    disabled={busy}
+                    onClick={() => {
+                      if (
+                        user.deletedAt ||
+                        window.confirm(
+                          `Soft-delete account “${user.handle}”? This signs them out. Their trips and content stay recoverable.`,
+                        )
+                      ) {
+                        void changeUser(user);
+                      }
+                    }}
+                  >
+                    {user.deletedAt ? 'Restore account' : 'Delete account'}
+                  </Button>
+                ) : null}
+              </Flex>
             ))}
             {selectedUser ? (
               <>
