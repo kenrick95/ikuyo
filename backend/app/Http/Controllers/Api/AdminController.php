@@ -124,22 +124,56 @@ class AdminController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    public function content(string $trip): JsonResponse
+    public function content(Request $request, string $trip): JsonResponse
     {
         Trip::withTrashed()->findOrFail($trip);
+        $limit = min(max($request->integer('limit', 100), 1), 100);
+        $cursor = $request->query('cursor');
+        $start = 0;
+        $after = null;
+        if ($cursor !== null) {
+            abort_unless(is_string($cursor), 422);
+            $decoded = json_decode(base64_decode($cursor, true) ?: '', true);
+            abort_unless(is_array($decoded) && isset($decoded['index']) && is_int($decoded['index'])
+                && $decoded['index'] >= 0 && $decoded['index'] < count(self::CONTENT)
+                && (array_key_exists('after', $decoded) && ($decoded['after'] === null || is_string($decoded['after']))), 422);
+            $start = $decoded['index'];
+            $after = $decoded['after'];
+        }
+
         $items = [];
-        foreach (array_keys(self::CONTENT) as $entity) {
-            foreach ($this->contentQuery($trip, $entity, 'all')->limit(500)->get() as $record) {
+        $entities = array_keys(self::CONTENT);
+        for ($index = $start; $index < count($entities) && count($items) <= $limit; $index++) {
+            $entity = $entities[$index];
+            $query = $this->contentQuery($trip, $entity, 'all');
+            if ($index === $start && $after !== null) {
+                $query->where('id', '>', $after);
+            }
+            foreach ($query->orderBy('id')->limit($limit + 1 - count($items))->get() as $record) {
                 $items[] = [
-                    'entity' => $entity,
-                    'id' => $record->id,
-                    'label' => (string) ($record->title ?? $record->name ?? $record->content ?? $record->id),
-                    'deletedAt' => $record->trashed() ? $record->getRawOriginal('deleted_at') : null,
+                    'index' => $index,
+                    'data' => [
+                        'entity' => $entity,
+                        'id' => $record->id,
+                        'label' => (string) ($record->title ?? $record->name ?? $record->content ?? $record->id),
+                        'deletedAt' => $record->trashed() ? $record->getRawOriginal('deleted_at') : null,
+                    ],
                 ];
             }
         }
 
-        return response()->json($items);
+        $hasMore = count($items) > $limit;
+        $nextCursor = null;
+        if ($hasMore) {
+            $last = $items[$limit - 1];
+            $nextCursor = base64_encode(json_encode(['index' => $last['index'], 'after' => $last['data']['id']], JSON_THROW_ON_ERROR));
+        }
+
+        return response()->json([
+            'data' => array_map(fn (array $item): array => $item['data'], array_slice($items, 0, $limit)),
+            'nextCursor' => $nextCursor,
+            'hasMore' => $hasMore,
+        ]);
     }
 
     public function deleteTrip(string $trip): JsonResponse
@@ -187,6 +221,20 @@ class AdminController extends Controller
         }
         if ($entity === 'comments') {
             abort_unless(CommentGroup::whereKey($record->getAttribute('comment_group_id'))->exists(), 409, 'Restore the comment group first.');
+        }
+        if ($record instanceof CommentGroup) {
+            $object = CommentGroupObject::withTrashed()->withoutGlobalScope('activeParent')
+                ->where('comment_group_id', $record->id)->first();
+            $model = match (CommentObjectType::tryFrom((int) $object?->object_type)) {
+                CommentObjectType::Trip => Trip::class,
+                CommentObjectType::Activity => Activity::class,
+                CommentObjectType::Accommodation => Accommodation::class,
+                CommentObjectType::MacroPlan => MacroPlan::class,
+                CommentObjectType::Expense => Expense::class,
+                CommentObjectType::Task => Task::class,
+                default => null,
+            };
+            abort_unless($object && $model && $model::whereKey($object->object_id)->exists(), 409, 'Restore the comment target first.');
         }
         DB::transaction(function () use ($record): void {
             $record->restore();

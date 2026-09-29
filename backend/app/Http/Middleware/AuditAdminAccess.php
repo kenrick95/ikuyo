@@ -5,8 +5,10 @@ namespace App\Http\Middleware;
 use App\Models\User;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -77,9 +79,22 @@ class AuditAdminAccess
             return $next($request);
         }
 
+        $record = fn (): Response => $this->auditRequest($request, $next, $actor, $tripId, $targetType, $targetId, $table);
+
+        return $request->isMethod('GET') ? $record() : DB::transaction($record);
+    }
+
+    private function auditRequest(Request $request, Closure $next, User $actor, ?string $tripId, string $targetType, ?string $targetId, ?string $table): Response
+    {
+        $route = $request->route();
+        abort_unless($route instanceof Route, 500);
         $before = $this->snapshot($table, $targetId);
         $response = $next($request);
         if ($response->getStatusCode() >= 400) {
+            if (! $request->isMethod('GET')) {
+                throw new HttpResponseException($response);
+            }
+
             return $response;
         }
 

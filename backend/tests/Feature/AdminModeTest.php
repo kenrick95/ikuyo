@@ -86,7 +86,19 @@ class AdminModeTest extends TestCase
             ->assertJsonPath('title', $trip->title)
             ->assertJsonCount(1, 'taskList');
         $this->actingAs($admin)->putJson('/api/trips/' . $trip->id, ['title' => 'Updated for debugging'])
-            ->assertOk()->assertJsonPath('title', 'Updated for debugging');
+            ->assertOk()->assertJsonPath('title', 'Updated for debugging')
+            ->assertJsonPath('adminAccess', true);
+    }
+
+    public function test_admin_owner_does_not_receive_elevated_access_warning_flag(): void
+    {
+        $admin = $this->user('admin');
+        $trip = $this->trip($admin);
+
+        $this->actingAs($admin)->getJson('/api/trips/' . $trip->id)
+            ->assertOk()->assertJsonPath('adminAccess', false);
+        $this->actingAs($admin)->putJson('/api/trips/' . $trip->id, ['title' => 'Mine'])
+            ->assertOk()->assertJsonPath('adminAccess', false);
     }
 
     public function test_admin_can_edit_and_soft_delete_then_restore_another_users_content(): void
@@ -194,6 +206,68 @@ class AdminModeTest extends TestCase
 
         $this->actingAs($admin)->deleteJson('/api/admin/users/' . $otherAdmin->id)->assertForbidden();
         $this->assertNotNull(User::find($otherAdmin->id));
+    }
+
+    public function test_deleted_invitee_requires_restore_before_reinviting(): void
+    {
+        $owner = $this->user();
+        $admin = $this->user('admin');
+        $invitee = $this->user();
+        $trip = $this->trip($owner);
+
+        $this->actingAs($admin)->deleteJson('/api/admin/users/' . $invitee->id)->assertOk();
+        $this->actingAs($owner)->postJson('/api/trips/' . $trip->id . '/members', [
+            'email' => $invitee->email, 'role' => 1,
+        ])->assertStatus(409);
+        $this->assertDatabaseMissing('trip_user', ['trip_id' => $trip->id, 'user_id' => $invitee->id]);
+        $this->actingAs($admin)->postJson('/api/admin/users/' . $invitee->id . '/restore')->assertOk();
+        $this->actingAs($owner)->postJson('/api/trips/' . $trip->id . '/members', [
+            'email' => $invitee->email, 'role' => 1,
+        ])->assertCreated();
+        $this->assertDatabaseHas('trip_user', ['trip_id' => $trip->id, 'user_id' => $invitee->id]);
+    }
+
+    public function test_admin_content_pagination_reaches_deleted_records(): void
+    {
+        $owner = $this->user();
+        $admin = $this->user('admin');
+        $trip = $this->trip($owner);
+        $ids = [];
+        for ($index = 0; $index < 3; $index++) {
+            $activity = Activity::create([
+                'id' => (string) Str::uuid(), 'trip_id' => $trip->id,
+                'title' => 'Activity ' . $index, 'location' => '', 'description' => '',
+            ]);
+            $ids[] = $activity->id;
+            if ($index === 2) {
+                $activity->delete();
+            }
+        }
+
+        $first = $this->actingAs($admin)->getJson('/api/admin/trips/' . $trip->id . '/content?limit=2')
+            ->assertOk()->assertJsonCount(2, 'data')->assertJsonPath('hasMore', true);
+        $cursor = $first->json('nextCursor');
+        $this->assertIsString($cursor);
+        $second = $this->actingAs($admin)->getJson('/api/admin/trips/' . $trip->id . '/content?limit=2&cursor=' . urlencode($cursor))
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('hasMore', false);
+        $found = array_column([...$first->json('data'), ...$second->json('data')], 'id');
+        sort($found);
+        sort($ids);
+        $this->assertSame($ids, $found);
+        $this->getJson('/api/admin/trips/' . $trip->id . '/content?cursor=bad')->assertStatus(422);
+    }
+
+    public function test_failed_audit_insert_rolls_back_admin_mutation(): void
+    {
+        $owner = $this->user();
+        $admin = $this->user('admin');
+        $trip = $this->trip($owner);
+        DB::statement("CREATE TRIGGER reject_admin_audit BEFORE INSERT ON admin_audit_events BEGIN SELECT RAISE(FAIL, 'audit unavailable'); END");
+
+        $this->actingAs($admin)->putJson('/api/trips/' . $trip->id, ['title' => 'Should roll back'])
+            ->assertInternalServerError();
+        $this->assertSame('Private debug trip', $trip->fresh()->title);
+        $this->assertDatabaseCount('admin_audit_events', 0);
     }
 
     public function test_audit_history_records_admin_reads_and_changes_without_request_values(): void
@@ -309,6 +383,9 @@ class AdminModeTest extends TestCase
         ]);
 
         $this->actingAs($owner)->deleteJson('/api/activities/' . $activity->id)->assertOk();
+        $this->assertSoftDeleted('comment_groups', ['id' => $group->id]);
+        $this->actingAs($admin)->postJson('/api/admin/trips/' . $trip->id . '/content/comment-groups/' . $group->id . '/restore')
+            ->assertStatus(409);
         $this->assertSoftDeleted('comment_groups', ['id' => $group->id]);
         $this->actingAs($admin)->postJson('/api/admin/trips/' . $trip->id . '/content/activities/' . $activity->id . '/restore')
             ->assertOk();

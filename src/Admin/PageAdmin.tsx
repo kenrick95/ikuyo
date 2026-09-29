@@ -58,6 +58,9 @@ export default function PageAdmin() {
   const [tripsNextCursor, setTripsNextCursor] = useState<string | null>(null);
   const [selectedTrip, setSelectedTrip] = useState<AdminTrip>();
   const [content, setContent] = useState<AdminContent[]>([]);
+  const [contentNextCursor, setContentNextCursor] = useState<string | null>(
+    null,
+  );
   const [auditEvents, setAuditEvents] = useState<AdminAuditEvent[]>([]);
   const [auditNextCursor, setAuditNextCursor] = useState<string | null>(null);
   const [auditRefresh, setAuditRefresh] = useState(0);
@@ -104,11 +107,14 @@ export default function PageAdmin() {
   useEffect(() => {
     if (!selectedTrip) return;
     let active = true;
-    void get<AdminContent[]>(
+    void get<CursorPage<AdminContent>>(
       `/api/admin/trips/${encodeURIComponent(selectedTrip.id)}/content`,
     )
       .then((result) => {
-        if (active) setContent(result);
+        if (active) {
+          setContent(result.data);
+          setContentNextCursor(result.nextCursor);
+        }
       })
       .catch((reason: unknown) => {
         if (active) setError(String(reason));
@@ -155,12 +161,21 @@ export default function PageAdmin() {
         (trip) => trip.id === selectedTrip.id,
       );
       if (updatedTrip) setSelectedTrip(updatedTrip);
-      setContent(
-        await get<AdminContent[]>(
-          `/api/admin/trips/${encodeURIComponent(selectedTrip.id)}/content`,
-        ),
+      const nextContent = await get<CursorPage<AdminContent>>(
+        `/api/admin/trips/${encodeURIComponent(selectedTrip.id)}/content`,
       );
+      setContent(nextContent.data);
+      setContentNextCursor(nextContent.nextCursor);
     }
+  }
+
+  function selectUser(user?: AdminUser) {
+    setSelectedUser(user);
+    setTrips([]);
+    setTripsNextCursor(null);
+    setSelectedTrip(undefined);
+    setContent([]);
+    setContentNextCursor(null);
   }
 
   async function change(path: string, restore: boolean) {
@@ -226,9 +241,9 @@ export default function PageAdmin() {
             <form
               onSubmit={(event) => {
                 event.preventDefault();
+                if (busy) return;
                 setSubmittedSearch(search);
-                setSelectedUser(undefined);
-                setSelectedTrip(undefined);
+                selectUser(undefined);
               }}
             >
               <Flex gap="2">
@@ -238,7 +253,9 @@ export default function PageAdmin() {
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                 />
-                <Button type="submit">Search</Button>
+                <Button type="submit" disabled={busy}>
+                  Search
+                </Button>
               </Flex>
             </form>
             <Heading size="4">Users</Heading>
@@ -246,10 +263,8 @@ export default function PageAdmin() {
               <Flex key={user.id} align="center" gap="2" wrap="wrap">
                 <Button
                   variant={selectedUser?.id === user.id ? 'solid' : 'outline'}
-                  onClick={() => {
-                    setSelectedUser(user);
-                    setSelectedTrip(undefined);
-                  }}
+                  disabled={busy}
+                  onClick={() => selectUser(user)}
                 >
                   {user.handle} {user.email ? `(${user.email})` : '(guest)'}
                 </Button>
@@ -283,7 +298,12 @@ export default function PageAdmin() {
                   <Flex key={trip.id} align="center" gap="2" wrap="wrap">
                     <Button
                       variant="outline"
-                      onClick={() => setSelectedTrip(trip)}
+                      disabled={busy}
+                      onClick={() => {
+                        setContent([]);
+                        setContentNextCursor(null);
+                        setSelectedTrip(trip);
+                      }}
                     >
                       {trip.title}
                     </Button>
@@ -373,6 +393,26 @@ export default function PageAdmin() {
                     </Button>
                   </Flex>
                 ))}
+                {contentNextCursor ? (
+                  <Button
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => {
+                      setBusy(true);
+                      void get<CursorPage<AdminContent>>(
+                        `/api/admin/trips/${encodeURIComponent(selectedTrip.id)}/content?cursor=${encodeURIComponent(contentNextCursor)}`,
+                      )
+                        .then((page) => {
+                          setContent((previous) => [...previous, ...page.data]);
+                          setContentNextCursor(page.nextCursor);
+                        })
+                        .catch((reason: unknown) => setError(String(reason)))
+                        .finally(() => setBusy(false));
+                    }}
+                  >
+                    Load more content
+                  </Button>
+                ) : null}
               </>
             ) : null}
             <Heading size="4">

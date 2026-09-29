@@ -331,6 +331,9 @@ class TripController extends Controller
 
     private function serializeTrip(Trip $trip, ?int $role = null, bool $admin = false): array
     {
+        $user = request()->user();
+        $role ??= app(TripAccessService::class)->role($trip, $user);
+        $admin = $admin || ($user?->isAdmin() ?? false);
         $isPublicVisitor = ! $admin && $role === null && $trip->sharing_level >= 2;
         $isMemberOrOwner = $admin || $role !== null;
         $showExpenses = $admin || ($isPublicVisitor ? $trip->public_show_expenses !== false : ($role !== 2 || $trip->viewer_show_expenses !== false));
@@ -339,7 +342,7 @@ class TripController extends Controller
 
         return [
             'id' => $trip->id,
-            'adminAccess' => $admin,
+            'adminAccess' => $admin && $role !== 0,
             'title' => $trip->title,
             'timestampStart' => $trip->timestamp_start_ms,
             'timestampEnd' => $trip->timestamp_end_ms,

@@ -115,9 +115,7 @@ function PageTripInner({
     <>
       <DocTitle title={trip?.title ?? 'Trip'} />
       <TripNavbar />
-      {trip &&
-      currentUser?.role === 'admin' &&
-      !trip.isCurrentUserTripMember ? (
+      {trip?.adminAccess ? (
         <Container>
           <Callout.Root color="amber" my="2">
             <Callout.Text>
