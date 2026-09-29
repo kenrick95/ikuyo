@@ -43,9 +43,11 @@ export const createUserSlice: StateCreator<
       void apiGet<{ user: DbUser | null }>('/api/auth/me')
         .then(({ user }) => {
           if (disposed) return;
+          const cachedUser = get().currentUser;
           if (
             !user ||
-            (get().currentUser && get().currentUser?.id !== user.id)
+            (cachedUser &&
+              (cachedUser.id !== user.id || cachedUser.role !== user.role))
           ) {
             get().clearSession();
           }
@@ -90,9 +92,18 @@ export const createUserSlice: StateCreator<
         const user = response.user;
         if (!user) get().clearSession();
         else {
-          if (get().currentUser && get().currentUser?.id !== user.id)
+          const cachedUser = get().currentUser;
+          if (
+            cachedUser &&
+            (cachedUser.id !== user.id || cachedUser.role !== user.role)
+          )
             get().clearSession();
-          set(() => ({ currentUser: user }));
+          set(() => ({
+            currentUser: user,
+            authUser: { id: user.id, email: user.email ?? null },
+            authUserLoading: false,
+            authUserError: null,
+          }));
         }
       } catch (error) {
         get().clearSession();

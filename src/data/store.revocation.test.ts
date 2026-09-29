@@ -7,6 +7,7 @@ import { useBoundStore } from './store';
 
 const user: DbUser = {
   id: 'user-1',
+  role: 'admin',
   handle: 'traveler',
   email: 'traveler@example.com',
   createdAt: 1,
@@ -80,6 +81,48 @@ describe('persisted trip revocation', () => {
     expect(localStorage.getItem('ikuyo-storage')).not.toContain(
       'Private trip title',
     );
+  });
+
+  it('clears cached admin data when the same user loses the admin role', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        text: async () => JSON.stringify({ user: { ...user, role: 'user' } }),
+      })),
+    );
+
+    const unsubscribe = useBoundStore.getState().subscribeUser();
+    await waitFor(() =>
+      expect(useBoundStore.getState().currentUser?.role).toBe('user'),
+    );
+    unsubscribe();
+
+    const state = useBoundStore.getState();
+    expect(state.trip['trip-1']).toBeUndefined();
+    expect(state.dialogs).toEqual([]);
+    expect(state.authUser?.id).toBe(user.id);
+    expect(localStorage.getItem('ikuyo-storage')).not.toContain(
+      'Private trip title',
+    );
+  });
+
+  it('clears cached admin data on an explicit same-user refresh', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        text: async () => JSON.stringify({ user: { ...user, role: 'user' } }),
+      })),
+    );
+
+    await useBoundStore.getState().refreshCurrentUser();
+
+    const state = useBoundStore.getState();
+    expect(state.currentUser?.role).toBe('user');
+    expect(state.authUser?.id).toBe(user.id);
+    expect(state.trip['trip-1']).toBeUndefined();
+    expect(state.dialogs).toEqual([]);
   });
 
   it('evicts a denied trip and its content while keeping the session', async () => {
