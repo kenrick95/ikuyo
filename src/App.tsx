@@ -63,6 +63,7 @@ function App() {
   const theme = useTheme();
   useSubscribeUser();
   const clearDialogs = useBoundStore((state) => state.clearDialogs);
+  const authUserLoading = useBoundStore((state) => state.authUserLoading);
 
   // Full-site maintenance mode replaces the router + auth UI entirely. All hooks
   // above still run unconditionally (React rule), but no routes are rendered and
@@ -72,6 +73,14 @@ function App() {
     return (
       <Theme appearance={theme} accentColor="red">
         <PageMaintenance />
+      </Theme>
+    );
+  }
+
+  if (authUserLoading) {
+    return (
+      <Theme appearance={theme} accentColor="red">
+        <Spinner m="3" />
       </Theme>
     );
   }

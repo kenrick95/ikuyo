@@ -29,7 +29,7 @@ export const createUserSlice: StateCreator<
   [],
   [],
   UserSlice
-> = (set) => {
+> = (set, get) => {
   return {
     authUser: undefined,
     authUserLoading: true,
@@ -41,6 +41,7 @@ export const createUserSlice: StateCreator<
       void apiGet<{ user: DbUser | null }>('/api/auth/me')
         .then(({ user }) => {
           if (disposed) return;
+          if (!user) get().clearSession();
           set(() => ({
             authUser: user
               ? { id: user.id, email: user.email ?? null }
@@ -58,6 +59,7 @@ export const createUserSlice: StateCreator<
         })
         .catch((error: unknown) => {
           if (disposed) return;
+          get().clearSession();
           set(() => ({
             authUser: undefined,
             currentUser: undefined,
@@ -76,8 +78,15 @@ export const createUserSlice: StateCreator<
       }));
     },
     refreshCurrentUser: async () => {
-      const response = await apiGet<{ user: DbUser | null }>('/api/auth/me');
-      set(() => ({ currentUser: response.user ?? undefined }));
+      try {
+        const response = await apiGet<{ user: DbUser | null }>('/api/auth/me');
+        const user = response.user;
+        if (!user) get().clearSession();
+        else set(() => ({ currentUser: user }));
+      } catch (error) {
+        get().clearSession();
+        throw error;
+      }
     },
     clearSession: () => {
       // Wipe the cached user and every cached domain collection so a different
@@ -86,6 +95,8 @@ export const createUserSlice: StateCreator<
       set(() => ({
         currentUser: undefined,
         authUser: undefined,
+        currentTripId: undefined,
+        tripMeta: {},
         trip: {},
         tripLocalState: {},
         comment: {},
@@ -96,6 +107,7 @@ export const createUserSlice: StateCreator<
         accommodation: {},
         activity: {},
         trips: {},
+        archivedTrips: {},
         tripUser: {},
         task: {},
         taskList: {},

@@ -149,12 +149,7 @@ export default function PageAdmin() {
     const nextTrips = await get<CursorPage<AdminTrip>>(
       `/api/admin/users/${encodeURIComponent(selectedUser.id)}/trips`,
     );
-    setTrips((previous) => [
-      ...nextTrips.data,
-      ...previous.filter(
-        (trip) => !nextTrips.data.some((next) => next.id === trip.id),
-      ),
-    ]);
+    setTrips(nextTrips.data);
     setTripsNextCursor(nextTrips.nextCursor);
     if (selectedTrip) {
       const updatedTrip = nextTrips.data.find(
