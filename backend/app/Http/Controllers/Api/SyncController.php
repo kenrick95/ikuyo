@@ -36,8 +36,8 @@ class SyncController extends Controller
             // Without a trip scope we must never leak every trip's events to a
             // logged-in user; restrict to trips they can access (public or member).
             $query->whereIn('trip_id', Trip::query()
-                ->when(! $user->isAdmin(), fn ($q) => $q->where(fn ($q2) => $q2->where('sharing_level', '>=', 2)
-                    ->orWhereHas('users', fn ($q3) => $q3->whereKey($user->getKey()))))
+                ->where(fn ($q) => $q->where('sharing_level', '>=', 2)
+                    ->orWhereHas('users', fn ($member) => $member->whereKey($user->getKey())))
                 ->pluck('id'));
         }
 

@@ -34,8 +34,9 @@ Route::middleware(['web', 'throttle:60,1'])->prefix('auth')->group(function (): 
     Route::post('/change-email', [AuthController::class, 'changeEmail'])->middleware('auth');
 });
 
-Route::middleware('web')->group(function (): void {
+Route::middleware(['web', 'admin.audit'])->group(function (): void {
     Route::middleware(['auth', 'admin'])->prefix('admin')->group(function (): void {
+        Route::get('/audit-events', [AdminController::class, 'auditEvents']);
         Route::get('/users', [AdminController::class, 'users']);
         Route::get('/users/{user}/trips', [AdminController::class, 'trips']);
         Route::delete('/users/{user}', [AdminController::class, 'deleteUser']);

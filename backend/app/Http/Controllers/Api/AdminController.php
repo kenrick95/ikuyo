@@ -33,6 +33,41 @@ class AdminController extends Controller
         'comments' => Comment::class,
     ];
 
+    public function auditEvents(Request $request): JsonResponse
+    {
+        $trip = $request->query('trip');
+        if ($trip !== null) {
+            abort_unless(is_string($trip), 422);
+            Trip::withTrashed()->findOrFail($trip);
+        }
+
+        $query = DB::table('admin_audit_events');
+        if ($trip !== null) {
+            $query->where('trip_id', $trip);
+        }
+        $events = $query->orderByDesc('id')->cursorPaginate(min(max($request->integer('limit', 50), 1), 100));
+        $items = [];
+        foreach ($events->items() as $event) {
+            $items[] = [
+                'id' => $event->id,
+                'actorId' => $event->actor_user_id,
+                'actorHandle' => $event->actor_handle,
+                'tripId' => $event->trip_id,
+                'targetType' => $event->target_type,
+                'targetId' => $event->target_id,
+                'action' => $event->action,
+                'details' => json_decode($event->details, true, 512, JSON_THROW_ON_ERROR),
+                'createdAt' => $event->created_at_ms,
+            ];
+        }
+
+        return response()->json([
+            'data' => $items,
+            'nextCursor' => $events->nextCursor()?->encode(),
+            'hasMore' => $events->hasMorePages(),
+        ]);
+    }
+
     public function users(Request $request): JsonResponse
     {
         $search = trim((string) $request->query('search', ''));

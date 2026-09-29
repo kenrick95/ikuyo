@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AuditAdminAccess;
 use App\Http\Middleware\AuthorizeTripAccess;
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureTripContentWritable;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'trip.access' => AuthorizeTripAccess::class,
             'admin' => EnsureAdmin::class,
+            'admin.audit' => AuditAdminAccess::class,
             'trip.writable' => EnsureTripContentWritable::class,
         ]);
 

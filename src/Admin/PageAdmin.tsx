@@ -37,6 +37,16 @@ type AdminContent = {
   label: string;
   deletedAt: string | null;
 };
+type AdminAuditEvent = {
+  id: number;
+  actorHandle: string;
+  tripId: string | null;
+  targetType: string;
+  targetId: string | null;
+  action: string;
+  details: { fields: string[]; submittedFields?: string[] };
+  createdAt: number;
+};
 
 export default function PageAdmin() {
   const currentUser = useCurrentUser();
@@ -48,6 +58,9 @@ export default function PageAdmin() {
   const [tripsNextCursor, setTripsNextCursor] = useState<string | null>(null);
   const [selectedTrip, setSelectedTrip] = useState<AdminTrip>();
   const [content, setContent] = useState<AdminContent[]>([]);
+  const [auditEvents, setAuditEvents] = useState<AdminAuditEvent[]>([]);
+  const [auditNextCursor, setAuditNextCursor] = useState<string | null>(null);
+  const [auditRefresh, setAuditRefresh] = useState(0);
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
 
@@ -105,6 +118,26 @@ export default function PageAdmin() {
     };
   }, [selectedTrip]);
 
+  useEffect(() => {
+    if (currentUser?.role !== 'admin') return;
+    let active = true;
+    const filter = new URLSearchParams({ refresh: String(auditRefresh) });
+    if (selectedTrip) filter.set('trip', selectedTrip.id);
+    void get<CursorPage<AdminAuditEvent>>(`/api/admin/audit-events?${filter}`)
+      .then((result) => {
+        if (active) {
+          setAuditEvents(result.data);
+          setAuditNextCursor(result.nextCursor);
+        }
+      })
+      .catch((reason: unknown) => {
+        if (active) setError(String(reason));
+      });
+    return () => {
+      active = false;
+    };
+  }, [currentUser?.role, selectedTrip, auditRefresh]);
+
   async function refresh() {
     if (!selectedUser) return;
     const nextTrips = await get<CursorPage<AdminTrip>>(
@@ -137,6 +170,7 @@ export default function PageAdmin() {
       if (restore) await postMutation(`${path}/restore`, {});
       else await deleteMutation(path);
       await refresh();
+      setAuditRefresh((value) => value + 1);
     } catch (reason) {
       setError(String(reason));
     } finally {
@@ -158,6 +192,7 @@ export default function PageAdmin() {
       if (selectedUser?.id === user.id) {
         setSelectedUser(updated.find((entry) => entry.id === user.id));
       }
+      setAuditRefresh((value) => value + 1);
     } catch (reason) {
       setError(String(reason));
     } finally {
@@ -339,6 +374,60 @@ export default function PageAdmin() {
                   </Flex>
                 ))}
               </>
+            ) : null}
+            <Heading size="4">
+              {selectedTrip
+                ? `Audit history for ${selectedTrip.title}`
+                : 'Recent admin activity'}
+            </Heading>
+            {selectedTrip ? (
+              <Button
+                variant="outline"
+                onClick={() => setSelectedTrip(undefined)}
+              >
+                Show all admin activity
+              </Button>
+            ) : null}
+            {auditEvents.length === 0 ? <Text>No activity yet.</Text> : null}
+            {auditEvents.map((event) => (
+              <Text key={event.id} size="2">
+                {new Date(Number(event.createdAt)).toLocaleString()} ·{' '}
+                {event.actorHandle} · {event.action} {event.targetType}
+                {event.targetId ? ` ${event.targetId}` : ''}
+                {event.details.fields.length > 0
+                  ? ` · changed: ${event.details.fields.join(', ')}`
+                  : null}
+                {event.details.submittedFields?.length &&
+                event.details.fields.length === 0
+                  ? ` · submitted: ${event.details.submittedFields.join(', ')}`
+                  : null}
+                {event.tripId && !selectedTrip
+                  ? ` · trip ${event.tripId}`
+                  : null}
+              </Text>
+            ))}
+            {auditNextCursor ? (
+              <Button
+                variant="outline"
+                disabled={busy}
+                onClick={() => {
+                  const filter = selectedTrip
+                    ? `trip=${encodeURIComponent(selectedTrip.id)}&`
+                    : '';
+                  setBusy(true);
+                  void get<CursorPage<AdminAuditEvent>>(
+                    `/api/admin/audit-events?${filter}cursor=${encodeURIComponent(auditNextCursor)}`,
+                  )
+                    .then((page) => {
+                      setAuditEvents((previous) => [...previous, ...page.data]);
+                      setAuditNextCursor(page.nextCursor);
+                    })
+                    .catch((reason: unknown) => setError(String(reason)))
+                    .finally(() => setBusy(false));
+                }}
+              >
+                Load more activity
+              </Button>
             ) : null}
             {busy ? <Spinner /> : null}
           </Flex>

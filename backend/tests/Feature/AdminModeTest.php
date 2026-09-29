@@ -6,6 +6,7 @@ use App\Models\Activity;
 use App\Models\Comment;
 use App\Models\CommentGroup;
 use App\Models\CommentGroupObject;
+use App\Models\SyncEvent;
 use App\Models\Task;
 use App\Models\TaskList;
 use App\Models\Trip;
@@ -161,6 +162,10 @@ class AdminModeTest extends TestCase
         $this->actingAs($admin)->deleteJson('/api/admin/users/' . $admin->id)->assertForbidden();
         $this->actingAs($admin)->deleteJson('/api/admin/users/' . $owner->id)->assertOk();
         $this->assertSoftDeleted('users', ['id' => $owner->id]);
+        $this->assertDatabaseHas('admin_audit_events', [
+            'actor_user_id' => $admin->id, 'target_type' => 'user',
+            'target_id' => $owner->id, 'action' => 'delete',
+        ]);
         $this->assertNull(User::find($owner->id));
         $this->assertDatabaseMissing('sessions', ['id' => 'deleted-user-session']);
         $this->assertNull(User::withTrashed()->findOrFail($owner->id)->reset_token);
@@ -173,6 +178,10 @@ class AdminModeTest extends TestCase
 
         $this->actingAs($admin)->postJson('/api/admin/users/' . $owner->id . '/restore')->assertOk();
         $this->assertNotNull(User::find($owner->id));
+        $this->assertDatabaseHas('admin_audit_events', [
+            'actor_user_id' => $admin->id, 'target_type' => 'user',
+            'target_id' => $owner->id, 'action' => 'restore',
+        ]);
         $this->postJson('/api/auth/login', ['email' => $owner->email, 'password' => 'test-password'])
             ->assertOk()->assertJsonPath('user.id', $owner->id);
         $this->assertDatabaseHas('trip_user', ['trip_id' => $trip->id, 'user_id' => $owner->id]);
@@ -185,6 +194,60 @@ class AdminModeTest extends TestCase
 
         $this->actingAs($admin)->deleteJson('/api/admin/users/' . $otherAdmin->id)->assertForbidden();
         $this->assertNotNull(User::find($otherAdmin->id));
+    }
+
+    public function test_audit_history_records_admin_reads_and_changes_without_request_values(): void
+    {
+        $owner = $this->user();
+        $admin = $this->user('admin');
+        $trip = $this->trip($owner);
+        $activity = Activity::create([
+            'id' => (string) Str::uuid(), 'trip_id' => $trip->id,
+            'title' => 'Before', 'location' => '', 'description' => '',
+        ]);
+
+        $this->actingAs($owner)->getJson('/api/trips/' . $trip->id)->assertOk();
+        $this->assertDatabaseCount('admin_audit_events', 0);
+        $this->actingAs($admin)->getJson('/api/trips/' . $trip->id)->assertOk();
+        $this->actingAs($admin)->putJson('/api/trips/' . $trip->id, ['title' => 'After'])->assertOk();
+        $this->actingAs($admin)->putJson('/api/activities/' . $activity->id, ['title' => 'Private details'])->assertOk();
+        $this->actingAs($admin)->putJson('/api/activities/not-found', ['title' => 'No change'])->assertNotFound();
+
+        $this->assertDatabaseCount('admin_audit_events', 3);
+        $this->assertDatabaseHas('admin_audit_events', [
+            'actor_user_id' => $admin->id, 'trip_id' => $trip->id,
+            'target_type' => 'trip', 'target_id' => $trip->id, 'action' => 'view',
+        ]);
+        $event = DB::table('admin_audit_events')->where('target_id', $activity->id)->first();
+        $this->assertNotNull($event);
+        $this->assertSame($trip->id, $event->trip_id);
+        $this->assertSame('update', $event->action);
+        $this->assertSame(['title'], json_decode($event->details, true, 512, JSON_THROW_ON_ERROR)['fields']);
+        $this->assertStringNotContainsString('Private details', $event->details);
+        $this->actingAs($owner)->getJson('/api/admin/audit-events')->assertForbidden();
+        $this->actingAs($admin)->getJson('/api/admin/audit-events?trip=' . $trip->id)
+            ->assertOk()->assertJsonCount(3, 'data')->assertJsonPath('data.0.targetId', $activity->id);
+        $this->assertDatabaseCount('admin_audit_events', 3);
+    }
+
+    public function test_admin_sync_of_another_trip_is_audited_and_unscoped_sync_excludes_it(): void
+    {
+        $owner = $this->user();
+        $admin = $this->user('admin');
+        $trip = $this->trip($owner);
+        SyncEvent::create([
+            'entity' => 'activity', 'entity_id' => (string) Str::uuid(),
+            'operation' => 'upsert', 'trip_id' => $trip->id,
+            'payload' => [], 'created_at_ms' => 1,
+        ]);
+
+        $this->actingAs($admin)->getJson('/api/sync')->assertOk()->assertJsonCount(0, 'changes');
+        $this->actingAs($admin)->getJson('/api/sync?tripId=' . $trip->id)
+            ->assertOk()->assertJsonFragment(['entity' => 'activity']);
+        $this->assertDatabaseHas('admin_audit_events', [
+            'actor_user_id' => $admin->id, 'trip_id' => $trip->id,
+            'target_type' => 'trip', 'action' => 'view',
+        ]);
     }
 
     public function test_tasks_under_a_deleted_list_cannot_be_reached_by_direct_id(): void
