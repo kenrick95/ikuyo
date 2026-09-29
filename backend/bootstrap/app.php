@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AuthorizeTripAccess;
+use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureTripContentWritable;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // All authenticated mutations remain CSRF-protected.
         $middleware->alias([
             'trip.access' => AuthorizeTripAccess::class,
+            'admin' => EnsureAdmin::class,
             'trip.writable' => EnsureTripContentWritable::class,
         ]);
 

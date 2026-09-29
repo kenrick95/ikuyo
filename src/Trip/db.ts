@@ -44,6 +44,7 @@ export type DbTripWithActivity = Omit<DbTrip, 'activity'> & {
 };
 export type DbTrip = {
   id: string;
+  adminAccess?: boolean;
   title: string;
   /** ms of day of the trip start */
   timestampStart: number;

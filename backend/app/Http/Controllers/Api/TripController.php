@@ -282,7 +282,7 @@ class TripController extends Controller
         $role = $access->role($trip, $request->user());
         abort_unless($access->canView($trip, $request->user()), $request->user() ? 403 : 401);
 
-        return response()->json($this->serializeTrip($trip, $role));
+        return response()->json($this->serializeTrip($trip, $role, $request->user()?->isAdmin() ?? false));
     }
 
     private function nowMs(): int
@@ -329,16 +329,17 @@ class TripController extends Controller
         return Carbon::createFromTimestampMs($timestampMs, $tz)->addDays($days)->getTimestampMs();
     }
 
-    private function serializeTrip(Trip $trip, ?int $role = null): array
+    private function serializeTrip(Trip $trip, ?int $role = null, bool $admin = false): array
     {
-        $isPublicVisitor = $role === null && $trip->sharing_level >= 2;
-        $isMemberOrOwner = $role !== null;
-        $showExpenses = $isPublicVisitor ? $trip->public_show_expenses !== false : ($role !== 2 || $trip->viewer_show_expenses !== false);
-        $showTasks = $isPublicVisitor ? $trip->public_show_tasks !== false : ($role !== 2 || $trip->viewer_show_tasks !== false);
-        $showComments = $isPublicVisitor ? $trip->public_show_comments !== false : ($role !== 2 || $trip->viewer_show_comments !== false);
+        $isPublicVisitor = ! $admin && $role === null && $trip->sharing_level >= 2;
+        $isMemberOrOwner = $admin || $role !== null;
+        $showExpenses = $admin || ($isPublicVisitor ? $trip->public_show_expenses !== false : ($role !== 2 || $trip->viewer_show_expenses !== false));
+        $showTasks = $admin || ($isPublicVisitor ? $trip->public_show_tasks !== false : ($role !== 2 || $trip->viewer_show_tasks !== false));
+        $showComments = $admin || ($isPublicVisitor ? $trip->public_show_comments !== false : ($role !== 2 || $trip->viewer_show_comments !== false));
 
         return [
             'id' => $trip->id,
+            'adminAccess' => $admin,
             'title' => $trip->title,
             'timestampStart' => $trip->timestamp_start_ms,
             'timestampEnd' => $trip->timestamp_end_ms,

@@ -162,6 +162,6 @@ class CommentController extends Controller
 
     private function isOwner(Trip $trip, Request $request): bool
     {
-        return $trip->users()->whereKey($request->user()->id)->wherePivot('role', 0)->exists();
+        return $request->user()->isAdmin() || $trip->users()->whereKey($request->user()->id)->wherePivot('role', 0)->exists();
     }
 }

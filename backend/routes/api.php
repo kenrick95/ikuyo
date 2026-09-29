@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CommentController;
 use App\Http\Controllers\Api\ContentController;
@@ -34,6 +35,15 @@ Route::middleware(['web', 'throttle:60,1'])->prefix('auth')->group(function (): 
 });
 
 Route::middleware('web')->group(function (): void {
+    Route::middleware(['auth', 'admin'])->prefix('admin')->group(function (): void {
+        Route::get('/users', [AdminController::class, 'users']);
+        Route::get('/users/{user}/trips', [AdminController::class, 'trips']);
+        Route::get('/trips/{trip}/content', [AdminController::class, 'content']);
+        Route::delete('/trips/{trip}', [AdminController::class, 'deleteTrip']);
+        Route::post('/trips/{trip}/restore', [AdminController::class, 'restoreTrip']);
+        Route::delete('/trips/{trip}/content/{entity}/{entityId}', [AdminController::class, 'deleteContent']);
+        Route::post('/trips/{trip}/content/{entity}/{entityId}/restore', [AdminController::class, 'restoreContent']);
+    });
     Route::get('/trips/public', [TripController::class, 'publicIndex']);
     Route::get('/metadata/trips/{trip}', [MetadataController::class, 'trip'])->middleware('throttle:120,1');
     Route::get('/sync', SyncController::class)->middleware('throttle:120,1');

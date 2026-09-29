@@ -66,7 +66,9 @@ export function deriveNewTripState(
         .map((a) => a.id),
       sharingLevel: trip.sharingLevel as TripSharingLevelType,
       currentUserRole:
-        (currentUserTripUser?.role as TripUserRole | undefined) ??
+        (trip.adminAccess
+          ? TripUserRole.Owner
+          : (currentUserTripUser?.role as TripUserRole | undefined)) ??
         TripUserRole.Viewer,
       isCurrentUserTripMember: currentUserTripUser !== undefined,
       // null → undefined: InstantDB returns null for unset optional fields

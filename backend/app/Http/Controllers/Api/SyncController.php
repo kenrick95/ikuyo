@@ -19,7 +19,7 @@ class SyncController extends Controller
 
         if ($tripId) {
             $trip = Trip::findOrFail($tripId);
-            abort_unless($trip->sharing_level >= 2 || ($user && $trip->users()->whereKey($user->getKey())->exists()), 403);
+            abort_unless($user?->isAdmin() || $trip->sharing_level >= 2 || ($user && $trip->users()->whereKey($user->getKey())->exists()), 403);
         } else {
             abort_unless($user, 401);
             $trip = null;
@@ -36,8 +36,8 @@ class SyncController extends Controller
             // Without a trip scope we must never leak every trip's events to a
             // logged-in user; restrict to trips they can access (public or member).
             $query->whereIn('trip_id', Trip::query()
-                ->where(fn ($q) => $q->where('sharing_level', '>=', 2)
-                    ->orWhereHas('users', fn ($q2) => $q2->whereKey($user->getKey())))
+                ->when(! $user->isAdmin(), fn ($q) => $q->where(fn ($q2) => $q2->where('sharing_level', '>=', 2)
+                    ->orWhereHas('users', fn ($q3) => $q3->whereKey($user->getKey()))))
                 ->pluck('id'));
         }
 
@@ -45,7 +45,7 @@ class SyncController extends Controller
 
         // Section visibility: a non-member public visitor must not receive events
         // (expenses / tasks / comments) hidden by the trip's public_show_* flags.
-        if ($trip && $trip->sharing_level >= 2 && ! ($user && $trip->users()->whereKey($user->getKey())->exists())) {
+        if ($trip && ! $user?->isAdmin() && $trip->sharing_level >= 2 && ! ($user && $trip->users()->whereKey($user->getKey())->exists())) {
             $hiddenEntities = collect();
             if ($trip->public_show_expenses === false) {
                 $hiddenEntities->push('expense');

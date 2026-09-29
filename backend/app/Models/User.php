@@ -23,6 +23,11 @@ class User extends Authenticatable
 
     public $timestamps = false;
 
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
     public function getAuthPasswordName(): string
     {
         return 'password_hash';

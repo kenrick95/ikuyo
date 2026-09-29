@@ -138,6 +138,7 @@ export type TripSliceTaskList = {
 
 export type DbTripQueryReturnType = {
   id: string;
+  adminAccess?: boolean;
   title: string;
   timestampStart: number;
   timestampEnd: number;
