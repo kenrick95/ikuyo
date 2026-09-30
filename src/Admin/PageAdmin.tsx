@@ -437,6 +437,7 @@ export default function PageAdmin() {
             {selectedTrip ? (
               <Button
                 variant="outline"
+                disabled={busy}
                 onClick={() => setSelectedTrip(undefined)}
               >
                 Show all admin activity

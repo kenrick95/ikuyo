@@ -512,6 +512,14 @@ class AdminModeTest extends TestCase
             'user_id' => $owner->id, 'content' => 'Debug note',
         ]);
 
+        DB::statement("CREATE TRIGGER reject_activity_delete BEFORE UPDATE OF deleted_at ON activities BEGIN SELECT RAISE(FAIL, 'delete unavailable'); END");
+        $this->actingAs($owner)->deleteJson('/api/trips/' . $trip->id . '/activities/' . $activity->id)
+            ->assertInternalServerError();
+        $this->assertDatabaseHas('comment_groups', ['id' => $group->id, 'deleted_at' => null]);
+        $this->assertDatabaseHas('comment_group_objects', ['id' => $group->id, 'deleted_at' => null]);
+        $this->assertDatabaseHas('comments', ['id' => $comment->id, 'deleted_at' => null, 'deleted_with_group' => false]);
+        DB::statement('DROP TRIGGER reject_activity_delete');
+
         $this->actingAs($owner)->deleteJson('/api/activities/' . $activity->id)->assertOk();
         $this->assertSoftDeleted('comment_groups', ['id' => $group->id]);
         $this->actingAs($admin)->postJson('/api/admin/trips/' . $trip->id . '/content/comment-groups/' . $group->id . '/restore')

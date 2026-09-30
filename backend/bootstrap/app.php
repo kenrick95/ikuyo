@@ -4,6 +4,7 @@ use App\Http\Middleware\AuditAdminAccess;
 use App\Http\Middleware\AuthorizeTripAccess;
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureTripContentWritable;
+use App\Http\Middleware\SerializeTripLifecycle;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -25,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => EnsureAdmin::class,
             'admin.audit' => AuditAdminAccess::class,
             'trip.writable' => EnsureTripContentWritable::class,
+            'trip.lifecycle' => SerializeTripLifecycle::class,
         ]);
 
         // The frontend models empty strings as "" (matching InstantDB's required

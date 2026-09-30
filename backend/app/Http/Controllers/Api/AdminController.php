@@ -226,29 +226,29 @@ class AdminController extends Controller
 
     public function restoreContent(string $trip, string $entity, string $entityId): JsonResponse
     {
-        Trip::findOrFail($trip);
-        $record = $this->contentQuery($trip, $entity, 'deleted')->whereKey($entityId)->firstOrFail();
-        if ($entity === 'tasks') {
-            abort_unless(TaskList::whereKey($record->getAttribute('task_list_id'))->exists(), 409, 'Restore the task list first.');
-        }
-        if ($entity === 'comments') {
-            abort_unless(CommentGroup::whereKey($record->getAttribute('comment_group_id'))->exists(), 409, 'Restore the comment group first.');
-        }
-        if ($record instanceof CommentGroup) {
-            $object = CommentGroupObject::withTrashed()->withoutGlobalScope('activeParent')
-                ->where('comment_group_id', $record->id)->first();
-            $model = match (CommentObjectType::tryFrom((int) $object?->object_type)) {
-                CommentObjectType::Trip => Trip::class,
-                CommentObjectType::Activity => Activity::class,
-                CommentObjectType::Accommodation => Accommodation::class,
-                CommentObjectType::MacroPlan => MacroPlan::class,
-                CommentObjectType::Expense => Expense::class,
-                CommentObjectType::Task => Task::class,
-                default => null,
-            };
-            abort_unless($object && $model && $model::whereKey($object->object_id)->exists(), 409, 'Restore the comment target first.');
-        }
-        DB::transaction(function () use ($record): void {
+        DB::transaction(function () use ($trip, $entity, $entityId): void {
+            Trip::whereKey($trip)->lockForUpdate()->firstOrFail();
+            $record = $this->contentQuery($trip, $entity, 'deleted')->whereKey($entityId)->lockForUpdate()->firstOrFail();
+            if ($entity === 'tasks') {
+                abort_unless(TaskList::whereKey($record->getAttribute('task_list_id'))->lockForUpdate()->first() !== null, 409, 'Restore the task list first.');
+            }
+            if ($entity === 'comments') {
+                abort_unless(CommentGroup::whereKey($record->getAttribute('comment_group_id'))->lockForUpdate()->first() !== null, 409, 'Restore the comment group first.');
+            }
+            if ($record instanceof CommentGroup) {
+                $object = CommentGroupObject::withTrashed()->withoutGlobalScope('activeParent')
+                    ->where('comment_group_id', $record->id)->lockForUpdate()->first();
+                $model = match (CommentObjectType::tryFrom((int) $object?->object_type)) {
+                    CommentObjectType::Trip => Trip::class,
+                    CommentObjectType::Activity => Activity::class,
+                    CommentObjectType::Accommodation => Accommodation::class,
+                    CommentObjectType::MacroPlan => MacroPlan::class,
+                    CommentObjectType::Expense => Expense::class,
+                    CommentObjectType::Task => Task::class,
+                    default => null,
+                };
+                abort_unless($object && $model && $model::whereKey($object->object_id)->lockForUpdate()->first() !== null, 409, 'Restore the comment target first.');
+            }
             $record->restore();
             if ($record instanceof CommentGroup) {
                 CommentGroupObject::onlyTrashed()->where('comment_group_id', $record->id)->first()?->restore();
