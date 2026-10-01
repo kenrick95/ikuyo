@@ -2,6 +2,11 @@ name: Deploy
 
 on:
   workflow_call:
+    inputs:
+      allow_migrations:
+        description: Explicit manual authorization to migrate or recover production
+        type: boolean
+        default: false
     secrets:
       DEPLOY_SSH_KEY:
         required: true
@@ -12,29 +17,21 @@ jobs:
   deploy:
     name: "Deploy to Production"
     concurrency:
-      group: ci-${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
+      group: ikuyo-production-deployment
+      cancel-in-progress: false
     runs-on: ubuntu-24.04
     environment: production
     permissions:
       contents: read
     env:
-      MAPTILER_API_KEY: ${{ vars.MAPTILER_API_KEY }}
-      MAPTILER_MAP_STYLE_LIGHT: ${{ vars.MAPTILER_MAP_STYLE_LIGHT }}
-      MAPTILER_MAP_STYLE_DARK: ${{ vars.MAPTILER_MAP_STYLE_DARK }}
-      SENTRY_DSN: ${{ vars.SENTRY_DSN }}
-      SENTRY_ENABLED: ${{ vars.SENTRY_ENABLED }}
-      SENTRY_RELEASE: ${{ github.sha }}
-      # Backend-migration flags (set in Settings → Secrets and variables → Actions → Variables)
-      IKUYO_BACKEND_AUTH: ${{ vars.IKUYO_BACKEND_AUTH }}
-      IKUYO_BACKEND_TRIP_READS: ${{ vars.IKUYO_BACKEND_TRIP_READS }}
-      IKUYO_BACKEND_ACTIVITY_WRITES: ${{ vars.IKUYO_BACKEND_ACTIVITY_WRITES }}
-      IKUYO_BACKEND_CONTENT_WRITES: ${{ vars.IKUYO_BACKEND_CONTENT_WRITES }}
-      IKUYO_BACKEND_TASK_WRITES: ${{ vars.IKUYO_BACKEND_TASK_WRITES }}
-      IKUYO_BACKEND_SHARING_WRITES: ${{ vars.IKUYO_BACKEND_SHARING_WRITES }}
-      IKUYO_BACKEND_TRIP_WRITES: ${{ vars.IKUYO_BACKEND_TRIP_WRITES }}
-      IKUYO_MAINTENANCE_MODE: ${{ vars.IKUYO_MAINTENANCE_MODE }}
-      IKUYO_READ_ONLY_MODE: ${{ vars.IKUYO_READ_ONLY_MODE }}
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+      DEPLOY_TARGET: ${{ vars.DEPLOY_TARGET }}
+      DEPLOY_HEALTH_URL: ${{ vars.DEPLOY_HEALTH_URL }}
+      DEPLOY_DRAIN_SECONDS: ${{ vars.DEPLOY_DRAIN_SECONDS || '30' }}
+      # Only an explicit dispatch can authorize mutations to the production schema.
+      ALLOW_MIGRATIONS: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_migrations && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -43,33 +40,8 @@ jobs:
         with:
           name: build-artifact
           path: dist/
-      - name: Test SSH port
-        run: |
-          nc -vz "${{ vars.DEPLOY_HOST }}" "${{ vars.DEPLOY_PORT }}"
-
-      - name: Test SSH connection
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-
-          ssh -vvv \
-            -p "${{ vars.DEPLOY_PORT }}" \
-            -o UserKnownHostsFile=/dev/null \
-            -o StrictHostKeyChecking=no \
-            -i ~/.ssh/deploy_key \
-            "${{ vars.DEPLOY_USER }}@${{ vars.DEPLOY_HOST }}" \
-            "echo SSH connection successful"
-      - name: Upload dist folder
-        uses: up9cloud/action-rsync@e032bd158d5e7d4b3e46fd3263178276fe0126d5 # v1.4
+      - name: Check migration gate and deploy in place
         env:
-          HOST: ${{ vars.DEPLOY_HOST }}
-          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          TARGET: ${{ vars.DEPLOY_TARGET }}
-          SOURCE: './dist/'
-          MODE: push
-          VERBOSE: true
-          PORT: ${{ vars.DEPLOY_PORT }}
-          USER: ${{ vars.DEPLOY_USER }}
-          ARGS: -avz --exclude-from=.gitignore --exclude=/.git/ --exclude=/.github/ --delay-updates
-          SSH_ARGS: "-vvv -p ${{ vars.DEPLOY_PORT }} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/deploy/deploy.sh
