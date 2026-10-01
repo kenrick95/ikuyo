@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { get } from './apiClient';
+import { ApiError, get } from './apiClient';
+import { useBoundStore } from './store';
 
 export type SyncChange = {
   entity: string;
@@ -51,6 +52,7 @@ export function usePeriodicTripSync(
     const sync = async () => {
       if (syncing) return;
       syncing = true;
+      const { sessionEpoch, currentUser } = useBoundStore.getState();
       try {
         const response = await get<SyncResponse>(
           `/api/sync?cursor=${cursor}&tripId=${encodeURIComponent(tripId)}`,
@@ -58,8 +60,19 @@ export function usePeriodicTripSync(
         if (disposed) return;
         cursor = Math.max(cursor, response.nextCursor);
         if (response.changes.length > 0) onChangesRef.current(response.changes);
-      } catch {
-        // A failed background refresh must not disrupt the currently visible trip.
+      } catch (error) {
+        if (
+          !disposed &&
+          useBoundStore.getState().sessionEpoch === sessionEpoch &&
+          useBoundStore.getState().currentUser?.id === currentUser?.id &&
+          error instanceof ApiError &&
+          [401, 403, 404].includes(error.status)
+        ) {
+          // Revalidate through the trip loader, which clears expired sessions
+          // and evicts denied trips together with their cached content/dialogs.
+          useBoundStore.getState().refreshTrip(tripId);
+        }
+        // Transient background failures leave the current trip visible.
       } finally {
         syncing = false;
       }

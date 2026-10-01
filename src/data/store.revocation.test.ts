@@ -1,9 +1,10 @@
-import { waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TripSliceActivity, TripSliceTrip } from '../Trip/store/types';
 import type { TripsSliceTrip } from '../Trips/store';
 import type { DbUser } from '../User/db';
 import { useBoundStore } from './store';
+import { usePeriodicTripSync } from './usePeriodicTripSync';
 
 const user: DbUser = {
   id: 'user-1',
@@ -52,9 +53,100 @@ describe('persisted trip revocation', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
     useBoundStore.getState().clearSession();
   });
+
+  it.each([401, 403, 404])(
+    'removes cached private data after background sync returns %s',
+    async (status) => {
+      vi.useFakeTimers();
+      const fetchMock = vi.fn(async () => ({
+        ok: false,
+        status,
+        text: async () => JSON.stringify({ message: 'Access revoked' }),
+      }));
+      vi.stubGlobal('fetch', fetchMock);
+      const hook = renderHook(() =>
+        usePeriodicTripSync('trip-1', () => undefined, 100),
+      );
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(100);
+      });
+      hook.unmount();
+
+      expect(fetchMock.mock.calls).toHaveLength(2);
+      const state = useBoundStore.getState();
+      expect(state.trip['trip-1']).toBeUndefined();
+      expect(state.activity['activity-1']).toBeUndefined();
+      expect(state.dialogs).toEqual([]);
+      expect(state.confirmingDialogProps).toBeUndefined();
+      expect(state.currentUser?.id).toBe(status === 401 ? undefined : user.id);
+      expect(localStorage.getItem('ikuyo-storage') ?? '').not.toContain(
+        'Private trip title',
+      );
+    },
+  );
+
+  it('keeps cached data on a transient background sync failure', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn(async () => ({
+      ok: false,
+      status: 500,
+      text: async () => JSON.stringify({ message: 'Unavailable' }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const hook = renderHook(() =>
+      usePeriodicTripSync('trip-1', () => undefined, 100),
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100);
+    });
+    hook.unmount();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(useBoundStore.getState().trip['trip-1']?.title).toBe(
+      'Private trip title',
+    );
+  });
+
+  it.each(['session change', 'unmount'])(
+    'ignores a delayed sync denial after %s',
+    async (reason) => {
+      vi.useFakeTimers();
+      const denied = {
+        ok: false,
+        status: 403,
+        text: async () => JSON.stringify({ message: 'Forbidden' }),
+      };
+      let release!: (response: typeof denied) => void;
+      const fetchMock = vi.fn(
+        () =>
+          new Promise<typeof denied>((resolve) => {
+            release = resolve;
+          }),
+      );
+      vi.stubGlobal('fetch', fetchMock);
+      const hook = renderHook(() =>
+        usePeriodicTripSync('trip-1', () => undefined, 100),
+      );
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(100);
+      });
+      if (reason === 'session change') {
+        useBoundStore.getState().clearSession();
+        seedPrivateTrip();
+      } else hook.unmount();
+      await act(async () => {
+        release(denied);
+      });
+      hook.unmount();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(useBoundStore.getState().trip['trip-1']?.title).toBe(
+        'Private trip title',
+      );
+    },
+  );
 
   it('clears private data when session validation finds no user', async () => {
     vi.stubGlobal(
