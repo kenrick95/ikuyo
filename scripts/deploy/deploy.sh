@@ -61,22 +61,9 @@ if [[ $latest != "$GITHUB_SHA" ]]; then
     echo 'Skipping stale build: deploy the latest main workflow instead.'
     exit 0
 fi
-manifest=$(python3 - <<'PY'
-import base64, glob, json, pathlib
-names = sorted(pathlib.Path(p).stem for p in glob.glob('dist/backend/database/migrations/*.php'))
-if not names:
-    raise SystemExit('No incoming migrations found; refusing deployment.')
-print(base64.b64encode(json.dumps(names).encode()).decode())
-PY
-)
+manifest=$(php scripts/deploy/runner.php manifest)
 state=$(remote php /dev/stdin "$backend" "$manifest" < scripts/deploy/state.php)
-needs_manual=$(STATE="$state" python3 - <<'PYCODE'
-import json, os
-state = json.loads(os.environ['STATE'])
-assert isinstance(state['pending'], list) and isinstance(state['blocked'], bool)
-print('true' if state['pending'] or state['blocked'] else 'false')
-PYCODE
-)
+needs_manual=$(php scripts/deploy/runner.php gate "$state")
 if [[ $needs_manual == true && $ALLOW_MIGRATIONS != true ]]; then
     echo 'Production unchanged: pending migrations or an incomplete deployment require a manual run.'
     if [[ -n ${GITHUB_STEP_SUMMARY:-} ]]; then
@@ -84,22 +71,13 @@ if [[ $needs_manual == true && $ALLOW_MIGRATIONS != true ]]; then
             echo '### Manual deployment required'
             echo 'Production has not been changed. Run **Testing → Run workflow** on **main**, with **Authorize migrations / recovery** checked.'
             echo 'This authorization covers the complete incoming build, including migrations from earlier merges.'
-            STATE="$state" python3 - <<'PYCODE'
-import json, os
-for name in json.loads(os.environ['STATE'])['pending']:
-    print(f'- Pending migration: `{name}`')
-PYCODE
+            php scripts/deploy/runner.php summary "$state"
         } >> "$GITHUB_STEP_SUMMARY"
     fi
     exit 0
 fi
 if [[ $needs_manual == true ]]; then
-    STATE="$state" python3 - <<'PYCODE'
-import json, os
-state = json.loads(os.environ['STATE'])
-if state['maintenance_driver'] != 'file' or state['queue_driver'] != 'sync':
-    raise SystemExit('Require file maintenance and sync queues; drain workers separately otherwise.')
-PYCODE
+    php scripts/deploy/runner.php check-maintenance "$state"
     maintenance=true
     remote bash -se -- "$backend" <<'REMOTE'
 cd "$1"
@@ -135,11 +113,7 @@ php artisan optimize
 REMOTE
 # Boot the uploaded code and query the DB while still in maintenance.
 state=$(remote php /dev/stdin "$backend" "$manifest" < scripts/deploy/state.php)
-STATE="$state" python3 - <<'PYCODE'
-import json, os
-if json.loads(os.environ['STATE'])['pending']:
-    raise SystemExit('Pending migrations remain; refusing to reopen production.')
-PYCODE
+php scripts/deploy/runner.php verify "$state"
 if [[ $maintenance == true ]]; then
     remote bash -se -- "$backend" <<'REMOTE'
 cd "$1"
@@ -149,11 +123,6 @@ fi
 # Test an actual DB-backed API route, not the SPA fallback or Laravel liveness alone.
 curl --fail --silent --show-error --max-time 30 -H 'Accept: application/json' \
     --output "$health_response" "$DEPLOY_HEALTH_URL"
-python3 - "$health_response" <<'PYCODE'
-import json, sys
-with open(sys.argv[1]) as stream:
-    response = json.load(stream)
-assert isinstance(response, dict) and isinstance(response.get('data'), list), 'Expected the public trips API response'
-PYCODE
+php scripts/deploy/runner.php health "$health_response"
 remote rm -- "$backend/storage/framework/ikuyo-deploy-incomplete"
 echo "Deployed $GITHUB_SHA successfully."

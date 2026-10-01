@@ -143,7 +143,10 @@ workflow dispatch, so there is no new environment to configure.
 The deployed backend, dependencies, writable storage, and production `.env` must
 already exist for the state check. First provisioning is a manual host setup.
 Use `APP_MAINTENANCE_DRIVER=file` and `QUEUE_CONNECTION=sync` for migration runs.
-PHP, Bash, and `/dev/stdin` must be available over SSH. Do not bundle a production
+PHP, Bash, and `/dev/stdin` must be available over SSH. The shared host has no
+Python; migration checks and deployment data processing use PHP. The GitHub
+deployment runner explicitly provisions PHP 8.4 for `scripts/deploy/runner.php`.
+Python is used only for runner-side regression tests. Do not bundle a production
 SQLite database into the artifact.
 
 GitHub deployment concurrency uses one production group with

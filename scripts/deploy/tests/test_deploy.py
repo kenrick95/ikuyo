@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import tempfile
 import unittest
 
@@ -42,6 +43,7 @@ elif name == 'curl':
 '''
 
 
+@unittest.skipUnless(shutil.which('php'), 'PHP CLI is required for deployment controller tests')
 class DeploymentTests(unittest.TestCase):
     def run_deploy(self, **settings):
         with tempfile.TemporaryDirectory() as directory:
@@ -152,3 +154,10 @@ class DeploymentTests(unittest.TestCase):
                 result, calls, _ = self.run_deploy(PENDING='true', ALLOW_MIGRATIONS='true', **setting)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertFalse(any(c['tool'] == 'rsync' or 'artisan down' in c['stdin'] for c in calls))
+
+    def test_host_commands_never_require_python(self):
+        _, calls, _ = self.run_deploy(PENDING='true', ALLOW_MIGRATIONS='true')
+        for call in calls:
+            if call['tool'] == 'ssh':
+                self.assertNotIn('python', call['command'])
+                self.assertNotIn('python', call['stdin'])

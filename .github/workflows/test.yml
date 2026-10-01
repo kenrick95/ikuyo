@@ -68,6 +68,7 @@ jobs:
         run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s scripts/deploy/tests -v
       - name: Deployment PHP syntax
         run: |
+          php -l scripts/deploy/runner.php
           php -l scripts/deploy/state.php
           php -l scripts/deploy/maintenance.php
       - name: Build
