@@ -4,9 +4,36 @@ declare(strict_types=1);
 
 require __DIR__ . '/runner.php';
 
+$activeProcess = null;
+$cancellationStatus = null;
+$cleaningUp = false;
+
+// Wait for the SSH/rsync child to finish before cleanup can touch the host lock.
+// Killing SSH locally would not establish that remote Artisan has stopped.
+function waitForActiveProcess(): int
+{
+    global $activeProcess;
+    if (!is_resource($activeProcess)) {
+        return 0;
+    }
+    do {
+        $state = proc_get_status($activeProcess);
+        if ($state['running']) {
+            usleep(10000);
+        }
+    } while ($state['running']);
+    $closedStatus = proc_close($activeProcess);
+    $activeProcess = null;
+    return $state['exitcode'] >= 0 ? $state['exitcode'] : $closedStatus;
+}
+
 /** Execute an argument array without a local shell, optionally streaming PHP to SSH. */
 function command(array $arguments, string $input = '', bool $capture = false): string
 {
+    global $activeProcess, $cancellationStatus, $cleaningUp;
+    if ($cancellationStatus !== null && !$cleaningUp) {
+        throw new RuntimeException('Deployment cancelled; active command has finished.');
+    }
     $stdin = tmpfile();
     $stdout = $capture ? tmpfile() : STDOUT;
     fwrite($stdin, $input);
@@ -15,7 +42,8 @@ function command(array $arguments, string $input = '', bool $capture = false): s
     if (!is_resource($process)) {
         throw new RuntimeException('Cannot start ' . $arguments[0]);
     }
-    $status = proc_close($process);
+    $activeProcess = $process;
+    $status = waitForActiveProcess();
     fclose($stdin);
     $result = '';
     if ($capture) {
@@ -50,7 +78,9 @@ $lock = null;
 
 // Shutdown also covers a catchable runner cancellation and unexpected PHP errors.
 register_shutdown_function(function () use (&$key, &$healthResponse, &$locked, &$maintenance,
-    &$success, &$remote, &$artisan, &$installMaintenance, &$lock): void {
+    &$success, &$remote, &$artisan, &$installMaintenance, &$lock, &$cleaningUp): void {
+    $cleaningUp = true;
+    waitForActiveProcess();
     if (!$success && $maintenance) {
         fwrite(STDERR, "Deployment failed. Maintenance remains enabled; rerun manually after inspecting the failure.\n");
         try {
@@ -91,7 +121,7 @@ try {
     $drain = getenv('DEPLOY_DRAIN_SECONDS') ?: '30';
     if (!in_array($authorization, ['true', 'false'], true)
         || !str_starts_with($target, '/') || trim($target, '/') === ''
-        || !preg_match('~^https://[^/]+/.*api/trips/public$~', $url)
+        || !preg_match('~^https://[^/]+/(?:[^/?#]+/)*api/trips/public$~D', $url)
         || !preg_match("/^[0-9]+$/D", $drain)) {
         throw new RuntimeException('Invalid deployment configuration.');
     }
@@ -99,8 +129,11 @@ try {
         throw new RuntimeException('Runner PHP requires pcntl for cancellation cleanup.');
     }
     pcntl_async_signals(true);
-    pcntl_signal(SIGINT, fn () => exit(130));
-    pcntl_signal(SIGTERM, fn () => exit(143));
+    $cancel = function (int $signal) use (&$cancellationStatus): void {
+        $cancellationStatus ??= 128 + $signal;
+    };
+    pcntl_signal(SIGINT, $cancel);
+    pcntl_signal(SIGTERM, $cancel);
 
     $key = tempnam(sys_get_temp_dir(), 'ikuyo-key-');
     chmod($key, 0600);
@@ -192,5 +225,5 @@ try {
     echo "Deployed $sha successfully.\n";
 } catch (Throwable $error) {
     fwrite(STDERR, $error->getMessage() . "\n");
-    exit(1);
+    exit($cancellationStatus ?? 1);
 }

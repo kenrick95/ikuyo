@@ -72,8 +72,8 @@ release atomic. This is an accepted limit of the single-copy approach.
 
 In GitHub Actions, select **Testing → Run workflow**, select **main**, and check
 **Authorize migrations / recovery** (`allow_migrations`). This rebuilds and tests
-latest `main`, then deploys it. A push cannot supply this authorization, even if
-an input is accidentally passed to the reusable deploy workflow. No separate
+latest `main`, then deploys it. The caller only passes authorization on its
+manual-dispatch path; the reusable deploy workflow uses that boolean input. No separate
 GitHub environment reviewer configuration is required for this manual gate.
 
 The manual run repeats the same host lock, latest-SHA, and production-state
@@ -159,8 +159,10 @@ migration. The host lock also covers check, upload, migration, and verification;
 any separate manual host deploy must honor it. GitHub may replace an older
 pending job with a newer one; the SHA check ensures stale builds are skipped.
 
-The script releases its lock on normal exit and catchable interruption. A
-force-killed runner or lost host can leave a stale lock. Only after confirming no
+On catchable interruption, the controller stops scheduling deployment commands
+and waits for the active SSH/rsync child to finish before maintenance recovery or
+releasing the host lock. Killing SSH locally would not prove that remote Artisan
+has stopped. A force-killed runner or lost host can leave a stale lock. Only after confirming no
 deployment is active, remove `DEPLOY_TARGET/.ikuyo-deploy-lock` over SSH and run
 latest main manually. Do not delete the lock while an upload is running.
 

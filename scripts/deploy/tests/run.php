@@ -24,16 +24,17 @@ function fixture(): string {
     mkdir($path, 0700);
     return $path;
 }
-function execute(array $args, ?string $cwd = null, ?array $env = null): array {
+function execute(array $args, ?string $cwd = null, ?array $env = null, ?Closure $during = null): array {
     $out = tmpfile(); $err = tmpfile();
     $process = proc_open($args, [0 => ['file', '/dev/null', 'r'], 1 => $out, 2 => $err], $pipes, $cwd, $env);
-    $status = proc_close($process);
+    try { if ($during) { $during($process); } }
+    finally { $status = proc_close($process); }
     rewind($out); rewind($err);
     $result = ['status' => $status, 'stdout' => stream_get_contents($out), 'stderr' => stream_get_contents($err)];
     fclose($out); fclose($err);
     return $result;
 }
-function deploy(array $settings = []): array {
+function deploy(array $settings = [], ?Closure $during = null): array {
     global $root;
     $work = fixture();
     try {
@@ -50,8 +51,10 @@ function deploy(array $settings = []): array {
             'GITHUB_SHA' => 'abc123', 'GITHUB_REPOSITORY' => 'owner/ikuyo', 'DEPLOY_SSH_KEY' => 'TEST KEY',
             'TEST_LOG' => "$work/calls", 'TEST_COUNTER' => "$work/counter", 'GITHUB_STEP_SUMMARY' => "$work/summary",
             'ALLOW_MIGRATIONS' => 'false', 'PENDING' => 'false', 'BLOCKED' => 'false', 'FAIL_AT' => '',
-            'MAINTENANCE_DRIVER' => 'file', 'QUEUE_DRIVER' => 'sync'], $settings);
-        $result = execute([PHP_BINARY, "$root/scripts/deploy/deploy.php"], $work, $env);
+            'MAINTENANCE_DRIVER' => 'file', 'QUEUE_DRIVER' => 'sync', 'BLOCK_AT' => '',
+            'TEST_ACTIVE' => "$work/active", 'TEST_RELEASE' => "$work/release"], $settings);
+        $result = execute([PHP_BINARY, "$root/scripts/deploy/deploy.php"], $work, $env,
+            $during ? fn ($process) => $during($process, $work) : null);
         $result['calls'] = is_file("$work/calls") ? array_map(fn ($line) => json_decode($line, true, 512, JSON_THROW_ON_ERROR), file("$work/calls", FILE_IGNORE_NEW_LINES)) : [];
         $result['summary'] = is_file("$work/summary") ? file_get_contents("$work/summary") : '';
         return $result;
@@ -62,6 +65,44 @@ function position(array $calls, string $text): int {
     return -1;
 }
 function healthy(array $result): void { check($result['status'] === 0, $result['stderr']); }
+
+foreach (['https://example.invalid/not-api/trips/public', 'https://example.invalid/api/trips/public?x=1',
+    'http://example.invalid/api/trips/public'] as $invalidUrl) {
+    test('reject health URL before SSH: ' . $invalidUrl, function () use ($invalidUrl) {
+        $r = deploy(['DEPLOY_HEALTH_URL' => $invalidUrl]);
+        check($r['status'] !== 0 && $r['calls'] === [], 'Invalid URL reached production');
+    });
+}
+test('health URL supports API at a nested deployment path', function () {
+    healthy(deploy(['DEPLOY_HEALTH_URL' => 'https://example.invalid/ikuyo/api/trips/public']));
+});
+
+foreach (['rsync', '/artisan migrate'] as $phase) {
+    foreach ([SIGTERM, SIGINT] as $signal) {
+        test("cancellation waits for $phase child ($signal)", function () use ($phase, $signal) {
+            $r = deploy(['PENDING' => 'true', 'ALLOW_MIGRATIONS' => 'true', 'BLOCK_AT' => $phase],
+                function ($process, $work) use ($signal) {
+                    $deadline = microtime(true) + 5;
+                    while (!is_file("$work/active") && microtime(true) < $deadline) { usleep(10000); }
+                    try {
+                        check(is_file("$work/active"), 'Child did not start');
+                        check(proc_terminate($process, $signal), 'Cannot signal controller');
+                        usleep(100000);
+                        check(proc_get_status($process)['running'], 'Controller exited with an active child');
+                        $calls = array_map(fn ($line) => json_decode($line, true), file("$work/calls", FILE_IGNORE_NEW_LINES));
+                        check(position($calls, 'rmdir --') < 0, 'Released lock with active child');
+                        check(count(array_filter($calls, fn ($call) => str_contains($call['command'], '/artisan down'))) === 1,
+                            'Maintenance recovery overlapped active child');
+                    } finally { touch("$work/release"); }
+                });
+            check($r['status'] === 128 + $signal, 'Unexpected cancellation exit status: ' . $r['stderr']);
+            $finished = array_search('finished', array_column($r['calls'], 'name'), true);
+            check($finished !== false && position($r['calls'], 'rmdir --') > $finished, 'Unlock did not wait for child exit');
+            check(position(array_slice($r['calls'], $finished + 1), '/artisan down') >= 0, 'Missing maintenance recovery');
+            check(position($r['calls'], 'rm --') < 0, 'Cancellation removed recovery marker');
+        });
+    }
+}
 
 test('automatic upload without maintenance or migration', function () {
     $r = deploy(); healthy($r);

@@ -6,6 +6,16 @@ $args = $name === 'ssh' ? str_getcsv(end($argv), ' ', "'", '\\') : array_slice($
 $command = implode(' ', $args);
 $stdin = $name === 'ssh' ? stream_get_contents(STDIN) : '';
 file_put_contents(getenv('TEST_LOG'), json_encode(compact('name', 'command', 'stdin', 'args')) . "\n", FILE_APPEND);
+$block = getenv('BLOCK_AT');
+if ($block && ($block === $name || str_contains($command, $block))) {
+    touch(getenv('TEST_ACTIVE'));
+    $deadline = microtime(true) + 5;
+    while (!is_file(getenv('TEST_RELEASE')) && microtime(true) < $deadline) {
+        usleep(10000);
+    }
+    if (!is_file(getenv('TEST_RELEASE'))) { exit(1); }
+    file_put_contents(getenv('TEST_LOG'), json_encode(['name' => 'finished', 'command' => $command, 'stdin' => '']) . "\n", FILE_APPEND);
+}
 $failure = getenv('FAIL_AT');
 if ($name === 'gh') {
     echo (getenv('LATEST_SHA') ?: 'abc123') . "\n";
