@@ -1,6 +1,12 @@
 name: Testing
 
 on:
+  workflow_dispatch:
+    inputs:
+      allow_migrations:
+        description: Authorize migrations / recovery (deploy latest main; be available to intervene)
+        type: boolean
+        default: false
   push:
     branches: ['main']
   pull_request:
@@ -45,7 +51,7 @@ jobs:
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
         with:
           php-version: '8.4'
-          extensions: mbstring, curl, pdo, sqlite, xml, zip, intl, gd
+          extensions: mbstring, curl, pdo, sqlite, xml, zip, intl, gd, pcntl
       - name: Use Node.js 24
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -58,6 +64,14 @@ jobs:
         run: pnpm typecheck
       - name: Test
         run: pnpm test
+      - name: Deployment script regression tests
+        run: php scripts/deploy/tests/run.php
+      - name: Deployment PHP syntax
+        run: |
+          php -l scripts/deploy/deploy.php
+          php -l scripts/deploy/runner.php
+          php -l scripts/deploy/state.php
+          php -l scripts/deploy/maintenance.php
       - name: Build
         run: pnpm build
       - name: Install dependencies
@@ -99,9 +113,11 @@ jobs:
 
   deploy:
     needs: test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     permissions:
       contents: read
     uses: ./.github/workflows/deploy.yml
+    with:
+      allow_migrations: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_migrations || false }}
     secrets:
       DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
