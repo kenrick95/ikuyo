@@ -14,7 +14,7 @@ The GitHub Actions build job copies the Laravel app into the frontend artifact:
 cp -r backend dist/backend
 ```
 
-`deploy.yml` invokes `scripts/deploy/deploy.sh`, which rsyncs `dist/` directly
+`deploy.yml` invokes `scripts/deploy/deploy.php`, which rsyncs `dist/` directly
 into `DEPLOY_TARGET` after checking production migration state. The deployed
 Laravel application is consequently at `DEPLOY_TARGET/backend`.
 
@@ -143,11 +143,15 @@ workflow dispatch, so there is no new environment to configure.
 The deployed backend, dependencies, writable storage, and production `.env` must
 already exist for the state check. First provisioning is a manual host setup.
 Use `APP_MAINTENANCE_DRIVER=file` and `QUEUE_CONNECTION=sync` for migration runs.
-PHP, Bash, and `/dev/stdin` must be available over SSH. The shared host has no
+PHP and `/dev/stdin` must be available over SSH. The shared host has no
 Python; migration checks and deployment data processing use PHP. The GitHub
-deployment runner explicitly provisions PHP 8.4 for `scripts/deploy/runner.php`.
-Python is used only for runner-side regression tests. Do not bundle a production
-SQLite database into the artifact.
+deployment runner explicitly provisions PHP 8.4 with `pcntl` for
+`scripts/deploy/deploy.php`.
+The controller runs PHP directly, invokes SSH and rsync with argument arrays, and
+runs Artisan directly over SSH. Only the persistent maintenance handler is written
+to the host; the database-state helper is streamed directly into PHP.
+Regression tests also run in PHP; the repository contains no Python test runner.
+Do not bundle a production SQLite database into the artifact.
 
 GitHub deployment concurrency uses one production group with
 `cancel-in-progress: false`. A newer build cannot cancel an active upload or

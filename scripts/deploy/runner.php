@@ -25,6 +25,10 @@ function productionState(string $json): array
     return $state;
 }
 
+if (realpath($_SERVER['SCRIPT_FILENAME']) !== __FILE__) {
+    return;
+}
+
 try {
     switch ($argv[1] ?? '') {
         case 'manifest':

@@ -8,5 +8,7 @@
 - Short maintenance windows for database migrations are acceptable. Preserve the
   automatic deployment path for builds with no pending migrations, and the manual
   authorization gate for migrations and incomplete-deployment recovery.
-- Python regression tests may run on GitHub Actions runners; they are not a
-  production hosting requirement.
+- Do not add Python code anywhere in this repository, including tests. Use PHP
+  for the deployment controller, migration helpers, and regression test runner.
+- Run the deployment workflow with `php scripts/deploy/deploy.php`; do not wrap
+  PHP commands in a Bash deployment controller.
