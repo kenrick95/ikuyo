@@ -3,9 +3,11 @@ import {
   Button,
   Callout,
   Container,
+  DropdownMenu,
   Flex,
   Heading,
   Spinner,
+  Tabs,
   Text,
   TextField,
 } from '@radix-ui/themes';
@@ -17,6 +19,7 @@ import type { CursorPage } from '../data/apiClient';
 import { deleteMutation, get, postMutation } from '../data/apiClient';
 import { DocTitle } from '../Nav/DocTitle';
 import { Navbar } from '../Nav/Navbar';
+import styles from './PageAdmin.module.css';
 
 type AdminUser = {
   id: string;
@@ -66,10 +69,17 @@ export default function PageAdmin() {
   const [auditRefresh, setAuditRefresh] = useState(0);
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [tripsLoading, setTripsLoading] = useState(false);
+  const [contentLoading, setContentLoading] = useState(false);
+  const [auditLoading, setAuditLoading] = useState(true);
+  const [auditAll, setAuditAll] = useState(false);
+  const auditTrip = auditAll ? undefined : selectedTrip;
 
   useEffect(() => {
     if (currentUser?.role !== 'admin') return;
     let active = true;
+    setUsersLoading(true);
     void get<AdminUser[]>(
       `/api/admin/users?search=${encodeURIComponent(submittedSearch)}`,
     )
@@ -78,6 +88,9 @@ export default function PageAdmin() {
       })
       .catch((reason: unknown) => {
         if (active) setError(String(reason));
+      })
+      .finally(() => {
+        if (active) setUsersLoading(false);
       });
     return () => {
       active = false;
@@ -87,6 +100,7 @@ export default function PageAdmin() {
   useEffect(() => {
     if (!selectedUser) return;
     let active = true;
+    setTripsLoading(true);
     void get<CursorPage<AdminTrip>>(
       `/api/admin/users/${encodeURIComponent(selectedUser.id)}/trips`,
     )
@@ -98,6 +112,9 @@ export default function PageAdmin() {
       })
       .catch((reason: unknown) => {
         if (active) setError(String(reason));
+      })
+      .finally(() => {
+        if (active) setTripsLoading(false);
       });
     return () => {
       active = false;
@@ -107,6 +124,7 @@ export default function PageAdmin() {
   useEffect(() => {
     if (!selectedTrip) return;
     let active = true;
+    setContentLoading(true);
     void get<CursorPage<AdminContent>>(
       `/api/admin/trips/${encodeURIComponent(selectedTrip.id)}/content`,
     )
@@ -118,6 +136,9 @@ export default function PageAdmin() {
       })
       .catch((reason: unknown) => {
         if (active) setError(String(reason));
+      })
+      .finally(() => {
+        if (active) setContentLoading(false);
       });
     return () => {
       active = false;
@@ -127,8 +148,11 @@ export default function PageAdmin() {
   useEffect(() => {
     if (currentUser?.role !== 'admin') return;
     let active = true;
+    setAuditLoading(true);
+    setAuditEvents([]);
+    setAuditNextCursor(null);
     const filter = new URLSearchParams({ refresh: String(auditRefresh) });
-    if (selectedTrip) filter.set('trip', selectedTrip.id);
+    if (auditTrip) filter.set('trip', auditTrip.id);
     void get<CursorPage<AdminAuditEvent>>(`/api/admin/audit-events?${filter}`)
       .then((result) => {
         if (active) {
@@ -138,11 +162,14 @@ export default function PageAdmin() {
       })
       .catch((reason: unknown) => {
         if (active) setError(String(reason));
+      })
+      .finally(() => {
+        if (active) setAuditLoading(false);
       });
     return () => {
       active = false;
     };
-  }, [currentUser?.role, selectedTrip, auditRefresh]);
+  }, [currentUser?.role, auditTrip, auditRefresh]);
 
   async function refresh() {
     if (!selectedUser) return;
@@ -166,6 +193,7 @@ export default function PageAdmin() {
 
   function selectUser(user?: AdminUser) {
     setSelectedUser(user);
+    setAuditAll(false);
     setTrips([]);
     setTripsNextCursor(null);
     setSelectedTrip(undefined);
@@ -228,6 +256,24 @@ export default function PageAdmin() {
     }
   }
 
+  async function loadMore<T>(
+    path: string,
+    append: (items: T[]) => void,
+    updateCursor: (cursor: string | null) => void,
+  ) {
+    setBusy(true);
+    setError(undefined);
+    try {
+      const page = await get<CursorPage<T>>(path);
+      append(page.data);
+      updateCursor(page.nextCursor);
+    } catch (reason) {
+      setError(String(reason));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <>
       <DocTitle title="Admin" />
@@ -239,252 +285,531 @@ export default function PageAdmin() {
         ]}
         rightItems={[<UserAvatarMenu key="account" user={currentUser} />]}
       />
-      <Container my="4">
+      <Container my="4" px="3">
         {currentUser?.role !== 'admin' ? (
           <Text>Administrator access is required.</Text>
         ) : (
           <Flex direction="column" gap="4">
-            <Callout.Root color="amber">
+            <div>
+              <Heading size="6">User support</Heading>
+              <Text as="p" color="gray" size="2" mt="1">
+                Find a user, inspect their trips, and recover deleted content.
+              </Text>
+            </div>
+            <Callout.Root color="amber" size="1">
               <Callout.Text>
-                Admin mode can access and change other users' trips. Deleted
-                data stays recoverable here.
+                Access to other users' trips is audited. Deleted accounts and
+                content remain recoverable.
               </Callout.Text>
             </Callout.Root>
-            {error ? <Text color="red">{error}</Text> : null}
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                if (busy) return;
-                setSubmittedSearch(search);
-                selectUser(undefined);
-              }}
-            >
-              <Flex gap="2">
-                <TextField.Root
-                  aria-label="Search users by handle or email"
-                  placeholder="Search users by handle or email"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                />
-                <Button type="submit" disabled={busy}>
-                  Search
-                </Button>
-              </Flex>
-            </form>
-            <Heading size="4">Users</Heading>
-            {users.map((user) => (
-              <Flex key={user.id} align="center" gap="2" wrap="wrap">
-                <Button
-                  variant={selectedUser?.id === user.id ? 'solid' : 'outline'}
-                  disabled={busy}
-                  onClick={() => selectUser(user)}
-                >
-                  {user.handle} {user.email ? `(${user.email})` : '(guest)'}
-                </Button>
-                {user.role === 'admin' ? <Badge>Admin</Badge> : null}
-                {user.deletedAt ? <Badge color="red">Deleted</Badge> : null}
-                {user.role !== 'admin' ? (
-                  <Button
-                    color={user.deletedAt ? 'green' : 'red'}
-                    variant="soft"
-                    disabled={busy}
-                    onClick={() => {
-                      if (
-                        user.deletedAt ||
-                        window.confirm(
-                          `Soft-delete account “${user.handle}”? This signs them out. Their trips and content stay recoverable.`,
-                        )
-                      ) {
-                        void changeUser(user);
-                      }
-                    }}
+            {error ? (
+              <Callout.Root color="red" role="alert">
+                <Callout.Text>{error}</Callout.Text>
+              </Callout.Root>
+            ) : null}
+            <Tabs.Root defaultValue="users">
+              <Tabs.List>
+                <Tabs.Trigger value="users">Users & trips</Tabs.Trigger>
+                <Tabs.Trigger value="activity">Audit history</Tabs.Trigger>
+              </Tabs.List>
+              <Tabs.Content value="users" mt="4">
+                <div className={styles.workspace}>
+                  <section className={styles.panel} aria-label="Find users">
+                    <Heading size="4" mb="3">
+                      Users
+                    </Heading>
+                    <form
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        if (busy) return;
+                        setSubmittedSearch(search);
+                        selectUser(undefined);
+                      }}
+                    >
+                      <Flex gap="2">
+                        <TextField.Root
+                          className={styles.search}
+                          aria-label="Search users by handle or email"
+                          placeholder="Handle or email"
+                          value={search}
+                          onChange={(event) => setSearch(event.target.value)}
+                        />
+                        <Button type="submit" disabled={busy}>
+                          Search
+                        </Button>
+                      </Flex>
+                    </form>
+                    <Text as="p" size="1" color="gray" my="3">
+                      Up to 30 matches, including deleted accounts.
+                    </Text>
+                    <div className={styles.userList}>
+                      {users.map((user) => (
+                        <button
+                          key={user.id}
+                          type="button"
+                          className={styles.userRow}
+                          aria-pressed={selectedUser?.id === user.id}
+                          disabled={busy}
+                          onClick={() => selectUser(user)}
+                        >
+                          <Flex align="center" justify="between" gap="2">
+                            <Text weight="medium">{user.handle}</Text>
+                            {user.role === 'admin' ? (
+                              <Badge>Admin</Badge>
+                            ) : null}
+                            {user.deletedAt ? (
+                              <Badge color="red">Deleted</Badge>
+                            ) : null}
+                          </Flex>
+                          <Text
+                            as="p"
+                            size="1"
+                            color="gray"
+                            className={styles.wrap}
+                          >
+                            {user.email ?? 'Guest account'}
+                          </Text>
+                        </button>
+                      ))}
+                      {usersLoading ? (
+                        <Text size="2" color="gray" role="status">
+                          Loading users…
+                        </Text>
+                      ) : null}
+                      {!usersLoading && users.length === 0 ? (
+                        <Text size="2" color="gray">
+                          No matching users.
+                        </Text>
+                      ) : null}
+                    </div>
+                  </section>
+                  <div className={styles.detail}>
+                    {!selectedUser ? (
+                      <div className={styles.empty}>
+                        <Heading size="4">Select a user to get started</Heading>
+                        <Text as="p" size="2" color="gray" mt="2">
+                          Their trips and account details will appear here.
+                        </Text>
+                      </div>
+                    ) : (
+                      <>
+                        <section
+                          className={styles.panel}
+                          aria-label="User trips"
+                        >
+                          <Flex
+                            align="start"
+                            justify="between"
+                            gap="3"
+                            mb="4"
+                            wrap="wrap"
+                          >
+                            <div>
+                              <Flex align="center" gap="2" wrap="wrap">
+                                <Heading size="4">
+                                  {selectedUser.handle}
+                                </Heading>
+                                {selectedUser.deletedAt ? (
+                                  <Badge color="red">Deleted account</Badge>
+                                ) : null}
+                                {selectedUser.role === 'admin' ? (
+                                  <Badge>Admin</Badge>
+                                ) : null}
+                              </Flex>
+                              <Text
+                                as="p"
+                                size="2"
+                                color="gray"
+                                mt="1"
+                                className={styles.wrap}
+                              >
+                                {selectedUser.email ?? 'Guest account'}
+                              </Text>
+                            </div>
+                            {selectedUser.role !== 'admin' ? (
+                              <DropdownMenu.Root>
+                                <DropdownMenu.Trigger>
+                                  <Button variant="outline" disabled={busy}>
+                                    Account actions <DropdownMenu.TriggerIcon />
+                                  </Button>
+                                </DropdownMenu.Trigger>
+                                <DropdownMenu.Content>
+                                  <DropdownMenu.Item
+                                    color={
+                                      selectedUser.deletedAt ? 'green' : 'red'
+                                    }
+                                    onSelect={() => {
+                                      if (
+                                        selectedUser.deletedAt ||
+                                        window.confirm(
+                                          'Soft-delete account “' +
+                                            selectedUser.handle +
+                                            '”? This signs them out. Their trips and content stay recoverable.',
+                                        )
+                                      )
+                                        void changeUser(selectedUser);
+                                    }}
+                                  >
+                                    {selectedUser.deletedAt
+                                      ? 'Restore account'
+                                      : 'Delete account'}
+                                  </DropdownMenu.Item>
+                                </DropdownMenu.Content>
+                              </DropdownMenu.Root>
+                            ) : null}
+                          </Flex>
+                          <Heading size="3" mb="2">
+                            Trips
+                          </Heading>
+                          {tripsLoading ? (
+                            <Text size="2" color="gray" role="status">
+                              Loading trips…
+                            </Text>
+                          ) : null}
+                          {!tripsLoading && trips.length === 0 ? (
+                            <Text size="2" color="gray">
+                              No trips to display.
+                            </Text>
+                          ) : null}
+                          {trips.map((trip) => (
+                            <div
+                              key={trip.id}
+                              className={styles.row}
+                              data-selected={selectedTrip?.id === trip.id}
+                            >
+                              <button
+                                type="button"
+                                className={styles.tripSelect}
+                                disabled={busy}
+                                aria-pressed={selectedTrip?.id === trip.id}
+                                onClick={() => {
+                                  setContent([]);
+                                  setContentNextCursor(null);
+                                  setSelectedTrip(trip);
+                                  setAuditAll(false);
+                                }}
+                              >
+                                <Text weight="medium">
+                                  {trip.title || 'Untitled trip'}
+                                </Text>
+                                <Flex gap="2" mt="1">
+                                  {trip.archivedAt ? (
+                                    <Badge color="gray">Archived</Badge>
+                                  ) : null}
+                                  {trip.deletedAt ? (
+                                    <Badge color="red">Deleted</Badge>
+                                  ) : null}
+                                </Flex>
+                              </button>
+                              <Flex gap="2" align="center" wrap="wrap">
+                                {!trip.deletedAt ? (
+                                  <Button asChild variant="soft" size="1">
+                                    <Link
+                                      to={
+                                        '/trip/' +
+                                        encodeURIComponent(trip.id) +
+                                        '/home'
+                                      }
+                                    >
+                                      Open editor
+                                    </Link>
+                                  </Button>
+                                ) : null}
+                                <DropdownMenu.Root>
+                                  <DropdownMenu.Trigger>
+                                    <Button
+                                      variant="ghost"
+                                      size="1"
+                                      disabled={busy}
+                                      aria-label={`Actions for ${trip.title}`}
+                                    >
+                                      Actions <DropdownMenu.TriggerIcon />
+                                    </Button>
+                                  </DropdownMenu.Trigger>
+                                  <DropdownMenu.Content>
+                                    <DropdownMenu.Item
+                                      color={trip.deletedAt ? 'green' : 'red'}
+                                      onSelect={() => {
+                                        if (
+                                          trip.deletedAt ||
+                                          window.confirm(
+                                            'Soft-delete trip “' +
+                                              trip.title +
+                                              '”?',
+                                          )
+                                        )
+                                          void change(
+                                            '/api/admin/trips/' +
+                                              encodeURIComponent(trip.id),
+                                            !!trip.deletedAt,
+                                            trip.id,
+                                          );
+                                      }}
+                                    >
+                                      {trip.deletedAt
+                                        ? 'Restore trip'
+                                        : 'Delete trip'}
+                                    </DropdownMenu.Item>
+                                  </DropdownMenu.Content>
+                                </DropdownMenu.Root>
+                              </Flex>
+                            </div>
+                          ))}
+                          {tripsNextCursor ? (
+                            <Button
+                              mt="3"
+                              variant="outline"
+                              disabled={busy}
+                              onClick={() =>
+                                void loadMore<AdminTrip>(
+                                  '/api/admin/users/' +
+                                    encodeURIComponent(selectedUser.id) +
+                                    '/trips?cursor=' +
+                                    encodeURIComponent(tripsNextCursor),
+                                  (items) =>
+                                    setTrips((previous) => [
+                                      ...previous,
+                                      ...items,
+                                    ]),
+                                  setTripsNextCursor,
+                                )
+                              }
+                            >
+                              Load more trips
+                            </Button>
+                          ) : null}
+                        </section>
+                        {selectedTrip ? (
+                          <section
+                            className={styles.panel}
+                            aria-label="Trip content"
+                          >
+                            <Heading size="4">
+                              {selectedTrip.title || 'Untitled trip'}
+                            </Heading>
+                            <Text as="p" size="2" color="gray" mt="1" mb="3">
+                              Content and recovery
+                            </Text>
+                            {selectedTrip.deletedAt ? (
+                              <Callout.Root color="amber" mb="3">
+                                <Callout.Text>
+                                  Restore this trip before changing its content.
+                                </Callout.Text>
+                              </Callout.Root>
+                            ) : null}
+                            {contentLoading ? (
+                              <Text size="2" color="gray" role="status">
+                                Loading content…
+                              </Text>
+                            ) : null}
+                            {!contentLoading && content.length === 0 ? (
+                              <Text size="2" color="gray">
+                                No content to display.
+                              </Text>
+                            ) : null}
+                            {content.map((item) => (
+                              <div
+                                key={`${item.entity}:${item.id}`}
+                                className={styles.row}
+                              >
+                                <div className={styles.contentLabel}>
+                                  <Text as="p" size="2" className={styles.wrap}>
+                                    {item.label || 'Untitled content'}
+                                  </Text>
+                                  <Flex gap="2" mt="1">
+                                    <Badge color="gray">
+                                      {item.entity.replaceAll('-', ' ')}
+                                    </Badge>
+                                    {item.deletedAt ? (
+                                      <Badge color="red">Deleted</Badge>
+                                    ) : null}
+                                  </Flex>
+                                </div>
+                                <DropdownMenu.Root>
+                                  <DropdownMenu.Trigger>
+                                    <Button
+                                      variant="ghost"
+                                      size="1"
+                                      disabled={
+                                        busy || !!selectedTrip.deletedAt
+                                      }
+                                      aria-label={`Actions for ${item.label}`}
+                                    >
+                                      Actions <DropdownMenu.TriggerIcon />
+                                    </Button>
+                                  </DropdownMenu.Trigger>
+                                  <DropdownMenu.Content>
+                                    <DropdownMenu.Item
+                                      color={item.deletedAt ? 'green' : 'red'}
+                                      onSelect={() => {
+                                        if (
+                                          item.deletedAt ||
+                                          window.confirm(
+                                            'Soft-delete ' +
+                                              item.entity +
+                                              ' “' +
+                                              item.label +
+                                              '”?',
+                                          )
+                                        )
+                                          void change(
+                                            '/api/admin/trips/' +
+                                              encodeURIComponent(
+                                                selectedTrip.id,
+                                              ) +
+                                              '/content/' +
+                                              item.entity +
+                                              '/' +
+                                              encodeURIComponent(item.id),
+                                            !!item.deletedAt,
+                                          );
+                                      }}
+                                    >
+                                      {item.deletedAt ? 'Restore' : 'Delete'}
+                                    </DropdownMenu.Item>
+                                  </DropdownMenu.Content>
+                                </DropdownMenu.Root>
+                              </div>
+                            ))}
+                            {contentNextCursor ? (
+                              <Button
+                                mt="3"
+                                variant="outline"
+                                disabled={busy}
+                                onClick={() =>
+                                  void loadMore<AdminContent>(
+                                    '/api/admin/trips/' +
+                                      encodeURIComponent(selectedTrip.id) +
+                                      '/content?cursor=' +
+                                      encodeURIComponent(contentNextCursor),
+                                    (items) =>
+                                      setContent((previous) => [
+                                        ...previous,
+                                        ...items,
+                                      ]),
+                                    setContentNextCursor,
+                                  )
+                                }
+                              >
+                                Load more content
+                              </Button>
+                            ) : null}
+                          </section>
+                        ) : null}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </Tabs.Content>
+              <Tabs.Content value="activity" mt="4">
+                <section className={styles.panel} aria-label="Audit history">
+                  <Flex
+                    justify="between"
+                    align="center"
+                    gap="3"
+                    wrap="wrap"
+                    mb="4"
                   >
-                    {user.deletedAt ? 'Restore account' : 'Delete account'}
-                  </Button>
-                ) : null}
-              </Flex>
-            ))}
-            {selectedUser ? (
-              <>
-                <Heading size="4">Trips for {selectedUser.handle}</Heading>
-                {trips.map((trip) => (
-                  <Flex key={trip.id} align="center" gap="2" wrap="wrap">
+                    <div>
+                      <Heading size="4">Audit history</Heading>
+                      <Text as="p" size="2" color="gray" mt="1">
+                        {auditTrip
+                          ? `Activity for ${auditTrip.title}`
+                          : 'Recent activity across all users'}
+                      </Text>
+                    </div>
+                    {selectedTrip ? (
+                      <Button
+                        variant="outline"
+                        disabled={busy || auditLoading}
+                        onClick={() => setAuditAll((value) => !value)}
+                      >
+                        {auditAll ? 'Show selected trip' : 'Show all activity'}
+                      </Button>
+                    ) : null}
+                  </Flex>
+                  {auditLoading ? (
+                    <Text size="2" color="gray" role="status">
+                      Loading activity…
+                    </Text>
+                  ) : null}
+                  {!auditLoading && auditEvents.length === 0 ? (
+                    <Text size="2" color="gray">
+                      No activity yet.
+                    </Text>
+                  ) : null}
+                  {auditEvents.map((event) => (
+                    <div key={event.id} className={styles.auditRow}>
+                      <Text as="p" size="1" color="gray">
+                        {new Date(Number(event.createdAt)).toLocaleString()}
+                      </Text>
+                      <div>
+                        <Text as="p" size="2">
+                          <strong>{event.actorHandle}</strong> · {event.action}{' '}
+                          {event.targetType}
+                        </Text>
+                        {event.details.fields.length > 0 ? (
+                          <Text as="p" size="1" color="gray">
+                            Changed: {event.details.fields.join(', ')}
+                          </Text>
+                        ) : null}
+                        {event.details.submittedFields?.length &&
+                        event.details.fields.length === 0 ? (
+                          <Text as="p" size="1" color="gray">
+                            Submitted:{' '}
+                            {event.details.submittedFields.join(', ')}
+                          </Text>
+                        ) : null}
+                        {event.targetId || event.tripId ? (
+                          <details className={styles.auditDetails}>
+                            <summary>Record details</summary>
+                            <Text as="p" size="1" className={styles.wrap}>
+                              {event.targetId
+                                ? `Target: ${event.targetId}`
+                                : null}
+                              {event.tripId ? ` · Trip: ${event.tripId}` : null}
+                            </Text>
+                          </details>
+                        ) : null}
+                      </div>
+                    </div>
+                  ))}
+                  {auditNextCursor ? (
                     <Button
+                      mt="3"
                       variant="outline"
                       disabled={busy}
-                      onClick={() => {
-                        setContent([]);
-                        setContentNextCursor(null);
-                        setSelectedTrip(trip);
-                      }}
+                      onClick={() =>
+                        void loadMore<AdminAuditEvent>(
+                          '/api/admin/audit-events?' +
+                            (auditTrip
+                              ? `trip=${encodeURIComponent(auditTrip.id)}&`
+                              : '') +
+                            'cursor=' +
+                            encodeURIComponent(auditNextCursor),
+                          (items) =>
+                            setAuditEvents((previous) => [
+                              ...previous,
+                              ...items,
+                            ]),
+                          setAuditNextCursor,
+                        )
+                      }
                     >
-                      {trip.title}
+                      Load more activity
                     </Button>
-                    {trip.archivedAt ? <Badge>Archived</Badge> : null}
-                    {trip.deletedAt ? <Badge color="red">Deleted</Badge> : null}
-                    {!trip.deletedAt ? (
-                      <Link to={`/trip/${encodeURIComponent(trip.id)}/home`}>
-                        Open editor
-                      </Link>
-                    ) : null}
-                    <Button
-                      color={trip.deletedAt ? 'green' : 'red'}
-                      variant="soft"
-                      disabled={busy}
-                      onClick={() => {
-                        if (
-                          trip.deletedAt ||
-                          window.confirm(`Soft-delete trip “${trip.title}”?`)
-                        ) {
-                          void change(
-                            `/api/admin/trips/${encodeURIComponent(trip.id)}`,
-                            !!trip.deletedAt,
-                            trip.id,
-                          );
-                        }
-                      }}
-                    >
-                      {trip.deletedAt ? 'Restore trip' : 'Delete trip'}
-                    </Button>
-                  </Flex>
-                ))}
-                {tripsNextCursor ? (
-                  <Button
-                    variant="outline"
-                    disabled={busy}
-                    onClick={() => {
-                      setBusy(true);
-                      void get<CursorPage<AdminTrip>>(
-                        `/api/admin/users/${encodeURIComponent(selectedUser.id)}/trips?cursor=${encodeURIComponent(tripsNextCursor)}`,
-                      )
-                        .then((page) => {
-                          setTrips((previous) => [...previous, ...page.data]);
-                          setTripsNextCursor(page.nextCursor);
-                        })
-                        .catch((reason: unknown) => setError(String(reason)))
-                        .finally(() => setBusy(false));
-                    }}
-                  >
-                    Load more trips
-                  </Button>
-                ) : null}
-              </>
+                  ) : null}
+                </section>
+              </Tabs.Content>
+            </Tabs.Root>
+            {busy ? (
+              <Flex gap="2" align="center" role="status">
+                <Spinner />
+                <Text size="2" color="gray">
+                  Updating…
+                </Text>
+              </Flex>
             ) : null}
-            {selectedTrip ? (
-              <>
-                <Heading size="4">Content in {selectedTrip.title}</Heading>
-                {content.length === 0 ? <Text>No content found.</Text> : null}
-                {content.map((item) => (
-                  <Flex
-                    key={`${item.entity}:${item.id}`}
-                    align="center"
-                    gap="2"
-                    wrap="wrap"
-                  >
-                    <Badge>{item.entity}</Badge>
-                    <Text>{item.label}</Text>
-                    {item.deletedAt ? <Badge color="red">Deleted</Badge> : null}
-                    <Button
-                      size="1"
-                      color={item.deletedAt ? 'green' : 'red'}
-                      variant="soft"
-                      disabled={busy || !!selectedTrip.deletedAt}
-                      onClick={() => {
-                        if (
-                          item.deletedAt ||
-                          window.confirm(
-                            `Soft-delete ${item.entity} “${item.label}”?`,
-                          )
-                        ) {
-                          void change(
-                            `/api/admin/trips/${encodeURIComponent(selectedTrip.id)}/content/${item.entity}/${encodeURIComponent(item.id)}`,
-                            !!item.deletedAt,
-                          );
-                        }
-                      }}
-                    >
-                      {item.deletedAt ? 'Restore' : 'Delete'}
-                    </Button>
-                  </Flex>
-                ))}
-                {contentNextCursor ? (
-                  <Button
-                    variant="outline"
-                    disabled={busy}
-                    onClick={() => {
-                      setBusy(true);
-                      void get<CursorPage<AdminContent>>(
-                        `/api/admin/trips/${encodeURIComponent(selectedTrip.id)}/content?cursor=${encodeURIComponent(contentNextCursor)}`,
-                      )
-                        .then((page) => {
-                          setContent((previous) => [...previous, ...page.data]);
-                          setContentNextCursor(page.nextCursor);
-                        })
-                        .catch((reason: unknown) => setError(String(reason)))
-                        .finally(() => setBusy(false));
-                    }}
-                  >
-                    Load more content
-                  </Button>
-                ) : null}
-              </>
-            ) : null}
-            <Heading size="4">
-              {selectedTrip
-                ? `Audit history for ${selectedTrip.title}`
-                : 'Recent admin activity'}
-            </Heading>
-            {selectedTrip ? (
-              <Button
-                variant="outline"
-                disabled={busy}
-                onClick={() => setSelectedTrip(undefined)}
-              >
-                Show all admin activity
-              </Button>
-            ) : null}
-            {auditEvents.length === 0 ? <Text>No activity yet.</Text> : null}
-            {auditEvents.map((event) => (
-              <Text key={event.id} size="2">
-                {new Date(Number(event.createdAt)).toLocaleString()} ·{' '}
-                {event.actorHandle} · {event.action} {event.targetType}
-                {event.targetId ? ` ${event.targetId}` : ''}
-                {event.details.fields.length > 0
-                  ? ` · changed: ${event.details.fields.join(', ')}`
-                  : null}
-                {event.details.submittedFields?.length &&
-                event.details.fields.length === 0
-                  ? ` · submitted: ${event.details.submittedFields.join(', ')}`
-                  : null}
-                {event.tripId && !selectedTrip
-                  ? ` · trip ${event.tripId}`
-                  : null}
-              </Text>
-            ))}
-            {auditNextCursor ? (
-              <Button
-                variant="outline"
-                disabled={busy}
-                onClick={() => {
-                  const filter = selectedTrip
-                    ? `trip=${encodeURIComponent(selectedTrip.id)}&`
-                    : '';
-                  setBusy(true);
-                  void get<CursorPage<AdminAuditEvent>>(
-                    `/api/admin/audit-events?${filter}cursor=${encodeURIComponent(auditNextCursor)}`,
-                  )
-                    .then((page) => {
-                      setAuditEvents((previous) => [...previous, ...page.data]);
-                      setAuditNextCursor(page.nextCursor);
-                    })
-                    .catch((reason: unknown) => setError(String(reason)))
-                    .finally(() => setBusy(false));
-                }}
-              >
-                Load more activity
-              </Button>
-            ) : null}
-            {busy ? <Spinner /> : null}
           </Flex>
         )}
       </Container>
