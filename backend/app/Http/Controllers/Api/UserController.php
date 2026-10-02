@@ -6,14 +6,27 @@ use App\Http\Controllers\Controller;
 use App\Models\Trip;
 use App\Models\TripUser;
 use App\Models\User;
+use App\Services\AccountDeletionService;
 use App\Services\TripAccessService;
 use App\Services\UserHandleGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
+    public function destroy(Request $request, AccountDeletionService $deletion): JsonResponse
+    {
+        $request->validate(['confirmation' => ['required', 'in:DELETE']]);
+        $deletion->delete($request->user());
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return response()->json(['ok' => true]);
+    }
+
     public function me(Request $request): JsonResponse
     {
         return response()->json($this->serialize($request->user()));

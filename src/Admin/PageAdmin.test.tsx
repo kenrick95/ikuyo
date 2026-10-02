@@ -200,7 +200,7 @@ test('loads a deleted user directly without relying on search results', async ()
       : original(path),
   );
   await mount();
-  expect(await screen.findByText('Deleted account')).toBeVisible();
+  expect(await screen.findByText('[deleted]')).toBeVisible();
   expect(
     within(screen.getByRole('region', { name: 'User trips' })).getByRole(
       'heading',

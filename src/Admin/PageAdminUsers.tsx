@@ -64,7 +64,7 @@ export default function PageAdminUsers() {
             <Text weight="medium">{user.handle}</Text>
             <Flex gap="2">
               {user.role === 'admin' ? <Badge>Admin</Badge> : null}
-              {user.deletedAt ? <Badge color="red">Deleted</Badge> : null}
+              {user.deletedAt ? <Badge color="red">[deleted]</Badge> : null}
             </Flex>
           </Flex>
           <Text as="p" size="1" color="gray" className={styles.wrap}>

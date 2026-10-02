@@ -23,6 +23,7 @@ import { pageTitle } from '../Nav/pageMeta';
 import { RouteAccount } from '../Routes/routes';
 import { getOriginCurrencyFromLocale } from '../Trip/TripNew/wizardUtils';
 import { dbUpdateUser, dbUpdateUserPreferences } from '../User/db';
+import { AccountDeleteDialog } from './AccountDeleteDialog';
 
 export default PageAccount;
 export function PageAccount(_props: RouteComponentProps) {
@@ -293,6 +294,13 @@ export function PageAccount(_props: RouteComponentProps) {
             </Button>
           </Flex>
         </form>
+        {currentUser ? (
+          <Flex direction="column" align="start" gap="3" mt="6">
+            <Heading as="h2">Delete Account</Heading>
+            <Text>Soft delete your account and trips you own.</Text>
+            <AccountDeleteDialog />
+          </Flex>
+        ) : null}
       </Container>
     </>
   );

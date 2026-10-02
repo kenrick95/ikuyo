@@ -34,7 +34,7 @@ export default function PageAdminUser({ id }: { id: string }) {
                 {user.data.email ?? 'Guest account'}
               </Text>
               {user.data.deletedAt ? (
-                <Badge color="red">Deleted account</Badge>
+                <Badge color="red">[deleted]</Badge>
               ) : null}
               {user.data.role === 'admin' ? <Badge>Admin</Badge> : null}
             </div>
@@ -70,7 +70,7 @@ export default function PageAdminUser({ id }: { id: string }) {
                   {trip.archivedAt ? (
                     <Badge color="gray">Archived</Badge>
                   ) : null}
-                  {trip.deletedAt ? <Badge color="red">Deleted</Badge> : null}
+                  {trip.deletedAt ? <Badge color="red">[deleted]</Badge> : null}
                 </Flex>
               </div>
               {!trip.deletedAt ? (
