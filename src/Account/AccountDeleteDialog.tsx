@@ -49,7 +49,7 @@ export function AccountDeleteDialog() {
         <AlertDialog.Title>Delete your account?</AlertDialog.Title>
         <AlertDialog.Description>
           Your account, trips you own (including shared and archived trips), and
-          their activities, accommodations, expenses, tasks, macroplans, and
+          their activities, accommodations, expenses, tasks, day plans, and
           comments will be soft deleted. Your comments in other trips will also
           be deleted. Trips owned by other people will remain. You will be
           signed out and cannot sign in again unless an administrator restores
