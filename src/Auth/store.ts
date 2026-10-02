@@ -16,6 +16,7 @@ export interface UserSlice {
   authUser: undefined | AuthUser;
   authUserLoading: boolean;
   authUserError: string | null;
+  sessionEpoch: number;
 
   currentUser: DbUser | undefined;
   setCurrentUser: (user: DbUser | undefined) => void;
@@ -29,11 +30,12 @@ export const createUserSlice: StateCreator<
   [],
   [],
   UserSlice
-> = (set) => {
+> = (set, get) => {
   return {
     authUser: undefined,
     authUserLoading: true,
     authUserError: null,
+    sessionEpoch: 0,
 
     currentUser: undefined,
     subscribeUser: () => {
@@ -41,6 +43,14 @@ export const createUserSlice: StateCreator<
       void apiGet<{ user: DbUser | null }>('/api/auth/me')
         .then(({ user }) => {
           if (disposed) return;
+          const cachedUser = get().currentUser;
+          if (
+            !user ||
+            (cachedUser &&
+              (cachedUser.id !== user.id || cachedUser.role !== user.role))
+          ) {
+            get().clearSession();
+          }
           set(() => ({
             authUser: user
               ? { id: user.id, email: user.email ?? null }
@@ -58,6 +68,7 @@ export const createUserSlice: StateCreator<
         })
         .catch((error: unknown) => {
           if (disposed) return;
+          get().clearSession();
           set(() => ({
             authUser: undefined,
             currentUser: undefined,
@@ -76,16 +87,42 @@ export const createUserSlice: StateCreator<
       }));
     },
     refreshCurrentUser: async () => {
-      const response = await apiGet<{ user: DbUser | null }>('/api/auth/me');
-      set(() => ({ currentUser: response.user ?? undefined }));
+      try {
+        const response = await apiGet<{ user: DbUser | null }>('/api/auth/me');
+        const user = response.user;
+        if (!user) get().clearSession();
+        else {
+          const cachedUser = get().currentUser;
+          if (
+            cachedUser &&
+            (cachedUser.id !== user.id || cachedUser.role !== user.role)
+          )
+            get().clearSession();
+          set(() => ({
+            currentUser: user,
+            authUser: { id: user.id, email: user.email ?? null },
+            authUserLoading: false,
+            authUserError: null,
+          }));
+        }
+      } catch (error) {
+        get().clearSession();
+        throw error;
+      }
     },
     clearSession: () => {
       // Wipe the cached user and every cached domain collection so a different
       // user logging in on the same browser never sees the previous session's
       // trips. Also remove the persisted localStorage snapshot.
-      set(() => ({
+      set((state) => ({
+        sessionEpoch: state.sessionEpoch + 1,
         currentUser: undefined,
         authUser: undefined,
+        dialogs: [],
+        isConfirmingPopDialogActive: false,
+        confirmingDialogProps: undefined,
+        currentTripId: undefined,
+        tripMeta: {},
         trip: {},
         tripLocalState: {},
         comment: {},
@@ -96,6 +133,7 @@ export const createUserSlice: StateCreator<
         accommodation: {},
         activity: {},
         trips: {},
+        archivedTrips: {},
         tripUser: {},
         task: {},
         taskList: {},

@@ -38,6 +38,6 @@ class UserHandleGenerator
 
     private function inUse(string $handle): bool
     {
-        return User::where('handle_key', strtolower($handle))->exists();
+        return User::withTrashed()->where('handle_key', strtolower($handle))->exists();
     }
 }

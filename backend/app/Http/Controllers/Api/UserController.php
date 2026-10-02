@@ -22,7 +22,7 @@ class UserController extends Controller
     public function checkEmail(Request $request): JsonResponse
     {
         $data = $request->validate(['email' => ['required', 'email'], 'excludeUserId' => ['nullable', 'string']]);
-        $query = User::where('email', $data['email']);
+        $query = User::withTrashed()->where('email', $data['email']);
         if (! empty($data['excludeUserId'])) {
             $query->where('id', '!=', $data['excludeUserId']);
         }
@@ -64,10 +64,11 @@ class UserController extends Controller
     {
         $data = $request->validate(['email' => ['required', 'email'], 'role' => ['required', 'integer', 'in:1,2']]);
         $handle = app(UserHandleGenerator::class)->generate();
-        $user = User::firstOrCreate(
+        $user = User::withTrashed()->firstOrCreate(
             ['email' => $data['email']],
             ['id' => (string) Str::uuid(), 'handle' => $handle, 'handle_key' => strtolower($handle), 'activated' => false],
         );
+        abort_if($user->trashed(), 409, 'Restore this account before inviting it.');
         $trip->users()->syncWithoutDetaching([$user->id => [
             'id' => (string) Str::uuid(), 'role' => $data['role'], 'created_at_ms' => $this->nowMs(), 'updated_at_ms' => $this->nowMs(),
         ]]);
@@ -98,6 +99,7 @@ class UserController extends Controller
     {
         abort_unless($request->user(), 401);
         $membership = TripUser::with('trip')->whereKey($member)->firstOrFail();
+        abort_unless($membership->trip instanceof Trip, 404);
         $access = app(TripAccessService::class);
         abort_unless($access->canManage($membership->trip, $request->user()), 403);
         $membership->delete();

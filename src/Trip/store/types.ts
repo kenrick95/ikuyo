@@ -22,6 +22,7 @@ export type TripSliceTrip = Omit<
   currentUserRole: TripUserRole;
   /** true when the current user has a tripUser record (is an invited member) */
   isCurrentUserTripMember: boolean;
+  adminAccess?: boolean;
 };
 export type TripSliceTripMeta = {
   loading: boolean;
@@ -138,6 +139,7 @@ export type TripSliceTaskList = {
 
 export type DbTripQueryReturnType = {
   id: string;
+  adminAccess?: boolean;
   title: string;
   timestampStart: number;
   timestampEnd: number;

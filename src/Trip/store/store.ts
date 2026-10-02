@@ -1,5 +1,9 @@
 import type { StateCreator } from 'zustand';
-import { get as apiGet, setMutationAppliedHandler } from '../../data/apiClient';
+import {
+  ApiError,
+  get as apiGet,
+  setMutationAppliedHandler,
+} from '../../data/apiClient';
 import { mapApiTrip } from '../../data/apiTrip';
 import type { BoundStoreType } from '../../data/store';
 import {
@@ -69,12 +73,85 @@ function mergeApiTrip(
  * the mutation refresh and the sync poll don't fire redundant requests.
  */
 const inFlightTrips = new Map<string, Promise<void>>();
+
+function withoutTrip<T extends { tripId: string }>(
+  records: Record<string, T>,
+  tripId: string,
+): Record<string, T> {
+  return Object.fromEntries(
+    Object.entries(records).filter(([, record]) => record.tripId !== tripId),
+  );
+}
+
+function evictTrip(state: BoundStoreType, tripId: string, error: string) {
+  const groupIds = new Set(
+    Object.values(state.commentGroup)
+      .filter((group) => group.tripId === tripId)
+      .map((group) => group.id),
+  );
+  const comments = Object.fromEntries(
+    Object.entries(state.comment).filter(
+      ([, comment]) => !groupIds.has(comment.commentGroupId),
+    ),
+  );
+  const commentUserIds = new Set(
+    Object.values(comments).map((comment) => comment.userId),
+  );
+  return {
+    trip: Object.fromEntries(
+      Object.entries(state.trip).filter(([id]) => id !== tripId),
+    ),
+    tripLocalState: Object.fromEntries(
+      Object.entries(state.tripLocalState).filter(([id]) => id !== tripId),
+    ),
+    tripMeta: {
+      ...state.tripMeta,
+      [tripId]: { loading: false, error },
+    },
+    currentTripId:
+      state.currentTripId === tripId ? undefined : state.currentTripId,
+    dialogs: [],
+    isConfirmingPopDialogActive: false,
+    confirmingDialogProps: undefined,
+    accommodation: withoutTrip(state.accommodation, tripId),
+    activity: withoutTrip(state.activity, tripId),
+    macroplan: withoutTrip(state.macroplan, tripId),
+    expense: withoutTrip(state.expense, tripId),
+    commentGroup: withoutTrip(state.commentGroup, tripId),
+    comment: comments,
+    commentUser: Object.fromEntries(
+      Object.entries(state.commentUser).filter(([id]) =>
+        commentUserIds.has(id),
+      ),
+    ),
+    tripUser: withoutTrip(state.tripUser, tripId),
+    task: withoutTrip(state.task, tripId),
+    taskList: withoutTrip(state.taskList, tripId),
+    trips: Object.fromEntries(
+      Object.entries(state.trips).map(([key, trips]) => [
+        key,
+        trips.filter((trip) => trip.id !== tripId),
+      ]),
+    ),
+    archivedTrips: Object.fromEntries(
+      Object.entries(state.archivedTrips).map(([key, trips]) => [
+        key,
+        trips.filter((trip) => trip.id !== tripId),
+      ]),
+    ),
+  };
+}
+
 function fetchTripAndMerge(
-  set: (fn: (state: BoundStoreType) => Partial<TripSlice> | TripSlice) => void,
+  set: (fn: (state: BoundStoreType) => Partial<BoundStoreType>) => void,
+  get: () => BoundStoreType,
   tripId: string,
   showLoading: boolean,
 ): Promise<void> {
-  const existing = inFlightTrips.get(tripId);
+  const sessionUserId = get().currentUser?.id;
+  const sessionEpoch = get().sessionEpoch;
+  const key = JSON.stringify([tripId, sessionUserId, sessionEpoch]);
+  const existing = inFlightTrips.get(key);
   if (existing) return existing;
   const promise = (async () => {
     try {
@@ -89,6 +166,11 @@ function fetchTripAndMerge(
       const payload = await apiGet<Record<string, unknown>>(
         `/api/trips/${encodeURIComponent(tripId)}`,
       );
+      if (
+        get().currentUser?.id !== sessionUserId ||
+        get().sessionEpoch !== sessionEpoch
+      )
+        return;
       const trip = mapApiTrip(payload);
       set(
         (state) =>
@@ -101,6 +183,22 @@ function fetchTripAndMerge(
           }) satisfies Partial<TripSlice>,
       );
     } catch (error: unknown) {
+      if (
+        get().currentUser?.id !== sessionUserId ||
+        get().sessionEpoch !== sessionEpoch
+      )
+        throw error;
+      if (error instanceof ApiError && error.status === 401) {
+        get().clearSession();
+        throw error;
+      }
+      if (
+        error instanceof ApiError &&
+        (error.status === 403 || error.status === 404)
+      ) {
+        set((state) => evictTrip(state, tripId, error.message));
+        throw error;
+      }
       set(
         (state) =>
           ({
@@ -118,10 +216,10 @@ function fetchTripAndMerge(
       );
       throw error;
     } finally {
-      inFlightTrips.delete(tripId);
+      inFlightTrips.delete(key);
     }
   })();
-  inFlightTrips.set(tripId, promise);
+  inFlightTrips.set(key, promise);
   return promise;
 }
 
@@ -139,7 +237,7 @@ export const createTripSlice: StateCreator<
   setMutationAppliedHandler(() => {
     const tripId = get().currentTripId;
     if (tripId)
-      void fetchTripAndMerge(set, tripId, false).catch(() => undefined);
+      void fetchTripAndMerge(set, get, tripId, false).catch(() => undefined);
   });
   return {
     currentTripId: undefined,
@@ -190,16 +288,16 @@ export const createTripSlice: StateCreator<
       });
     },
     subscribeTrip: (tripId: string) => {
-      void fetchTripAndMerge(set, tripId, true).catch(() => undefined);
+      void fetchTripAndMerge(set, get, tripId, true).catch(() => undefined);
       // Trip data belongs to the shared store; the in-flight fetch is kept so
       // another consumer (including WebMCP's trip-open) can safely await it.
       return () => undefined;
     },
     refreshTrip: (tripId: string) => {
-      void fetchTripAndMerge(set, tripId, false).catch(() => undefined);
+      void fetchTripAndMerge(set, get, tripId, false).catch(() => undefined);
     },
     loadTrip: async (tripId: string) => {
-      await fetchTripAndMerge(set, tripId, true);
+      await fetchTripAndMerge(set, get, tripId, true);
       const trip = get().trip[tripId];
       if (!trip) throw new Error(`Trip ${tripId} could not be loaded.`);
       set({ currentTripId: tripId });

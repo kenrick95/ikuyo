@@ -1,6 +1,7 @@
 import { createRouteParam, identity, replaceId } from './definition';
 
 export const RouteLogin = createRouteParam('/login', identity);
+export const RouteAdmin = createRouteParam('/admin', identity);
 export const RouteTrips = createRouteParam('/trip', identity);
 export const RouteTripsArchived = createRouteParam('/trip/archived', identity);
 export const RouteTripsPublic = createRouteParam('/trip/public', identity);

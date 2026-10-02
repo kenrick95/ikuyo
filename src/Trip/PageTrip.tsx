@@ -1,4 +1,4 @@
-import { Container, Spinner, Text } from '@radix-ui/themes';
+import { Callout, Container, Spinner, Text } from '@radix-ui/themes';
 import React, { Suspense, useEffect } from 'react';
 import {
   Link,
@@ -50,6 +50,7 @@ import { useCurrentUser } from '../Auth/hooks';
 import { useBoundStore } from '../data/store';
 import { usePeriodicTripSync } from '../data/usePeriodicTripSync';
 import {
+  RouteAdmin,
   RouteLogin,
   RouteTripComment,
   RouteTripExpenses,
@@ -114,6 +115,16 @@ function PageTripInner({
     <>
       <DocTitle title={trip?.title ?? 'Trip'} />
       <TripNavbar />
+      {trip?.adminAccess ? (
+        <Container>
+          <Callout.Root color="amber" my="2">
+            <Callout.Text>
+              Admin access to another user's trip. Changes affect their data.{' '}
+              <Link to={RouteAdmin.asRootRoute()}>Back to admin</Link>
+            </Callout.Text>
+          </Callout.Root>
+        </Container>
+      ) : null}
       {!trip ? (
         loading ? (
           <Spinner size="2" />

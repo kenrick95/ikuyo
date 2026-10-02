@@ -86,7 +86,13 @@ export const createTripsSlice: StateCreator<
     let pastLoaded = false;
 
     const merge = () => {
-      if (disposed || !activeLoaded || !pastLoaded) return;
+      if (
+        disposed ||
+        getState().currentUser?.id !== currentUserId ||
+        !activeLoaded ||
+        !pastLoaded
+      )
+        return;
       set((state) => ({
         trips: { ...state.trips, [queryKey]: [...activeTrips, ...pastTrips] },
         tripsLoading: false,
@@ -101,7 +107,7 @@ export const createTripsSlice: StateCreator<
         });
         if (append && pastCursor) params.set('cursor', pastCursor);
         const page = await get<CursorPage<ApiTrip>>(`/api/trips?${params}`);
-        if (disposed) return;
+        if (disposed || getState().currentUser?.id !== currentUserId) return;
         if (append) {
           pastTrips = [...pastTrips, ...page.data.map(toTripsSliceTrip)];
           pastCursor = page.nextCursor;
@@ -113,7 +119,7 @@ export const createTripsSlice: StateCreator<
         }
         merge();
       } catch (error) {
-        if (disposed) return;
+        if (disposed || getState().currentUser?.id !== currentUserId) return;
         // The initial active/past requests run concurrently. An error in either
         // one must dismiss the initial spinner; otherwise the list is stuck
         // loading forever when only one request fails.
@@ -158,7 +164,7 @@ export const createTripsSlice: StateCreator<
         });
         if (append && cursor) params.set('cursor', cursor);
         const page = await get<CursorPage<ApiTrip>>(`/api/trips?${params}`);
-        if (disposed) return;
+        if (disposed || getState().currentUser?.id !== currentUserId) return;
         archivedTrips = append
           ? [...archivedTrips, ...page.data.map(toTripsSliceTrip)]
           : page.data.map(toTripsSliceTrip);
@@ -170,7 +176,7 @@ export const createTripsSlice: StateCreator<
           archivedTripsHasMore: page.hasMore,
         }));
       } catch (error: unknown) {
-        if (disposed) return;
+        if (disposed || getState().currentUser?.id !== currentUserId) return;
         set(() => ({
           archivedTripsLoading: false,
           archivedTripsLoadingMore: false,

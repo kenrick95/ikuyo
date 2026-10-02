@@ -151,12 +151,6 @@ parameters:
 			path: app/Http/Controllers/Api/ContentController.php
 
 		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:comments\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: app/Http/Controllers/Api/ContentController.php
-
-		-
 			message: '#^Method App\\Http\\Controllers\\Api\\ContentController\:\:mapFields\(\) has parameter \$data with no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1
@@ -202,12 +196,6 @@ parameters:
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$trip\.$#'
 			identifier: property.notFound
 			count: 4
-			path: app/Http/Controllers/Api/TaskController.php
-
-		-
-			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:comments\(\)\.$#'
-			identifier: method.notFound
-			count: 1
 			path: app/Http/Controllers/Api/TaskController.php
 
 		-
@@ -446,12 +434,6 @@ parameters:
 
 		-
 			message: '#^Parameter \#1 \$boolean of function abort_unless expects bool, App\\Models\\User\|null given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Api/UserController.php
-
-		-
-			message: '#^Parameter \#1 \$trip of method App\\Services\\TripAccessService\:\:canManage\(\) expects App\\Models\\Trip, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Http/Controllers/Api/UserController.php

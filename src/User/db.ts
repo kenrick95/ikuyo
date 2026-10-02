@@ -2,6 +2,7 @@ import { patchMutation, putMutation } from '../data/apiClient';
 
 export type DbUser = {
   id: string;
+  role?: 'user' | 'admin';
   handle: string;
   email: string | undefined;
   createdAt: number;

@@ -119,6 +119,7 @@ class CommentController extends Controller
             $group = $record->commentGroup;
             $record->delete();
             if ($group && ! $group->comments()->exists()) {
+                DB::table('comments')->where('id', $record->id)->update(['deleted_with_group' => true]);
                 $group->object()->delete();
                 $group->delete();
             }
@@ -152,6 +153,7 @@ class CommentController extends Controller
         DB::transaction(function () use ($record, $commentGroup): void {
             $record->delete();
             if (! $commentGroup->comments()->exists()) {
+                DB::table('comments')->where('id', $record->id)->update(['deleted_with_group' => true]);
                 $commentGroup->object()->delete();
                 $commentGroup->delete();
             }
@@ -162,6 +164,6 @@ class CommentController extends Controller
 
     private function isOwner(Trip $trip, Request $request): bool
     {
-        return $trip->users()->whereKey($request->user()->id)->wherePivot('role', 0)->exists();
+        return $request->user()->isAdmin() || $trip->users()->whereKey($request->user()->id)->wherePivot('role', 0)->exists();
     }
 }

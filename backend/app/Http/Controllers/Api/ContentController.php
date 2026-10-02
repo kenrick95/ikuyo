@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Accommodation;
 use App\Models\Activity;
 use App\Models\Comment;
+use App\Models\CommentGroup;
 use App\Models\CommentGroupObject;
 use App\Models\Expense;
 use App\Models\MacroPlan;
@@ -27,7 +28,7 @@ class ContentController extends Controller
         abort_unless($request->user() && $access->canEdit($trip, $request->user()), 403);
         $access->ensureContentWritable($trip);
         DB::transaction(function () use ($activity): void {
-            $this->deleteRelatedComments('activity', $activity->id);
+            $this->deleteRelatedComments('activities', $activity->id);
             $activity->delete();
         });
 
@@ -182,12 +183,12 @@ class ContentController extends Controller
     {
         $this->model($entity);
         $role = $access->role($trip, $request->user());
-        $isPublicVisitor = $role === null
+        $isPublicVisitor = ! ($request->user()?->isAdmin() ?? false) && $role === null
             && TripSharingLevel::from($trip->sharing_level)->isPublic();
 
         // Apply same section visibility as the full-trip serializer so a caller cannot
         // bypass hidden expenses/tasks by hitting the child-collection endpoint directly.
-        $isViewer = $role === TripRole::Viewer->value;
+        $isViewer = ! ($request->user()?->isAdmin() ?? false) && $role === TripRole::Viewer->value;
         $hidden = match ($entity) {
             'expenses' => $isPublicVisitor ? $trip->public_show_expenses === false : ($isViewer && $trip->viewer_show_expenses === false),
             'tasks' => $isPublicVisitor ? $trip->public_show_tasks === false : ($isViewer && $trip->viewer_show_tasks === false),
@@ -244,10 +245,10 @@ class ContentController extends Controller
     private function deleteEntityDescGraph(Activity|Accommodation|MacroPlan|Expense $record): void
     {
         $type = match (true) {
-            $record instanceof Activity => 'activity',
-            $record instanceof Accommodation => 'accommodation',
-            $record instanceof MacroPlan => 'macroplan',
-            default => 'expense',
+            $record instanceof Activity => 'activities',
+            $record instanceof Accommodation => 'accommodations',
+            $record instanceof MacroPlan => 'macroplans',
+            default => 'expenses',
         };
         $this->deleteRelatedComments($type, $record->id);
     }
@@ -259,10 +260,11 @@ class ContentController extends Controller
         if (! $object) {
             return;
         }
-        $group = $object->commentGroup;
+        $group = CommentGroup::query()->find($object->comment_group_id);
         if (! $group) {
             return;
         }
+        $group->comments()->update(['deleted_with_group' => true]);
         $group->comments()->delete();
         $object->delete();
         $group->delete();

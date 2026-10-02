@@ -7,6 +7,7 @@ import type { DbUser } from '../data/types';
 import {
   RouteAccount,
   RouteAccountUpgrade,
+  RouteAdmin,
   RouteLogin,
 } from '../Routes/routes';
 
@@ -28,6 +29,11 @@ export function UserAvatarMenu({ user }: { user: DbUser | null | undefined }) {
           <DropdownMenu.Item asChild>
             <Link to={RouteAccount.asRootRoute()}>Edit account</Link>
           </DropdownMenu.Item>
+          {user.role === 'admin' ? (
+            <DropdownMenu.Item asChild>
+              <Link to={RouteAdmin.asRootRoute()}>Admin</Link>
+            </DropdownMenu.Item>
+          ) : null}
           {!user.email ? (
             <DropdownMenu.Item asChild>
               <Link to={RouteAccountUpgrade.asRootRoute()}>

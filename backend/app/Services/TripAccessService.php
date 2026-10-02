@@ -20,17 +20,17 @@ class TripAccessService
 
     public function canView(Trip $trip, ?User $user): bool
     {
-        return $trip->sharing_level >= 2 || $this->role($trip, $user) !== null;
+        return $user?->isAdmin() || $trip->sharing_level >= 2 || $this->role($trip, $user) !== null;
     }
 
     public function canEdit(Trip $trip, ?User $user): bool
     {
-        return in_array($this->role($trip, $user), [0, 1], true);
+        return $user?->isAdmin() || in_array($this->role($trip, $user), [0, 1], true);
     }
 
     public function canManage(Trip $trip, ?User $user): bool
     {
-        return $this->role($trip, $user) === 0;
+        return $user?->isAdmin() || $this->role($trip, $user) === 0;
     }
 
     public function ensureContentWritable(Trip $trip): void

@@ -250,6 +250,7 @@ class AuthController extends Controller
     {
         return [
             'id' => $user->id,
+            'role' => $user->role,
             'handle' => $user->handle,
             'email' => $user->email,
             'emailVerified' => (bool) $user->email_verified || $this->isImportedEmail($user),

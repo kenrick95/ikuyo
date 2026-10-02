@@ -3,22 +3,29 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasMsTimestamps;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CommentGroup extends Model
 {
     protected $guarded = [];
 
-    use HasMsTimestamps;
+    use HasMsTimestamps, SoftDeletes;
 
     public $incrementing = false;
 
     protected $keyType = 'string';
 
     public $timestamps = false;
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope('activeTrip', fn (Builder $query) => $query->whereHas('trip'));
+    }
 
     public function trip(): BelongsTo
     {

@@ -19,6 +19,7 @@ import { ReadOnlyBanner } from './Maintenance/ReadOnlyBanner';
 import {
   RouteAccount,
   RouteAccountUpgrade,
+  RouteAdmin,
   RouteLanding,
   RouteLogin,
   RoutePrivacy,
@@ -49,6 +50,7 @@ const PageAccount = React.lazy(() => import('./Account/PageAccount'));
 const PageAccountUpgrade = React.lazy(
   () => import('./Account/PageAccountUpgrade'),
 );
+const PageAdmin = React.lazy(() => import('./Admin/PageAdmin'));
 const PageDemo = React.lazy(() => import('./PageDemo'));
 
 function AuthRedirect() {
@@ -61,6 +63,7 @@ function App() {
   const theme = useTheme();
   useSubscribeUser();
   const clearDialogs = useBoundStore((state) => state.clearDialogs);
+  const authUserLoading = useBoundStore((state) => state.authUserLoading);
 
   // Full-site maintenance mode replaces the router + auth UI entirely. All hooks
   // above still run unconditionally (React rule), but no routes are rendered and
@@ -70,6 +73,14 @@ function App() {
     return (
       <Theme appearance={theme} accentColor="red">
         <PageMaintenance />
+      </Theme>
+    );
+  }
+
+  if (authUserLoading) {
+    return (
+      <Theme appearance={theme} accentColor="red">
+        <Spinner m="3" />
       </Theme>
     );
   }
@@ -90,6 +101,7 @@ function App() {
                   <Route path={'/demo'} component={PageDemo} />
                 ) : null}
                 <Route path={RouteLogin.routePath} component={PageLogin} />
+                <Route path={RouteAdmin.routePath} component={PageAdmin} />
                 <Route path={RouteTrips.routePath} component={PageTrips} />
                 <Route
                   path={RouteTripsArchived.routePath}
