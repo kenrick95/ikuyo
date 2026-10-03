@@ -4,17 +4,20 @@ import {
   Container,
   Flex,
   Heading,
+  Spinner,
   Text,
 } from '@radix-ui/themes';
+import { lazy, Suspense } from 'react';
 import { Link, Redirect, Route, Switch, useLocation, useSearch } from 'wouter';
 import { useCurrentUser } from '../Auth/hooks';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
 import { DocTitle } from '../Nav/DocTitle';
 import { Navbar } from '../Nav/Navbar';
-import PageAdminActivity from './PageAdminActivity';
-import PageAdminTrip from './PageAdminTrip';
-import PageAdminUser from './PageAdminUser';
-import PageAdminUsers from './PageAdminUsers';
+
+const PageAdminActivity = lazy(() => import('./PageAdminActivity'));
+const PageAdminTrip = lazy(() => import('./PageAdminTrip'));
+const PageAdminUser = lazy(() => import('./PageAdminUser'));
+const PageAdminUsers = lazy(() => import('./PageAdminUsers'));
 
 export default function PageAdmin() {
   const currentUser = useCurrentUser();
@@ -63,30 +66,40 @@ export default function PageAdmin() {
                 content remain recoverable.
               </Callout.Text>
             </Callout.Root>
-            <Switch key={`${location}?${search}`}>
-              <Route path="/">
-                <Redirect to="~/admin/users" replace />
-              </Route>
-              <Route path="/users">
-                <PageAdminUsers />
-              </Route>
-              <Route path="/users/:id">
-                {({ id }) => <PageAdminUser id={id} />}
-              </Route>
-              <Route path="/trips/:id/activity">
-                {({ id }) => <PageAdminActivity tripId={id} />}
-              </Route>
-              <Route path="/trips/:id">
-                {({ id }) => <PageAdminTrip id={id} />}
-              </Route>
-              <Route path="/activity">
-                <PageAdminActivity />
-              </Route>
-              <Route>
-                <Heading size="4">Admin page not found</Heading>
-                <Link to="~/admin/users">Go to users</Link>
-              </Route>
-            </Switch>
+            <Suspense
+              key={`${location}?${search}`}
+              fallback={
+                <Flex gap="2" align="center" role="status">
+                  <Spinner />
+                  <Text size="2">Loading page…</Text>
+                </Flex>
+              }
+            >
+              <Switch>
+                <Route path="/">
+                  <Redirect to="~/admin/users" replace />
+                </Route>
+                <Route path="/users">
+                  <PageAdminUsers />
+                </Route>
+                <Route path="/users/:id">
+                  {({ id }) => <PageAdminUser id={id} />}
+                </Route>
+                <Route path="/trips/:id/activity">
+                  {({ id }) => <PageAdminActivity tripId={id} />}
+                </Route>
+                <Route path="/trips/:id">
+                  {({ id }) => <PageAdminTrip id={id} />}
+                </Route>
+                <Route path="/activity">
+                  <PageAdminActivity />
+                </Route>
+                <Route>
+                  <Heading size="4">Admin page not found</Heading>
+                  <Link to="~/admin/users">Go to users</Link>
+                </Route>
+              </Switch>
+            </Suspense>
           </Flex>
         )}
       </Container>

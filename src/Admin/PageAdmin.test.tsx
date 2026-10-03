@@ -38,14 +38,16 @@ const trip = {
   deletedAt: null,
 };
 const page = { data: [], nextCursor: null, hasMore: false };
-function mount() {
-  return render(
+async function mount() {
+  const result = render(
     <Theme>
       <Route path="/admin" nest>
         <PageAdmin />
       </Route>
     </Theme>,
   );
+  await act(() => vi.dynamicImportSettled());
+  return result;
 }
 
 beforeEach(() => {
@@ -76,11 +78,13 @@ beforeEach(() => {
 });
 
 test('navigates separate user and trip pages, reloads a direct trip URL, and supports Back', async () => {
-  const first = mount();
+  const first = await mount();
   fireEvent.click(await screen.findByRole('link', { name: /Traveler/ }));
   expect(location.pathname).toBe('/admin/users/owner');
+  await act(() => vi.dynamicImportSettled());
   fireEvent.click(await screen.findByRole('link', { name: 'Summer trip' }));
   expect(location.pathname).toBe('/admin/trips/trip');
+  await act(() => vi.dynamicImportSettled());
   await screen.findByText('Museum visit');
   expect(
     screen.queryByRole('region', { name: 'Find users' }),
@@ -89,10 +93,11 @@ test('navigates separate user and trip pages, reloads a direct trip URL, and sup
     screen.queryByRole('region', { name: 'User trips' }),
   ).not.toBeInTheDocument();
   first.unmount();
-  mount();
+  await mount();
   await screen.findByText('Museum visit');
   fireEvent.click(screen.getByRole('link', { name: 'Trip activity' }));
   expect(location.pathname).toBe('/admin/trips/trip/activity');
+  await act(() => vi.dynamicImportSettled());
   await screen.findByRole('button', { name: 'Load more activity' });
   act(() => window.history.back());
   await waitFor(() => expect(location.pathname).toBe('/admin/trips/trip'));
@@ -111,7 +116,7 @@ test('discards pending trip pagination after navigating to all activity', async 
       });
     return original(path);
   });
-  mount();
+  await mount();
   fireEvent.click(
     await screen.findByRole('button', { name: 'Load more activity' }),
   );
@@ -147,7 +152,7 @@ test('loads a deleted user directly without relying on search results', async ()
       ? Promise.resolve({ ...owner, deletedAt: '2026-10-01' })
       : original(path),
   );
-  mount();
+  await mount();
   expect(await screen.findByText('Deleted account')).toBeVisible();
   expect(
     within(screen.getByRole('region', { name: 'User trips' })).getByRole(
