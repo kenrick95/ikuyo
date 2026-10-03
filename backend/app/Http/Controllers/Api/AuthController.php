@@ -10,6 +10,7 @@ use App\Services\UserHandleGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -154,12 +155,12 @@ class AuthController extends Controller
                 'reset_token_at' => now()->addHour()->getTimestampMs(),
             ])->save();
             $frontendUrl = rtrim((string) config('app.url'), '/');
-            // Shared hosting has no persistent queue worker; send synchronously so
-            // the reset email is delivered even when only PHP/cron is available.
-            Mail::to($user->email)->send(new PasswordResetMail(
+            // Keep delivery synchronous on shared hosting, but only after the
+            // token commits. A rolled-back retry must not send its token.
+            DB::afterCommit(fn () => Mail::to($user->email)->send(new PasswordResetMail(
                 $user,
                 $frontendUrl . '/login?reset_token=' . urlencode($rawToken),
-            ));
+            )));
         }
 
         // Deliberately identical for existing and unknown email addresses.
@@ -182,10 +183,10 @@ class AuthController extends Controller
         ])->save();
 
         $frontendUrl = rtrim((string) config('app.url'), '/');
-        Mail::to($target)->send(new VerifyEmailMail(
+        DB::afterCommit(fn () => Mail::to($target)->send(new VerifyEmailMail(
             $user,
             $frontendUrl . '/login?verify_token=' . urlencode($token),
-        ));
+        )));
 
         return response()->json(['ok' => true]);
     }
