@@ -1,7 +1,14 @@
 import { Theme } from '@radix-ui/themes';
-import { act, render, screen, waitFor, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { expect, test, vi } from 'vitest';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
+import { beforeEach, expect, test, vi } from 'vitest';
+import { Route } from 'wouter';
 import { get } from '../data/apiClient';
 import PageAdmin from './PageAdmin';
 
@@ -17,36 +24,40 @@ vi.mock('../data/apiClient', () => ({
   postMutation: vi.fn(),
 }));
 
-test('keeps the trip workspace when showing all audit activity and prevents changing filters during pagination', async () => {
-  const user = userEvent.setup();
-  const page = { data: [], nextCursor: null, hasMore: false };
-  let finishPagination!: (value: typeof page) => void;
+const owner = {
+  id: 'owner',
+  handle: 'Traveler',
+  email: 'traveler@example.com',
+  role: 'user',
+  deletedAt: null,
+};
+const trip = {
+  id: 'trip',
+  title: 'Summer trip',
+  archivedAt: null,
+  deletedAt: null,
+};
+const page = { data: [], nextCursor: null, hasMore: false };
+function mount() {
+  return render(
+    <Theme>
+      <Route path="/admin" nest>
+        <PageAdmin />
+      </Route>
+    </Theme>,
+  );
+}
+
+beforeEach(() => {
+  vi.resetAllMocks();
+  window.history.replaceState(null, '', '/admin');
   vi.mocked(get).mockImplementation(async (path) => {
-    if (path.startsWith('/api/admin/users?')) {
-      return [
-        {
-          id: 'owner',
-          handle: 'Traveler',
-          email: 'traveler@example.com',
-          role: 'user',
-          deletedAt: null,
-        },
-      ];
-    }
-    if (path === '/api/admin/users/owner/trips') {
-      return {
-        ...page,
-        data: [
-          {
-            id: 'trip',
-            title: 'Summer trip',
-            archivedAt: null,
-            deletedAt: null,
-          },
-        ],
-      };
-    }
-    if (path === '/api/admin/trips/trip/content') {
+    if (path.startsWith('/api/admin/users?')) return [owner];
+    if (path === '/api/admin/users/owner') return owner;
+    if (path === '/api/admin/users/owner/trips')
+      return { ...page, data: [trip] };
+    if (path === '/api/admin/trips/trip') return trip;
+    if (path === '/api/admin/trips/trip/content')
       return {
         ...page,
         data: [
@@ -58,51 +69,91 @@ test('keeps the trip workspace when showing all audit activity and prevents chan
           },
         ],
       };
-    }
-    if (path.includes('cursor=')) {
-      return new Promise<typeof page>((resolve) => {
-        finishPagination = resolve;
-      });
-    }
-    if (path.startsWith('/api/admin/audit-events?')) {
+    if (path.startsWith('/api/admin/audit-events'))
       return { ...page, nextCursor: 'next', hasMore: true };
-    }
     throw new Error(`Unexpected request: ${path}`);
   });
-  render(
-    <Theme>
-      <PageAdmin />
-    </Theme>,
-  );
-  await user.click(await screen.findByRole('button', { name: /Traveler/ }));
-  await user.click(await screen.findByRole('button', { name: 'Summer trip' }));
+});
+
+test('navigates separate user and trip pages, reloads a direct trip URL, and supports Back', async () => {
+  const first = mount();
+  fireEvent.click(await screen.findByRole('link', { name: /Traveler/ }));
+  expect(location.pathname).toBe('/admin/users/owner');
+  fireEvent.click(await screen.findByRole('link', { name: 'Summer trip' }));
+  expect(location.pathname).toBe('/admin/trips/trip');
   await screen.findByText('Museum visit');
   expect(
-    screen.queryByRole('button', { name: 'Delete account' }),
+    screen.queryByRole('region', { name: 'Find users' }),
   ).not.toBeInTheDocument();
-  await user.click(screen.getByRole('tab', { name: /Audit history/ }));
-  await user.click(
+  expect(
+    screen.queryByRole('region', { name: 'User trips' }),
+  ).not.toBeInTheDocument();
+  first.unmount();
+  mount();
+  await screen.findByText('Museum visit');
+  fireEvent.click(screen.getByRole('link', { name: 'Trip activity' }));
+  expect(location.pathname).toBe('/admin/trips/trip/activity');
+  await screen.findByRole('button', { name: 'Load more activity' });
+  act(() => window.history.back());
+  await waitFor(() => expect(location.pathname).toBe('/admin/trips/trip'));
+  await screen.findByText('Museum visit');
+}, 15000);
+
+test('discards pending trip pagination after navigating to all activity', async () => {
+  window.history.replaceState(null, '', '/admin/trips/trip/activity');
+  const original = vi.mocked(get).getMockImplementation();
+  if (!original) throw new Error('Missing API mock');
+  let finish!: (result: unknown) => void;
+  vi.mocked(get).mockImplementation((path) => {
+    if (path.includes('cursor='))
+      return new Promise((resolve) => {
+        finish = resolve;
+      });
+    return original(path);
+  });
+  mount();
+  fireEvent.click(
     await screen.findByRole('button', { name: 'Load more activity' }),
   );
-  expect(
-    screen.getByRole('button', { name: 'Show all activity' }),
-  ).toBeDisabled();
-  await act(async () => finishPagination(page));
-  await user.click(screen.getByRole('button', { name: 'Show all activity' }));
-  await waitFor(() =>
-    expect(
-      screen.getByRole('button', { name: 'Show selected trip' }),
-    ).toBeEnabled(),
+  fireEvent.click(screen.getByRole('link', { name: 'Show all activity' }));
+  expect(location.pathname).toBe('/admin/activity');
+  await screen.findByRole('button', { name: 'Load more activity' });
+  await act(async () =>
+    finish({
+      ...page,
+      data: [
+        {
+          id: 42,
+          actorHandle: 'Stale actor',
+          action: 'view',
+          targetType: 'trip',
+          details: { fields: [] },
+          createdAt: 1,
+        },
+      ],
+    }),
   );
-  expect(screen.getByText('Recent activity across all users')).toBeVisible();
-  await user.click(screen.getByRole('tab', { name: /Users & trips/ }));
+  expect(screen.queryByText('Stale actor')).not.toBeInTheDocument();
+  expect(get).not.toHaveBeenCalledWith('/api/admin/users?search=');
+  expect(get).not.toHaveBeenCalledWith('/api/admin/trips/trip/content');
+}, 15000);
+
+test('loads a deleted user directly without relying on search results', async () => {
+  window.history.replaceState(null, '', '/admin/users/owner');
+  const original = vi.mocked(get).getMockImplementation();
+  if (!original) throw new Error('Missing API mock');
+  vi.mocked(get).mockImplementation((path) =>
+    path === '/api/admin/users/owner'
+      ? Promise.resolve({ ...owner, deletedAt: '2026-10-01' })
+      : original(path),
+  );
+  mount();
+  expect(await screen.findByText('Deleted account')).toBeVisible();
   expect(
-    within(screen.getByRole('region', { name: 'Trip content' })).getByText(
-      'Museum visit',
+    within(screen.getByRole('region', { name: 'User trips' })).getByRole(
+      'heading',
+      { name: 'Traveler' },
     ),
   ).toBeVisible();
-  expect(screen.getByRole('button', { name: 'Summer trip' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  );
+  expect(get).not.toHaveBeenCalledWith('/api/admin/users?search=');
 }, 15000);

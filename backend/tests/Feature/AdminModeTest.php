@@ -91,6 +91,42 @@ class AdminModeTest extends TestCase
             ->assertJsonPath('adminAccess', true);
     }
 
+    public function test_admin_detail_pages_can_load_deleted_records_and_are_authorized_and_audited(): void
+    {
+        $owner = $this->user();
+        $admin = $this->user('admin');
+        $other = $this->user();
+        $trip = $this->trip($owner);
+        $trip->delete();
+        $owner->delete();
+        $userUrl = '/api/admin/users/' . $owner->id;
+        $tripUrl = '/api/admin/trips/' . $trip->id;
+
+        $this->getJson($userUrl)->assertUnauthorized();
+        $this->getJson($tripUrl)->assertUnauthorized();
+        $this->actingAs($other)->getJson($userUrl)->assertForbidden();
+        $this->actingAs($other)->getJson($tripUrl)->assertForbidden();
+        $this->assertDatabaseCount('admin_audit_events', 0);
+
+        $this->actingAs($admin)->getJson($userUrl)->assertOk()
+            ->assertExactJson([
+                'id' => $owner->id, 'handle' => $owner->handle, 'email' => $owner->email,
+                'role' => 'user', 'deletedAt' => $owner->getRawOriginal('deleted_at'),
+            ]);
+        $this->getJson($tripUrl)->assertOk()->assertExactJson([
+            'id' => $trip->id, 'title' => $trip->title, 'archivedAt' => null,
+            'deletedAt' => $trip->getRawOriginal('deleted_at'),
+        ]);
+        $this->assertDatabaseHas('admin_audit_events', [
+            'actor_user_id' => $admin->id, 'target_type' => 'user', 'target_id' => $owner->id, 'action' => 'view',
+        ]);
+        $this->assertDatabaseHas('admin_audit_events', [
+            'actor_user_id' => $admin->id, 'trip_id' => $trip->id, 'target_id' => $trip->id, 'action' => 'view',
+        ]);
+        $this->getJson('/api/admin/users/missing')->assertNotFound();
+        $this->getJson('/api/admin/trips/missing')->assertNotFound();
+    }
+
     public function test_admin_owner_does_not_receive_elevated_access_warning_flag(): void
     {
         $admin = $this->user('admin');
