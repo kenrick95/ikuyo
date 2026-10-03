@@ -6,15 +6,22 @@ export function LoadState({
   loading,
   error,
   empty,
+  onRetry,
 }: {
   loading: boolean;
   error?: string;
   empty?: string;
+  onRetry?: () => void;
 }) {
   if (error)
     return (
       <Callout.Root color="red" role="alert">
         <Callout.Text>{error}</Callout.Text>
+        {onRetry ? (
+          <Button variant="soft" color="red" size="1" onClick={onRetry}>
+            Try again
+          </Button>
+        ) : null}
       </Callout.Root>
     );
   if (loading)
@@ -80,28 +87,41 @@ export function RecordActions({
   }
   return (
     <div>
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger>
-          <Button
-            variant="soft"
-            size="1"
-            disabled={disabled || busy}
-            aria-label={`Actions for ${label}`}
-          >
-            {busy ? 'Updating…' : 'Actions'} <DropdownMenu.TriggerIcon />
-          </Button>
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Content>
-          <DropdownMenu.Item
-            disabled={disabled || busy}
-            color={deleted ? 'green' : 'red'}
-            onSelect={() => void change()}
-          >
-            {deleted ? 'Restore' : 'Delete'}
-            {account ? ' account' : ''}
-          </DropdownMenu.Item>
-        </DropdownMenu.Content>
-      </DropdownMenu.Root>
+      {deleted ? (
+        <Button
+          variant="soft"
+          color="green"
+          size="1"
+          disabled={disabled || busy}
+          onClick={() => void change()}
+          aria-label={`Restore ${label}`}
+        >
+          {busy ? 'Restoring…' : account ? 'Restore account' : 'Restore'}
+        </Button>
+      ) : (
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger>
+            <Button
+              variant="soft"
+              size="1"
+              disabled={disabled || busy}
+              aria-label={`Actions for ${label}`}
+            >
+              {busy ? 'Updating…' : 'Actions'} <DropdownMenu.TriggerIcon />
+            </Button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content>
+            <DropdownMenu.Item
+              disabled={disabled || busy}
+              color={deleted ? 'green' : 'red'}
+              onSelect={() => void change()}
+            >
+              {deleted ? 'Restore' : 'Delete'}
+              {account ? ' account' : ''}
+            </DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
+      )}
       {error ? (
         <Text as="p" color="red" size="1" role="alert">
           {error}

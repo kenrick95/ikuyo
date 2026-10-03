@@ -2,9 +2,11 @@ import { Button, Flex, Heading, Text } from '@radix-ui/themes';
 import { Link } from 'wouter';
 import { LoadState } from './components';
 import { type AdminAuditEvent, useAdminPage } from './data';
+import { useAdminLinks } from './navigation';
 import styles from './PageAdmin.module.css';
 
 export default function PageAdminActivity({ tripId }: { tripId?: string }) {
+  const links = useAdminLinks();
   const events = useAdminPage<AdminAuditEvent>(
     `/api/admin/audit-events${tripId ? `?trip=${encodeURIComponent(tripId)}` : ''}`,
   );
@@ -24,9 +26,7 @@ export default function PageAdminActivity({ tripId }: { tripId?: string }) {
         {tripId ? (
           <Flex gap="2" wrap="wrap">
             <Button asChild variant="outline">
-              <Link to={`~/admin/trips/${encodeURIComponent(tripId)}`}>
-                Back to trip
-              </Link>
+              <Link to={links.trip(tripId)}>Back to trip</Link>
             </Button>
             <Button asChild variant="outline">
               <Link to="~/admin/activity">Show all activity</Link>
@@ -37,6 +37,7 @@ export default function PageAdminActivity({ tripId }: { tripId?: string }) {
       <LoadState
         loading={events.loading}
         error={events.error}
+        onRetry={events.reload}
         empty={events.data?.data.length === 0 ? 'No activity yet.' : undefined}
       />
       {events.data?.data.map((event) => (

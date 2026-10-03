@@ -44,6 +44,10 @@
   overflow-wrap: anywhere;
 }
 
+.contentGroup {
+  margin-top: var(--space-5);
+}
+
 .wrap {
   overflow-wrap: anywhere;
 }

@@ -7,16 +7,22 @@ import {
   useAdminPage,
   useAdminResource,
 } from './data';
+import { useAdminLinks } from './navigation';
 import styles from './PageAdmin.module.css';
 
 export default function PageAdminUser({ id }: { id: string }) {
   const path = `/api/admin/users/${encodeURIComponent(id)}`;
+  const links = useAdminLinks(id);
   const user = useAdminResource<AdminUser>(path);
   const trips = useAdminPage<AdminTrip>(`${path}/trips`);
   return (
     <section className={styles.panel} aria-label="User trips">
-      <Link to="~/admin/users">← Users</Link>
-      <LoadState loading={user.loading} error={user.error} />
+      <Link to={links.users}>← Users</Link>
+      <LoadState
+        loading={user.loading}
+        error={user.error}
+        onRetry={user.reload}
+      />
       {user.data ? (
         <>
           <Flex align="start" justify="between" gap="3" my="4" wrap="wrap">
@@ -49,6 +55,7 @@ export default function PageAdminUser({ id }: { id: string }) {
           <LoadState
             loading={trips.loading}
             error={trips.error}
+            onRetry={trips.reload}
             empty={
               trips.data?.data.length === 0 ? 'No trips to display.' : undefined
             }
@@ -56,7 +63,7 @@ export default function PageAdminUser({ id }: { id: string }) {
           {trips.data?.data.map((trip) => (
             <div key={trip.id} className={styles.row}>
               <div className={styles.contentLabel}>
-                <Link to={`~/admin/trips/${encodeURIComponent(trip.id)}`}>
+                <Link to={links.trip(trip.id)}>
                   {trip.title || 'Untitled trip'}
                 </Link>
                 <Flex gap="2" mt="1">

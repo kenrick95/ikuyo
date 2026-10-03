@@ -7,16 +7,36 @@ import {
   useAdminPage,
   useAdminResource,
 } from './data';
+import { useAdminLinks } from './navigation';
 import styles from './PageAdmin.module.css';
+
+const contentLabels: Record<string, string> = {
+  activities: 'Activities',
+  accommodations: 'Accommodations',
+  macroplans: 'Plans',
+  expenses: 'Expenses',
+  'task-lists': 'Task lists',
+  tasks: 'Tasks',
+  'comment-groups': 'Discussions',
+  comments: 'Comments',
+};
 
 export default function PageAdminTrip({ id }: { id: string }) {
   const path = `/api/admin/trips/${encodeURIComponent(id)}`;
+  const links = useAdminLinks();
   const trip = useAdminResource<AdminTrip>(path);
   const content = useAdminPage<AdminContent>(`${path}/content`);
+  const groups = Map.groupBy(content.data?.data ?? [], (item) => item.entity);
   return (
     <section className={styles.panel} aria-label="Trip content">
-      <Link to="~/admin/users">← Users</Link>
-      <LoadState loading={trip.loading} error={trip.error} />
+      <Link to={links.account ?? links.users}>
+        {links.account ? '← User’s trips' : '← Users'}
+      </Link>
+      <LoadState
+        loading={trip.loading}
+        error={trip.error}
+        onRetry={trip.reload}
+      />
       {trip.data ? (
         <>
           <Flex justify="between" align="start" gap="3" wrap="wrap" my="4">
@@ -40,9 +60,7 @@ export default function PageAdminTrip({ id }: { id: string }) {
                 </Button>
               ) : null}
               <Button asChild variant="outline" size="1">
-                <Link to={`~/admin/trips/${encodeURIComponent(id)}/activity`}>
-                  Trip activity
-                </Link>
+                <Link to={links.activity(id)}>Trip activity</Link>
               </Button>
               <RecordActions
                 path={path}
@@ -66,36 +84,49 @@ export default function PageAdminTrip({ id }: { id: string }) {
           <LoadState
             loading={content.loading}
             error={content.error}
+            onRetry={content.reload}
             empty={
               content.data?.data.length === 0
                 ? 'No content to display.'
                 : undefined
             }
           />
-          {content.data?.data.map((item) => (
-            <div key={`${item.entity}:${item.id}`} className={styles.row}>
-              <div className={styles.contentLabel}>
-                <Text as="p" size="2" className={styles.wrap}>
-                  {item.label || 'Untitled content'}
-                </Text>
-                <Flex gap="2" mt="1">
-                  <Badge color="gray">{item.entity.replaceAll('-', ' ')}</Badge>
-                  {item.deletedAt ? <Badge color="red">Deleted</Badge> : null}
-                </Flex>
-              </div>
-              <RecordActions
-                path={`${path}/content/${item.entity}/${encodeURIComponent(item.id)}`}
-                label={item.label}
-                deleted={!!item.deletedAt}
-                disabled={
-                  !!trip.data?.deletedAt ||
-                  trip.loading ||
-                  content.loading ||
-                  content.loadingMore
-                }
-                onChanged={content.reload}
-              />
-            </div>
+          {Array.from(groups, ([entity, items]) => (
+            <section
+              key={entity}
+              className={styles.contentGroup}
+              aria-label={contentLabels[entity] ?? entity}
+            >
+              <Heading as="h2" size="3" mb="2">
+                {contentLabels[entity] ?? entity}
+              </Heading>
+              {items.map((item) => (
+                <div key={`${item.entity}:${item.id}`} className={styles.row}>
+                  <div className={styles.contentLabel}>
+                    <Text as="p" size="2" className={styles.wrap}>
+                      {item.label || 'Untitled content'}
+                    </Text>
+                    <Flex gap="2" mt="1">
+                      {item.deletedAt ? (
+                        <Badge color="red">Deleted</Badge>
+                      ) : null}
+                    </Flex>
+                  </div>
+                  <RecordActions
+                    path={`${path}/content/${item.entity}/${encodeURIComponent(item.id)}`}
+                    label={item.label}
+                    deleted={!!item.deletedAt}
+                    disabled={
+                      !!trip.data?.deletedAt ||
+                      trip.loading ||
+                      content.loading ||
+                      content.loadingMore
+                    }
+                    onChanged={content.reload}
+                  />
+                </div>
+              ))}
+            </section>
           ))}
           {content.data?.nextCursor ? (
             <Button

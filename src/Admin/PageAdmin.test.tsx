@@ -78,14 +78,20 @@ beforeEach(() => {
 });
 
 test('navigates separate user and trip pages, reloads a direct trip URL, and supports Back', async () => {
+  window.history.replaceState(null, '', '/admin/users?search=Traveler');
   const first = await mount();
   fireEvent.click(await screen.findByRole('link', { name: /Traveler/ }));
   expect(location.pathname).toBe('/admin/users/owner');
+  expect(new URLSearchParams(location.search).get('search')).toBe('Traveler');
   await act(() => vi.dynamicImportSettled());
   fireEvent.click(await screen.findByRole('link', { name: 'Summer trip' }));
   expect(location.pathname).toBe('/admin/trips/trip');
   await act(() => vi.dynamicImportSettled());
   await screen.findByText('Museum visit');
+  expect(screen.getByRole('link', { name: '← User’s trips' })).toHaveAttribute(
+    'href',
+    '/admin/users/owner?search=Traveler',
+  );
   expect(
     screen.queryByRole('region', { name: 'Find users' }),
   ).not.toBeInTheDocument();
@@ -97,6 +103,7 @@ test('navigates separate user and trip pages, reloads a direct trip URL, and sup
   await screen.findByText('Museum visit');
   fireEvent.click(screen.getByRole('link', { name: 'Trip activity' }));
   expect(location.pathname).toBe('/admin/trips/trip/activity');
+  expect(new URLSearchParams(location.search).get('user')).toBe('owner');
   await act(() => vi.dynamicImportSettled());
   await screen.findByRole('button', { name: 'Load more activity' });
   act(() => window.history.back());
