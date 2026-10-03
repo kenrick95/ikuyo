@@ -77,6 +77,40 @@ class AccountDeletionTest extends TestCase
         $this->assertNotSoftDeleted('users', ['id' => $last->id]);
     }
 
+    public function test_empty_shared_threads_are_deleted_and_restore_only_the_comments_removed_with_them(): void
+    {
+        $user = $this->user();
+        $other = $this->user();
+        $other->update(['role' => 'admin']);
+        $trip = $this->trip($other);
+        $group = CommentGroup::create(['id' => Str::uuid(), 'trip_id' => $trip->id, 'status' => 0]);
+        $object = CommentGroupObject::create(['id' => Str::uuid(), 'comment_group_id' => $group->id, 'object_type' => 0, 'object_id' => $trip->id]);
+        $oldComment = Comment::create(['id' => Str::uuid(), 'comment_group_id' => $group->id, 'user_id' => $other->id, 'content' => 'Previously removed']);
+        $oldComment->delete();
+        $comments = [];
+        foreach (['First', 'Second'] as $content) {
+            $comments[] = Comment::create(['id' => Str::uuid(), 'comment_group_id' => $group->id, 'user_id' => $user->id, 'content' => $content]);
+        }
+
+        $this->actingAs($user)->deleteJson('/api/users/me', ['confirmation' => 'DELETE'])->assertOk();
+        $this->assertNotSoftDeleted('trips', ['id' => $trip->id]);
+        $this->assertSoftDeleted('comment_groups', ['id' => (string) $group->id]);
+        $this->assertSoftDeleted('comment_group_objects', ['id' => (string) $object->id]);
+        foreach ($comments as $comment) {
+            $this->assertDatabaseHas('comments', ['id' => (string) $comment->id, 'deleted_with_group' => true]);
+        }
+        $this->assertDatabaseHas('sync_events', ['entity' => 'comment_groups', 'entity_id' => (string) $group->id, 'operation' => 'delete', 'trip_id' => $trip->id]);
+        $this->assertDatabaseHas('sync_events', ['entity' => 'comment_group_objects', 'entity_id' => (string) $object->id, 'operation' => 'delete', 'trip_id' => $trip->id]);
+
+        $this->actingAs($other)->postJson('/api/admin/trips/' . $trip->id . '/content/comment-groups/' . $group->id . '/restore')->assertOk();
+        $this->assertNotSoftDeleted('comment_groups', ['id' => (string) $group->id]);
+        $this->assertNotSoftDeleted('comment_group_objects', ['id' => (string) $object->id]);
+        foreach ($comments as $comment) {
+            $this->assertNotSoftDeleted('comments', ['id' => (string) $comment->id]);
+        }
+        $this->assertSoftDeleted('comments', ['id' => (string) $oldComment->id]);
+    }
+
     public function test_account_deletion_retains_rows_and_cascades_only_owned_trips(): void
     {
         $user = $this->user();
