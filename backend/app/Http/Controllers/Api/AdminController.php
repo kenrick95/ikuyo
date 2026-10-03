@@ -87,6 +87,31 @@ class AdminController extends Controller
         ]));
     }
 
+    public function user(string $user): JsonResponse
+    {
+        $record = User::withTrashed()->findOrFail($user);
+
+        return response()->json([
+            'id' => $record->id,
+            'handle' => $record->handle,
+            'email' => $record->email,
+            'role' => $record->role,
+            'deletedAt' => $record->getRawOriginal('deleted_at'),
+        ]);
+    }
+
+    public function trip(string $trip): JsonResponse
+    {
+        $record = Trip::withTrashed()->findOrFail($trip);
+
+        return response()->json([
+            'id' => $record->id,
+            'title' => $record->title,
+            'archivedAt' => $record->archived_at_ms,
+            'deletedAt' => $record->getRawOriginal('deleted_at'),
+        ]);
+    }
+
     public function trips(Request $request, string $user): JsonResponse
     {
         User::withTrashed()->findOrFail($user);

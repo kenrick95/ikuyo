@@ -101,7 +101,7 @@ function App() {
                   <Route path={'/demo'} component={PageDemo} />
                 ) : null}
                 <Route path={RouteLogin.routePath} component={PageLogin} />
-                <Route path={RouteAdmin.routePath} component={PageAdmin} />
+                <Route path={RouteAdmin.routePath} component={PageAdmin} nest />
                 <Route path={RouteTrips.routePath} component={PageTrips} />
                 <Route
                   path={RouteTripsArchived.routePath}

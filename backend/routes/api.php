@@ -38,10 +38,12 @@ Route::middleware(['web', 'trip.lifecycle', 'admin.audit'])->group(function (): 
     Route::middleware(['auth', 'admin'])->prefix('admin')->group(function (): void {
         Route::get('/audit-events', [AdminController::class, 'auditEvents']);
         Route::get('/users', [AdminController::class, 'users']);
+        Route::get('/users/{user}', [AdminController::class, 'user']);
         Route::get('/users/{user}/trips', [AdminController::class, 'trips']);
         Route::delete('/users/{user}', [AdminController::class, 'deleteUser']);
         Route::post('/users/{user}/restore', [AdminController::class, 'restoreUser']);
         Route::get('/trips/{trip}/content', [AdminController::class, 'content']);
+        Route::get('/trips/{trip}', [AdminController::class, 'trip']);
         Route::delete('/trips/{trip}', [AdminController::class, 'deleteTrip']);
         Route::post('/trips/{trip}/restore', [AdminController::class, 'restoreTrip']);
         Route::delete('/trips/{trip}/content/{entity}/{entityId}', [AdminController::class, 'deleteContent']);

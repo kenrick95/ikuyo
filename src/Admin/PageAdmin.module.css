@@ -1,0 +1,77 @@
+.panel {
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--radius-3);
+  background: var(--color-panel-solid);
+  padding: var(--space-4);
+  min-width: 0;
+}
+
+.search {
+  flex: 1;
+  min-width: 0;
+}
+
+.userRow {
+  display: block;
+  padding: var(--space-3);
+  border-radius: var(--radius-2);
+  color: inherit;
+  text-decoration: none;
+}
+
+.userRow:hover {
+  background: var(--accent-a3);
+}
+
+.userRow:focus-visible {
+  outline: 2px solid var(--accent-8);
+  outline-offset: -2px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--gray-a4);
+}
+
+.contentLabel {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.contentGroup {
+  margin-top: var(--space-5);
+}
+
+.wrap {
+  overflow-wrap: anywhere;
+}
+
+.auditRow {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--gray-a4);
+}
+
+.auditDetails {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-1);
+  color: var(--gray-11);
+}
+
+.auditDetails summary {
+  cursor: pointer;
+}
+
+@media (max-width: 767px) {
+  .auditRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
