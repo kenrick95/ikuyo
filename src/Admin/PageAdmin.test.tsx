@@ -111,6 +111,46 @@ test('navigates separate user and trip pages, reloads a direct trip URL, and sup
   await screen.findByText('Museum visit');
 }, 15000);
 
+test('preserves the account and search when opening a trip from an audit event', async () => {
+  window.history.replaceState(
+    null,
+    '',
+    '/admin/trips/trip/activity?search=Traveler&user=owner',
+  );
+  const original = vi.mocked(get).getMockImplementation();
+  if (!original) throw new Error('Missing API mock');
+  vi.mocked(get).mockImplementation((path) =>
+    path.startsWith('/api/admin/audit-events')
+      ? Promise.resolve({
+          ...page,
+          data: [
+            {
+              id: 42,
+              actorHandle: 'Support',
+              tripId: 'trip',
+              targetId: 'trip',
+              action: 'view',
+              targetType: 'trip',
+              details: { fields: [] },
+              createdAt: 1,
+            },
+          ],
+        })
+      : original(path),
+  );
+  await mount();
+  fireEvent.click(await screen.findByText('Record details'));
+  fireEvent.click(screen.getByRole('link', { name: 'Trip trip' }));
+  expect(location.pathname).toBe('/admin/trips/trip');
+  expect(new URLSearchParams(location.search).get('search')).toBe('Traveler');
+  expect(new URLSearchParams(location.search).get('user')).toBe('owner');
+  await screen.findByText('Museum visit');
+  expect(screen.getByRole('link', { name: '← User’s trips' })).toHaveAttribute(
+    'href',
+    '/admin/users/owner?search=Traveler',
+  );
+}, 15000);
+
 test('discards pending trip pagination after navigating to all activity', async () => {
   window.history.replaceState(null, '', '/admin/trips/trip/activity');
   const original = vi.mocked(get).getMockImplementation();

@@ -70,9 +70,7 @@ export default function PageAdminActivity({ tripId }: { tripId?: string }) {
                     <>
                       {' '}
                       ·{' '}
-                      <Link
-                        to={`~/admin/trips/${encodeURIComponent(event.tripId)}`}
-                      >
+                      <Link to={links.trip(event.tripId)}>
                         Trip {event.tripId}
                       </Link>
                     </>
