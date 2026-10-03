@@ -16,7 +16,12 @@ class SerializeTripLifecycle
     public function handle(Request $request, Closure $next): Response
     {
         $route = $request->route();
-        if (! $route || ! $request->user() || (! $request->isMethod('DELETE') && ! str_ends_with($route->uri(), '/restore'))) {
+        if (! $route || ! $request->user() || $request->isMethodSafe()) {
+            return $next($request);
+        }
+        // Account deletion locks all active admins before its target user and
+        // affected trips. Do not reverse that lock order here.
+        if ($route->uri() === 'api/users/me' && $request->isMethod('DELETE')) {
             return $next($request);
         }
         $actor = $request->user();
@@ -26,7 +31,7 @@ class SerializeTripLifecycle
 
         $tripId = $this->id($route->parameter('trip'));
         if (! $tripId) {
-            foreach (['activity' => 'activities', 'taskList' => 'task_lists', 'task' => 'tasks', 'comment' => 'comments', 'entityId' => null] as $parameter => $table) {
+            foreach (['activity' => 'activities', 'taskList' => 'task_lists', 'task' => 'tasks', 'comment' => 'comments', 'group' => 'comment_groups', 'member' => 'trip_user', 'entityId' => null] as $parameter => $table) {
                 $id = $this->id($route->parameter($parameter));
                 if (! $id) {
                     continue;
@@ -50,21 +55,34 @@ class SerializeTripLifecycle
                 break;
             }
         }
-        if (! $tripId) {
-            return $next($request);
-        }
 
-        return DB::transaction(function () use ($tripId, $request, $next): Response {
-            // Take the same lock for owner and admin deletion/restoration, before
-            // audit snapshots or descendant reads establish a database snapshot.
-            Trip::withTrashed()->whereKey($tripId)->lockForUpdate()->firstOrFail();
+        return DB::transaction(function () use ($tripId, $request, $next, $route, $actor): Response {
+            // Also serialize trip creation and authored comments with account
+            // deletion. Authentication may have run before a competing delete.
+            $user = User::whereKey($actor->getAuthIdentifier())->lockForUpdate()->first();
+            abort_unless($user !== null, 401);
+            $request->setUserResolver(fn () => $user);
+            if ($tripId) {
+                // All mutations share this lock, before access checks, audit
+                // snapshots, descendant reads, or sync-event writes.
+                $trip = Trip::withTrashed()->whereKey($tripId)->lockForUpdate()->firstOrFail();
+                abort_if($trip->trashed() && ! str_ends_with($route->uri(), '/restore'), 404);
+                // Route model binding can precede a wait for the lock. Reload
+                // models so deleted children and stale relationships cannot be
+                // used by direct-by-ID controllers after that wait.
+                foreach ($route->parameters() as $name => $parameter) {
+                    if ($parameter instanceof Model) {
+                        $route->setParameter($name, $parameter->newQuery()->findOrFail($parameter->getKey()));
+                    }
+                }
+            }
             $response = $next($request);
             if ($response->getStatusCode() >= 400) {
                 throw new HttpResponseException($response);
             }
 
             return $response;
-        });
+        }, 3);
     }
 
     private function id(mixed $value): ?string

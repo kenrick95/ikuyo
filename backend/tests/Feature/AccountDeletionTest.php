@@ -48,6 +48,35 @@ class AccountDeletionTest extends TestCase
         $this->assertNotSoftDeleted('users', ['id' => $user->id]);
     }
 
+    public function test_last_active_administrator_cannot_delete_their_account(): void
+    {
+        $admin = $this->user();
+        $admin->update(['role' => 'admin']);
+        $deletedAdmin = $this->user();
+        $deletedAdmin->update(['role' => 'admin']);
+        $deletedAdmin->delete();
+        $trip = $this->trip($admin);
+
+        $this->actingAs($admin)->deleteJson('/api/users/me', ['confirmation' => 'DELETE'])
+            ->assertStatus(409)->assertJsonPath('message', 'The last administrator cannot delete their account. Assign another administrator first.');
+        $this->assertAuthenticatedAs($admin);
+        $this->assertNotSoftDeleted('users', ['id' => $admin->id]);
+        $this->assertNotSoftDeleted('trips', ['id' => $trip->id]);
+    }
+
+    public function test_an_administrator_can_delete_only_while_another_active_admin_remains(): void
+    {
+        $first = $this->user();
+        $first->update(['role' => 'admin']);
+        $last = $this->user();
+        $last->update(['role' => 'admin']);
+
+        $this->actingAs($first)->deleteJson('/api/users/me', ['confirmation' => 'DELETE'])->assertOk();
+        $this->assertSoftDeleted('users', ['id' => $first->id]);
+        $this->actingAs($last)->deleteJson('/api/users/me', ['confirmation' => 'DELETE'])->assertStatus(409);
+        $this->assertNotSoftDeleted('users', ['id' => $last->id]);
+    }
+
     public function test_account_deletion_retains_rows_and_cascades_only_owned_trips(): void
     {
         $user = $this->user();
@@ -77,6 +106,12 @@ class AccountDeletionTest extends TestCase
         $remaining = Activity::create(['id' => Str::uuid(), 'trip_id' => $shared->id, 'title' => 'Keep', 'location' => 'Tokyo']);
         $oldChild = Activity::create(['id' => Str::uuid(), 'trip_id' => $previouslyDeleted->id, 'title' => 'Old', 'location' => 'Tokyo']);
         $records[] = $oldChild;
+        $oldList = TaskList::create(['id' => Str::uuid(), 'trip_id' => $previouslyDeleted->id, 'title' => 'Old list', 'index' => 0, 'status' => 0]);
+        $oldTask = Task::create(['id' => Str::uuid(), 'task_list_id' => $oldList->id, 'title' => 'Old task', 'index' => 0, 'status' => 0]);
+        $oldGroup = CommentGroup::create(['id' => Str::uuid(), 'trip_id' => $previouslyDeleted->id, 'status' => 0]);
+        $oldComment = Comment::create(['id' => Str::uuid(), 'comment_group_id' => $oldGroup->id, 'user_id' => $user->id, 'content' => 'Old comment']);
+        $oldObject = CommentGroupObject::create(['id' => Str::uuid(), 'comment_group_id' => $oldGroup->id, 'object_type' => 0, 'object_id' => $previouslyDeleted->id]);
+        array_push($records, $oldList, $oldTask, $oldGroup, $oldComment, $oldObject);
         $sharedGroup = CommentGroup::create(['id' => Str::uuid(), 'trip_id' => $shared->id, 'status' => 0]);
         $ownComment = Comment::create(['id' => Str::uuid(), 'comment_group_id' => $sharedGroup->id, 'user_id' => $user->id, 'content' => 'Mine']);
         $otherComment = Comment::create(['id' => Str::uuid(), 'comment_group_id' => $sharedGroup->id, 'user_id' => $other->id, 'content' => 'Keep']);
@@ -93,5 +128,8 @@ class AccountDeletionTest extends TestCase
         }
         $this->assertDatabaseMissing('sessions', ['user_id' => $user->id]);
         $this->assertDatabaseHas('sync_events', ['entity' => 'trips', 'entity_id' => $trip->id, 'operation' => 'delete']);
+        foreach (['tasks' => $oldTask, 'comments' => $oldComment, 'comment_group_objects' => $oldObject] as $entity => $record) {
+            $this->assertDatabaseHas('sync_events', ['entity' => $entity, 'entity_id' => (string) $record->id, 'operation' => 'delete', 'trip_id' => $previouslyDeleted->id]);
+        }
     }
 }
