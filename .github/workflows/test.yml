@@ -21,6 +21,17 @@ jobs:
       group: ci-${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     runs-on: ubuntu-24.04
+    services:
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ROOT_PASSWORD: testing
+          MARIADB_DATABASE: ikuyo_testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
     permissions:
       contents: read
     outputs:
@@ -51,7 +62,7 @@ jobs:
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
         with:
           php-version: '8.4'
-          extensions: mbstring, curl, pdo, sqlite, xml, zip, intl, gd, pcntl
+          extensions: mbstring, curl, pdo, pdo_mysql, sqlite, xml, zip, intl, gd, pcntl, posix
       - name: Use Node.js 24
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -98,6 +109,18 @@ jobs:
       - name: PHPUnit
         run: composer test
         working-directory: backend
+      - name: MariaDB concurrency regressions
+        run: php artisan test tests/Concurrency
+        working-directory: backend
+        env:
+          APP_ENV: testing
+          DB_CONNECTION: mariadb
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: ikuyo_testing
+          DB_USERNAME: root
+          DB_PASSWORD: testing
+          SESSION_DRIVER: array
       - name: Bundle PHP metadata service + backend into dist
         run: |
           cp index.php dist/index.php

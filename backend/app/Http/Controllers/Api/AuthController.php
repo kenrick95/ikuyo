@@ -10,6 +10,7 @@ use App\Services\UserHandleGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -27,7 +28,7 @@ class AuthController extends Controller
         // password) must reach the needsPasswordSetup branch even when the user
         // leaves the field blank and lets the form submit.
         $data = $request->validate(['email' => ['required', 'email'], 'password' => ['nullable', 'string']]);
-        $user = User::where('email', $data['email'])->first();
+        $user = User::where('email', $data['email'])->lockForUpdate()->first();
 
         if (! $user) {
             return response()->json(['message' => 'Invalid credentials.'], 422);
@@ -145,7 +146,7 @@ class AuthController extends Controller
     public function forgot(Request $request): JsonResponse
     {
         $data = $request->validate(['email' => ['required', 'email']]);
-        $user = User::where('email', $data['email'])->first();
+        $user = User::where('email', $data['email'])->lockForUpdate()->first();
 
         if ($user) {
             $rawToken = Str::random(64);
@@ -154,12 +155,12 @@ class AuthController extends Controller
                 'reset_token_at' => now()->addHour()->getTimestampMs(),
             ])->save();
             $frontendUrl = rtrim((string) config('app.url'), '/');
-            // Shared hosting has no persistent queue worker; send synchronously so
-            // the reset email is delivered even when only PHP/cron is available.
-            Mail::to($user->email)->send(new PasswordResetMail(
+            // Keep delivery synchronous on shared hosting, but only after the
+            // token commits. A rolled-back retry must not send its token.
+            DB::afterCommit(fn () => Mail::to($user->email)->send(new PasswordResetMail(
                 $user,
                 $frontendUrl . '/login?reset_token=' . urlencode($rawToken),
-            ));
+            )));
         }
 
         // Deliberately identical for existing and unknown email addresses.
@@ -182,10 +183,10 @@ class AuthController extends Controller
         ])->save();
 
         $frontendUrl = rtrim((string) config('app.url'), '/');
-        Mail::to($target)->send(new VerifyEmailMail(
+        DB::afterCommit(fn () => Mail::to($target)->send(new VerifyEmailMail(
             $user,
             $frontendUrl . '/login?verify_token=' . urlencode($token),
-        ));
+        )));
 
         return response()->json(['ok' => true]);
     }
@@ -195,6 +196,7 @@ class AuthController extends Controller
         $data = $request->validate(['token' => ['required', 'string']]);
         $user = User::where('email_verify_token_hash', hash('sha256', $data['token']))
             ->where('email_verify_token_at', '>', now()->getTimestampMs())
+            ->lockForUpdate()
             ->firstOrFail();
         $user->forceFill([
             'email_verified' => true,
@@ -227,6 +229,7 @@ class AuthController extends Controller
         ]);
         $user = User::where('reset_token', hash('sha256', $data['resetToken']))
             ->where('reset_token_at', '>', now()->getTimestampMs())
+            ->lockForUpdate()
             ->firstOrFail();
 
         $user->forceFill([

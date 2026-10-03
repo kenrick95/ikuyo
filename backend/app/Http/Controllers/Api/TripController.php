@@ -391,8 +391,8 @@ class TripController extends Controller
                 'createdAt' => $comment->created_at_ms,
                 'lastUpdatedAt' => $comment->updated_at_ms,
                 'user' => [
-                    'id' => $commentUser?->id,
-                    'handle' => $commentUser?->handle,
+                    'id' => $comment->user_id,
+                    'handle' => $commentUser->handle ?? '[deleted]',
                     'activated' => (bool) ($commentUser?->activated ?? false),
                 ],
             ];

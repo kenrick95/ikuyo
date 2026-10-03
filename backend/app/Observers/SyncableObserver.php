@@ -15,6 +15,7 @@ use App\Models\Trip;
 use App\Models\TripUser;
 use App\Services\SyncEventService;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class SyncableObserver
 {
@@ -65,19 +66,19 @@ class SyncableObserver
             return $model->id;
         }
         if (array_key_exists('trip_id', $model->getAttributes())) {
-            return $model->trip_id;
+            return $model->getAttribute('trip_id');
         }
         if ($model instanceof TripUser) {
             return $model->trip_id;
         }
         if ($model instanceof CommentGroupObject) {
-            return $model->commentGroup?->trip_id;
+            return DB::table('comment_groups')->where('id', $model->comment_group_id)->value('trip_id');
         }
         if ($model instanceof Comment) {
-            return $model->commentGroup?->trip_id;
+            return DB::table('comment_groups')->where('id', $model->comment_group_id)->value('trip_id');
         }
         if ($model instanceof Task) {
-            return $model->taskList?->trip_id;
+            return DB::table('task_lists')->where('id', $model->task_list_id)->value('trip_id');
         }
 
         return null;
