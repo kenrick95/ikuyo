@@ -12,8 +12,10 @@ use Closure;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Tests\TestCase;
 use Throwable;
@@ -116,9 +118,90 @@ class AccountDeletionConcurrencyTest extends TestCase
         $this->assertSoftDeleted('trips', ['id' => $trip->id]);
     }
 
+    public function test_role_demotion_waiting_for_deletion_preserves_the_last_admin(): void
+    {
+        $first = $this->user('admin');
+        $second = $this->user('admin');
+        $result = $this->race(
+            function () use ($second) {
+                $this->assertSame(1, Artisan::call('user:set-role', ['email' => $second->email, 'role' => 'user']));
+                $this->assertStringContainsString('The last administrator cannot be demoted.', Artisan::output());
+            },
+            function (Closure $wait) use ($first) {
+                $this->afterLock('users', $wait);
+                app(AccountDeletionService::class)->delete($first);
+            },
+        );
+        $this->assertSame('ok', $result);
+        $this->assertSoftDeleted('users', ['id' => $first->id]);
+        $this->assertTrue($second->fresh()->isAdmin());
+    }
+
+    public function test_account_deletion_waiting_for_demotion_preserves_the_last_admin(): void
+    {
+        $first = $this->user('admin');
+        $second = $this->user('admin');
+        $result = $this->race(
+            fn () => app(AccountDeletionService::class)->delete($first),
+            function (Closure $wait) use ($second) {
+                $this->afterLock('users', $wait);
+                $this->assertSame(0, Artisan::call('user:set-role', ['email' => $second->email, 'role' => 'user']));
+            },
+        );
+        $this->assertSame('http:409', $result);
+        $this->assertNotSoftDeleted('users', ['id' => $first->id]);
+        $this->assertTrue($first->fresh()->isAdmin());
+        $this->assertFalse($second->fresh()->isAdmin());
+    }
+
+    public static function adminTripMutations(): array
+    {
+        return [
+            'delete trip' => ['DELETE', false, false],
+            'restore trip' => ['POST', false, true],
+            'delete content' => ['DELETE', true, false],
+            'restore content' => ['POST', true, true],
+        ];
+    }
+
+    #[DataProvider('adminTripMutations')]
+    public function test_admin_mutations_acquire_the_trip_lifecycle_lock(string $method, bool $content, bool $restore): void
+    {
+        $admin = $this->user('admin');
+        $trip = $this->trip($this->user());
+        $activity = Activity::create(['id' => Str::uuid(), 'trip_id' => $trip->id, 'title' => 'Activity', 'location' => 'Tokyo']);
+        $target = $content ? $activity : $trip;
+        if ($restore) {
+            $target->delete();
+        }
+        $uri = '/api/admin/trips/' . $trip->id
+            . ($content ? '/content/activities/' . $activity->id : '')
+            . ($restore ? '/restore' : '');
+        $result = $this->race(
+            function () use ($admin, $method, $uri) {
+                $locked = false;
+                $this->afterLock('trips', function () use (&$locked) {
+                    $locked = true;
+                });
+                $this->actingAs($admin)->json($method, $uri)->assertOk();
+                $this->assertTrue($locked, 'Admin mutations must acquire the shared trip lock.');
+            },
+            fn (Closure $wait) => DB::transaction(function () use ($trip, $wait) {
+                Trip::withTrashed()->whereKey($trip->id)->lockForUpdate()->firstOrFail();
+                $wait();
+            }),
+        );
+        $this->assertSame('ok', $result);
+        if ($restore) {
+            $this->assertNotSoftDeleted($target->getTable(), ['id' => (string) $target->id]);
+        } else {
+            $this->assertSoftDeleted($target->getTable(), ['id' => (string) $target->id]);
+        }
+    }
+
     private function user(string $role = 'user'): User
     {
-        return User::create(['id' => (string) Str::uuid(), 'handle' => Str::random(12), 'activated' => true, 'role' => $role]);
+        return User::create(['id' => (string) Str::uuid(), 'handle' => Str::random(12), 'email' => Str::random(12) . '@example.com', 'activated' => true, 'role' => $role]);
     }
 
     private function trip(User $owner): Trip

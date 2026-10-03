@@ -26,6 +26,10 @@ Admin sync requests for another user's trip must include `tripId` so they can be
 
 After migration, grant access with `cd backend && php artisan user:set-role person@example.com admin`; revoke it by using `user` as the final argument. The role takes effect on the next request, and the `/admin` menu link appears after the browser refreshes its session. The admin page lists active and deleted users, their trips, and paginated live/deleted content. Delete an ordinary user's account to block sign-in and end database sessions; restore it to recover access and memberships. Inviting a deleted account returns a conflict until an admin restores it. Open a trip to use the normal editor; an admin-access warning appears when elevated privileges are used. Restore the trip before restoring its content. When a comment group was deleted with its target, restore the target first, then restore the group to recover its thread.
 
+The last active administrator cannot be demoted or delete their own account.
+Grant another active account administrator access first. Role changes and account
+deletion share transaction locks so concurrent operations preserve this rule.
+
 ## Possible next operations
 
 - Account support: end all sessions, help recover email or password access, and inspect account status without exposing credentials.
