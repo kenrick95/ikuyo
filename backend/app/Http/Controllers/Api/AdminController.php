@@ -144,7 +144,9 @@ class AdminController extends Controller
 
     public function restoreUser(string $user): JsonResponse
     {
-        User::onlyTrashed()->findOrFail($user)->restore();
+        DB::transaction(function () use ($user): void {
+            User::onlyTrashed()->whereKey($user)->lockForUpdate()->firstOrFail()->restore();
+        }, 3);
 
         return response()->json(['ok' => true]);
     }

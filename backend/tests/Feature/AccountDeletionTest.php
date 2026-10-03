@@ -109,6 +109,9 @@ class AccountDeletionTest extends TestCase
             $this->assertNotSoftDeleted('comments', ['id' => (string) $comment->id]);
         }
         $this->assertSoftDeleted('comments', ['id' => (string) $oldComment->id]);
+        // Restoring the thread must safely serialize its deleted author.
+        $this->getJson('/api/trips/' . $trip->id)->assertOk()
+            ->assertJsonFragment(['id' => $user->id, 'handle' => '[deleted]', 'activated' => false]);
     }
 
     public function test_account_deletion_retains_rows_and_cascades_only_owned_trips(): void
