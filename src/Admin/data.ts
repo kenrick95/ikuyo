@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { type CursorPage, get } from '../data/apiClient';
+import { ApiError, type CursorPage, get } from '../data/apiClient';
 
 export type AdminUser = {
   id: string;
@@ -37,7 +37,9 @@ export function useAdminResource<T>(path: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
   const generation = useRef(0);
+  const mounted = useRef(false);
   const reload = useCallback(() => {
+    if (!mounted.current) return;
     const request = ++generation.current;
     setLoading(true);
     setError(undefined);
@@ -46,15 +48,20 @@ export function useAdminResource<T>(path: string) {
         if (generation.current === request) setData(result);
       })
       .catch((reason: unknown) => {
-        if (generation.current === request) setError(String(reason));
+        if (generation.current === request) {
+          setData(undefined);
+          setError(String(reason));
+        }
       })
       .finally(() => {
         if (generation.current === request) setLoading(false);
       });
   }, [path]);
   useEffect(() => {
+    mounted.current = true;
     reload();
     return () => {
+      mounted.current = false;
       generation.current++;
     };
   }, [reload]);
@@ -89,8 +96,15 @@ export function useAdminPage<T>(path: string) {
         }));
       }
     } catch (reason) {
-      if (request === resource.generation.current)
+      if (request === resource.generation.current) {
+        if (
+          reason instanceof ApiError &&
+          [401, 403, 404].includes(reason.status)
+        ) {
+          resource.setData(undefined);
+        }
         resource.setError(String(reason));
+      }
     } finally {
       setLoadingMore(false);
     }

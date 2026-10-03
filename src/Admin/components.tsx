@@ -1,5 +1,5 @@
 import { Button, Callout, DropdownMenu, Text } from '@radix-ui/themes';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { deleteMutation, postMutation } from '../data/apiClient';
 
 export function LoadState({
@@ -47,7 +47,16 @@ export function RecordActions({
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  const pending = useRef(false);
+  const mounted = useRef(false);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   async function change() {
+    if (disabled || pending.current) return;
     if (
       !deleted &&
       !window.confirm(
@@ -55,16 +64,18 @@ export function RecordActions({
       )
     )
       return;
+    pending.current = true;
     setBusy(true);
     setError(undefined);
     try {
       if (deleted) await postMutation(`${path}/restore`, {});
       else await deleteMutation(path);
-      onChanged();
+      if (mounted.current) onChanged();
     } catch (reason) {
-      setError(String(reason));
+      if (mounted.current) setError(String(reason));
     } finally {
-      setBusy(false);
+      pending.current = false;
+      if (mounted.current) setBusy(false);
     }
   }
   return (
@@ -82,6 +93,7 @@ export function RecordActions({
         </DropdownMenu.Trigger>
         <DropdownMenu.Content>
           <DropdownMenu.Item
+            disabled={disabled || busy}
             color={deleted ? 'green' : 'red'}
             onSelect={() => void change()}
           >
