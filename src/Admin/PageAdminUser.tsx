@@ -38,7 +38,7 @@ export default function PageAdminUser({ id }: { id: string }) {
               ) : null}
               {user.data.role === 'admin' ? <Badge>Admin</Badge> : null}
             </div>
-            {user.data.role !== 'admin' ? (
+            {user.data.deletedAt || user.data.role !== 'admin' ? (
               <RecordActions
                 path={path}
                 label={user.data.handle}

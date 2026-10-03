@@ -9,7 +9,7 @@ import {
 } from '@testing-library/react';
 import { beforeEach, expect, test, vi } from 'vitest';
 import { Route } from 'wouter';
-import { get } from '../data/apiClient';
+import { get, postMutation } from '../data/apiClient';
 import PageAdmin from './PageAdmin';
 
 vi.mock('../Auth/hooks', () => ({
@@ -190,22 +190,48 @@ test('discards pending trip pagination after navigating to all activity', async 
   expect(get).not.toHaveBeenCalledWith('/api/admin/trips/trip/content');
 }, 15000);
 
-test('loads a deleted user directly without relying on search results', async () => {
-  window.history.replaceState(null, '', '/admin/users/owner');
-  const original = vi.mocked(get).getMockImplementation();
-  if (!original) throw new Error('Missing API mock');
-  vi.mocked(get).mockImplementation((path) =>
-    path === '/api/admin/users/owner'
-      ? Promise.resolve({ ...owner, deletedAt: '2026-10-01' })
-      : original(path),
-  );
-  await mount();
-  expect(await screen.findByText('[deleted]')).toBeVisible();
-  expect(
-    within(screen.getByRole('region', { name: 'User trips' })).getByRole(
-      'heading',
-      { name: 'Traveler' },
-    ),
-  ).toBeVisible();
-  expect(get).not.toHaveBeenCalledWith('/api/admin/users?search=');
-}, 15000);
+test.each(['user', 'admin'])(
+  'loads and restores a deleted %s directly without relying on search results',
+  async (role) => {
+    window.history.replaceState(null, '', '/admin/users/owner');
+    const original = vi.mocked(get).getMockImplementation();
+    if (!original) throw new Error('Missing API mock');
+    let deletedAt: string | null = '2026-10-01';
+    vi.mocked(postMutation).mockImplementationOnce(async () => {
+      deletedAt = null;
+      return { ok: true };
+    });
+    vi.mocked(get).mockImplementation((path) =>
+      path === '/api/admin/users/owner'
+        ? Promise.resolve({ ...owner, role, deletedAt })
+        : original(path),
+    );
+    await mount();
+    expect(await screen.findByText('[deleted]')).toBeVisible();
+    expect(
+      within(screen.getByRole('region', { name: 'User trips' })).getByRole(
+        'heading',
+        { name: 'Traveler' },
+      ),
+    ).toBeVisible();
+    expect(get).not.toHaveBeenCalledWith('/api/admin/users?search=');
+    fireEvent.click(screen.getByRole('button', { name: 'Restore Traveler' }));
+    await waitFor(() =>
+      expect(screen.queryByText('[deleted]')).not.toBeInTheDocument(),
+    );
+    expect(postMutation).toHaveBeenCalledWith(
+      '/api/admin/users/owner/restore',
+      {},
+    );
+    if (role === 'admin') {
+      expect(
+        screen.queryByRole('button', { name: 'Actions for Traveler' }),
+      ).not.toBeInTheDocument();
+    } else {
+      expect(
+        screen.getByRole('button', { name: 'Actions for Traveler' }),
+      ).toBeVisible();
+    }
+  },
+  15000,
+);
