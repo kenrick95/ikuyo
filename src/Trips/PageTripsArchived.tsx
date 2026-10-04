@@ -1,8 +1,8 @@
 import {
+  Box,
   Button,
   Callout,
   Container,
-  Flex,
   Heading,
   Skeleton,
 } from '@radix-ui/themes';
@@ -10,11 +10,11 @@ import { useEffect } from 'react';
 import { Link, type RouteComponentProps } from 'wouter';
 import { useCurrentUser } from '../Auth/hooks';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
+import cardStyles from '../common/TripCards.module.css';
 import { useBoundStore, useDeepBoundStore } from '../data/store';
 import { DocTitle } from '../Nav/DocTitle';
 import { Navbar } from '../Nav/Navbar';
 import { RouteTrips } from '../Routes/routes';
-import s from './PageTrips.module.css';
 import { TripCard } from './TripCard';
 
 export default PageTripsArchived;
@@ -64,13 +64,12 @@ export function PageTripsArchived(_props: RouteComponentProps) {
             <Callout.Text>Error loading archived trips: {error}</Callout.Text>
           </Callout.Root>
         ) : null}
-        <Flex asChild gap="2" p="2" wrap="wrap">
-          <ul>
+        <Box p="2">
+          <ul className={cardStyles.list}>
             {loading ? (
               <Skeleton>
                 <TripCard
                   placeholder
-                  className={s.tripLi}
                   trip={{
                     id: 'skeleton',
                     title: 'Loading...',
@@ -85,12 +84,10 @@ export function PageTripsArchived(_props: RouteComponentProps) {
             ) : trips.length === 0 ? (
               'No archived trips.'
             ) : (
-              trips.map((trip) => (
-                <TripCard className={s.tripLi} trip={trip} key={trip.id} />
-              ))
+              trips.map((trip) => <TripCard trip={trip} key={trip.id} />)
             )}
           </ul>
-        </Flex>
+        </Box>
         {hasMore ? (
           <Button
             variant="outline"

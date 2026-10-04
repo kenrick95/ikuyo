@@ -1,7 +1,3 @@
-.tripLi {
-  list-style: none;
-  flex: 0 1 280px;
-}
 .headingSpinner {
   display: inline-block;
   margin-left: var(--space-2);

@@ -3,7 +3,6 @@ import {
   Button,
   Callout,
   Container,
-  Flex,
   Heading,
   Skeleton,
   Spinner,
@@ -13,6 +12,7 @@ import { useEffect } from 'react';
 import type { RouteComponentProps } from 'wouter';
 import { useCurrentUser } from '../Auth/hooks';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
+import cardStyles from '../common/TripCards.module.css';
 import { useBoundStore, useDeepBoundStore } from '../data/store';
 import { DocTitle } from '../Nav/DocTitle';
 import { Navbar } from '../Nav/Navbar';
@@ -72,40 +72,31 @@ export function PageTripsPublic(_props: RouteComponentProps) {
             {loading ? <Spinner size="2" className={s.headingSpinner} /> : null}
           </Heading>
 
-          <Flex asChild gap="2" p="0" wrap="wrap">
-            <ul>
-              {trips.length === 0 ? (
-                loading ? (
-                  <Skeleton>
-                    <TripPublicCard
-                      className={s.tripLi}
-                      trip={{
-                        id: 'skeleton',
-                        title: 'Loading...',
-                        timestampStart: skeletonNow,
-                        timestampEnd: skeletonNow,
-                        timeZone: 'UTC',
-                        createdAt: skeletonNow,
-                        lastUpdatedAt: skeletonNow,
-                        ownerHandle: null,
-                        activityCount: 0,
-                      }}
-                    />
-                  </Skeleton>
-                ) : (
-                  <Text color="gray">No public trips found.</Text>
-                )
-              ) : (
-                trips.map((trip) => (
+          <ul className={cardStyles.list}>
+            {trips.length === 0 ? (
+              loading ? (
+                <Skeleton>
                   <TripPublicCard
-                    className={s.tripLi}
-                    trip={trip}
-                    key={trip.id}
+                    trip={{
+                      id: 'skeleton',
+                      title: 'Loading...',
+                      timestampStart: skeletonNow,
+                      timestampEnd: skeletonNow,
+                      timeZone: 'UTC',
+                      createdAt: skeletonNow,
+                      lastUpdatedAt: skeletonNow,
+                      ownerHandle: null,
+                      activityCount: 0,
+                    }}
                   />
-                ))
-              )}
-            </ul>
-          </Flex>
+                </Skeleton>
+              ) : (
+                <Text color="gray">No public trips found.</Text>
+              )
+            ) : (
+              trips.map((trip) => <TripPublicCard trip={trip} key={trip.id} />)
+            )}
+          </ul>
         </Box>
 
         {hasMore ? (
