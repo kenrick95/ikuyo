@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\User;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class SetUserRole extends Command
 {
@@ -20,15 +21,28 @@ class SetUserRole extends Command
             return self::FAILURE;
         }
 
-        $user = User::where('email', $this->argument('email'))->first();
-        if (! $user) {
-            $this->error('User not found.');
+        $email = (string) $this->argument('email');
+        $error = DB::transaction(function () use ($email, $role): ?string {
+            // Match account deletion's lock order and recheck after any wait.
+            $admins = User::where('role', 'admin')->orderBy('id')->lockForUpdate()->get(['id']);
+            $user = User::where('email', $email)->lockForUpdate()->first();
+            if (! $user) {
+                return 'User not found.';
+            }
+            if ($role === 'user' && $user->isAdmin() && $admins->count() <= 1) {
+                return 'The last administrator cannot be demoted. Assign another administrator first.';
+            }
+            $user->update(['role' => $role]);
+
+            return null;
+        }, 3);
+        if ($error !== null) {
+            $this->error($error);
 
             return self::FAILURE;
         }
 
-        $user->update(['role' => $role]);
-        $this->info("{$user->email} is now {$role}.");
+        $this->info("{$email} is now {$role}.");
 
         return self::SUCCESS;
     }

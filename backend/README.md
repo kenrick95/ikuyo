@@ -86,6 +86,16 @@ Verify row counts against Instant `config.json`, then test one public trip, one 
 trip, one viewer/editor account, guest upgrade, password reset, CRUD, task movement,
 comments, and the SEO metadata endpoint. Do not run `migrate:fresh` against production.
 
+## Concurrency tests
+
+CI runs `php artisan test tests/Concurrency` separately against MariaDB 11.8.
+For a local run, set `DB_CONNECTION=mariadb` and the `DB_*` credentials for a
+disposable database, with `APP_ENV=testing` and `SESSION_DRIVER=array`. This suite
+runs `migrate:fresh` before each test and requires PHP's `pdo_mysql`, `pcntl`, and
+`posix` extensions plus permission to read InnoDB lock diagnostics (`PROCESS`).
+It uses separate processes/connections and observes actual lock waits before
+releasing the competing transaction. The default SQLite suite excludes it.
+
 ## Layout (Laravel 13)
 
 ```

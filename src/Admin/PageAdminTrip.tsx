@@ -108,7 +108,7 @@ export default function PageAdminTrip({ id }: { id: string }) {
                     </Text>
                     <Flex gap="2" mt="1">
                       {item.deletedAt ? (
-                        <Badge color="red">Deleted</Badge>
+                        <Badge color="red">[deleted]</Badge>
                       ) : null}
                     </Flex>
                   </div>

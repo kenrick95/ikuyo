@@ -16,7 +16,7 @@ Route::middleware('web')->get('/csrf-token', fn () => response()->json([
     'token' => csrf_token(),
 ]));
 
-Route::middleware(['web', 'throttle:60,1'])->prefix('auth')->group(function (): void {
+Route::middleware(['web', 'throttle:60,1', 'auth.lifecycle'])->prefix('auth')->group(function (): void {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register', [AuthController::class, 'register']);
@@ -155,6 +155,7 @@ Route::middleware(['web', 'trip.lifecycle', 'admin.audit'])->group(function (): 
         ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
 
     Route::get('/users/me', [UserController::class, 'me'])->middleware('auth');
+    Route::delete('/users/me', [UserController::class, 'destroy'])->middleware('auth');
     Route::post('/users/check-email', [UserController::class, 'checkEmail']);
     Route::put('/users/me/preferences', [UserController::class, 'updatePreferences'])->middleware('auth');
     Route::patch('/users/me', [UserController::class, 'update'])->middleware('auth');

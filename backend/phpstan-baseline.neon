@@ -589,12 +589,6 @@ parameters:
 			path: app/Models/User.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$trip_id\.$#'
-			identifier: property.notFound
-			count: 4
-			path: app/Observers/SyncableObserver.php
-
-		-
 			message: '#^Method App\\Services\\SyncEventService\:\:record\(\) has parameter \$payload with no value type specified in iterable type array\.$#'
 			identifier: missingType.iterableValue
 			count: 1

@@ -522,9 +522,21 @@ class AdminModeTest extends TestCase
         $this->artisan('user:set-role', ['email' => $user->email, 'role' => 'admin'])
             ->assertSuccessful();
         $this->assertTrue($user->fresh()->isAdmin());
+        $this->user('admin');
         $this->artisan('user:set-role', ['email' => $user->email, 'role' => 'user'])
             ->assertSuccessful();
         $this->assertFalse($user->fresh()->isAdmin());
+    }
+
+    public function test_operator_command_cannot_demote_the_last_active_administrator(): void
+    {
+        $admin = $this->user('admin');
+        $this->user('admin')->delete();
+
+        $this->artisan('user:set-role', ['email' => $admin->email, 'role' => 'user'])
+            ->expectsOutput('The last administrator cannot be demoted. Assign another administrator first.')
+            ->assertFailed();
+        $this->assertTrue($admin->fresh()->isAdmin());
     }
 
     public function test_restoring_a_deleted_comment_group_recovers_its_thread(): void
