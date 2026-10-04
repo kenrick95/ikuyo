@@ -1,21 +1,18 @@
 import { Card, Text } from '@radix-ui/themes';
-import clsx from 'clsx';
 import { Link } from 'wouter';
+import s from '../common/TripCards.module.css';
 import { RouteTransition } from '../Routes/RouteTransition';
 import { RouteTrip, RouteTripHome } from '../Routes/routes';
 import { TripStatusBadge } from '../Trip/TripStatusBadge';
 import { formatTripDateRange } from '../Trip/time';
 import { getTripCardViewTransitionName } from '../Trip/viewTransition';
 import type { TripsSliceTrip } from './store';
-import s from './TripCard.module.css';
 
 export function TripCard({
   trip,
-  className,
   placeholder = false,
 }: {
   trip: TripsSliceTrip;
-  className: string;
   placeholder?: boolean;
 }) {
   const tripStartDateTime = trip
@@ -34,11 +31,11 @@ export function TripCard({
       default="none"
       share={placeholder ? 'none' : 'vt-trip-card'}
     >
-      <li className={clsx(s.tripCard, className)}>
+      <li className={s.item}>
         <Card asChild>
           <Link
             to={`${RouteTrip.asRouteTarget(trip.id)}${RouteTripHome.asRouteTarget()}`}
-            className={s.tripCardLink}
+            className={s.link}
           >
             <Text as="div" weight="bold">
               {trip.title}
@@ -49,10 +46,12 @@ export function TripCard({
             <Text as="div" size="1" color="gray">
               ({trip.timeZone})
             </Text>
-            <TripStatusBadge
-              tripStartDateTime={tripStartDateTime}
-              tripEndDateTime={tripEndDateTime}
-            />
+            <div className={s.footer}>
+              <TripStatusBadge
+                tripStartDateTime={tripStartDateTime}
+                tripEndDateTime={tripEndDateTime}
+              />
+            </div>
           </Link>
         </Card>
       </li>

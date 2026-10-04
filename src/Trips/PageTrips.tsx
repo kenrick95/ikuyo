@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { Link, type RouteComponentProps, useLocation } from 'wouter';
 import { useCurrentUser } from '../Auth/hooks';
 import { UserAvatarMenu } from '../Auth/UserAvatarMenu';
+import cardStyles from '../common/TripCards.module.css';
 import { useBoundStore, useDeepBoundStore } from '../data/store';
 import { DocTitle } from '../Nav/DocTitle';
 import { Navbar } from '../Nav/Navbar';
@@ -163,37 +164,32 @@ function Trips({
           </Button>
         ) : null}
       </Heading>
-      <Flex asChild gap="2" p="0" wrap="wrap">
-        <ul>
-          {trips.length === 0 ? (
-            isLoading ? (
-              <Skeleton>
-                <TripCard
-                  placeholder
-                  className={s.tripLi}
-                  trip={{
-                    id: 'skeleton',
-                    title: 'Loading...',
-                    timestampStart: now,
-                    timestampEnd: now,
-                    timeZone: 'UTC',
-                    createdAt: now,
-                    lastUpdatedAt: now,
-                  }}
-                />
-              </Skeleton>
-            ) : (
-              'None'
-            )
+      <ul className={cardStyles.list}>
+        {trips.length === 0 ? (
+          isLoading ? (
+            <Skeleton>
+              <TripCard
+                placeholder
+                trip={{
+                  id: 'skeleton',
+                  title: 'Loading...',
+                  timestampStart: now,
+                  timestampEnd: now,
+                  timeZone: 'UTC',
+                  createdAt: now,
+                  lastUpdatedAt: now,
+                }}
+              />
+            </Skeleton>
           ) : (
-            trips.map((trip) => {
-              return (
-                <TripCard className={s.tripLi} trip={trip} key={trip.id} />
-              );
-            })
-          )}
-        </ul>
-      </Flex>
+            'None'
+          )
+        ) : (
+          trips.map((trip) => {
+            return <TripCard trip={trip} key={trip.id} />;
+          })
+        )}
+      </ul>
     </Box>
   );
 }

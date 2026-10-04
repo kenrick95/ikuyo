@@ -2,6 +2,7 @@ import { Card, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
 import { useMemo } from 'react';
 import { Link } from 'wouter';
+import cardStyles from '../common/TripCards.module.css';
 import { UserHandle } from '../common/UserHandle/UserHandle';
 import { RouteTrip } from '../Routes/routes';
 import { formatTripDateRange } from '../Trip/time';
@@ -31,19 +32,13 @@ function useTripDayCount({
   }, [timestampStart, timestampEnd, timeZone]);
 }
 
-export function TripPublicCard({
-  trip,
-  className,
-}: {
-  trip: TripsPublicSliceTrip;
-  className: string;
-}) {
+export function TripPublicCard({ trip }: { trip: TripsPublicSliceTrip }) {
   const dayCount = useTripDayCount(trip);
 
   return (
-    <li className={clsx(className)}>
+    <li className={cardStyles.item}>
       <Card asChild>
-        <Link to={RouteTrip.asRouteTarget(trip.id)} className={s.tripCardLink}>
+        <Link to={RouteTrip.asRouteTarget(trip.id)} className={cardStyles.link}>
           <Text as="div" weight="bold">
             {trip.title}
           </Text>
@@ -53,7 +48,7 @@ export function TripPublicCard({
           <Text as="div" size="1" color="gray">
             ({trip.timeZone})
           </Text>
-          <div className={s.meta}>
+          <div className={clsx(s.meta, cardStyles.footer)}>
             {trip.ownerHandle ? (
               <UserHandle handle={trip.ownerHandle} mode="full" size="1" />
             ) : null}
