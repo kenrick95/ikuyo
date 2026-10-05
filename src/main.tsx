@@ -10,7 +10,8 @@ if (process.env.SENTRY_DSN && process.env.SENTRY_ENABLED) {
   const SENTRY_RELEASE = process.env.SENTRY_RELEASE || undefined;
   sentryInit({
     dsn: process.env.SENTRY_DSN,
-    sendDefaultPii: true,
+    // Preserve the user-data opt-in from v10's sendDefaultPii: true.
+    dataCollection: { userInfo: true },
     allowUrls: ['https://ikuyo.kenrick95.org'],
     release: SENTRY_RELEASE,
   });
