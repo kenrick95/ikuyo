@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Hidden(['password_hash', 'reset_token', 'remember_token'])]
+#[Hidden(['password_hash', 'reset_token', 'remember_token', 'google_subject'])]
 class User extends Authenticatable
 {
     protected $guarded = [];

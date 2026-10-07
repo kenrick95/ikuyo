@@ -9,7 +9,7 @@ const errors: Record<string, string> = {
   failed: 'Unable to sign in with Google. Please try again.',
   unverified: 'Google must verify your email before you can sign in.',
   conflict:
-    'This Google account is already linked to another Ikuyo account. Your guest account and trips have been kept.',
+    'This Google account or email is already linked to another Ikuyo account. No accounts or trips have been merged.',
   unavailable: 'This account is unavailable. Contact support to restore it.',
   link_required:
     'This email already has an Ikuyo account. Sign in with your password or use password recovery.',
@@ -41,7 +41,8 @@ export function GoogleLogin({ upgrade = false }: { upgrade?: boolean }) {
     setLoading(true);
     setError('');
     try {
-      if (upgrade) assertWritable('upgrading your guest account');
+      // Even a login can create a user or link a legacy account in the callback.
+      assertWritable('signing in or linking your account with Google');
       const { url } = await mutate<{ url: string }>('/api/auth/google', {
         method: 'POST',
         body: JSON.stringify({ upgrade }),

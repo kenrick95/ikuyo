@@ -154,6 +154,28 @@ class GoogleAuthTest extends TestCase
         $this->assertFalse((bool) $user->fresh()->email_verified);
     }
 
+    public function test_subject_and_email_matching_different_accounts_do_not_log_in_or_mutate_either(): void
+    {
+        $linked = $this->user(['google_subject' => 'google-user']);
+        $matching = $this->user(['email' => 'changed@gmail.com', 'email_verified' => true]);
+        $linkedBefore = $linked->fresh()->getAttributes();
+        $matchingBefore = $matching->fresh()->getAttributes();
+        $this->google(['email' => 'changed@gmail.com']);
+        $this->finishGoogle($this->start())->assertRedirect('https://ikuyo.test/login?google_error=conflict');
+        $this->assertGuest();
+        $this->assertSame($linkedBefore, $linked->fresh()->getAttributes());
+        $this->assertSame($matchingBefore, $matching->fresh()->getAttributes());
+    }
+
+    public function test_google_subject_is_hidden_in_user_serialization_and_auth_responses(): void
+    {
+        $user = $this->user(['google_subject' => 'google-user']);
+        $this->assertArrayNotHasKey('google_subject', $user->toArray());
+        $this->assertStringNotContainsString('google-user', $user->toJson());
+        $this->actingAs($user)->getJson('/api/auth/me')->assertOk()->assertJsonMissing(['google_subject' => 'google-user']);
+        $this->getJson('/api/users/me')->assertOk()->assertJsonMissing(['google_subject' => 'google-user']);
+    }
+
     public function test_unsafe_email_matches_and_different_subjects_are_not_linked(): void
     {
         $user = $this->user(['password_hash' => 'unverified-password']);
