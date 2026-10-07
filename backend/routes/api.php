@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CommentController;
 use App\Http\Controllers\Api\ContentController;
+use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\Api\MetadataController;
 use App\Http\Controllers\Api\SyncController;
 use App\Http\Controllers\Api\TaskController;
@@ -18,6 +19,9 @@ Route::middleware('web')->get('/csrf-token', fn () => response()->json([
 
 Route::middleware(['web', 'throttle:60,1', 'auth.lifecycle'])->prefix('auth')->group(function (): void {
     Route::get('/me', [AuthController::class, 'me']);
+    Route::get('/google', [GoogleAuthController::class, 'configuration']);
+    Route::post('/google', [GoogleAuthController::class, 'start']);
+    Route::get('/google/callback', [GoogleAuthController::class, 'callback']);
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register', [AuthController::class, 'register']);
     // Check whether an email is known and whether it needs a password before

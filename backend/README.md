@@ -144,3 +144,50 @@ cookies are used today.
   compile — `npm install`/`npm run build` are never needed. Visiting `/` returns a
   small JSON hello instead of the Vite-backed welcome page.
 - WebSockets/SSE — not needed (no realtime).
+
+## Google sign-in
+
+Google OAuth uses Laravel's existing HTTP client and session authentication; no
+additional packages are required. Both login and guest-account upgrade are
+available once the backend credentials are configured.
+
+1. Reuse the Ikuyo Google Cloud project and consent screen. Under **Google Auth
+   Platform → Clients**, create a **Web application** OAuth client (or reuse a
+   web client).
+2. Add the exact authorized redirect URIs:
+   - Production: `https://ikuyo.kenrick95.org/api/auth/google/callback`
+   - Development: `http://localhost:5173/api/auth/google/callback`
+   Use the frontend's `/api` proxy in development so the callback uses the same
+   session cookie as the login page. This server redirect flow does not require
+   the Google JavaScript SDK or an authorized JavaScript origin.
+3. Set these in the **backend** environment, never the frontend bundle:
+   ```dotenv
+   APP_URL=https://ikuyo.kenrick95.org
+   GOOGLE_CLIENT_ID=your-web-client-id
+   GOOGLE_CLIENT_SECRET=your-web-client-secret
+   GOOGLE_REDIRECT_URI=https://ikuyo.kenrick95.org/api/auth/google/callback
+   ```
+   Locally use `APP_URL=http://localhost:5173` and the development redirect URI.
+4. Apply the migration adding the unique `users.google_subject` column using the
+   existing deployment migration approval workflow, and rebuild Laravel's config
+   cache if used (`php artisan config:cache`). The button is hidden until all
+   three Google settings are filled.
+5. Add test users if the Google consent screen is in Testing. Use only the
+   `openid email` scopes. The host must allow outbound HTTPS to
+   `oauth2.googleapis.com` and `openidconnect.googleapis.com`.
+
+The flow uses a CSRF-protected POST to start, a one-use session-bound state with a
+10-minute expiry, and PKCE. Tokens are exchanged and identity is fetched only on
+the backend; tokens are neither persisted nor sent to the frontend.
+
+Existing Google links are matched by Google's stable subject ID. First-time
+sign-in can match imported accounts, invited passwordless accounts, or verified
+accounts by email only when Google is authoritative for that email (Gmail or
+verified Workspace). Other existing email matches, including unverified password
+accounts, must use password login/recovery. New users can sign up using any
+Google-verified email. Deleted accounts cannot sign in or be recreated through
+Google. Google sign-in does not change an existing account's email or password.
+
+Guest upgrades retain the user ID and trip memberships. If the Google subject or
+email belongs to another account, the upgrade stops and keeps the guest session;
+accounts and trips are not automatically merged.

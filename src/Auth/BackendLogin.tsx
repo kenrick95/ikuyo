@@ -8,6 +8,7 @@ import { useBoundStore } from '../data/store';
 import imgUrl from '../logo/ikuyo.svg';
 import { RouteTrips } from '../Routes/routes';
 import s from './Auth.module.css';
+import { GoogleLogin } from './GoogleLogin';
 
 type Mode = 'login' | 'signup' | 'guest' | 'forgot' | 'reset';
 type LoginStep = 'email' | 'password';
@@ -216,6 +217,7 @@ export function BackendLogin() {
     <form onSubmit={submit}>
       <Flex direction="column" gap="2">
         <LoginHeading mode={mode} />
+        {(mode === 'login' || mode === 'signup') && <GoogleLogin />}
         {mode === 'login' && loginStep === 'email' && (
           <EmailScreen
             email={loginEmail}

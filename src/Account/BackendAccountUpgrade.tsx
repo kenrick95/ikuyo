@@ -2,6 +2,7 @@ import { Button, Callout, Flex, Heading, TextField } from '@radix-ui/themes';
 import type React from 'react';
 import { useCallback, useState } from 'react';
 import { useLocation } from 'wouter';
+import { GoogleLogin } from '../Auth/GoogleLogin';
 import { postMutation } from '../data/apiClient';
 import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
@@ -60,9 +61,11 @@ export function BackendAccountUpgrade() {
         <Heading size="4">Link your account</Heading>
         <Callout.Root>
           <Callout.Text>
-            Add an email and password to keep this guest account across devices.
+            Link Google or add an email and password to keep this guest account
+            across devices.
           </Callout.Text>
         </Callout.Root>
+        <GoogleLogin upgrade />
         <TextField.Root
           name="email"
           type="email"
