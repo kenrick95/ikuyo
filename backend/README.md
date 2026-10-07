@@ -187,6 +187,10 @@ verified Workspace). Other existing email matches, including unverified password
 accounts, must use password login/recovery. New users can sign up using any
 Google-verified email. Deleted accounts cannot sign in or be recreated through
 Google. Google sign-in does not change an existing account's email or password.
+If the Google subject and email match different accounts, sign-in is rejected
+without modifying either account. Google subject IDs are hidden from serialized
+user responses. All Google starts respect the frontend read-only flag because
+the callback can create or link an account, including from the login page.
 
 Guest upgrades retain the user ID and trip memberships. If the Google subject or
 email belongs to another account, the upgrade stops and keeps the guest session;

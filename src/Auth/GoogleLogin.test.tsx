@@ -36,7 +36,19 @@ test('starts login through the CSRF-protected mutation and displays failures', a
     method: 'POST',
     body: JSON.stringify({ upgrade: false }),
   });
-  expect(assertWritable).not.toHaveBeenCalled();
+  expect(assertWritable).toHaveBeenCalled();
+});
+
+test('read-only mode blocks Google login before starting OAuth', async () => {
+  assertWritable.mockImplementationOnce(() => {
+    throw new Error('Read-only mode');
+  });
+  render(<GoogleLogin />);
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Continue with Google' }),
+  );
+  expect(await screen.findByRole('alert')).toHaveTextContent('Read-only mode');
+  expect(mutate).not.toHaveBeenCalled();
 });
 
 test('guest upgrade uses an explicit intent and respects the read-only flag', async () => {
@@ -67,6 +79,6 @@ test('explains a callback conflict while retaining the guest account', () => {
   );
   render(<GoogleLogin upgrade />);
   expect(screen.getByRole('alert')).toHaveTextContent(
-    'Your guest account and trips have been kept',
+    'No accounts or trips have been merged',
   );
 });

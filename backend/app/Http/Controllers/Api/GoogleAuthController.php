@@ -119,6 +119,9 @@ class GoogleAuthController extends Controller
                 if ($linked?->trashed() || $matching?->trashed()) {
                     return 'unavailable';
                 }
+                if ($linked && $matching && $linked->id !== $matching->id) {
+                    return 'conflict';
+                }
                 if ($actor) {
                     if (($linked && $linked->id !== $actor->id) || ($matching && $matching->id !== $actor->id)) {
                         return 'conflict';
