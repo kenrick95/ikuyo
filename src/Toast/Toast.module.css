@@ -8,6 +8,12 @@
   background: transparent;
 }
 
+/* Keep notifications above dialogs when the Popover API is unavailable. */
+.notificationArea:not([popover]) {
+  position: relative;
+  z-index: 2147483647;
+}
+
 .ToastViewport {
   --viewport-padding: 25px;
   position: fixed;
@@ -21,7 +27,7 @@
   max-width: 100vw;
   margin: 0;
   list-style: none;
-  /* NOTE: ToastViewport is rendered in browser's top layer (using showPopover), so this value doesn't matter actually */
+  /* Used when notifications cannot use the browser's top layer. */
   z-index: 2147483647;
   outline: none;
 }

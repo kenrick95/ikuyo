@@ -1,6 +1,6 @@
 import * as ToastPrimitive from '@radix-ui/react-toast';
 import { Portal, Theme } from '@radix-ui/themes';
-import { memo, useCallback, useRef } from 'react';
+import { memo, useCallback } from 'react';
 import { useDeepBoundStore } from '../data/store';
 import { ThemeAppearance } from '../theme/constants';
 import { useTheme } from '../theme/hooks';
@@ -10,19 +10,18 @@ export const ImperativeToastRoot = memo(
   () => {
     const theme = useTheme();
     const toasts = useDeepBoundStore((state) => state.toasts);
-    const toastContainerRef = useRef<HTMLDivElement>(null);
+    const supportsPopover =
+      typeof HTMLElement.prototype.showPopover === 'function' &&
+      typeof HTMLElement.prototype.hidePopover === 'function';
 
-    const setToastContainerRef = useCallback((el: HTMLDivElement | null) => {
-      toastContainerRef.current = el;
-      if (el) {
+    const setToastContainerRef = useCallback(
+      (el: HTMLDivElement | null) => {
+        if (!el || !supportsPopover) return;
         el.showPopover();
-      }
-      return () => {
-        if (toastContainerRef.current) {
-          toastContainerRef.current.hidePopover();
-        }
-      };
-    }, []);
+        return () => el.hidePopover();
+      },
+      [supportsPopover],
+    );
 
     console.log('ImperativeToastRoot| toasts', toasts);
     return (
@@ -30,7 +29,7 @@ export const ImperativeToastRoot = memo(
         <Theme
           appearance={theme === ThemeAppearance.Dark ? 'dark' : 'light'}
           ref={setToastContainerRef}
-          popover="manual"
+          popover={supportsPopover ? 'manual' : undefined}
           accentColor="red"
         >
           <ToastPrimitive.Provider duration={2500}>
