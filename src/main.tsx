@@ -4,6 +4,7 @@ import { reactErrorHandler, init as sentryInit } from '@sentry/react';
 // import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
+import { createRecoverableErrorHandler } from './telemetry/recoverableErrorHandler';
 
 if (process.env.SENTRY_DSN && process.env.SENTRY_ENABLED) {
   console.log('Sentry is enabled, initializing...');
@@ -51,7 +52,7 @@ const createRootConfig: Parameters<typeof createRoot>[1] = process.env
       // Callback called when React catches an error in an ErrorBoundary.
       onCaughtError: reactErrorHandler(),
       // Callback called when React automatically recovers from errors.
-      onRecoverableError: reactErrorHandler(),
+      onRecoverableError: createRecoverableErrorHandler(reactErrorHandler()),
     } satisfies Parameters<typeof createRoot>[1])
   : {};
 
