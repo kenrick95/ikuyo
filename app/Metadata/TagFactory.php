@@ -43,6 +43,10 @@ final class TagFactory
             title: $title,
             description: $description,
             path: '/trip/' . rawurlencode($trip->id),
+            structuredData: array_merge(
+                PageStructuredData::forPage($this->siteUrl(), '/trip/' . rawurlencode($trip->id), $trip->title, $description, 'urn:ikuyo:trip:' . rawurlencode($trip->id)),
+                $trip->structuredData,
+            ),
         );
     }
 
@@ -56,10 +60,13 @@ final class TagFactory
             description: $page['description'] ?? '',
             path: $page['path'] ?? '/',
             robots: !empty($page['noindex']) ? 'noindex, nofollow' : '',
+            structuredData: !empty($page['noindex']) ? [] : PageStructuredData::forPage(
+                $this->siteUrl(), $page['path'] ?? '/', $page['title'] ?? '', $page['description'] ?? '',
+            ),
         );
     }
 
-    public function make(string $title, string $description, string $path, string $robots = ''): Tags
+    public function make(string $title, string $description, string $path, string $robots = '', array $structuredData = []): Tags
     {
         return new Tags(
             title: $title !== '' ? $title : 'Ikuyo!',
@@ -67,6 +74,7 @@ final class TagFactory
             url: $this->absoluteUrl($path),
             image: $this->siteUrl() . '/ikuyo-og-image.jpg',
             robots: $robots,
+            structuredData: $structuredData,
         );
     }
 

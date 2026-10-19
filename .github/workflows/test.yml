@@ -77,6 +77,8 @@ jobs:
         run: pnpm test
       - name: Deployment script regression tests
         run: php scripts/deploy/tests/run.php
+      - name: Structured metadata regression tests
+        run: php scripts/check-trip-jsonld.php
       - name: Deployment PHP syntax
         run: |
           php -l scripts/deploy/deploy.php

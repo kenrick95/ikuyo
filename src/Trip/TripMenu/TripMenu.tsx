@@ -205,6 +205,16 @@ export function TripMenu() {
             Export activities to ICS
           </DropdownMenu.Item>
 
+          {trip ? (
+            <DropdownMenu.Item asChild>
+              <a
+                href={`/api/trips/${encodeURIComponent(trip.id)}/export/jsonld`}
+              >
+                Export trip to JSON-LD
+              </a>
+            </DropdownMenu.Item>
+          ) : null}
+
           <DropdownMenu.Item onClick={handlePrintTrip}>
             Print trip
           </DropdownMenu.Item>

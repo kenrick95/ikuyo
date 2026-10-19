@@ -55,3 +55,8 @@ everything else. Static assets are still served directly by the web server.
 > responses are served with `Cache-Control: no-store` so a trip that becomes
 > private is never served stale by a shared cache.
 
+Public pages include schema.org JSON-LD for the site, app, and page.
+Public trip pages also embed schedule data. The trip menu
+offers a JSON-LD download for anyone with access to the trip, including private
+and archived trips. See [the structured data guide](docs/structured-data.md)
+for public-page metadata, exported fields, and validation.

@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\MetadataController;
 use App\Http\Controllers\Api\SyncController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TripController;
+use App\Http\Controllers\Api\TripStructuredDataController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -58,6 +59,8 @@ Route::middleware(['web', 'trip.lifecycle', 'admin.audit'])->group(function (): 
     Route::get('/sync', SyncController::class)->middleware('throttle:120,1');
     Route::get('/trips', [TripController::class, 'index'])->middleware('auth');
     Route::get('/trips/{trip}', [TripController::class, 'show'])
+        ->middleware('trip.access:view');
+    Route::get('/trips/{trip}/export/jsonld', TripStructuredDataController::class)
         ->middleware('trip.access:view');
     Route::post('/activities/{activity}/drag-end', [ContentController::class, 'activityDragEndById'])
         ->middleware('auth');

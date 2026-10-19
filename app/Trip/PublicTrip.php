@@ -35,6 +35,7 @@ final class PublicTrip
             timeZone: (string) ($data['timeZone'] ?? 'UTC'),
             ownerHandle: isset($data['ownerHandle']) ? (string) $data['ownerHandle'] : null,
             activityCount: (int) ($data['activityCount'] ?? 0),
+            structuredData: is_array($data['structuredData'] ?? null) ? $data['structuredData'] : [],
         );
     }
 

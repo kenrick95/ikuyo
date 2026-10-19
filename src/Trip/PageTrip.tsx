@@ -65,6 +65,7 @@ import { useTrip } from './store/hooks';
 import type { TripSliceTrip } from './store/types';
 import { TripMenuFloating } from './TripMenu/TripMenuFloating';
 import { TripNavbar } from './TripNavbar/TripNavbar';
+import { TripStructuredData } from './TripStructuredData';
 import { getTripCardViewTransitionName } from './viewTransition';
 
 export default PageTrip;
@@ -114,6 +115,7 @@ function PageTripInner({
   return (
     <>
       <DocTitle title={trip?.title ?? 'Trip'} />
+      <TripStructuredData trip={trip} />
       <TripNavbar />
       {trip?.adminAccess ? (
         <Container>

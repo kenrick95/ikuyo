@@ -1,0 +1,30 @@
+{
+  "entities": [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": "/#website",
+      "url": "/",
+      "name": "Ikuyo!",
+      "description": "Plan your next trip!"
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "@id": "/#application",
+      "url": "/landing",
+      "name": "Ikuyo!",
+      "description": "Plan and share trip itineraries.",
+      "applicationCategory": "TravelApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript"
+    }
+  ],
+  "pageTypes": {
+    "/": "WebPage",
+    "/landing": "WebPage",
+    "/trip/public": "CollectionPage",
+    "/privacy": "WebPage",
+    "/terms": "WebPage"
+  }
+}
