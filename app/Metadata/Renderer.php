@@ -33,6 +33,13 @@ final class Renderer
         if ($tags->robots !== '') {
             array_unshift($lines, '<meta name="robots" content="' . $this->esc($tags->robots) . '" />');
         }
+        if ($tags->structuredData !== []) {
+            // HEX_TAG prevents user text from closing the HTML script element.
+            $json = json_encode($tags->structuredData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE);
+            if ($json !== false) {
+                $lines[] = '<script id="ikuyo-trip-jsonld" type="application/ld+json">' . $json . '</script>';
+            }
+        }
         return implode("\n    ", $lines);
     }
 

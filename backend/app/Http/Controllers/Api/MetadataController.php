@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\Trip;
+use App\Services\TripStructuredData;
 use Illuminate\Http\JsonResponse;
 
 class MetadataController
 {
-    public function trip(Trip $trip): JsonResponse
+    public function trip(Trip $trip, TripStructuredData $structuredData): JsonResponse
     {
         // This endpoint is intentionally public only for public trips. Never expose
         // private titles/dates through an admin-style metadata lookup.
@@ -25,6 +26,7 @@ class MetadataController
             'ownerHandle' => $owner?->handle,
             'activityCount' => $trip->activities_count,
             'sharingLevel' => $trip->sharing_level,
+            'structuredData' => $structuredData->forTrip($trip),
         ])->header('Cache-Control', 'no-store');
     }
 }

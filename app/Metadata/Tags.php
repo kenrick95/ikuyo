@@ -15,6 +15,7 @@ final readonly class Tags
         public string $url,
         public string $image,
         public string $robots = '',
+        public array $structuredData = [],
     ) {
     }
 }

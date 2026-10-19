@@ -17,6 +17,7 @@ final readonly class TripMeta
         public string $timeZone,
         public ?string $ownerHandle,
         public int $activityCount,
+        public array $structuredData = [],
     ) {
     }
 }

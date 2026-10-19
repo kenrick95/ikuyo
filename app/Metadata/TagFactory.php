@@ -43,6 +43,7 @@ final class TagFactory
             title: $title,
             description: $description,
             path: '/trip/' . rawurlencode($trip->id),
+            structuredData: $trip->structuredData,
         );
     }
 
@@ -59,7 +60,7 @@ final class TagFactory
         );
     }
 
-    public function make(string $title, string $description, string $path, string $robots = ''): Tags
+    public function make(string $title, string $description, string $path, string $robots = '', array $structuredData = []): Tags
     {
         return new Tags(
             title: $title !== '' ? $title : 'Ikuyo!',
@@ -67,6 +68,7 @@ final class TagFactory
             url: $this->absoluteUrl($path),
             image: $this->siteUrl() . '/ikuyo-og-image.jpg',
             robots: $robots,
+            structuredData: $structuredData,
         );
     }
 
