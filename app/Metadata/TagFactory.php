@@ -43,7 +43,10 @@ final class TagFactory
             title: $title,
             description: $description,
             path: '/trip/' . rawurlencode($trip->id),
-            structuredData: $trip->structuredData,
+            structuredData: array_merge(
+                PageStructuredData::forPage($this->siteUrl(), '/trip/' . rawurlencode($trip->id), $trip->title, $description, 'urn:ikuyo:trip:' . rawurlencode($trip->id)),
+                $trip->structuredData,
+            ),
         );
     }
 
@@ -57,6 +60,9 @@ final class TagFactory
             description: $page['description'] ?? '',
             path: $page['path'] ?? '/',
             robots: !empty($page['noindex']) ? 'noindex, nofollow' : '',
+            structuredData: !empty($page['noindex']) ? [] : PageStructuredData::forPage(
+                $this->siteUrl(), $page['path'] ?? '/', $page['title'] ?? '', $page['description'] ?? '',
+            ),
         );
     }
 

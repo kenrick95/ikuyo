@@ -70,6 +70,7 @@ class TripStructuredDataTest extends TestCase
         $this->assertSame('Airport', $byName['Flight to Tokyo']['departureAirport']['@type']);
         $this->assertEquals(0, $byName['Flight to Tokyo']['departureAirport']['geo']['latitude']);
         $this->assertSame('TrainTrip', $byName['Train']['@type']);
+        $this->assertSame(['@id' => $data[0]['@id']], $byName['Train']['partOfTrip']);
         $this->assertSame('TrainStation', $byName['Train']['arrivalStation']['@type']);
         $this->assertSame('1970-01-01T09:00:00+09:00', $byName['Train']['departureTime']);
         $this->assertArrayNotHasKey('arrivalTime', $byName['Train']);
@@ -93,7 +94,10 @@ class TripStructuredDataTest extends TestCase
         $this->actingAs($viewer)->getJson('/api/trips/' . $trip->id . '/export/jsonld')->assertForbidden();
         $trip->users()->attach($viewer->id, ['id' => (string) Str::uuid(), 'role' => 2, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
         $trip->update(['archived_at_ms' => 1]);
-        $this->getJson('/api/trips/' . $trip->id . '/export/jsonld')->assertOk();
+        $empty = $this->getJson('/api/trips/' . $trip->id . '/export/jsonld')->assertOk()->json();
+        $this->assertCount(1, $empty);
+        $this->assertArrayNotHasKey('itinerary', $empty[0]);
+        $this->assertArrayNotHasKey('subTrip', $empty[0]);
         $this->getJson('/api/metadata/trips/' . $trip->id)->assertNotFound();
         $trip->users()->detach($viewer->id);
         $this->getJson('/api/trips/' . $trip->id . '/export/jsonld')->assertForbidden();
@@ -135,5 +139,34 @@ class TripStructuredDataTest extends TestCase
         $response = $this->getJson('/api/trips/' . $trip->id . '/export/jsonld')->assertOk();
         $response->assertJsonPath('1.startDate', '1970-01-01T00:00:00+00:00');
         $this->assertArrayNotHasKey('location', $response->json('1'));
+    }
+
+    public function test_itinerary_orders_known_places_across_activities_and_stays_and_links_transport_legs(): void
+    {
+        $trip = $this->trip();
+        $trip->activities()->create([
+            'id' => 'flight', 'title' => 'Flight', 'location' => 'Departure airport',
+            'location_destination' => 'Arrival airport', 'flags' => 4,
+            'timestamp_start_ms' => 1000, 'timestamp_end_ms' => 3000,
+        ]);
+        $trip->activities()->create(['id' => 'visit', 'title' => 'Museum visit', 'location' => 'Museum', 'timestamp_start_ms' => 4000]);
+        $trip->activities()->create(['id' => 'idea', 'title' => 'Idea', 'location' => 'Idea place', 'flags' => 2, 'timestamp_start_ms' => 500]);
+        $trip->activities()->create(['id' => 'untimed', 'title' => 'Untimed', 'location' => 'Unknown position']);
+        $trip->accommodations()->create(['id' => 'stay', 'name' => 'Hotel', 'check_in_ms' => 2000, 'check_out_ms' => 5000]);
+
+        $response = $this->getJson('/api/trips/' . $trip->id . '/export/jsonld')->assertOk();
+        $data = $response->json();
+        $tripId = $data[0]['@id'];
+        $byName = array_column($data, null, 'name');
+        $this->assertSame(['@id' => $tripId], $byName['Flight']['partOfTrip']);
+        $this->assertSame([['@id' => $byName['Flight']['@id']]], $data[0]['subTrip']);
+        $itinerary = $data[0]['itinerary'];
+        $this->assertSame('ItemList', $itinerary['@type']);
+        $this->assertSame(4, $itinerary['numberOfItems']);
+        $this->assertSame([1, 2, 3, 4], array_column($itinerary['itemListElement'], 'position'));
+        $places = array_column($itinerary['itemListElement'], 'item');
+        $this->assertSame(['Departure airport', 'Hotel', 'Arrival airport', 'Museum'], array_column($places, 'name'));
+        $this->assertSame(['Airport', 'LodgingBusiness', 'Airport', 'Place'], array_column($places, '@type'));
+        $this->assertStringNotContainsString('Idea place', $response->getContent());
     }
 }

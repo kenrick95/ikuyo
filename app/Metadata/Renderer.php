@@ -37,7 +37,7 @@ final class Renderer
             // HEX_TAG prevents user text from closing the HTML script element.
             $json = json_encode($tags->structuredData, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE);
             if ($json !== false) {
-                $lines[] = '<script id="ikuyo-trip-jsonld" type="application/ld+json">' . $json . '</script>';
+                $lines[] = '<script id="ikuyo-page-jsonld" type="application/ld+json">' . $json . '</script>';
             }
         }
         return implode("\n    ", $lines);

@@ -24,7 +24,7 @@ vi.mock('../data/store', () => ({
 
 const trip = (id: string) =>
   ({ id, activityIds: [], accommodationIds: [] }) as unknown as TripSliceTrip;
-const script = () => document.getElementById('ikuyo-trip-jsonld');
+const script = () => document.getElementById('ikuyo-page-jsonld');
 
 afterEach(() => {
   script()?.remove();
@@ -36,7 +36,7 @@ afterEach(() => {
 describe('TripStructuredData', () => {
   it('replaces server data and removes it when the trip is no longer available', async () => {
     const server = document.createElement('script');
-    server.id = 'ikuyo-trip-jsonld';
+    server.id = 'ikuyo-page-jsonld';
     document.head.appendChild(server);
     vi.mocked(apiRequest).mockResolvedValue([
       { name: '</script><script>text</script>' },
@@ -44,7 +44,7 @@ describe('TripStructuredData', () => {
     const view = render(<TripStructuredData trip={trip('one')} />);
     await waitFor(() => expect(script()?.textContent).toContain('</script>'));
     expect(server.isConnected).toBe(false);
-    expect(document.querySelectorAll('#ikuyo-trip-jsonld')).toHaveLength(1);
+    expect(document.querySelectorAll('#ikuyo-page-jsonld')).toHaveLength(1);
     expect(script()?.getAttribute('type')).toBe('application/ld+json');
     view.rerender(<TripStructuredData trip={undefined} />);
     expect(script()).toBeNull();

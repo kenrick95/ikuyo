@@ -16,6 +16,7 @@ import { TransitionRouter } from './Routes/TransitionRouter';
 import './Routes/transitions.css';
 import { PageMaintenance } from './Maintenance/PageMaintenance';
 import { ReadOnlyBanner } from './Maintenance/ReadOnlyBanner';
+import { PageStructuredData } from './Nav/PageStructuredData';
 import {
   RouteAccount,
   RouteAccountUpgrade,
@@ -94,6 +95,7 @@ function App() {
           transitions={process.env.IKUYO_VIEW_TRANSITIONS !== false}
         >
           <AuthRedirect />
+          <PageStructuredData />
           <Suspense fallback={<Spinner m="3" />}>
             <RouteTransition default="vt-content">
               <Switch>

@@ -1,9 +1,13 @@
 import { useEffect } from 'react';
 import { apiRequest } from '../data/apiClient';
 import { useDeepBoundStore } from '../data/store';
+import {
+  pageStructuredData,
+  structuredDataScriptId,
+} from '../Nav/structuredData';
 import type { TripSliceTrip } from './store/types';
 
-const scriptId = 'ikuyo-trip-jsonld';
+const scriptId = structuredDataScriptId;
 
 /** Keep the server-rendered metadata current during client-side navigation. */
 export function TripStructuredData({
@@ -27,13 +31,20 @@ export function TripStructuredData({
     const script = document.createElement('script');
     script.id = scriptId;
     script.type = 'application/ld+json';
-    void apiRequest<unknown>(
+    void apiRequest<Record<string, unknown>[]>(
       `/api/trips/${encodeURIComponent(trip.id)}/export/jsonld`,
       { signal: controller.signal },
     )
       .then((data) => {
         if (controller.signal.aborted) return;
-        script.textContent = JSON.stringify(data);
+        const page = pageStructuredData(
+          window.location.origin,
+          `/trip/${encodeURIComponent(trip.id)}`,
+          trip.title,
+          '',
+          `urn:ikuyo:trip:${encodeURIComponent(trip.id)}`,
+        );
+        script.textContent = JSON.stringify([...page, ...data]);
         document.head.appendChild(script);
       })
       .catch(() => {
