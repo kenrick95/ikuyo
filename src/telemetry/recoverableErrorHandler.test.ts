@@ -4,6 +4,8 @@ import { createRecoverableErrorHandler } from './recoverableErrorHandler';
 
 const hiddenDocumentMessage =
   'Transition was aborted because of invalid state. Document hidden';
+const viewportChangedMessage =
+  'Transition was aborted because of invalid state. Viewport size changed';
 // React's view-transition errors have a null stack, despite the public type.
 const viewTransitionErrorInfo = {
   componentStack: null,
@@ -12,6 +14,22 @@ const viewTransitionErrorInfo = {
 afterEach(() => vi.restoreAllMocks());
 
 describe('createRecoverableErrorHandler', () => {
+  test.each(['hidden', 'visible'] as const)(
+    'ignores the viewport-resize cancellation when the tab is now %s',
+    (visibility) => {
+      vi.spyOn(document, 'visibilityState', 'get').mockReturnValue(visibility);
+      const reportError = vi.fn();
+      const handleError = createRecoverableErrorHandler(reportError);
+
+      handleError(
+        new DOMException(viewportChangedMessage, 'InvalidStateError'),
+        viewTransitionErrorInfo,
+      );
+
+      expect(reportError).not.toHaveBeenCalled();
+    },
+  );
+
   test.each(['hidden', 'visible'] as const)(
     'ignores the hidden-document cancellation when the tab is now %s',
     (visibility) => {
@@ -31,11 +49,13 @@ describe('createRecoverableErrorHandler', () => {
   test.each([
     new DOMException('Duplicate view-transition-name', 'InvalidStateError'),
     new DOMException(
-      'Transition was aborted because of invalid state. Viewport size changed',
+      'Transition was aborted because of invalid state. Unknown reason',
       'InvalidStateError',
     ),
     new DOMException(hiddenDocumentMessage, 'AbortError'),
+    new DOMException(viewportChangedMessage, 'AbortError'),
     new Error(hiddenDocumentMessage),
+    new Error(viewportChangedMessage),
     new Error('Hydration failed'),
     hiddenDocumentMessage,
     null,
@@ -62,14 +82,17 @@ describe('createRecoverableErrorHandler', () => {
     expect(reportError).toHaveBeenCalledExactlyOnceWith(error, errorInfo);
   });
 
-  test('reports matching errors associated with a component', () => {
-    const reportError = vi.fn();
-    const handleError = createRecoverableErrorHandler(reportError);
-    const error = new DOMException(hiddenDocumentMessage, 'InvalidStateError');
-    const errorInfo = { componentStack: '\n    at Login' };
+  test.each([hiddenDocumentMessage, viewportChangedMessage])(
+    'reports matching errors associated with a component: %s',
+    (message) => {
+      const reportError = vi.fn();
+      const handleError = createRecoverableErrorHandler(reportError);
+      const error = new DOMException(message, 'InvalidStateError');
+      const errorInfo = { componentStack: '\n    at Login' };
 
-    handleError(error, errorInfo);
+      handleError(error, errorInfo);
 
-    expect(reportError).toHaveBeenCalledExactlyOnceWith(error, errorInfo);
-  });
+      expect(reportError).toHaveBeenCalledExactlyOnceWith(error, errorInfo);
+    },
+  );
 });
