@@ -30,10 +30,10 @@
     "@radix-ui/react-icons": "~1.3.2",
     "@radix-ui/react-toast": "~1.3.1",
     "@radix-ui/themes": "~3.3.0",
-    "@sentry/react": "^11.7.0",
+    "@sentry/react": "^11.8.0",
     "clsx": "~2.1.1",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "react-fast-compare": "^3.2.2",
     "temporal-polyfill": "^1.0.6",
     "url-regex-safe": "^4.0.0",
@@ -41,8 +41,8 @@
     "zustand": "~5.0.15"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.15",
-    "@rsbuild/core": "^2.2.13",
+    "@biomejs/biome": "2.6.0",
+    "@rsbuild/core": "^2.2.14",
     "@rsbuild/plugin-react": "^2.1.1",
     "@rsbuild/plugin-sass": "^2.0.1",
     "@rsdoctor/rspack-plugin": "^1.6.5",
@@ -55,10 +55,10 @@
     "@vitest/ui": "^5.0.5",
     "cross-env": "^10.1.0",
     "dotenv": "17.2.2",
-    "jsdom": "^30.1.2",
+    "jsdom": "^30.1.3",
     "lefthook": "^2.2.2",
     "typescript": "^7.0.2",
-    "vitest": "5.0.4"
+    "vitest": "5.0.5"
   },
   "packageManager": "pnpm@10.15.1",
   "pnpm": {
