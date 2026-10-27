@@ -1,22 +1,20 @@
-@use 'sass:string';
+@use "sass:string";
 @layer timetableBase, timetableOverride;
 
 @function pad2($num) {
   @if $num < 0 {
-    @return '0';
-  }
-
-  @else if $num >=10 {
+    @return "0";
+  } @else if $num >= 10 {
     @return $num;
   }
 
-  @return '0'+$num;
+  @return "0" + $num;
 }
 
 @function timeTemplateRow() {
-  $ret: '';
+  $ret: "";
   // "previous hh & mm", to be used in case of current = 2100 and need to refer to previous minute (2059)
-  $phhmm: '';
+  $phhmm: "";
 
   @for $i from 0 to 24 {
     $hh: pad2($i);
@@ -25,29 +23,27 @@
       $mm: pad2($j);
 
       // Generate [t0000] var(--row-minute-height), [te000 t0001] var(--row-minute-height), ..., [te2357 t2358] var(--row-minute-height), [te2358 t2359] var(--row-minute-height) [te2359]
-      @if $i ==0 and $j ==0 {
+      @if $i == 0 and $j == 0 {
         // first one
-        $ret: $ret + '[t#{$hh}#{$mm}]' + ' var(--row-minute-narrow-height) ';
-      }
-
-      @else if not ($i ==0 and $j ==0) and not ($i ==23 and $j ==59) {
+        $ret: $ret + "[t#{$hh}#{$mm}]" + " var(--row-minute-narrow-height) ";
+      } @else if not($i == 0 and $j == 0) and not($i == 23 and $j == 59) {
         // middle ones
 
-        @if (0 <=$i and $i <=5) {
-          $ret: $ret + '[te#{$phhmm} t#{$hh}#{$mm}]' + ' var(--row-minute-narrow-height) ';
+        @if (0 <= $i and $i <= 5) {
+          $ret: $ret + "[te#{$phhmm} t#{$hh}#{$mm}]" +
+            " var(--row-minute-narrow-height) ";
+        } @else {
+          $ret: $ret + "[te#{$phhmm} t#{$hh}#{$mm}]" +
+            " var(--row-minute-height) ";
         }
-
-        @else {
-          $ret: $ret + '[te#{$phhmm} t#{$hh}#{$mm}]' + ' var(--row-minute-height) ';
-        }
-      }
-
-      @else if $i ==23 and $j ==59 {
+      } @else if $i == 23 and $j == 59 {
         // final one
-        $ret: $ret + '[te#{$phhmm} t#{$hh}#{$mm}]' + ' var(--row-minute-height) ' + '[te#{$hh}#{$mm}]';
+        $ret: $ret + "[te#{$phhmm} t#{$hh}#{$mm}]" +
+          " var(--row-minute-height) " +
+          "[te#{$hh}#{$mm}]";
       }
 
-      $phhmm: '#{$hh}#{$mm}';
+      $phhmm: "#{$hh}#{$mm}";
     }
   }
 
@@ -55,7 +51,6 @@
 }
 
 @layer timetableBase {
-
   .timetable {
     --row-minute-height: 2px;
     --row-minute-narrow-height: 0.8px;
@@ -68,7 +63,9 @@
     grid-template-columns: [time] 45px repeat(var(--day-count), [d] 1fr);
     // "[macroplan] min-content" and "[accommodation] min-content"
     // so it can "collapse" when there is no content in macroplan and accommodation (respectively)
-    grid-template-rows: [header] 50px [macroplan] min-content [accommodation] min-content string.unquote(timeTemplateRow());
+    grid-template-rows: [header] 50px [macroplan] min-content [accommodation] min-content string.unquote(
+        timeTemplateRow()
+      );
     gap: 0;
     justify-items: stretch;
     align-items: stretch;
@@ -87,7 +84,7 @@
       --row-minute-narrow-height: 0.5px;
 
       /* Reduce for Navbar (height) */
-      --timetable-height: calc(100vh - var(--space-8))
+      --timetable-height: calc(100vh - var(--space-8));
     }
 
     .timetableClamped {
@@ -105,11 +102,11 @@
 
     &.dragging {
       background: linear-gradient(to bottom, var(--accent-3), transparent);
-      border-top: 2px dashed var(--accent-8); 
+      border-top: 2px dashed var(--accent-8);
     }
     &.resizing {
       background: linear-gradient(to top, var(--accent-3), transparent);
-      border-bottom: 2px dashed var(--accent-8); 
+      border-bottom: 2px dashed var(--accent-8);
       border-radius: 0 0 var(--radius-2) var(--radius-2);
     }
   }
@@ -148,7 +145,6 @@
     min-height: 30px;
     height: fill-available;
   }
-
 
   .timetableColumn {
     grid-row: header / span 1;
@@ -233,7 +229,6 @@
     grid-auto-flow: row dense;
     grid-auto-columns: 30px;
   }
-
 }
 
 .sidebarToggle {
@@ -268,7 +263,6 @@
 }
 
 @media print {
-
   // Hide interactive elements that don't make sense in print
   .sidebarToggle,
   .sidebarToggleActive {
@@ -276,9 +270,8 @@
   }
 }
 
-// Print styles for A4 paper 
+// Print styles for A4 paper
 @layer timetableOverride {
-
   @media print {
     @page {
       size: A4 portrait;
@@ -343,6 +336,5 @@
       background-color: #f0f0f0;
       border-color: #000;
     }
-
   }
 }
