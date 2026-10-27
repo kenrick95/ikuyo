@@ -41,7 +41,7 @@
     "zustand": "~5.0.15"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.6.0",
+    "@biomejs/biome": "2.6.3",
     "@rsbuild/core": "^2.2.14",
     "@rsbuild/plugin-react": "^2.1.1",
     "@rsbuild/plugin-sass": "^2.0.1",

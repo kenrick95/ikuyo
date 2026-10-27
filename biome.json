@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.6/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.3/schema.json",
   "files": {
     "includes": ["**", "!!**/node_modules", "!!**/dist", "!!**/build"],
     "ignoreUnknown": true
@@ -47,6 +47,16 @@
       "style": {
         "preset": "recommended"
       }
+    }
+  },
+  "yaml": {
+    "formatter": {
+      "enabled": false
+    }
+  },
+  "markdown": {
+    "formatter": {
+      "enabled": false
     }
   }
 }

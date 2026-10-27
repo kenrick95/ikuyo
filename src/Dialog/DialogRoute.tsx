@@ -76,6 +76,7 @@ export function createDialogRoute<DataType>({
   DialogContentEdit: React.ComponentType<DialogContentProps<DataType>>;
   DialogContentDelete: React.ComponentType<DialogContentProps<DataType>>;
 }) {
+  // biome-ignore lint/correctness/noComponentHookFactories: Called once at module scope to create each stable route component.
   function DialogRoute({ params }: RouteComponentProps<{ id: string }>) {
     const [, setLocation] = useLocation();
     const route = useRouteSnapshot();
