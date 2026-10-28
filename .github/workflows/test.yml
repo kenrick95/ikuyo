@@ -75,6 +75,8 @@ jobs:
         run: pnpm typecheck
       - name: Test
         run: pnpm test
+      - name: Dependency security regressions
+        run: pnpm test:dependencies
       - name: Deployment script regression tests
         run: php scripts/deploy/tests/run.php
       - name: Deployment PHP syntax
