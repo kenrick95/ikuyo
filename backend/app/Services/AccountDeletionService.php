@@ -13,17 +13,22 @@ use App\Models\Task;
 use App\Models\TaskList;
 use App\Models\Trip;
 use App\Models\User;
+use Closure;
 use Illuminate\Support\Facades\DB;
 
 class AccountDeletionService
 {
-    public function delete(User $user): void
+    public function delete(User $user, ?Closure $eligible = null): bool
     {
-        DB::transaction(function () use ($user): void {
+        return DB::transaction(function () use ($user, $eligible): bool {
             // Lock administrators in a stable order before the target user so
             // simultaneous self-deletions cannot both remove the last admin.
             $admins = User::where('role', 'admin')->orderBy('id')->lockForUpdate()->get(['id']);
-            $target = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+            $target = User::whereKey($user->id)->lockForUpdate()->first();
+            if ($eligible && (! $target || ! $eligible($target))) {
+                return false;
+            }
+            abort_unless($target !== null, 404);
             abort_if($target->isAdmin() && $admins->count() <= 1, 409, 'The last administrator cannot delete their account. Assign another administrator first.');
             // Membership alone does not confer ownership of somebody else's data.
             $ownedTrips = DB::table('trip_user')->where('user_id', $target->id)->where('role', 0)->select('trip_id');
@@ -89,6 +94,8 @@ class AccountDeletionService
             ])->save();
             $target->delete();
             DB::table((string) config('session.table', 'sessions'))->where('user_id', $target->id)->delete();
+
+            return true;
         }, 3);
     }
 }

@@ -4,6 +4,8 @@ import { get, mutate } from '../data/apiClient';
 import { assertWritable } from '../data/backendConfig';
 
 const errors: Record<string, string> = {
+  registration_disabled:
+    'New signups are currently disabled. Existing accounts can still sign in.',
   expired: 'Google sign-in expired. Please try again.',
   cancelled: 'Google sign-in was cancelled.',
   failed: 'Unable to sign in with Google. Please try again.',

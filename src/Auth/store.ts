@@ -11,6 +11,7 @@ export type AuthUser = {
 };
 
 export interface UserSlice {
+  registrationEnabled: boolean;
   subscribeUser: () => () => void;
 
   authUser: undefined | AuthUser;
@@ -32,6 +33,7 @@ export const createUserSlice: StateCreator<
   UserSlice
 > = (set, get) => {
   return {
+    registrationEnabled: false,
     authUser: undefined,
     authUserLoading: true,
     authUserError: null,
@@ -40,8 +42,10 @@ export const createUserSlice: StateCreator<
     currentUser: undefined,
     subscribeUser: () => {
       let disposed = false;
-      void apiGet<{ user: DbUser | null }>('/api/auth/me')
-        .then(({ user }) => {
+      void apiGet<{ user: DbUser | null; registrationEnabled: boolean }>(
+        '/api/auth/me',
+      )
+        .then(({ user, registrationEnabled }) => {
           if (disposed) return;
           const cachedUser = get().currentUser;
           if (
@@ -56,6 +60,7 @@ export const createUserSlice: StateCreator<
               ? { id: user.id, email: user.email ?? null }
               : undefined,
             currentUser: user ?? undefined,
+            registrationEnabled: registrationEnabled !== false,
             authUserLoading: false,
             authUserError: null,
           }));
@@ -88,7 +93,13 @@ export const createUserSlice: StateCreator<
     },
     refreshCurrentUser: async () => {
       try {
-        const response = await apiGet<{ user: DbUser | null }>('/api/auth/me');
+        const response = await apiGet<{
+          user: DbUser | null;
+          registrationEnabled: boolean;
+        }>('/api/auth/me');
+        set(() => ({
+          registrationEnabled: response.registrationEnabled !== false,
+        }));
         const user = response.user;
         if (!user) get().clearSession();
         else {
