@@ -145,6 +145,58 @@ cookies are used today.
   small JSON hello instead of the Vite-backed welcome page.
 - WebSockets/SSE — not needed (no realtime).
 
+## Signup switch and inactive-account cleanup
+
+Set `REGISTRATION_ENABLED=false` in the backend `.env` to close new password
+signups, guest creation, and first-time Google signups. It defaults to `true`.
+Existing accounts can still log in, recover passwords, and upgrade existing
+guest accounts. Explicit trip invitations can still create invited accounts.
+The login page gets the flag from `/api/auth/me`; no frontend rebuild is needed.
+If production uses cached configuration, rebuild it with `php artisan config:cache`
+after changing these settings.
+
+The cleanup command defaults to a preview:
+
+```bash
+cd backend
+php artisan users:prune-inactive
+php artisan users:prune-inactive --days=90 --limit=100
+# Apply recoverable soft deletions after reviewing the preview:
+php artisan users:prune-inactive --days=90 --limit=100 --execute
+```
+
+Eligibility is deliberately conservative: activated guests or unverified password
+accounts with creation, profile-update, and login timestamps older than the
+cutoff, and no recent database session. Administrators, verified accounts,
+imported accounts, Google-linked accounts, passwordless invitees, any trip
+membership (including deleted trips), and any authored comments are preserved.
+Eligibility is checked again under the existing account-deletion locks. Soft
+deletion follows the existing recoverable deletion behavior: user rows, unique
+email addresses, and handles remain reserved; this is not permanent data erasure.
+The command requires database sessions on the default connection so it can
+inspect recent usage. It refuses to prune with file/Redis/other session drivers.
+
+For automatic cleanup, configure the backend environment:
+
+```dotenv
+INACTIVE_USER_CLEANUP_ENABLED=true
+INACTIVE_USER_DAYS=90
+```
+
+Then add this cron entry using the actual absolute deployment path and the
+host's PHP 8.4 CLI executable:
+
+```cron
+* * * * * cd /absolute/path/to/ikuyo/backend && /usr/bin/php artisan schedule:run >> /absolute/path/to/ikuyo/backend/storage/logs/scheduler.log 2>&1
+```
+
+The Laravel task runs daily at 03:00 in the application's configured timezone
+(UTC by default), considers at most 100 accounts per run, and prevents overlapping
+scheduled runs. Cleanup is disabled by default. Keep the log rotated on shared
+hosting. Running the command manually with `--execute` is an explicit request to
+apply deletions regardless of the scheduler's enable flag. No schema migration
+is needed for either feature.
+
 ## Google sign-in
 
 Google OAuth uses Laravel's existing HTTP client and session authentication; no

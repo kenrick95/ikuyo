@@ -27,6 +27,10 @@ type LookupResult = { known: boolean; needsPasswordSetup: boolean };
 export function BackendLogin() {
   const publishToast = useBoundStore((state) => state.publishToast);
   const subscribeUser = useBoundStore((state) => state.subscribeUser);
+  const registrationEnabled = useBoundStore(
+    (state) => state.registrationEnabled,
+  );
+  const authUserLoading = useBoundStore((state) => state.authUserLoading);
   const [mode, setMode] = useState<Mode>(() =>
     new URLSearchParams(window.location.search).has('reset_token')
       ? 'reset'
@@ -94,6 +98,11 @@ export function BackendLogin() {
             body: JSON.stringify({ email }),
           });
           if (!lookup.known) {
+            if (!registrationEnabled) {
+              throw new Error(
+                'New signups are currently disabled. Existing accounts can still sign in.',
+              );
+            }
             // Unknown email → offer signup (pre-filled).
             setPrefillEmail(email);
             setMode('signup');
@@ -197,6 +206,7 @@ export function BackendLogin() {
     },
     [
       mode,
+      registrationEnabled,
       loginStep,
       loginEmail,
       publishToast,
@@ -217,6 +227,12 @@ export function BackendLogin() {
     <form onSubmit={submit}>
       <Flex direction="column" gap="2">
         <LoginHeading mode={mode} />
+        {!authUserLoading && !registrationEnabled && (
+          <Text size="2" role="status">
+            New signups are currently disabled. Existing accounts can still sign
+            in.
+          </Text>
+        )}
         {(mode === 'login' || mode === 'signup') && <GoogleLogin />}
         {mode === 'login' && loginStep === 'email' && (
           <EmailScreen
@@ -227,7 +243,9 @@ export function BackendLogin() {
               setPrefillEmail(loginEmail.trim().toLowerCase());
               setMode('forgot');
             }}
-            onTryGuest={() => setMode('guest')}
+            onTryGuest={
+              registrationEnabled ? () => setMode('guest') : undefined
+            }
           />
         )}
         {mode === 'login' && loginStep === 'password' && (
@@ -238,7 +256,9 @@ export function BackendLogin() {
               setLoginStep('email');
               setLoginEmail('');
             }}
-            onTryGuest={() => setMode('guest')}
+            onTryGuest={
+              registrationEnabled ? () => setMode('guest') : undefined
+            }
           />
         )}
         {mode === 'signup' && (
@@ -294,7 +314,7 @@ function EmailScreen({
   loading: boolean;
   onEmailChange: (email: string) => void;
   onForgotPassword: () => void;
-  onTryGuest: () => void;
+  onTryGuest?: () => void;
 }) {
   return (
     <>
@@ -311,7 +331,9 @@ function EmailScreen({
         autoFocus
       />
       <Text size="1" color="gray">
-        Enter your email to log in or create a new account.
+        {onTryGuest
+          ? 'Enter your email to log in or create a new account.'
+          : 'Enter your email to log in.'}
       </Text>
       <Button type="submit" loading={loading}>
         Continue
@@ -319,9 +341,11 @@ function EmailScreen({
       <Button type="button" variant="ghost" onClick={onForgotPassword}>
         Forgot password?
       </Button>
-      <Button type="button" variant="ghost" onClick={onTryGuest}>
-        Try as guest
-      </Button>
+      {onTryGuest && (
+        <Button type="button" variant="ghost" onClick={onTryGuest}>
+          Try as guest
+        </Button>
+      )}
     </>
   );
 }
@@ -335,7 +359,7 @@ function PasswordScreen({
   email: string;
   loading: boolean;
   onUseDifferentEmail: () => void;
-  onTryGuest: () => void;
+  onTryGuest?: () => void;
 }) {
   return (
     <>
@@ -365,9 +389,11 @@ function PasswordScreen({
       <Button type="button" variant="ghost" onClick={onUseDifferentEmail}>
         Use a different email
       </Button>
-      <Button type="button" variant="ghost" onClick={onTryGuest}>
-        Try as guest
-      </Button>
+      {onTryGuest && (
+        <Button type="button" variant="ghost" onClick={onTryGuest}>
+          Try as guest
+        </Button>
+      )}
     </>
   );
 }

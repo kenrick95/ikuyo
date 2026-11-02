@@ -137,6 +137,9 @@ class GoogleAuthController extends Controller
                     }
                     $user = $matching;
                 } else {
+                    if (! config('auth.registration_enabled')) {
+                        return 'registration_disabled';
+                    }
                     $handle = app(UserHandleGenerator::class)->generate();
                     $user = new User([
                         'id' => (string) Str::uuid(), 'handle' => $handle,

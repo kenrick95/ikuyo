@@ -19,7 +19,10 @@ class AuthController extends Controller
 {
     public function me(Request $request): JsonResponse
     {
-        return response()->json(['user' => $request->user() ? $this->user($request->user()) : null]);
+        return response()->json([
+            'user' => $request->user() ? $this->user($request->user()) : null,
+            'registrationEnabled' => (bool) config('auth.registration_enabled'),
+        ]);
     }
 
     public function login(Request $request): JsonResponse
@@ -73,6 +76,7 @@ class AuthController extends Controller
 
     public function register(Request $request): JsonResponse
     {
+        abort_unless(config('auth.registration_enabled'), 403, 'New signups are currently disabled.');
         $data = $request->validate([
             'email' => ['required', 'email', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
@@ -97,6 +101,7 @@ class AuthController extends Controller
 
     public function guest(Request $request): JsonResponse
     {
+        abort_unless(config('auth.registration_enabled'), 403, 'New signups are currently disabled.');
         $id = (string) Str::uuid();
         $handle = app(UserHandleGenerator::class)->generate();
         $user = User::create([

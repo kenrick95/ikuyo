@@ -63,6 +63,26 @@ class GoogleAuthTest extends TestCase
         ]));
     }
 
+    public function test_closed_registration_blocks_new_google_accounts_even_if_flag_changes_during_oauth(): void
+    {
+        $this->google();
+        $query = $this->start();
+        config(['auth.registration_enabled' => false]);
+        $this->finishGoogle($query)->assertRedirect('https://ikuyo.test/login?google_error=registration_disabled');
+        $this->assertDatabaseCount('users', 0);
+        $this->assertGuest();
+    }
+
+    public function test_existing_google_accounts_can_login_while_registration_is_closed(): void
+    {
+        config(['auth.registration_enabled' => false]);
+        $user = $this->user(['google_subject' => 'google-user']);
+        $this->google();
+        $this->finishGoogle($this->start())->assertRedirect('https://ikuyo.test/trip');
+        $this->assertAuthenticatedAs($user);
+        $this->assertDatabaseCount('users', 1);
+    }
+
     public function test_configuration_is_optional_and_start_is_unavailable_without_credentials(): void
     {
         config(['services.google.client_secret' => null]);
