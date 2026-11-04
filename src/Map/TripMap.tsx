@@ -319,6 +319,7 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
     const mapOptions = mapOptionsRef.current;
     const allLocations = allLocationsRef.current;
     const allLines = allLinesRef.current;
+    let disposed = false;
     console.log('TripMap init', { mapOptions });
 
     const initializeMap = async () => {
@@ -352,6 +353,11 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
           mapConfig.zoom = zoom; // Use calculated zoom level from geocoding
         }
       }
+
+      // Geocoding can finish after navigation or an effect restart. The old
+      // initializer must not attach a map to a detached container or replace
+      // the newer view's map.
+      if (disposed || !mapContainer.current) return;
 
       try {
         map.current = new MapTilerMap(mapConfig);
@@ -462,6 +468,7 @@ export function TripMap({ useCase }: { useCase: 'map' | 'home' | 'list' }) {
     initializeMap();
 
     return () => {
+      disposed = true;
       if (map.current) {
         map.current.remove();
         map.current = null;

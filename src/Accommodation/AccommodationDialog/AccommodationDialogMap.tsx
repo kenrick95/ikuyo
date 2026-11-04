@@ -27,6 +27,7 @@ export function AccommodationMap({
 }) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<MapTilerMap>(null);
+  const mapMarker = useRef<Marker | null>(null);
   const theme = useTheme();
 
   useEffect(() => {
@@ -60,14 +61,12 @@ export function AccommodationMap({
       }
     });
 
-    let mapMarker: null | Marker = null;
-
     if (marker) {
-      mapMarker = new Marker({
+      mapMarker.current = new Marker({
         color: 'var(--accent-indicator)',
         draggable: !!setMarkerCoordinate,
       });
-      mapMarker
+      mapMarker.current
         .setLngLat([marker.lng, marker.lat])
         .addTo(map.current)
         .on('dragend', (event: { type: 'dragend'; target: Marker }) => {
@@ -94,7 +93,7 @@ export function AccommodationMap({
 
         if (feature?.center) {
           const [lng, lat] = feature.center;
-          mapMarker?.setLngLat([lng, lat]);
+          mapMarker.current?.setLngLat([lng, lat]);
           setMarkerCoordinate({ lng, lat });
         }
       });
@@ -115,6 +114,18 @@ export function AccommodationMap({
     if (mapOptions.zoom == null) return;
     map.current.setZoom(mapOptions.zoom);
   }, [mapOptions.zoom]);
+
+  // Keep cleanup separate from the initialization effect: callers pass fresh
+  // options/marker objects while editing, which must not recreate the map.
+  useEffect(
+    () => () => {
+      mapMarker.current?.remove();
+      mapMarker.current = null;
+      map.current?.remove();
+      map.current = null;
+    },
+    [],
+  );
 
   return (
     <div className={s.mapWrapper}>
