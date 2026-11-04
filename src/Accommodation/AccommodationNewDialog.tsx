@@ -2,6 +2,7 @@ import { Box, Dialog } from '@radix-ui/themes';
 import { useCallback, useMemo } from 'react';
 import { CommonLargeDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
+import { useTripAccommodations } from '../Trip/store/hooks';
 import type { TripSliceTrip } from '../Trip/store/types';
 import { AccommodationForm } from './AccommodationForm/AccommodationForm';
 import { AccommodationFormMode } from './AccommodationForm/AccommodationFormMode';
@@ -20,9 +21,7 @@ export function AccommodationNewDialog({
   const askToConfirmPopDialog = useBoundStore(
     (state) => state.askToConfirmPopDialog,
   );
-  const accommodations = useBoundStore((state) =>
-    state.getAccommodations(trip.accommodationIds),
-  );
+  const accommodations = useTripAccommodations(trip.accommodationIds);
   const handleFormCancel = useCallback(() => {
     askToConfirmPopDialog();
   }, [askToConfirmPopDialog]);
