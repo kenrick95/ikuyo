@@ -27,6 +27,8 @@ import {
 
 interface LocationCoordinateState {
   count: number;
+  names: [string, string];
+  swapVersion: number;
   enabled: [boolean, boolean];
   lat: [number | null | undefined, number | null | undefined];
   lng: [number | null | undefined, number | null | undefined];
@@ -36,11 +38,14 @@ interface LocationCoordinateState {
 function coordinateStateReducer(
   state: LocationCoordinateState,
   action:
+    | { type: 'swap' }
+    | { type: 'setName'; index: number; name: string }
     | { type: 'setCount'; count: number }
     | { type: 'setMapZoom'; index: number; zoom: number }
     | { type: 'setMarkerCoordinate'; index: number; lat: number; lng: number }
     | {
         type: 'setEnabled';
+        swapVersion: number;
         index: number;
         lat: number | null | undefined;
         lng: number | null | undefined;
@@ -52,6 +57,21 @@ function coordinateStateReducer(
       },
 ): LocationCoordinateState {
   switch (action.type) {
+    case 'swap':
+      return {
+        ...state,
+        names: [state.names[1], state.names[0]],
+        enabled: [state.enabled[1], state.enabled[0]],
+        lat: [state.lat[1], state.lat[0]],
+        lng: [state.lng[1], state.lng[0]],
+        zoom: [state.zoom[1], state.zoom[0]],
+        swapVersion: state.swapVersion + 1,
+      };
+    case 'setName': {
+      const names: [string, string] = [...state.names];
+      names[action.index] = action.name;
+      return { ...state, names };
+    }
     case 'setCount': {
       const newState = {
         ...state,
@@ -60,6 +80,8 @@ function coordinateStateReducer(
       return newState;
     }
     case 'setEnabled': {
+      // Ignore geocoding results requested before the locations were swapped.
+      if (action.swapVersion !== state.swapVersion) return state;
       const newState = {
         ...state,
       };
@@ -205,6 +227,8 @@ export function ActivityForm({
   const [locationFieldsState, dispatchLocationFieldsState] = useReducer(
     coordinateStateReducer,
     {
+      names: [activityLocation, activityLocationDestination ?? ''],
+      swapVersion: 0,
       enabled: [
         activityLocationLat != null && activityLocationLng != null,
         activityLocationDestinationLat != null &&
@@ -228,6 +252,7 @@ export function ActivityForm({
         if (locationFieldsState.lat[0] && locationFieldsState.lng[0]) {
           dispatchLocationFieldsState({
             type: 'setEnabled',
+            swapVersion: locationFieldsState.swapVersion,
             index: 0,
             lat: locationFieldsState.lat[0],
             lng: locationFieldsState.lng[0],
@@ -242,6 +267,7 @@ export function ActivityForm({
           const [lng, lat, zoom] = await geocodingRequest(location, tripRegion);
           dispatchLocationFieldsState({
             type: 'setEnabled',
+            swapVersion: locationFieldsState.swapVersion,
             index: 0,
             lat: lat,
             lng: lng,
@@ -261,6 +287,7 @@ export function ActivityForm({
       locationFieldsState.lat,
       locationFieldsState.lng,
       locationFieldsState.zoom,
+      locationFieldsState.swapVersion,
     ],
   );
 
@@ -270,6 +297,7 @@ export function ActivityForm({
         if (locationFieldsState.lat[1] && locationFieldsState.lng[1]) {
           dispatchLocationFieldsState({
             type: 'setEnabled',
+            swapVersion: locationFieldsState.swapVersion,
             index: 1,
             lat: locationFieldsState.lat[1],
             lng: locationFieldsState.lng[1],
@@ -284,6 +312,7 @@ export function ActivityForm({
           const [lng, lat, zoom] = await geocodingRequest(location, tripRegion);
           dispatchLocationFieldsState({
             type: 'setEnabled',
+            swapVersion: locationFieldsState.swapVersion,
             index: 1,
             lat: lat,
             lng: lng,
@@ -303,6 +332,7 @@ export function ActivityForm({
       locationFieldsState.lat,
       locationFieldsState.lng,
       locationFieldsState.zoom,
+      locationFieldsState.swapVersion,
     ],
   );
   const setMarkerCoordinate = useCallback(
@@ -694,11 +724,29 @@ export function ActivityForm({
           checked={locationFieldsState.count === 2}
           onCheckedChange={setTwoLocationEnabled}
         />
+        {locationFieldsState.count === 2 ? (
+          <Flex>
+            <Button
+              type="button"
+              variant="soft"
+              onClick={() => dispatchLocationFieldsState({ type: 'swap' })}
+            >
+              Swap origin and destination
+            </Button>
+          </Flex>
+        ) : null}
         <Text as="label" htmlFor={idLocation}>
           {locationFieldsState.count === 2 ? 'Origin' : 'Location'}
         </Text>
         <TextArea
-          defaultValue={activityLocation}
+          value={locationFieldsState.names[0]}
+          onChange={(event) =>
+            dispatchLocationFieldsState({
+              type: 'setName',
+              index: 0,
+              name: event.target.value,
+            })
+          }
           placeholder="Enter location name"
           name="location"
           id={idLocation}
@@ -716,6 +764,7 @@ export function ActivityForm({
         />
         {locationFieldsState.enabled[0] ? (
           <ActivityMap
+            key={`origin-${locationFieldsState.swapVersion}`}
             mode="edit"
             mapOptions={{
               lng: locationFieldsState.lng[0] ?? 0,
@@ -740,17 +789,24 @@ export function ActivityForm({
         {locationFieldsState.count === 2 ? (
           <>
             {' '}
-            <Text as="label" htmlFor={idLocation}>
+            <Text as="label" htmlFor={idLocationDestination}>
               Destination
             </Text>
             <TextArea
-              defaultValue={activityLocationDestination ?? ''}
+              value={locationFieldsState.names[1]}
+              onChange={(event) =>
+                dispatchLocationFieldsState({
+                  type: 'setName',
+                  index: 1,
+                  name: event.target.value,
+                })
+              }
               placeholder="Enter destination location name"
               name="locationDestination"
               id={idLocationDestination}
               style={{ minHeight: 40 }}
             />
-            <Text as="label" htmlFor={idCoordinates}>
+            <Text as="label" htmlFor={idCoordinatesDestination}>
               Set destination location coordinates
             </Text>
             <Switch
@@ -761,6 +817,7 @@ export function ActivityForm({
             />
             {locationFieldsState.enabled[1] ? (
               <ActivityMap
+                key={`destination-${locationFieldsState.swapVersion}`}
                 mode="edit"
                 mapOptions={{
                   lng: locationFieldsState.lng[1] ?? 0,
