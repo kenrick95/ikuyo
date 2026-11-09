@@ -737,13 +737,19 @@ export function ActivityForm({
         <Flex
           direction="column"
           gap="2"
-          className={s.locationGroup}
+          className={
+            locationFieldsState.count === 2 ? s.locationGroup : undefined
+          }
           role="group"
           aria-label={
             locationFieldsState.count === 2 ? 'Origin location' : 'Location'
           }
         >
-          <Text as="label" weight="medium" htmlFor={idLocation}>
+          <Text
+            as="label"
+            weight={locationFieldsState.count === 2 ? 'medium' : 'regular'}
+            htmlFor={idLocation}
+          >
             {locationFieldsState.count === 2 ? 'Origin' : 'Location'}
           </Text>
           <TextArea
