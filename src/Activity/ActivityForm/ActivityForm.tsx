@@ -1,13 +1,4 @@
-import { ArrowDownIcon, ArrowUpIcon } from '@radix-ui/react-icons';
-import {
-  Button,
-  Flex,
-  IconButton,
-  Switch,
-  Text,
-  TextArea,
-  Tooltip,
-} from '@radix-ui/themes';
+import { Button, Flex, Switch, Text, TextArea } from '@radix-ui/themes';
 import type { SubmitEvent } from 'react';
 import { useCallback, useId, useReducer, useState } from 'react';
 import { DateTimePicker } from '../../common/DatePicker2/DateTimePicker';
@@ -34,99 +25,8 @@ import {
   ActivityFormMode,
   type ActivityFormModeType,
 } from './ActivityFormMode';
-
-interface LocationCoordinateState {
-  count: number;
-  names: [string, string];
-  swapVersion: number;
-  enabled: [boolean, boolean];
-  lat: [number | null | undefined, number | null | undefined];
-  lng: [number | null | undefined, number | null | undefined];
-  zoom: [number | null | undefined, number | null | undefined];
-}
-
-function coordinateStateReducer(
-  state: LocationCoordinateState,
-  action:
-    | { type: 'swap' }
-    | { type: 'setName'; index: number; name: string }
-    | { type: 'setCount'; count: number }
-    | { type: 'setMapZoom'; index: number; zoom: number }
-    | { type: 'setMarkerCoordinate'; index: number; lat: number; lng: number }
-    | {
-        type: 'setEnabled';
-        swapVersion: number;
-        index: number;
-        lat: number | null | undefined;
-        lng: number | null | undefined;
-        zoom: number | null | undefined;
-      }
-    | {
-        type: 'setDisabled';
-        index: number;
-      },
-): LocationCoordinateState {
-  switch (action.type) {
-    case 'swap':
-      return {
-        ...state,
-        names: [state.names[1], state.names[0]],
-        enabled: [state.enabled[1], state.enabled[0]],
-        lat: [state.lat[1], state.lat[0]],
-        lng: [state.lng[1], state.lng[0]],
-        zoom: [state.zoom[1], state.zoom[0]],
-        swapVersion: state.swapVersion + 1,
-      };
-    case 'setName': {
-      const names: [string, string] = [...state.names];
-      names[action.index] = action.name;
-      return { ...state, names };
-    }
-    case 'setCount': {
-      const newState = {
-        ...state,
-        count: action.count,
-      };
-      return newState;
-    }
-    case 'setEnabled': {
-      // Ignore geocoding results requested before the locations were swapped.
-      if (action.swapVersion !== state.swapVersion) return state;
-      const newState = {
-        ...state,
-      };
-      newState.enabled[action.index] = true;
-      newState.lat[action.index] = action.lat;
-      newState.lng[action.index] = action.lng;
-      newState.zoom[action.index] = action.zoom;
-      return newState;
-    }
-    case 'setDisabled': {
-      const newState = {
-        ...state,
-      };
-      newState.enabled[action.index] = false;
-      return newState;
-    }
-    case 'setMapZoom': {
-      const newState = {
-        ...state,
-      };
-      newState.zoom[action.index] = action.zoom;
-      return newState;
-    }
-    case 'setMarkerCoordinate': {
-      const newState = {
-        ...state,
-      };
-      newState.lat[action.index] = action.lat;
-      newState.lng[action.index] = action.lng;
-      return newState;
-    }
-    default:
-      return state;
-  }
-}
+import { locationFieldsReducer } from './locationFieldsReducer';
+import { SwapLocationsButton } from './SwapLocationsButton';
 
 export function ActivityForm({
   mode,
@@ -235,7 +135,7 @@ export function ActivityForm({
   );
 
   const [locationFieldsState, dispatchLocationFieldsState] = useReducer(
-    coordinateStateReducer,
+    locationFieldsReducer,
     {
       names: [activityLocation, activityLocationDestination ?? ''],
       swapVersion: 0,
@@ -802,23 +702,9 @@ export function ActivityForm({
         </Flex>
         {locationFieldsState.count === 2 ? (
           <>
-            <Flex justify="center">
-              <Tooltip content="Swap origin and destination">
-                <IconButton
-                  type="button"
-                  variant="ghost"
-                  color="gray"
-                  size="2"
-                  aria-label="Swap origin and destination"
-                  onClick={() => dispatchLocationFieldsState({ type: 'swap' })}
-                >
-                  <Flex gap="0" aria-hidden="true">
-                    <ArrowUpIcon width="12" />
-                    <ArrowDownIcon width="12" />
-                  </Flex>
-                </IconButton>
-              </Tooltip>
-            </Flex>
+            <SwapLocationsButton
+              onSwap={() => dispatchLocationFieldsState({ type: 'swap' })}
+            />
             <Flex
               direction="column"
               gap="2"
