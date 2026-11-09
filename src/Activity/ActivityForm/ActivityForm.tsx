@@ -1,4 +1,13 @@
-import { Button, Flex, Switch, Text, TextArea } from '@radix-ui/themes';
+import { ArrowDownIcon, ArrowUpIcon } from '@radix-ui/react-icons';
+import {
+  Button,
+  Flex,
+  IconButton,
+  Switch,
+  Text,
+  TextArea,
+  Tooltip,
+} from '@radix-ui/themes';
 import type { SubmitEvent } from 'react';
 import { useCallback, useId, useReducer, useState } from 'react';
 import { DateTimePicker } from '../../common/DatePicker2/DateTimePicker';
@@ -715,26 +724,36 @@ export function ActivityForm({
           onValueChange={setPlanningStatus}
         />
 
-        <Text as="label" htmlFor={idTwoLocationEnabled}>
-          Set two locations (origin & destination)?
-        </Text>
-        <Switch
-          name="twoLocationEnabled"
-          id={idTwoLocationEnabled}
-          checked={locationFieldsState.count === 2}
-          onCheckedChange={setTwoLocationEnabled}
-        />
-        {locationFieldsState.count === 2 ? (
-          <Flex>
-            <Button
-              type="button"
-              variant="soft"
-              onClick={() => dispatchLocationFieldsState({ type: 'swap' })}
-            >
-              Swap origin and destination
-            </Button>
+        <Flex align="center" justify="between" gap="3">
+          <Flex align="center" gap="2">
+            <Switch
+              name="twoLocationEnabled"
+              id={idTwoLocationEnabled}
+              checked={locationFieldsState.count === 2}
+              onCheckedChange={setTwoLocationEnabled}
+            />
+            <Text as="label" htmlFor={idTwoLocationEnabled}>
+              Set two locations (origin & destination)?
+            </Text>
           </Flex>
-        ) : null}
+          {locationFieldsState.count === 2 ? (
+            <Tooltip content="Swap origin and destination">
+              <IconButton
+                type="button"
+                variant="ghost"
+                color="gray"
+                size="2"
+                aria-label="Swap origin and destination"
+                onClick={() => dispatchLocationFieldsState({ type: 'swap' })}
+              >
+                <Flex gap="0" aria-hidden="true">
+                  <ArrowUpIcon width="12" />
+                  <ArrowDownIcon width="12" />
+                </Flex>
+              </IconButton>
+            </Tooltip>
+          ) : null}
+        </Flex>
         <Text as="label" htmlFor={idLocation}>
           {locationFieldsState.count === 2 ? 'Origin' : 'Location'}
         </Text>
