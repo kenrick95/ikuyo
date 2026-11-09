@@ -15,10 +15,13 @@ import { TimeZoneSelect } from '../../common/TimeZoneSelect/TimeZoneSelect';
 import { dangerToken } from '../../common/ui';
 import { useBoundStore } from '../../data/store';
 import { ActivityMap } from '../ActivityDialog/ActivityDialogMap';
+import s from '../ActivityForm/ActivityForm.module.css';
 import {
   ActivityFormMode,
   type ActivityFormModeType,
 } from '../ActivityForm/ActivityFormMode';
+import { locationFieldsReducer } from '../ActivityForm/locationFieldsReducer';
+import { SwapLocationsButton } from '../ActivityForm/SwapLocationsButton';
 import {
   ActivityFlag,
   addActivityFlag,
@@ -32,57 +35,6 @@ import {
   toPlanningStatus,
 } from '../PlanningStatusSelect';
 import { stationGeocodingRequest } from './TrainFormGeocoding';
-
-interface LocationCoordinateState {
-  enabled: [boolean, boolean];
-  lat: [number | null | undefined, number | null | undefined];
-  lng: [number | null | undefined, number | null | undefined];
-  zoom: [number | null | undefined, number | null | undefined];
-}
-
-function coordinateStateReducer(
-  state: LocationCoordinateState,
-  action:
-    | { type: 'setMapZoom'; index: number; zoom: number }
-    | { type: 'setMarkerCoordinate'; index: number; lat: number; lng: number }
-    | {
-        type: 'setEnabled';
-        index: number;
-        lat: number | null | undefined;
-        lng: number | null | undefined;
-        zoom: number | null | undefined;
-      }
-    | { type: 'setDisabled'; index: number },
-): LocationCoordinateState {
-  switch (action.type) {
-    case 'setEnabled': {
-      const newState = { ...state };
-      newState.enabled[action.index] = true;
-      newState.lat[action.index] = action.lat;
-      newState.lng[action.index] = action.lng;
-      newState.zoom[action.index] = action.zoom;
-      return newState;
-    }
-    case 'setDisabled': {
-      const newState = { ...state };
-      newState.enabled[action.index] = false;
-      return newState;
-    }
-    case 'setMapZoom': {
-      const newState = { ...state };
-      newState.zoom[action.index] = action.zoom;
-      return newState;
-    }
-    case 'setMarkerCoordinate': {
-      const newState = { ...state };
-      newState.lat[action.index] = action.lat;
-      newState.lng[action.index] = action.lng;
-      return newState;
-    }
-    default:
-      return state;
-  }
-}
 
 export function TrainForm({
   mode,
@@ -176,8 +128,11 @@ export function TrainForm({
   );
 
   const [locationFieldsState, dispatchLocationFieldsState] = useReducer(
-    coordinateStateReducer,
+    locationFieldsReducer,
     {
+      count: 2,
+      names: [activityLocation, activityLocationDestination ?? ''],
+      swapVersion: 0,
       enabled: [
         activityLocationLat != null && activityLocationLng != null,
         activityLocationDestinationLat != null &&
@@ -192,9 +147,13 @@ export function TrainForm({
   const setCoordinateEnabled = useCallback(
     async (enabled: boolean) => {
       if (enabled) {
-        if (locationFieldsState.lat[0] && locationFieldsState.lng[0]) {
+        if (
+          locationFieldsState.lat[0] != null &&
+          locationFieldsState.lng[0] != null
+        ) {
           dispatchLocationFieldsState({
             type: 'setEnabled',
+            swapVersion: locationFieldsState.swapVersion,
             index: 0,
             lat: locationFieldsState.lat[0],
             lng: locationFieldsState.lng[0],
@@ -207,6 +166,7 @@ export function TrainForm({
           );
           dispatchLocationFieldsState({
             type: 'setEnabled',
+            swapVersion: locationFieldsState.swapVersion,
             index: 0,
             lat,
             lng,
@@ -222,15 +182,20 @@ export function TrainForm({
       locationFieldsState.lat,
       locationFieldsState.lng,
       locationFieldsState.zoom,
+      locationFieldsState.swapVersion,
     ],
   );
 
   const setCoordinateEnabledForDestination = useCallback(
     async (enabled: boolean) => {
       if (enabled) {
-        if (locationFieldsState.lat[1] && locationFieldsState.lng[1]) {
+        if (
+          locationFieldsState.lat[1] != null &&
+          locationFieldsState.lng[1] != null
+        ) {
           dispatchLocationFieldsState({
             type: 'setEnabled',
+            swapVersion: locationFieldsState.swapVersion,
             index: 1,
             lat: locationFieldsState.lat[1],
             lng: locationFieldsState.lng[1],
@@ -243,6 +208,7 @@ export function TrainForm({
           );
           dispatchLocationFieldsState({
             type: 'setEnabled',
+            swapVersion: locationFieldsState.swapVersion,
             index: 1,
             lat,
             lng,
@@ -258,6 +224,7 @@ export function TrainForm({
       locationFieldsState.lat,
       locationFieldsState.lng,
       locationFieldsState.zoom,
+      locationFieldsState.swapVersion,
     ],
   );
 
@@ -539,96 +506,129 @@ export function TrainForm({
           clearable
         />
 
-        <Text as="label" htmlFor={idFrom}>
-          Departure station{' '}
-          <Text weight="light" size="1">
-            (required)
+        <Flex
+          direction="column"
+          gap="2"
+          className={s.locationGroup}
+          role="group"
+          aria-label="Departure station"
+        >
+          <Text as="label" weight="medium" htmlFor={idFrom}>
+            Departure station{' '}
+            <Text weight="light" size="1">
+              (required)
+            </Text>
           </Text>
-        </Text>
-        <TextField.Root
-          id={idFrom}
-          name="from"
-          placeholder="e.g. Paris Gare de Lyon"
-          defaultValue={activityLocation}
-          required
-        />
-
-        <Text as="label" htmlFor={idCoordinatesFrom}>
-          Set departure station coordinates
-        </Text>
-        <Switch
-          id={idCoordinatesFrom}
-          checked={locationFieldsState.enabled[0]}
-          onCheckedChange={setCoordinateEnabled}
-        />
-        {locationFieldsState.enabled[0] ? (
-          <ActivityMap
-            mode="edit"
-            mapOptions={{
-              lng: locationFieldsState.lng[0] ?? 0,
-              lat: locationFieldsState.lat[0] ?? 0,
-              zoom: locationFieldsState.zoom[0] ?? 9,
-              // Don't use 'region' to allow free choosing of station around the world
-            }}
-            marker={
-              locationFieldsState.lng[0] != null &&
-              locationFieldsState.lat[0] != null
-                ? {
-                    lng: locationFieldsState.lng[0],
-                    lat: locationFieldsState.lat[0],
-                  }
-                : undefined
+          <TextField.Root
+            id={idFrom}
+            name="from"
+            placeholder="e.g. Paris Gare de Lyon"
+            value={locationFieldsState.names[0]}
+            onChange={(event) =>
+              dispatchLocationFieldsState({
+                type: 'setName',
+                index: 0,
+                name: event.target.value,
+              })
             }
-            setMarkerCoordinate={setMarkerCoordinate}
-            setMapZoom={setMapZoom}
+            required
           />
-        ) : null}
 
-        <Text as="label" htmlFor={idTo}>
-          Arrival station{' '}
-          <Text weight="light" size="1">
-            (required)
+          <Text as="label" htmlFor={idCoordinatesFrom}>
+            Set departure station coordinates
           </Text>
-        </Text>
-        <TextField.Root
-          id={idTo}
-          name="to"
-          placeholder="e.g. Marseille Saint-Charles"
-          defaultValue={activityLocationDestination ?? ''}
-          required
-        />
-
-        <Text as="label" htmlFor={idCoordinatesTo}>
-          Set arrival station coordinates
-        </Text>
-        <Switch
-          id={idCoordinatesTo}
-          checked={locationFieldsState.enabled[1]}
-          onCheckedChange={setCoordinateEnabledForDestination}
-        />
-        {locationFieldsState.enabled[1] ? (
-          <ActivityMap
-            mode="edit"
-            mapOptions={{
-              lng: locationFieldsState.lng[1] ?? 0,
-              lat: locationFieldsState.lat[1] ?? 0,
-              zoom: locationFieldsState.zoom[1] ?? 9,
-              // Don't use 'region' to allow free choosing of station around the world
-            }}
-            marker={
-              locationFieldsState.lng[1] != null &&
-              locationFieldsState.lat[1] != null
-                ? {
-                    lng: locationFieldsState.lng[1],
-                    lat: locationFieldsState.lat[1],
-                  }
-                : undefined
-            }
-            setMarkerCoordinate={setMarkerCoordinateForDestination}
-            setMapZoom={setMapZoomForDestination}
+          <Switch
+            id={idCoordinatesFrom}
+            checked={locationFieldsState.enabled[0]}
+            onCheckedChange={setCoordinateEnabled}
           />
-        ) : null}
+          {locationFieldsState.enabled[0] ? (
+            <ActivityMap
+              key={`departure-${locationFieldsState.swapVersion}`}
+              mode="edit"
+              mapOptions={{
+                lng: locationFieldsState.lng[0] ?? 0,
+                lat: locationFieldsState.lat[0] ?? 0,
+                zoom: locationFieldsState.zoom[0] ?? 9,
+                // Don't use 'region' to allow free choosing of station around the world
+              }}
+              marker={
+                locationFieldsState.lng[0] != null &&
+                locationFieldsState.lat[0] != null
+                  ? {
+                      lng: locationFieldsState.lng[0],
+                      lat: locationFieldsState.lat[0],
+                    }
+                  : undefined
+              }
+              setMarkerCoordinate={setMarkerCoordinate}
+              setMapZoom={setMapZoom}
+            />
+          ) : null}
+        </Flex>
+        <SwapLocationsButton
+          onSwap={() => dispatchLocationFieldsState({ type: 'swap' })}
+        />
+        <Flex
+          direction="column"
+          gap="2"
+          className={s.locationGroup}
+          role="group"
+          aria-label="Arrival station"
+        >
+          <Text as="label" weight="medium" htmlFor={idTo}>
+            Arrival station{' '}
+            <Text weight="light" size="1">
+              (required)
+            </Text>
+          </Text>
+          <TextField.Root
+            id={idTo}
+            name="to"
+            placeholder="e.g. Marseille Saint-Charles"
+            value={locationFieldsState.names[1]}
+            onChange={(event) =>
+              dispatchLocationFieldsState({
+                type: 'setName',
+                index: 1,
+                name: event.target.value,
+              })
+            }
+            required
+          />
 
+          <Text as="label" htmlFor={idCoordinatesTo}>
+            Set arrival station coordinates
+          </Text>
+          <Switch
+            id={idCoordinatesTo}
+            checked={locationFieldsState.enabled[1]}
+            onCheckedChange={setCoordinateEnabledForDestination}
+          />
+          {locationFieldsState.enabled[1] ? (
+            <ActivityMap
+              key={`arrival-${locationFieldsState.swapVersion}`}
+              mode="edit"
+              mapOptions={{
+                lng: locationFieldsState.lng[1] ?? 0,
+                lat: locationFieldsState.lat[1] ?? 0,
+                zoom: locationFieldsState.zoom[1] ?? 9,
+                // Don't use 'region' to allow free choosing of station around the world
+              }}
+              marker={
+                locationFieldsState.lng[1] != null &&
+                locationFieldsState.lat[1] != null
+                  ? {
+                      lng: locationFieldsState.lng[1],
+                      lat: locationFieldsState.lat[1],
+                    }
+                  : undefined
+              }
+              setMarkerCoordinate={setMarkerCoordinateForDestination}
+              setMapZoom={setMapZoomForDestination}
+            />
+          ) : null}
+        </Flex>
         <Text as="label">
           Departure time zone{' '}
           <Text weight="light" size="1">
