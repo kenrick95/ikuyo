@@ -1,0 +1,289 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Expense;
+use App\Models\Trip;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+class ExpenseLedgerService
+{
+    public function participant(Trip $trip, ?User $user, string $name, ?string $id = null): string
+    {
+        if ($user) {
+            $existing = DB::table('expense_participants')->where('trip_id', $trip->id)->where('user_id', $user->id)->value('id');
+            if ($existing) {
+                return $existing;
+            }
+        }
+        $id ??= (string) Str::uuid();
+        $existing = DB::table('expense_participants')->where('id', $id)->first();
+        if ($existing) {
+            abort_unless($existing->trip_id === $trip->id && $existing->name === $name && $existing->user_id === $user?->id, 409, 'Participant ID already used.');
+
+            return $id;
+        }
+        DB::table('expense_participants')->insert([
+            'id' => $id, 'trip_id' => $trip->id, 'user_id' => $user?->id,
+            'name' => $user ? $user->handle : $name, 'created_at_ms' => now()->getTimestampMs(),
+        ]);
+
+        return $id;
+    }
+
+    public function write(Request $request, Trip $trip, ?Expense $expense = null): Expense
+    {
+        return DB::transaction(function () use ($request, $trip, $expense): Expense {
+            $validated = $request->validate([
+                'id' => ['sometimes', 'string', 'max:40'],
+                'title' => [$expense ? 'sometimes' : 'required', 'string', 'max:255'],
+                'description' => ['sometimes', 'nullable', 'string'],
+                'amount' => [$expense ? 'sometimes' : 'required', 'numeric'],
+                'currency' => [$expense ? 'sometimes' : 'required', 'string', 'max:8'],
+                'timestampIncurred' => [$expense ? 'sometimes' : 'required', 'integer'],
+                'timeZoneIncurred' => ['sometimes', 'nullable', 'timezone'],
+                'currencyConversionFactor' => ['sometimes', 'nullable', 'numeric', 'gt:0'],
+                'amountInOriginCurrency' => ['sometimes', 'nullable', 'numeric'],
+                'ledger' => ['sometimes', 'nullable', 'array'],
+                'expectedRevision' => ['sometimes', 'integer', 'min:0'],
+            ]);
+            $creating = ! $expense;
+            if ($creating) {
+                $id = $validated['id'] ?? (string) Str::uuid();
+                $hash = hash('sha256', json_encode([$request->user()->id, $validated], JSON_THROW_ON_ERROR));
+                $existing = Expense::withTrashed()->whereKey($id)->first();
+                if ($existing) {
+                    abort_unless(! $existing->trashed() && $existing->trip_id === $trip->id && $existing->creation_hash === $hash, 409, 'Expense ID already used with different details.');
+
+                    return $existing;
+                }
+                $expense = new Expense(['id' => $id, 'trip_id' => $trip->id, 'creation_hash' => $hash]);
+            }
+            $before = $expense->toArray();
+            $hasLedger = array_key_exists('ledger', $validated);
+            if ($expense->ledger || $hasLedger) {
+                if (! $creating) {
+                    abort_unless($request->input('expectedRevision') === (int) $expense->ledger_revision, 409, 'Expense changed. Reload before saving.');
+                }
+                if (! $hasLedger && ($request->has('amount') || $request->has('currency'))) {
+                    abort(409, 'Include the current split when changing an allocated expense.');
+                }
+            }
+            $map = ['timestampIncurred' => 'incurred_at_ms', 'timeZoneIncurred' => 'timezone_incurred', 'currencyConversionFactor' => 'currency_conversion_factor', 'amountInOriginCurrency' => 'amount_in_origin_currency'];
+            foreach (['title', 'description', 'amount', 'currency', ...array_keys($map)] as $key) {
+                if (array_key_exists($key, $validated)) {
+                    $expense->setAttribute($map[$key] ?? $key, $validated[$key]);
+                }
+            }
+            if ($hasLedger) {
+                $expense->ledger = $validated['ledger'] === null ? null : $this->validateLedger($request, $trip, $expense);
+            }
+            // A correction cannot invalidate refunds already recorded against this charge.
+            $refunds = $trip->expenses()->where('ledger->refundOf', $expense->id)->get();
+            if ($refunds->isNotEmpty()) {
+                $refunded = 0;
+                foreach ($refunds as $refund) {
+                    abort_unless($expense->currency === $refund->currency && ($expense->ledger['kind'] ?? 'expense') === 'expense' && ($expense->ledger['method'] ?? null), 422, 'Keep the original currency and split while refunds exist.');
+                    $refunded += ExpenseMoney::minor((string) $refund->amount, $refund->currency);
+                }
+                abort_if($refunded > ExpenseMoney::minor((string) $expense->amount, $expense->currency), 422, 'Amount cannot be less than its recorded refunds.');
+            }
+            $expense->ledger_revision = ((int) $expense->ledger_revision) + 1;
+            $expense->save();
+            $this->history($trip, $expense->id, 'expense.save', $before, $expense->toArray(), $request->user());
+
+            return $expense->fresh();
+        });
+    }
+
+    /** @return array<string, mixed> */
+    private function validateLedger(Request $request, Trip $trip, Expense $expense): array
+    {
+        $data = $request->validate([
+            'ledger.paidBy' => ['required', 'string', 'max:40'],
+            'ledger.method' => ['nullable', 'in:equal,exact,percent,shares'],
+            'ledger.kind' => ['sometimes', 'in:expense,refund'],
+            'ledger.refundOf' => ['required_if:ledger.kind,refund', 'nullable', 'string', 'max:40'],
+            'ledger.shares' => ['required_with:ledger.method', 'array', 'max:100'],
+            'ledger.shares.*.participantId' => ['required', 'string', 'distinct'],
+            'ledger.shares.*.value' => ['sometimes', 'string', 'max:30'],
+            'ledger.contributions' => ['required_if:ledger.paidBy,multiple', 'array', 'min:1', 'max:100'],
+            'ledger.contributions.*.participantId' => ['required', 'string', 'distinct'],
+            'ledger.contributions.*.amountMinor' => ['required', 'string', 'regex:/^\d+$/D', 'max:13'],
+        ])['ledger'];
+        $payer = $data['paidBy'];
+        if ($payer === 'me') {
+            $payer = $this->participant($trip, $request->user(), $request->user()->handle);
+        }
+        $needsSelf = collect([...($data['shares'] ?? []), ...($data['contributions'] ?? [])])->contains('participantId', 'me');
+        if ($needsSelf) {
+            $selfId = $this->participant($trip, $request->user(), $request->user()->handle);
+            foreach (['shares', 'contributions'] as $key) {
+                foreach ($data[$key] ?? [] as $i => $row) {
+                    if ($row['participantId'] === 'me') {
+                        $data[$key][$i]['participantId'] = $selfId;
+                    }
+                }
+                $resolved = array_column($data[$key] ?? [], 'participantId');
+                if (count($resolved) !== count(array_unique($resolved))) {
+                    ExpenseMoney::invalid('Choose each person only once.');
+                }
+            }
+        }
+        $participants = DB::table('expense_participants')->where('trip_id', $trip->id)->get()->keyBy('id');
+        $ids = $participants->keys()->all();
+        $total = ExpenseMoney::minor((string) $expense->amount, $expense->currency);
+        if ($total <= 0) {
+            ExpenseMoney::invalid('Amount must be greater than zero.');
+        }
+        $method = $data['method'] ?? null;
+        $kind = $data['kind'] ?? 'expense';
+        if ($kind === 'refund') {
+            $original = $trip->expenses()->withTrashed()->whereKey($data['refundOf'])->first();
+            abort_unless($original && $original->id !== $expense->id && ($original->ledger['kind'] ?? 'expense') === 'expense' && ($original->ledger['method'] ?? null) && $original->currency === $expense->currency && $method, 422, 'Choose an original split expense in the same currency.');
+            abort_if($original->trashed() && ! $expense->exists, 422, 'Restore the original expense before adding a refund.');
+            $refunded = 0;
+            foreach ($trip->expenses()->where('id', '!=', $expense->id)->where('ledger->refundOf', $original->id)->get() as $refund) {
+                $refunded += ExpenseMoney::minor((string) $refund->amount, $refund->currency);
+            }
+            abort_if($refunded + $total > ExpenseMoney::minor((string) $original->amount, $original->currency), 422, 'Refunds cannot exceed the original expense.');
+        }
+        $shares = $data['shares'] ?? [];
+        $contributions = $payer === 'multiple' ? $data['contributions'] : [['participantId' => $payer, 'amountMinor' => (string) $total]];
+        foreach ([...$shares, ...$contributions] as $row) {
+            if (! in_array($row['participantId'], $ids, true)) {
+                ExpenseMoney::invalid('People must belong to this trip.');
+            }
+            $archived = $participants->get($row['participantId'])->archived_at_ms;
+            $previousLedger = $kind === 'refund' ? $original->ledger : $expense->getOriginal('ledger');
+            $previousIds = array_column([...($previousLedger['allocations'] ?? []), ...($previousLedger['contributions'] ?? [])], 'participantId');
+            abort_if($archived !== null && ! in_array($row['participantId'], $previousIds, true), 422, 'Restore archived people before adding them to an expense.');
+        }
+        $paid = 0;
+        foreach ($contributions as &$row) {
+            $n = ExpenseMoney::scaled($row['amountMinor'], 0, ExpenseMoney::MAX_MINOR);
+            $row['amountMinor'] = (string) $n;
+            $paid += $n;
+        }
+        unset($row);
+        if ($paid !== $total) {
+            ExpenseMoney::invalid('Payer amounts must match the expense total.');
+        }
+        $weights = [];
+        foreach ($shares as $row) {
+            $weights[$row['participantId']] = match ($method) {
+                'equal' => 1,
+                'exact' => ExpenseMoney::minor($row['value'] ?? '0', $expense->currency),
+                default => ExpenseMoney::scaled($row['value'] ?? '0', 4, 1_000_000),
+            };
+        }
+        if (($method === 'exact' && array_sum($weights) !== $total) || ($method === 'percent' && array_sum($weights) !== 1_000_000)) {
+            ExpenseMoney::invalid('Shares must add up to the total.');
+        }
+        $amounts = ! $method ? [] : ($method === 'exact' ? $weights : ExpenseMoney::allocate($total, $weights));
+
+        return [
+            'kind' => $kind, 'refundOf' => $kind === 'refund' ? $data['refundOf'] : null,
+            'paidBy' => $payer, 'method' => $method, 'shares' => $method ? array_map(fn ($row) => array_intersect_key($row, array_flip(['participantId', 'value'])), $shares) : [],
+            'contributions' => array_map(fn ($row) => array_intersect_key($row, array_flip(['participantId', 'amountMinor'])), $contributions),
+            'allocations' => array_map(fn ($id, $n) => ['participantId' => $id, 'amountMinor' => (string) $n], array_keys($amounts), array_values($amounts)),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    public function snapshot(Trip $trip, bool $includeAccounts = false): array
+    {
+        $participants = DB::table('expense_participants as p')->leftJoin('users as u', 'p.user_id', '=', 'u.id')
+            ->where('p.trip_id', $trip->id)->orderBy('p.created_at_ms')->orderBy('p.id')
+            ->get(['p.id', 'p.name', 'p.user_id', 'p.archived_at_ms', 'u.handle', 'u.deleted_at'])->map(fn ($p) => [
+                'id' => $p->id, 'name' => $p->name,
+                'userId' => $includeAccounts && $p->deleted_at === null ? $p->user_id : null,
+                'handle' => $p->deleted_at === null ? $p->handle : null,
+                'guest' => $p->user_id === null || $p->deleted_at !== null,
+                'archived' => $p->archived_at_ms !== null,
+            ])->all();
+        $balances = [];
+        $add = function (string $currency, string $id, int $amount) use (&$balances): void {
+            $balances[$currency][$id] = ($balances[$currency][$id] ?? 0) + $amount;
+            abort_if(abs($balances[$currency][$id]) > 1_000_000_000_000_000, 422, 'Trip balance exceeds the supported range.');
+        };
+        $expenses = $trip->expenses()->get();
+        $splitCount = 0;
+        foreach ($expenses as $expense) {
+            if (! ($expense->ledger['method'] ?? null)) {
+                continue;
+            }
+            $splitCount++;
+            $sign = ($expense->ledger['kind'] ?? 'expense') === 'refund' ? -1 : 1;
+            foreach ($expense->ledger['contributions'] as $row) {
+                $add($expense->currency, $row['participantId'], $sign * (int) $row['amountMinor']);
+            }
+            foreach ($expense->ledger['allocations'] as $row) {
+                $add($expense->currency, $row['participantId'], -$sign * (int) $row['amountMinor']);
+            }
+        }
+        $payments = DB::table('expense_payments')->where('trip_id', $trip->id)->orderBy('created_at_ms')->get();
+        foreach ($payments as $payment) {
+            if ($payment->voided_at_ms === null) {
+                $add($payment->currency, $payment->sender_id, (int) $payment->amount_minor);
+                $add($payment->currency, $payment->recipient_id, -((int) $payment->amount_minor));
+            }
+        }
+        $currencies = [];
+        ksort($balances);
+        foreach ($balances as $currency => $nets) {
+            ksort($nets, SORT_STRING);
+            $debtors = $creditors = [];
+            foreach ($nets as $id => $n) {
+                if ($n < 0) {
+                    $debtors[$id] = -$n;
+                } elseif ($n > 0) {
+                    $creditors[$id] = $n;
+                }
+            }
+            $suggestions = [];
+            foreach ($debtors as $sender => $owed) {
+                foreach ($creditors as $recipient => &$credit) {
+                    $n = min($owed, $credit);
+                    if ($n > 0) {
+                        $suggestions[] = ['senderId' => $sender, 'recipientId' => $recipient, 'amountMinor' => (string) $n];
+                        $owed -= $n;
+                        $credit -= $n;
+                    }
+                }
+                unset($credit);
+            }
+            $currencies[] = ['currency' => $currency, 'balances' => array_map(fn ($id, $n) => ['participantId' => $id, 'amountMinor' => (string) $n], array_keys($nets), array_values($nets)), 'suggestions' => $suggestions];
+        }
+
+        return ['participants' => $participants, 'currencies' => $currencies, 'splitCount' => $splitCount, 'expenseCount' => $expenses->count(), 'payments' => $payments->map(fn ($p) => [
+            'id' => $p->id, 'senderId' => $p->sender_id, 'recipientId' => $p->recipient_id,
+            'currency' => $p->currency, 'amountMinor' => (string) $p->amount_minor,
+            'paidCurrency' => $p->paid_currency, 'paidAmountMinor' => (string) $p->paid_amount_minor,
+            'date' => $p->paid_on, 'note' => $p->note, 'voided' => $p->voided_at_ms !== null,
+        ])->all()];
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $before
+     * @param  array<string, mixed>|null  $after
+     */
+    public function history(Trip $trip, string $id, string $operation, ?array $before, ?array $after, ?User $actor): void
+    {
+        DB::table('expense_history')->insert([
+            'trip_id' => $trip->id, 'entity_id' => $id, 'operation' => $operation,
+            'before' => $before === null ? null : json_encode($before, JSON_THROW_ON_ERROR),
+            'after' => $after === null ? null : json_encode($after, JSON_THROW_ON_ERROR),
+            'actor_id' => $actor?->id, 'created_at_ms' => now()->getTimestampMs(),
+        ]);
+    }
+
+    public function notify(Trip $trip): void
+    {
+        // A payload-free expense event invalidates existing clients without exposing identities.
+        app(SyncEventService::class)->record('expense_ledger', $trip->id, 'upsert', $trip->id);
+    }
+}

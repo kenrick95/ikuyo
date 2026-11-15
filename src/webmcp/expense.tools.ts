@@ -404,6 +404,8 @@ export function createExpenseTools(): WebMCPTool[] {
             (input.currency as string | undefined)?.toUpperCase() ??
             existing.currency,
           amount,
+          ledger: existing.ledger,
+          ledgerRevision: existing.ledgerRevision,
           ...conversion,
           timeZoneIncurred:
             asOptStr(input.timeZoneIncurred, 'timeZoneIncurred') ??

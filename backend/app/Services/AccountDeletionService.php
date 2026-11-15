@@ -92,6 +92,7 @@ class AccountDeletionService
                 'email_verify_token_hash' => null, 'email_verify_token_at' => null,
                 'pending_email' => null,
             ])->save();
+            DB::table('expense_participants')->where('user_id', $target->id)->update(['user_id' => null]);
             $target->delete();
             DB::table((string) config('session.table', 'sessions'))->where('user_id', $target->id)->delete();
 

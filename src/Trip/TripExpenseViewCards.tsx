@@ -11,10 +11,12 @@ import {
 import clsx from 'clsx';
 import { useCallback, useState } from 'react';
 import { downloadCsv, expensesToCsv } from '../Expense/csvExport';
+import { ExpenseBalancesDialog } from '../Expense/ExpenseBalancesDialog';
 import { ExpenseCard } from '../Expense/ExpenseCard';
 import { ExpenseHeaderCard } from '../Expense/ExpenseHeaderCard';
 import { ExpenseInlineCardForm } from '../Expense/ExpenseInlineCardForm';
 import { ExpenseMode } from '../Expense/ExpenseMode';
+import { ExpensePeopleDialog } from '../Expense/ExpensePeopleDialog';
 import { DocTitle } from '../Nav/DocTitle';
 import { canModifyTripContent } from './permissions';
 import { getSectionVisibility } from './sectionVisibility';
@@ -35,7 +37,11 @@ export function TripExpenseViewCards() {
   const handleExportToCsv = useCallback(() => {
     if (!trip || expenses.length === 0) return;
 
-    const csvContent = expensesToCsv(expenses, trip.timeZone);
+    const csvContent = expensesToCsv(
+      expenses,
+      trip.timeZone,
+      trip.expenseLedger?.participants,
+    );
     const filename = `${trip.title.replace(/[^a-z0-9]/gi, '_')}_expenses_${new Date().toISOString().split('T')[0]}.csv`;
     downloadCsv(csvContent, filename);
   }, [trip, expenses]);
@@ -50,17 +56,22 @@ export function TripExpenseViewCards() {
         </Flex>
       ) : (
         <>
-          <Flex justify="between" align="center" mb="3">
+          <Flex justify="between" align="center" mb="3" gap="2" wrap="wrap">
             <Heading as="h2" size="4">
               Expenses
             </Heading>
-            {/* TODO: how to put this in TripMenu */}
-            {expenses.length > 0 && (
-              <Button variant="outline" size="2" onClick={handleExportToCsv}>
-                <DownloadIcon />
-                Export to CSV
-              </Button>
-            )}
+            <Flex gap="2" wrap="wrap" justify="end">
+              {trip && userCanModifyExpense && (
+                <ExpensePeopleDialog trip={trip} />
+              )}
+              {trip && <ExpenseBalancesDialog trip={trip} />}
+              {expenses.length > 0 && (
+                <Button variant="outline" size="2" onClick={handleExportToCsv}>
+                  <DownloadIcon />
+                  Export to CSV
+                </Button>
+              )}
+            </Flex>
           </Flex>
           <Grid className={s.expenseGrid}>
             <ExpenseHeaderCard />

@@ -9,11 +9,19 @@ import {
   Tooltip,
 } from '@radix-ui/themes';
 import type * as React from 'react';
-import { useCallback, useId, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { DateTimePicker } from '../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../common/DatePicker2/DateTimePickerMode';
 // import { TimeZoneSelect } from '../common/TimeZoneSelect/TimeZoneSelect';
 import { dangerToken } from '../common/ui';
+import { id as newExpenseId } from '../data/id';
 import { ALL_CURRENCIES } from '../data/intl/currencies';
 import { useBoundStore } from '../data/store';
 import type { TripSliceExpense, TripSliceTrip } from '../Trip/store/types';
@@ -21,16 +29,20 @@ import { formatCurrencyAmount } from './currency';
 import { dbAddExpense, dbUpdateExpense } from './db';
 import s from './ExpenseCard.module.css';
 import { ExpenseMode } from './ExpenseMode';
+import { ExpenseSplitFields } from './ExpenseSplitFields';
+import { type ExpenseLedger, previewSplit, toMinor } from './ledger';
 
 export function ExpenseInlineCardForm({
   trip,
   expense,
   expenseMode,
+  refundOf,
   setExpenseMode,
 }: {
   trip: TripSliceTrip;
   expense: TripSliceExpense | undefined;
   expenseMode: ExpenseMode;
+  refundOf?: TripSliceExpense;
   setExpenseMode: (mode: ExpenseMode) => void;
 }) {
   const tripLocalState = useBoundStore((state) =>
@@ -110,15 +122,49 @@ export function ExpenseInlineCardForm({
                   tripLocalState?.expenseCurrencyConversionFactor,
                   false,
                 )
-              : '1',
+              : '',
           amountInOriginCurrency: '',
 
           amountAbleToBeCalculated: false,
           currencyConversionFactorAbleToBeCalculated: false,
           amountInOriginCurrencyAbleToBeCalculated: false,
+          ...(refundOf
+            ? {
+                title: `Refund: ${refundOf.title}`,
+                currency: refundOf.currency,
+                amount: String(refundOf.amount),
+                currencyConversionFactor: '',
+                amountInOriginCurrency: '',
+              }
+            : {}),
         },
   );
   const [errorMessage, setErrorMessage] = useState('');
+  const currentUser = useBoundStore((state) => state.currentUser);
+  const selfId =
+    trip.expenseLedger?.participants.find((p) => p.userId === currentUser?.id)
+      ?.id ?? 'me';
+  const [ledger, setLedger] = useState<ExpenseLedger>(
+    refundOf?.ledger
+      ? { ...refundOf.ledger, kind: 'refund', refundOf: refundOf.id }
+      : (expense?.ledger ?? { paidBy: selfId, method: null, shares: [] }),
+  );
+  const [expectedRevision] = useState(expense?.ledgerRevision);
+  const submitting = useRef(false);
+  const [creationId, setCreationId] = useState(() => newExpenseId());
+  useEffect(() => {
+    if (selfId === 'me') return;
+    setLedger((previous) => ({
+      ...previous,
+      paidBy: previous.paidBy === 'me' ? selfId : previous.paidBy,
+      shares: previous.shares.map((r) =>
+        r.participantId === 'me' ? { ...r, participantId: selfId } : r,
+      ),
+      contributions: previous.contributions?.map((r) =>
+        r.participantId === 'me' ? { ...r, participantId: selfId } : r,
+      ),
+    }));
+  }, [selfId]);
   const [timeZoneIncurred] = useState<string>(
     expenseMode === ExpenseMode.Edit && expense && expense.timeZoneIncurred
       ? expense.timeZoneIncurred
@@ -207,170 +253,110 @@ export function ExpenseInlineCardForm({
   //   setTimeZoneIncurred(newTimeZone);
   // }, []);
 
-  const handleForm = useCallback(
-    (e: React.SubmitEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      setErrorMessage('');
-      setFormState((prev) => ({ ...prev, loading: true }));
-      const {
-        dateTimeIncurred,
-        title,
-        description,
-        currency,
-        amount,
-        currencyConversionFactor,
-        amountInOriginCurrency,
-      } = formState;
-
-      const amountFloat = Number.parseFloat(amount);
-      const currencyConversionFactorFloat = Number.parseFloat(
-        currencyConversionFactor,
-      );
-      const amountInOriginCurrencyFloat = Number.parseFloat(
-        amountInOriginCurrency,
-      );
-
-      if (!dateTimeIncurred || !title || !currency) {
-        setErrorMessage('Please fill in all required fields.');
-        setFormState((prev) => ({ ...prev, loading: false }));
-        return;
-      } else if (Number.isNaN(amountFloat)) {
-        setErrorMessage(`Please fill in a valid number for "Amount"`);
-        setFormState((prev) => ({ ...prev, loading: false }));
-        return;
-      } else if (Number.isNaN(amountInOriginCurrencyFloat)) {
-        setErrorMessage(
-          `Please fill in a valid number for "Amount in Origin Currency"`,
-        );
-        setFormState((prev) => ({ ...prev, loading: false }));
-        return;
-      } else if (Number.isNaN(currencyConversionFactorFloat)) {
-        setErrorMessage(
-          `Please fill in a valid number for "Currency Conversion Factor"`,
-        );
-        setFormState((prev) => ({ ...prev, loading: false }));
-        return;
-      } else if (currencyConversionFactorFloat <= 0) {
-        setErrorMessage(
-          `Please fill in a valid number greater than 0 for "Currency Conversion Factor"`,
-        );
-        setFormState((prev) => ({ ...prev, loading: false }));
-        return;
-      } else if (amountInOriginCurrencyFloat <= 0) {
-        setErrorMessage(
-          `Please fill in a valid number greater than 0 for "Amount in Origin Currency"`,
-        );
-        setFormState((prev) => ({ ...prev, loading: false }));
-        return;
-      } else if (amountFloat <= 0) {
-        setErrorMessage(
-          `Please fill in a valid number greater than 0 for "Amount"`,
-        );
-        setFormState((prev) => ({ ...prev, loading: false }));
-        return;
-      }
-
-      if (expenseMode === ExpenseMode.Edit && expense) {
-        dbUpdateExpense({
-          id: expense.id,
-          title,
-          description: description || '',
-          currency,
-          amount: amountFloat,
-          currencyConversionFactor: currencyConversionFactorFloat,
-          amountInOriginCurrency: amountInOriginCurrencyFloat,
-          timestampIncurred:
-            dateTimeIncurred.toZonedDateTime(timeZoneIncurred)
-              .epochMilliseconds,
-          timeZoneIncurred: timeZoneIncurred,
-        })
-          .then(() => {
-            publishToast({
-              root: {},
-              title: { children: `Updated expense: ${title}` },
-              close: {},
-            });
-            setTripLocalState(trip.id, {
-              expenseCurrency: currency,
-              expenseCurrencyConversionFactor: currencyConversionFactorFloat,
-              expenseTimestampIncurred:
-                dateTimeIncurred.toZonedDateTime(timeZoneIncurred)
-                  .epochMilliseconds,
-            });
-
-            setExpenseMode(ExpenseMode.View);
-            resetFormState();
-          })
-          .catch((error: unknown) => {
-            console.error(`Error updating expense "${title}"`, error);
-            publishToast({
-              root: {},
-              title: { children: `Error updating expense: ${title}` },
-              close: {},
-            });
-          });
-      } else {
-        const backupFormState = { ...formState };
-        resetFormState();
-        refTitle.current?.focus();
-
-        // Reset form state first, so that user can continue to add more expenses
-        dbAddExpense(
-          {
-            title,
-            description,
-            currency,
-            amount: amountFloat,
-            currencyConversionFactor: currencyConversionFactorFloat,
-            amountInOriginCurrency: amountInOriginCurrencyFloat,
-            timestampIncurred:
-              dateTimeIncurred.toZonedDateTime(timeZoneIncurred)
-                .epochMilliseconds,
-            timeZoneIncurred: timeZoneIncurred,
-          },
-          { tripId: trip.id },
+  const handleForm = async (e: React.SubmitEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (submitting.current) return;
+    setErrorMessage('');
+    try {
+      const { dateTimeIncurred, title, description, currency, amount } =
+        formState;
+      const amountFloat = Number(amount);
+      if (
+        !dateTimeIncurred ||
+        !title.trim() ||
+        !currency ||
+        !Number.isFinite(amountFloat) ||
+        amountFloat <= 0
+      )
+        throw new Error('Enter a title, date and positive amount.');
+      const includeLedger =
+        !expense || !!expense.ledger || ledger.method !== null;
+      if (includeLedger) previewSplit(amount, currency, ledger);
+      if (includeLedger && ledger.paidBy === 'multiple') {
+        const contributions = ledger.contributions ?? [];
+        if (
+          !contributions.length ||
+          contributions.some((row) => !/^\d+$/.test(row.amountMinor))
         )
-          .then(() => {
-            setTripLocalState(trip.id, {
-              expenseCurrency: currency,
-              expenseCurrencyConversionFactor: currencyConversionFactorFloat,
-              expenseTimestampIncurred:
-                dateTimeIncurred.toZonedDateTime(timeZoneIncurred)
-                  .epochMilliseconds,
-            });
-            publishToast({
-              root: {},
-              title: { children: `Added expense: ${title}` },
-              close: {},
-            });
-          })
-          .catch((error: unknown) => {
-            console.error(`Error adding expense "${title}"`, error);
-            publishToast({
-              root: {},
-              title: { children: `Error adding expense: ${title}` },
-              close: {},
-            });
-            // If error occurs, restore the form state to the previous state
-            setFormState(backupFormState);
-          });
+          throw new Error('Enter valid payer amounts.');
+        if (
+          contributions.reduce(
+            (sum, row) => sum + BigInt(row.amountMinor),
+            0n,
+          ) !== BigInt(toMinor(amount, currency))
+        )
+          throw new Error('Payer amounts must match the expense total.');
       }
-    },
-    [
-      formState,
-      timeZoneIncurred,
-      trip.id,
-      expenseMode,
-      expense,
-      publishToast,
-      resetFormState,
-      setExpenseMode,
-      setTripLocalState,
-    ],
-  );
-
+      const sameCurrency = currency === trip.originCurrency;
+      const factor = sameCurrency
+        ? 1
+        : formState.currencyConversionFactor.trim()
+          ? Number(formState.currencyConversionFactor)
+          : undefined;
+      const origin = sameCurrency
+        ? amountFloat
+        : formState.amountInOriginCurrency.trim()
+          ? Number(formState.amountInOriginCurrency)
+          : undefined;
+      if (
+        (factor === undefined) !== (origin === undefined) ||
+        (factor !== undefined && (!Number.isFinite(factor) || factor <= 0)) ||
+        (origin !== undefined && (!Number.isFinite(origin) || origin <= 0))
+      )
+        throw new Error('Enter both conversion values, or leave both empty.');
+      submitting.current = true;
+      setFormState((previous) => ({ ...previous, loading: true }));
+      const data = {
+        title,
+        description: description || '',
+        currency,
+        amount: amountFloat,
+        currencyConversionFactor: factor,
+        amountInOriginCurrency: origin,
+        timestampIncurred:
+          dateTimeIncurred.toZonedDateTime(timeZoneIncurred).epochMilliseconds,
+        timeZoneIncurred,
+        ...(includeLedger ? { ledger } : {}),
+      };
+      if (expenseMode === ExpenseMode.Edit && expense) {
+        await dbUpdateExpense({
+          ...data,
+          id: expense.id,
+          ledgerRevision: expectedRevision,
+        });
+      } else {
+        await dbAddExpense(data, { tripId: trip.id, expenseId: creationId });
+      }
+      setTripLocalState(trip.id, {
+        expenseCurrency: currency,
+        expenseCurrencyConversionFactor: factor,
+        expenseTimestampIncurred: data.timestampIncurred,
+      });
+      publishToast({
+        root: {},
+        title: {
+          children: `${expense ? 'Updated' : 'Added'} expense: ${title}`,
+        },
+        close: {},
+      });
+      setCreationId(newExpenseId());
+      setExpenseMode(ExpenseMode.View);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Unable to save expense.',
+      );
+    } finally {
+      submitting.current = false;
+      setFormState((previous) => ({ ...previous, loading: false }));
+    }
+  };
   const handleCurrencyChange = useCallback((value: string) => {
-    setFormState((prev) => ({ ...prev, currency: value }));
+    setFormState((prev) => ({
+      ...prev,
+      currency: value,
+      currencyConversionFactor: '',
+      amountInOriginCurrency: '',
+    }));
   }, []);
 
   const refTimestampIncurred = useRef<HTMLButtonElement>(null);
@@ -548,6 +534,11 @@ export function ExpenseInlineCardForm({
       onInput={handleFormInput}
       onSubmit={handleForm}
     >
+      {refundOf && (
+        <Text size="3" weight="bold">
+          Record refund
+        </Text>
+      )}
       <div className={s.formRow}>
         <Text color="gray" size="1" weight="medium" className={s.formLabel}>
           Date Incurred * (in {timeZoneIncurred} time zone)
@@ -644,7 +635,7 @@ export function ExpenseInlineCardForm({
 
       <div className={s.formRow}>
         <Text color="gray" size="1" weight="medium" className={s.formLabel}>
-          Currency Conversion Factor *{' '}
+          Currency Conversion Factor{' '}
           <Text size="2" color="gray">
             <Tooltip
               content={`How much does 1 unit of origin's currency${trip?.originCurrency ? ` (${trip.originCurrency})` : ''} is worth in the entry's currency ${formState.currency ? ` (${formState.currency})` : ''}. This is equal to "Amount" divided by "Amount in Origin's Currency".`}
@@ -664,7 +655,6 @@ export function ExpenseInlineCardForm({
               onChange={handleInputChange}
               onFocus={handleFocusCurrencyConversionFactor}
               disabled={formState.loading}
-              required
             />
           </Box>
           <Box asChild flexGrow="0">
@@ -692,7 +682,7 @@ export function ExpenseInlineCardForm({
       <div className={s.formRow}>
         <Text color="gray" size="1" weight="medium" className={s.formLabel}>
           Amount in Origin Currency
-          {trip?.originCurrency ? ` (${trip.originCurrency})` : ''} *
+          {trip?.originCurrency ? ` (${trip.originCurrency})` : ''}
         </Text>
         <Flex direction="row" gap="2">
           <Box asChild flexGrow="1">
@@ -704,7 +694,6 @@ export function ExpenseInlineCardForm({
               onChange={handleInputChange}
               disabled={formState.loading}
               onFocus={handleFocusAmountInOriginCurrency}
-              required
             />
           </Box>
           <Box asChild flexGrow="0">
@@ -728,6 +717,15 @@ export function ExpenseInlineCardForm({
           </Box>
         </Flex>
       </div>
+
+      <ExpenseSplitFields
+        trip={trip}
+        amount={formState.amount}
+        currency={formState.currency}
+        value={ledger}
+        onChange={setLedger}
+        disabled={formState.loading}
+      />
 
       {errorMessage && (
         <Text color={dangerToken} size="2" className={s.errorMessage}>

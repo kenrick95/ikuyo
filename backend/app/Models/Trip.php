@@ -49,6 +49,7 @@ class Trip extends Model
         return $this->hasMany(MacroPlan::class);
     }
 
+    /** @return HasMany<Expense, $this> */
     public function expenses(): HasMany
     {
         return $this->hasMany(Expense::class);

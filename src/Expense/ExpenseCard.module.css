@@ -217,3 +217,9 @@
     display: none;
   }
 }
+
+.paidBy {
+  grid-row: 3;
+  grid-column: 1 / span 2;
+  overflow-wrap: anywhere;
+}

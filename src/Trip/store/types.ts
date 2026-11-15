@@ -2,6 +2,7 @@ import type { DbAccommodationWithTrip } from '../../Accommodation/db';
 import type { DbActivity } from '../../Activity/db';
 import type { DbCommentGroupObjectType } from '../../Comment/db';
 import type { DbExpense } from '../../Expense/db';
+import type { ExpenseLedger, ExpenseLedgerData } from '../../Expense/ledger';
 import type { DbMacroplanWithTrip } from '../../Macroplan/db';
 import type { TripUserRole } from '../../User/TripUserRole';
 import type { DbTrip } from '../db';
@@ -17,6 +18,7 @@ export type TripSliceTrip = Omit<
   tripUserIds: string[];
   commentGroupIds: string[];
   expenseIds: string[];
+  expenseLedger?: ExpenseLedgerData | null;
   taskListIds: string[];
 
   currentUserRole: TripUserRole;
@@ -31,7 +33,7 @@ export type TripSliceTripMeta = {
 export type TripSliceTripLocalState = {
   /* For next entry of expense: save last used currency, currency conversion factor, and timestamp inccured, use it again */
   expenseCurrency: string;
-  expenseCurrencyConversionFactor: number;
+  expenseCurrencyConversionFactor: number | undefined;
   expenseTimestampIncurred: number;
 
   /* For next entry of activity: save last timestamp end, use it as new timestamp start */
@@ -207,7 +209,10 @@ export type DbTripQueryReturnType = {
     timeZoneStart?: string | null | undefined;
     timeZoneEnd?: string | null | undefined;
   }[];
+  expenseLedger?: ExpenseLedgerData | null;
   expense: {
+    ledger?: ExpenseLedger | null;
+    ledgerRevision?: number;
     id: string;
     title: string;
     currency: string;

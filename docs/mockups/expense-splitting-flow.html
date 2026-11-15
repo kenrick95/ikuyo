@@ -1,0 +1,155 @@
+<style>
+#ikuyo-expenses { --bg:light-dark(#fcfcfc,#111113); --panel:light-dark(#fff,#19191b); --ink:light-dark(#202024,#eeeef0); --muted:light-dark(#64646e,#a9a9b2); --line:light-dark(#e4e4e8,#34343b); --soft:light-dark(#f4f4f5,#242427); --red:light-dark(#ce2c31,#ff6467); --red-soft:light-dark(#fff0f0,#3b181b); --veil:light-dark(#20202455,#0009); position:relative; color:var(--ink); font:14px/1.5 system-ui,sans-serif; }
+#ikuyo-expenses * { box-sizing:border-box; }
+#ikuyo-expenses .app { background:var(--bg); border:1px solid var(--line); border-radius:10px; min-height:640px; }
+#ikuyo-expenses .top { padding:14px 100px 14px 20px; border-bottom:1px solid var(--line); display:flex; align-items:center; flex-wrap:wrap; gap:20px; }
+#ikuyo-expenses .brand { font-size:22px; font-weight:700; letter-spacing:-1px; color:var(--red); }
+#ikuyo-expenses .main { max-width:780px; margin:auto; padding:24px; }
+#ikuyo-expenses h2 { font-size:22px; margin:0; font-weight:600; letter-spacing:-.5px; }
+#ikuyo-expenses h3 { font-size:17px; margin:0; font-weight:600; }
+#ikuyo-expenses .muted { color:var(--muted); }
+#ikuyo-expenses .small { font-size:12px; }
+#ikuyo-expenses .row { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+#ikuyo-expenses .between { justify-content:space-between; }
+#ikuyo-expenses .grow { flex:1; min-width:0; overflow-wrap:anywhere; }
+#ikuyo-expenses .tabs { display:flex; flex-wrap:wrap; gap:20px; border-bottom:1px solid var(--line); padding:18px 0 10px; margin-bottom:22px; }
+#ikuyo-expenses .active { color:var(--red); font-weight:600; }
+#ikuyo-expenses .btn { font:inherit; display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:7px 12px; border:1px solid var(--line); background:var(--panel); color:var(--ink); border-radius:6px; cursor:pointer; }
+#ikuyo-expenses .primary { background:var(--red); border-color:var(--red); color:light-dark(#fff,#180708); font-weight:600; }
+#ikuyo-expenses .quiet { color:var(--red); border-color:transparent; background:none; }
+#ikuyo-expenses .btn:disabled { opacity:.45; cursor:default; }
+#ikuyo-expenses .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:16px 0; }
+#ikuyo-expenses .stat { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; }
+#ikuyo-expenses .stat strong { font-size:18px; font-weight:500; display:block; margin-top:5px; }
+#ikuyo-expenses .badge { display:inline-block; background:var(--soft); color:var(--muted); border-radius:4px; padding:1px 6px; font-size:12px; font-weight:400; }
+#ikuyo-expenses .currency { background:var(--red-soft); color:var(--red); }
+#ikuyo-expenses .card { border:1px solid var(--line); border-radius:8px; background:var(--panel); padding:16px; margin-bottom:10px; }
+#ikuyo-expenses .add { border:2px dashed var(--line); display:flex; justify-content:center; padding:20px; }
+#ikuyo-expenses .form { border-style:dashed; }
+#ikuyo-expenses .field { display:flex; flex-direction:column; gap:5px; margin-bottom:12px; font-weight:500; min-width:0; }
+#ikuyo-expenses input:not([type=checkbox]),#ikuyo-expenses select { font:inherit; width:100%; min-width:0; color:var(--ink); background:var(--panel); border:1px solid var(--line); padding:8px 10px; border-radius:5px; }
+#ikuyo-expenses input[type=checkbox] { width:17px; height:17px; accent-color:var(--red); flex:none; }
+#ikuyo-expenses .grid { display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+#ikuyo-expenses .split { margin-top:14px; padding-top:12px; border-top:1px solid var(--line); }
+#ikuyo-expenses .split-body { background:var(--soft); padding:12px; border-radius:6px; margin-top:12px; }
+#ikuyo-expenses .person { display:flex; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid var(--line); }
+#ikuyo-expenses .avatar { display:grid; place-items:center; flex:none; width:32px; height:32px; background:var(--soft); border-radius:50%; font-weight:500; }
+#ikuyo-expenses .number { font-variant-numeric:tabular-nums; white-space:nowrap; }
+#ikuyo-expenses .allocation-input { max-width:104px; }
+#ikuyo-expenses .actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px; margin-top:20px; }
+#ikuyo-expenses .error { color:var(--red); margin-top:8px; }
+#ikuyo-expenses .layer { position:absolute; inset:0; z-index:5; background:var(--veil); border-radius:10px; padding:32px 16px; }
+#ikuyo-expenses .modal { width:min(480px,100%); margin:0 auto; padding:22px; background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:0 12px 50px light-dark(#0002,#0007); }
+#ikuyo-expenses .modal-head { margin-bottom:18px; }
+#ikuyo-expenses .close { padding:5px 10px; }
+#ikuyo-expenses .proposal { padding:14px 0; border-bottom:1px solid var(--line); }
+#ikuyo-expenses .proposals { margin-top:20px; }
+#ikuyo-expenses details { margin-top:12px; }
+#ikuyo-expenses summary { cursor:pointer; }
+#ikuyo-expenses .entry { width:100%; border:0; background:none; color:var(--ink); text-align:left; padding:0; font:inherit; cursor:pointer; display:flex; justify-content:space-between; gap:12px; }
+#ikuyo-expenses .entry-info { padding-top:12px; margin-top:12px; border-top:1px solid var(--line); }
+#ikuyo-expenses .search { margin-bottom:6px; }
+#ikuyo-expenses .match { width:100%; text-align:left; justify-content:flex-start; margin-top:10px; }
+#ikuyo-expenses hr { border:0; border-top:1px solid var(--line); margin:18px 0; }
+#ikuyo-expenses .status { min-height:22px; margin-top:8px; }
+@media(max-width:540px) { #ikuyo-expenses .main { padding:16px; } #ikuyo-expenses .grid { grid-template-columns:1fr; } #ikuyo-expenses .stats { gap:6px; } #ikuyo-expenses .stat { padding:9px; } #ikuyo-expenses .stat strong { font-size:16px; } #ikuyo-expenses .modal { padding:16px; } #ikuyo-expenses .layer { padding:18px 10px; } #ikuyo-expenses .btn { min-height:44px; } #ikuyo-expenses input:not([type=checkbox]),#ikuyo-expenses select { font-size:16px; } }
+</style>
+<section id="ikuyo-expenses" aria-label="Ikuyo Expenses with splitting">
+  <div id="ik-page" class="app"></div>
+  <div id="ik-modal-root"></div>
+  <div id="ik-status" class="status small muted" role="status" aria-live="polite"></div>
+</section>
+<script>
+(() => {
+  const root=document.getElementById('ikuyo-expenses');
+  const page=root.querySelector('#ik-page'), modalRoot=root.querySelector('#ik-modal-root');
+  const directory=[{id:'m',name:'Morgan',username:'morgan',email:'morgan@example.com',account:true},{id:'j',name:'Jamie',username:'jamie',email:'jamie@example.com',account:true}];
+  const draft=()=>({title:'',description:'',date:'2026-11-15',currency:'SGD',amount:'',payer:'a',split:false,method:'equal',selected:['a','b','c'],values:{},paid:{},factor:'',origin:''});
+  const defaults=()=>({version:2,people:[{id:'a',name:'Alex',username:'alex',account:true},{id:'b',name:'Bea',account:false},{id:'c',name:'Chen',account:false}],expenses:[{id:'dinner',title:'Dinner at Lau Pa Sat',description:'',date:'2026-11-15',currency:'SGD',total:9000,method:'equal',contributions:[{id:'a',n:9000}],rows:[{id:'a',n:3000},{id:'b',n:3000},{id:'c',n:3000}]},{id:'coffee',title:'Coffee',description:'',date:'2026-11-15',currency:'SGD',total:1200,contributions:[{id:'a',n:1200}],rows:[]}],repayments:[],adding:false,draft:draft(),modal:null,picking:'manage',chosen:[],query:'',settlement:{sender:'b',recipient:'a',currency:'SGD',amount:'30.00',date:'2026-11-15',note:''},expanded:null});
+  let s=defaults(),returnFocus=null;
+  const restore=x=>{const v=x?.privateContent;if(v?.version===2&&Array.isArray(v.people)&&Array.isArray(v.expenses)&&v.draft&&v.settlement)s=v;};
+  restore(window.openai?.widgetState);
+  const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const exponent=c=>c==='JPY'?0:2;
+  const money=(n,c='SGD')=>`${c} ${(n/10**exponent(c)).toLocaleString('en-SG',{minimumFractionDigits:exponent(c),maximumFractionDigits:exponent(c)})}`;
+  const minor=(v,c)=>{const e=exponent(c),x=String(v).trim();if(!(e?/^\d+(\.\d{1,2})?$/:/^\d+$/).test(x))return NaN;const n=Math.round(Number(x)*10**e);return Number.isSafeInteger(n)&&n<=1e8?n:NaN;};
+  const person=id=>s.people.find(p=>p.id===id);
+  const name=id=>person(id)?.name||'Unknown';
+  const tag=p=>p.account?'':' <span class="badge">Guest</span>';
+  const label=id=>`${esc(name(id))}${id==='a'?' <span class="muted small">(you)</span>':''}${person(id)?tag(person(id)):''}`;
+  const btn=(text,act,primary=false,extra='')=>`<button type="button" class="btn ${primary?'primary':''}" data-act="${act}" ${extra}>${text}</button>`;
+  const options=id=>s.people.map(p=>`<option value="${esc(p.id)}" ${id===p.id?'selected':''}>${esc(p.name)}${p.id==='a'?' (you)':p.account?'':' · Guest'}</option>`).join('');
+  const currencyOptions=c=>['SGD','USD','JPY'].map(v=>`<option ${v===c?'selected':''}>${v}</option>`).join('');
+  const persist=()=>{if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{design:'Integrated Expenses tab',openDialog:s.modal,splitEnabled:s.draft.split,method:s.draft.method,participants:s.people.map(p=>({name:p.name,account:p.account})),expenses:s.expenses.length,settlements:s.repayments.length},privateContent:s}).catch(()=>{});};
+  const announce=text=>root.querySelector('#ik-status').textContent=text;
+  function calculate(){
+    const d=s.draft,total=minor(d.amount,d.currency),ids=s.people.map(p=>p.id).filter(id=>d.selected.includes(id)).sort();
+    if(!Number.isFinite(total)||total<=0)return{error:'Enter a valid amount.'};
+    if(!d.split)return{total,rows:[]};
+    if(!ids.length)return{error:'Choose at least one person.'};
+    if(d.method==='exact'){const rows=ids.map(id=>({id,n:minor(d.values[id]||'0',d.currency)}));if(rows.some(r=>!Number.isFinite(r.n)))return{error:'Enter valid shares.'};const sum=rows.reduce((n,r)=>n+r.n,0);return sum===total?{total,rows}:{error:`${money(Math.abs(total-sum),d.currency)} ${sum<total?'left to assign':'over the total'}.`};}
+    const weights=ids.map(id=>d.method==='equal'?1:Number(d.values[id]||0)),sum=weights.reduce((a,b)=>a+b,0);
+    if(weights.some(n=>!Number.isFinite(n)||n<0)||sum<=0)return{error:'Enter valid shares.'};
+    if(d.method==='percent'&&Math.abs(sum-100)>.000001)return{error:`Percentages total ${sum}%. Enter 100%.`};
+    const rows=ids.map((id,i)=>({id,n:Math.floor(total*weights[i]/sum),remainder:total*weights[i]%sum}));let left=total-rows.reduce((n,r)=>n+r.n,0);[...rows].sort((a,b)=>b.remainder-a.remainder||a.id.localeCompare(b.id)).forEach(r=>{if(left>0){r.n++;left--;}});return{total,rows};
+  }
+  function payerError(total){if(s.draft.payer!=='multiple')return'';const ns=s.people.map(p=>minor(s.draft.paid[p.id]||'0',s.draft.currency));return ns.some(n=>!Number.isFinite(n))||ns.reduce((a,b)=>a+b,0)!==total?'Payer amounts must match the total.':'';}
+  function balances(){const out={};const add=(c,id,n)=>{out[c]??={};out[c][id]=(out[c][id]||0)+n;};s.expenses.filter(e=>e.rows.length).forEach(e=>{e.contributions.forEach(r=>{add(e.currency,r.id,r.n);});e.rows.forEach(r=>{add(e.currency,r.id,-r.n);});});s.repayments.forEach(r=>{add(r.currency,r.sender,r.n);add(r.currency,r.recipient,-r.n);});return out;}
+  function suggestions(c){const net=balances()[c]||{},a=Object.entries(net).filter(([,n])=>n<0).map(([id,n])=>({id,n:-n})),b=Object.entries(net).filter(([,n])=>n>0).map(([id,n])=>({id,n}));const out=[];let i=0,j=0;while(i<a.length&&j<b.length){const n=Math.min(a[i].n,b[j].n);out.push({sender:a[i].id,recipient:b[j].id,currency:c,n});a[i].n-=n;b[j].n-=n;if(!a[i].n)i++;if(!b[j].n)j++;}return out;}
+  function updatePreview(){const target=root.querySelector('#ik-preview');if(!target)return;const r=calculate();target.innerHTML=r.error?`<div class="error" role="alert">${esc(r.error)}</div>`:r.rows.map(x=>`<div class="row between" style="padding:6px 0"><span>${label(x.id)}</span><span class="number">${money(x.n,s.draft.currency)}</span></div>`).join('');}
+  function expenseForm(){const d=s.draft;return `<form id="ik-expense-form" class="card form"><div class="row between" style="margin-bottom:14px"><h3>Add Expense</h3></div><label class="field">Date incurred<input type="date" data-draft="date" value="${d.date}" required></label><label class="field">Title<input data-draft="title" value="${esc(d.title)}" required maxlength="100"></label><label class="field">Description<input data-draft="description" value="${esc(d.description)}" maxlength="250"></label><div class="grid"><label class="field">Currency<select data-draft="currency">${currencyOptions(d.currency)}</select></label><label class="field">Amount<input data-draft="amount" inputmode="decimal" value="${esc(d.amount)}" required></label></div>${d.currency!=='SGD'?`<div class="grid"><label class="field">Currency conversion factor<input data-draft="factor" inputmode="decimal" value="${esc(d.factor)}"></label><label class="field">Amount in origin currency (SGD)<input data-draft="origin" inputmode="decimal" value="${esc(d.origin)}"></label></div>`:''}<label class="field">Paid by<select data-draft="payer">${options(d.payer)}<option value="multiple" ${d.payer==='multiple'?'selected':''}>Multiple people</option></select></label>${d.payer==='multiple'?s.people.map(p=>`<label class="person"><span class="grow">${label(p.id)}</span><input class="allocation-input" data-paid="${p.id}" inputmode="decimal" aria-label="${esc(p.name)} paid" value="${esc(d.paid[p.id]||'0')}"><span class="small">${d.currency}</span></label>`).join(''):''}<div class="split"><label class="row"><input type="checkbox" data-draft="split" ${d.split?'checked':''} aria-controls="ik-split-body" aria-expanded="${d.split}">Split expense</label>${d.split?`<div class="split-body" id="ik-split-body"><div class="row between" style="margin-bottom:12px"><span class="grow">${d.selected.map(id=>esc(name(id))).join(', ')||'No people selected'}</span>${btn('Choose people','choose')}</div><label class="field">Split<select data-draft="method">${[['equal','Equally'],['exact','By exact amounts'],['percent','By percentage'],['shares','By shares']].map(([v,l])=>`<option value="${v}" ${v===d.method?'selected':''}>${l}</option>`).join('')}</select></label>${d.method!=='equal'?d.selected.map(id=>`<label class="person"><span class="grow">${label(id)}</span><input class="allocation-input" data-share="${id}" inputmode="decimal" value="${esc(d.values[id]||'0')}" aria-label="${esc(name(id))} share"><span class="small">${d.method==='percent'?'%':d.method==='shares'?'shares':d.currency}</span></label>`).join(''):''}<div id="ik-preview" aria-live="polite"></div></div>`:''}</div><div id="ik-form-error" class="error" role="alert"></div><div class="row" style="margin-top:18px"><button type="submit" class="btn primary">Add</button>${btn('Back','cancel-form')}</div></form>`;}
+  function renderPage(){
+    const totals={};s.expenses.forEach(e=>{totals[e.currency]=(totals[e.currency]||0)+e.total;});
+    const today=s.expenses.filter(e=>e.date==='2026-11-15').reduce((n,e)=>n+(e.currency==='SGD'?e.total:0),0);
+    page.innerHTML=`<header class="top"><span class="brand">ikuyo</span><span class="muted">Your trips / Singapore weekend</span></header><main class="main"><h2>Singapore weekend</h2><div class="tabs"><span class="muted">Itinerary</span><span class="muted">Map</span><span class="active">Expenses</span></div><div class="row between"><h3>Expenses</h3><div class="row">${btn('People','people')}${btn('Balances','balances')}${btn('Export to CSV','export')}</div></div><div class="stats"><div class="stat"><span class="muted small">Total</span>${Object.entries(totals).map(([c,n])=>`<strong class="number">${money(n,c)}</strong>`).join('')}</div><div class="stat"><span class="muted small">Entries</span><strong>${s.expenses.length}</strong></div><div class="stat"><span class="muted small">Today · SGD</span><strong class="number">${money(today)}</strong></div></div>${s.adding?expenseForm():`<div class="card add">${btn('+ Add Expense','add')}</div>`}${[...s.expenses].reverse().map(e=>`<article class="card"><button type="button" class="entry" data-expand="${e.id}" aria-expanded="${s.expanded===e.id}"><span class="grow"><span class="small muted">${e.date}</span><br><strong>${esc(e.title)}</strong><br><span class="small muted">${esc(e.contributions.length>1?'Multiple payers':name(e.contributions[0].id))} paid${e.rows.length?` · ${e.rows.length} people`:''}</span></span><span class="number"><span class="badge currency">${e.currency}</span><br>${money(e.total,e.currency).replace(e.currency+' ','')}<span aria-hidden="true"> ${s.expanded===e.id?'⌄':'›'}</span></span></button>${s.expanded===e.id?`<div class="entry-info">${e.description?`<div>${esc(e.description)}</div>`:''}${e.rows.length?e.rows.map(r=>`<div class="row between" style="padding:5px 0"><span>${label(r.id)}</span><span class="number">${money(r.n,e.currency)}</span></div>`).join(''):'<span class="small muted">Not split</span>'}</div>`:''}</article>`).join('')}</main>`;
+    updatePreview();
+  }
+  function searchResults(){const q=s.query.trim(),lower=q.toLowerCase();let results='';
+    const existing=s.people.filter(p=>!q||`${p.name} ${p.username||''} ${p.email||''}`.toLowerCase().includes(lower.replace(/^@/,'')));
+    results+=existing.map(p=>`<label class="person">${s.picking==='split'?`<input type="checkbox" data-pick="${p.id}" ${s.chosen.includes(p.id)?'checked':''}>`:''}<span class="avatar">${esc(p.name[0])}</span><span class="grow">${label(p.id)}${p.account?`<span class="small muted"> @${esc(p.username)}</span>`:''}</span></label>`).join('');
+    if(q){const matches=directory.filter(p=>!s.people.some(x=>x.id===p.id)&&((q.startsWith('@')&&p.username.toLowerCase()===lower.slice(1))||p.email.toLowerCase()===lower));results+=matches.map(p=>`<button type="button" class="btn match" data-account="${p.id}"><span class="avatar">${esc(p.name[0])}</span><span class="grow">${esc(p.name)}<br><span class="small muted">@${esc(p.username)}</span></span><span>Add</span></button>`).join('');if(!q.includes('@')&&!q.includes('.')&&!s.people.some(p=>p.name.toLowerCase()===lower)){results+=`<button type="button" class="btn match" data-act="add-guest">+ Add “${esc(q)}” <span class="badge">Guest</span></button>`;}if(!results)results='<div class="small muted" style="padding:14px 0">No matching account</div>';}
+    const target=root.querySelector('#ik-people-results');if(target)target.innerHTML=results;
+  }
+  function settlementPreview(){const target=root.querySelector('#ik-settlement-preview');if(!target)return;const r=s.settlement,n=minor(r.amount,r.currency),net=balances()[r.currency]||{},owing=-(net[r.sender]||0);target.textContent=Number.isFinite(n)&&r.sender!==r.recipient&&n>0?(n>owing?`${esc(name(r.sender))} will be owed ${money(n-owing,r.currency)}.`:`${name(r.sender)} will owe ${money(owing-n,r.currency)}.`):'';}
+  function renderModal(){
+    page.inert=!!s.modal; if(!s.modal){modalRoot.innerHTML='';root.style.minHeight='';return;}
+    const head=title=>`<div class="row between modal-head"><h3 id="ik-modal-title">${title}</h3>${btn('×','close',false,'aria-label="Close dialog"')}</div>`;
+    let html='';
+    if(s.modal==='people')html=head(s.picking==='split'?'Split between':'People')+`<label class="field search">Add or find a person<input id="ik-person-search" placeholder="Name, Ikuyo email or @username" value="${esc(s.query)}" maxlength="60" autocomplete="off"></label><div id="ik-people-results"></div><div class="actions">${btn('Cancel','close')}${btn('Done','people-done',true)}</div>`;
+    if(s.modal==='balances'){
+      const all=balances(),count=s.expenses.filter(e=>e.rows.length).length;
+      html=head('Balances')+(count<s.expenses.length?`<div class="small muted">${count} of ${s.expenses.length} expenses split</div>`:'')+Object.entries(all).map(([c,net])=>`<h3 style="margin-top:18px">${c}</h3>${s.people.filter(p=>p.id in net).map(p=>`<div class="person"><span class="grow">${label(p.id)}</span><span class="number">${net[p.id]===0?'Settled':`${net[p.id]>0?'Owed':'Owes'} ${money(Math.abs(net[p.id]),c)}`}</span></div>`).join('')}<div class="proposals"><strong>Settle balances</strong>${suggestions(c).length?suggestions(c).map((r,i)=>`<div class="row between proposal"><span class="grow">${esc(name(r.sender))} → ${esc(name(r.recipient))}<br><span class="number">${money(r.n,c)}</span></span><button type="button" class="btn" data-settle="${c}:${i}">Settle</button></div>`).join(''):'<div class="muted small" style="padding-top:8px">All settled</div>'}</div>`).join('')+(!Object.keys(all).length?'<div class="muted">No split expenses</div>':'')+(s.repayments.length?`<details><summary>Settlements (${s.repayments.length})</summary>${s.repayments.map(r=>`<div class="proposal">${esc(name(r.sender))} → ${esc(name(r.recipient))}<span class="number"> · ${money(r.n,r.currency)}</span><div class="small muted">${r.date}${r.note?' · '+esc(r.note):''}</div></div>`).join('')}</details>`:'')+`<div class="actions">${btn('Record settlement','custom-settlement')}${btn('Done','close',true)}</div>`;
+    }
+    if(s.modal==='settlement'){const r=s.settlement;html=head('Settle balance')+`<form id="ik-settlement-form"><div class="grid"><label class="field">Paid by<select data-settlement="sender">${options(r.sender)}</select></label><label class="field">Paid to<select data-settlement="recipient">${options(r.recipient)}</select></label><label class="field">Amount<input data-settlement="amount" inputmode="decimal" value="${esc(r.amount)}" required></label><label class="field">Currency<select data-settlement="currency">${currencyOptions(r.currency)}</select></label></div><label class="field">Date<input data-settlement="date" type="date" value="${r.date}" required></label><label class="field">Note<input data-settlement="note" value="${esc(r.note)}" maxlength="100" placeholder="Optional"></label><div id="ik-settlement-preview" class="small muted" aria-live="polite"></div><div id="ik-settlement-error" class="error" role="alert"></div><div class="actions">${btn('Back','back-balances')}<button type="submit" class="btn primary">Record payment</button></div></form>`;}
+    modalRoot.innerHTML=`<div class="layer"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="ik-modal-title">${html}</section></div>`;
+    if(s.modal==='people')searchResults();if(s.modal==='settlement')settlementPreview();
+    if(globalThis.requestAnimationFrame)requestAnimationFrame(()=>{const m=root.querySelector('.modal');if(m)root.style.minHeight=(m.getBoundingClientRect().height+80)+'px';});
+  }
+  function render(){renderPage();renderModal();}
+  function focusDialog(){const el=root.querySelector('#ik-person-search')||root.querySelector('.modal button');el?.focus();}
+  function open(kind,picking='manage'){returnFocus=document.activeElement;s.modal=kind;s.picking=picking;s.chosen=[...s.draft.selected];s.query='';renderModal();focusDialog();persist();}
+  function close(){s.modal=null;renderModal();if(returnFocus?.isConnected)returnFocus.focus();persist();}
+  function error(text,settlement=false){root.querySelector(settlement?'#ik-settlement-error':'#ik-form-error').textContent=text;}
+  function addPerson(p){s.people.push(p);if(s.picking==='split')s.chosen.push(p.id);s.query='';renderModal();focusDialog();persist();}
+  root.addEventListener('input',e=>{const t=e.target;if(t.id==='ik-person-search'){s.query=t.value;searchResults();persist();}if(t.dataset.draft){s.draft[t.dataset.draft]=t.value;updatePreview();persist();}if(t.dataset.share){s.draft.values[t.dataset.share]=t.value;updatePreview();persist();}if(t.dataset.paid){s.draft.paid[t.dataset.paid]=t.value;persist();}if(t.dataset.settlement){s.settlement[t.dataset.settlement]=t.value;settlementPreview();persist();}});
+  root.addEventListener('change',e=>{const t=e.target;if(t.dataset.draft){const key=t.dataset.draft;s.draft[key]=t.type==='checkbox'?t.checked:t.value;if(key==='method')s.draft.values=Object.fromEntries(s.draft.selected.map((id,i)=>[id,t.value==='shares'?'1':t.value==='percent'?(i===0?'100':'0'):'0']));if(['split','payer','currency','method'].includes(key))renderPage();persist();}if(t.dataset.pick){const id=t.dataset.pick;s.chosen=t.checked?[...s.chosen,id]:s.chosen.filter(x=>x!==id);persist();}if(t.dataset.settlement){s.settlement[t.dataset.settlement]=t.value;settlementPreview();persist();}});
+  root.addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='ik-expense-form'){const d=s.draft,r=calculate();if(!d.title.trim()){error('Enter a title.');return;}if(!d.date){error('Choose a date.');return;}if(r.error){error(r.error);return;}const bad=payerError(r.total);if(bad){error(bad);return;}s.expenses.push({id:'expense-'+Date.now(),title:d.title,description:d.description,date:d.date,currency:d.currency,total:r.total,method:d.split?d.method:null,rows:r.rows,contributions:d.payer==='multiple'?s.people.map(p=>({id:p.id,n:minor(d.paid[p.id]||'0',d.currency)})):[{id:d.payer,n:r.total}],factor:d.factor,origin:d.origin});s.adding=false;s.draft=draft();render();announce('Expense added');persist();}
+    if(e.target.id==='ik-settlement-form'){const r=s.settlement,n=minor(r.amount,r.currency);if(r.sender===r.recipient){error('Choose two different people.',true);return;}if(!(n>0)){error('Enter a valid amount.',true);return;}if(!r.date){error('Choose a date.',true);return;}s.repayments.push({...r,n});s.modal='balances';renderModal();focusDialog();announce('Payment recorded');persist();}});
+  root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const a=b.dataset.act;
+    if(b.dataset.expand){s.expanded=s.expanded===b.dataset.expand?null:b.dataset.expand;renderPage();persist();return;}
+    if(b.dataset.account){const p=directory.find(x=>x.id===b.dataset.account);if(p&&!s.people.some(x=>x.id===p.id))addPerson({...p});return;}
+    if(b.dataset.settle){const [c,i]=b.dataset.settle.split(':'),r=suggestions(c)[Number(i)];s.settlement={...r,amount:(r.n/10**exponent(c)).toFixed(exponent(c)),date:'2026-11-15',note:''};s.modal='settlement';renderModal();focusDialog();persist();return;}
+    if(a==='add'){s.adding=true;renderPage();root.querySelector('[data-draft="title"]')?.focus();persist();}
+    if(a==='cancel-form'){s.adding=false;s.draft=draft();renderPage();persist();}
+    if(a==='people')open('people');if(a==='choose')open('people','split');if(a==='balances')open('balances');if(a==='close')close();
+    if(a==='people-done'){if(s.picking==='split')s.draft.selected=[...s.chosen];s.modal=null;render();root.querySelector('[data-act="choose"]')?.focus();persist();}
+    if(a==='add-guest'){const name=s.query.trim();if(name)addPerson({id:'guest-'+Date.now(),name,account:false});}
+    if(a==='back-balances'){s.modal='balances';renderModal();focusDialog();persist();}
+    if(a==='custom-settlement'){s.modal='settlement';renderModal();focusDialog();persist();}
+    if(a==='export'){const cell=v=>'"'+(/^[=+\-@\t\r]/.test(String(v))?'\u0027':'')+String(v).replace(/"/g,'""')+'"';const csv=[['Title','Date','Currency','Amount','Paid by','Split between'],...s.expenses.map(x=>[x.title,x.date,x.currency,(x.total/10**exponent(x.currency)).toFixed(exponent(x.currency)),x.contributions.filter(r=>r.n).map(r=>name(r.id)).join('; '),x.rows.map(r=>name(r.id)).join('; ')])].map(row=>row.map(cell).join(',')).join('\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv'})),link=document.createElement('a');link.href=url;link.download='singapore-expenses.csv';link.click();URL.revokeObjectURL(url);announce('CSV exported');}
+  });
+  root.addEventListener('keydown',e=>{if(!s.modal)return;if(e.key==='Escape'){e.preventDefault();close();return;}if(e.key==='Tab'){const els=[...modalRoot.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled)')],first=els[0],last=els[els.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}});
+  window.addEventListener('openai:set_globals',e=>{if(e.detail?.globals?.widgetState){restore(e.detail.globals.widgetState);render();}});
+  render();
+})();
+</script>

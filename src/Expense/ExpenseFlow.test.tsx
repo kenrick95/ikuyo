@@ -1,0 +1,226 @@
+import { Theme } from '@radix-ui/themes';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+import type { TripSliceTrip } from '../Trip/store/types';
+import { TripUserRole } from '../User/TripUserRole';
+import { ExpenseBalancesDialog } from './ExpenseBalancesDialog';
+import { ExpensePeopleDialog } from './ExpensePeopleDialog';
+import { ExpenseSplitFields } from './ExpenseSplitFields';
+import type { ExpenseLedger } from './ledger';
+
+const mocks = vi.hoisted(() => ({
+  post: vi.fn(),
+  patch: vi.fn(),
+  refresh: vi.fn(),
+  currentUser: { id: 'user-a', handle: 'alex' },
+}));
+vi.mock('../data/apiClient', () => ({
+  postMutation: mocks.post,
+  patchMutation: mocks.patch,
+  deleteMutation: vi.fn(),
+}));
+vi.mock('../data/store', () => ({
+  useBoundStore: (selector: (s: unknown) => unknown) =>
+    selector({ currentUser: mocks.currentUser, refreshTrip: mocks.refresh }),
+}));
+
+const trip = {
+  id: 'trip',
+  currency: 'SGD',
+  timeZone: 'Asia/Singapore',
+  currentUserRole: TripUserRole.Owner,
+  expenseLedger: {
+    participants: [
+      { id: 'a', name: 'Alex', handle: 'alex', userId: 'user-a', guest: false },
+      { id: 'b', name: 'Bea', handle: null, userId: null, guest: true },
+    ],
+    currencies: [
+      {
+        currency: 'SGD',
+        balances: [
+          { participantId: 'a', amountMinor: '3000' },
+          { participantId: 'b', amountMinor: '-3000' },
+        ],
+        suggestions: [{ senderId: 'b', recipientId: 'a', amountMinor: '3000' }],
+      },
+      {
+        currency: 'JPY',
+        balances: [
+          { participantId: 'a', amountMinor: '-3000' },
+          { participantId: 'b', amountMinor: '3000' },
+        ],
+        suggestions: [{ senderId: 'a', recipientId: 'b', amountMinor: '3000' }],
+      },
+    ],
+    payments: [],
+    splitCount: 2,
+    expenseCount: 3,
+  },
+} as unknown as TripSliceTrip;
+
+function Fields() {
+  const [ledger, setLedger] = useState<ExpenseLedger>({
+    paidBy: 'a',
+    method: null,
+    shares: [],
+  });
+  return (
+    <ExpenseSplitFields
+      trip={trip}
+      amount="60"
+      currency="SGD"
+      value={ledger}
+      onChange={setLedger}
+      disabled={false}
+    />
+  );
+}
+
+beforeEach(() => {
+  mocks.post.mockReset();
+  mocks.refresh.mockResolvedValue(undefined);
+  mocks.patch.mockResolvedValue({});
+});
+describe('integrated expense controls', () => {
+  test('splitting expands inline and the people picker cancels without changing the selection', async () => {
+    const user = userEvent.setup();
+    render(
+      <Theme>
+        <Fields />
+      </Theme>,
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Choose people' }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole('checkbox', { name: 'Split expense' }));
+    expect(screen.getAllByText('SGD 30.00')).toHaveLength(2);
+    await user.click(screen.getByRole('button', { name: 'Choose people' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('Guest')).toBeInTheDocument();
+    await user.click(
+      within(dialog).getByRole('checkbox', { name: 'Include Bea' }),
+    );
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(screen.getAllByText('SGD 30.00')).toHaveLength(2);
+  });
+  test('name-only people and exact account lookup use distinct actions', async () => {
+    const user = userEvent.setup();
+    mocks.post
+      .mockResolvedValueOnce({ id: 'd' })
+      .mockResolvedValueOnce({ user: { id: 'm', handle: 'morgan' } })
+      .mockResolvedValueOnce({ id: 'p-m' });
+    render(
+      <Theme>
+        <Fields />
+      </Theme>,
+    );
+    await user.click(screen.getByRole('checkbox', { name: 'Split expense' }));
+    await user.click(screen.getByRole('button', { name: 'Choose people' }));
+    const dialog = screen.getByRole('dialog'),
+      search = within(dialog).getByPlaceholderText(
+        'Name, Ikuyo email or @username',
+      );
+    await user.type(search, 'Dana');
+    await user.click(within(dialog).getByRole('button', { name: 'Add' }));
+    expect(mocks.post).toHaveBeenCalledWith(
+      '/api/trips/trip/expense-participants',
+      expect.objectContaining({ name: 'Dana' }),
+    );
+    await user.type(search, '@morgan');
+    await user.click(within(dialog).getByRole('button', { name: 'Find' }));
+    expect(mocks.post).toHaveBeenCalledWith(
+      '/api/trips/trip/expense-participants/lookup',
+      { identity: '@morgan' },
+    );
+    await user.click(within(dialog).getByRole('button', { name: 'Add' }));
+    expect(mocks.post).toHaveBeenLastCalledWith(
+      '/api/trips/trip/expense-participants',
+      expect.objectContaining({ userId: 'm' }),
+    );
+  });
+  test('currency groups settle independently, with a partial payment returning to balances', async () => {
+    const user = userEvent.setup();
+    mocks.post.mockResolvedValue({ id: 'payment' });
+    render(
+      <Theme>
+        <ExpenseBalancesDialog trip={trip} />
+      </Theme>,
+    );
+    await user.click(screen.getByRole('button', { name: 'Balances' }));
+    expect(screen.getByText('Owed SGD 30.00')).toBeInTheDocument();
+    expect(screen.getByText('Owes JPY 3,000')).toBeInTheDocument();
+    await user.click(screen.getAllByRole('button', { name: /^Settle$/ })[0]);
+    const amount = screen.getByRole('textbox', { name: 'Amount · SGD' });
+    await user.clear(amount);
+    await user.type(amount, '20');
+    await user.click(screen.getByRole('button', { name: 'Record payment' }));
+    expect(mocks.post).toHaveBeenCalledWith(
+      '/api/trips/trip/expense-payments',
+      expect.objectContaining({
+        senderId: 'b',
+        recipientId: 'a',
+        currency: 'SGD',
+        amountMinor: '2000',
+      }),
+    );
+    expect(
+      screen.getByRole('heading', { name: 'Balances' }),
+    ).toBeInTheDocument();
+  });
+});
+
+test('an explicit cross-currency settlement records both amounts without changing the debt currency', async () => {
+  HTMLElement.prototype.scrollIntoView = vi.fn();
+  HTMLElement.prototype.hasPointerCapture = vi.fn(() => false);
+  HTMLElement.prototype.setPointerCapture = vi.fn();
+  HTMLElement.prototype.releasePointerCapture = vi.fn();
+  const user = userEvent.setup();
+  mocks.post.mockResolvedValue({ id: 'p' });
+  render(
+    <Theme>
+      <ExpenseBalancesDialog trip={trip} />
+    </Theme>,
+  );
+  await user.click(screen.getByRole('button', { name: 'Balances' }));
+  await user.click(screen.getAllByRole('button', { name: /^Settle$/ })[1]);
+  await user.click(
+    screen.getByRole('checkbox', { name: 'Paid in another currency' }),
+  );
+  await user.click(screen.getAllByRole('combobox')[2]);
+  await user.click(screen.getByRole('option', { name: 'SGD' }));
+  await user.type(
+    screen.getByRole('textbox', { name: 'Amount paid · SGD' }),
+    '30',
+  );
+  await user.click(screen.getByRole('button', { name: 'Record payment' }));
+  expect(mocks.post).toHaveBeenCalledWith(
+    '/api/trips/trip/expense-payments',
+    expect.objectContaining({
+      currency: 'JPY',
+      amountMinor: '3000',
+      paidCurrency: 'SGD',
+      paidAmountMinor: '3000',
+    }),
+  );
+});
+
+test('participant management renames a label without changing its financial identity', async () => {
+  const user = userEvent.setup();
+  render(
+    <Theme>
+      <ExpensePeopleDialog trip={trip} />
+    </Theme>,
+  );
+  await user.click(screen.getByRole('button', { name: 'People' }));
+  await user.click(screen.getAllByRole('button', { name: 'Rename' })[1]);
+  const input = screen.getByRole('textbox', { name: 'Name for Bea' });
+  await user.clear(input);
+  await user.type(input, 'Beatrice');
+  await user.click(screen.getByRole('button', { name: 'Save' }));
+  expect(mocks.patch).toHaveBeenCalledWith(
+    '/api/trips/trip/expense-participants/b',
+    { name: 'Beatrice' },
+  );
+});

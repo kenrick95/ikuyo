@@ -44,6 +44,7 @@ export function deriveNewTripState(
       originRegion: trip.originRegion ?? '',
       originTimeZone: trip.originTimeZone ?? '',
       archivedAt: trip.archivedAt,
+      expenseLedger: trip.expenseLedger,
       timeZone: trip.timeZone,
       accommodationIds: trip.accommodation.map((a) => a.id),
       activityIds: trip.activity.map((a) => a.id),

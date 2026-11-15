@@ -10,6 +10,7 @@ use App\Models\Expense;
 use App\Models\MacroPlan;
 use App\Models\Task;
 use App\Models\Trip;
+use App\Services\ExpenseLedgerService;
 use App\Services\TripAccessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -366,6 +367,7 @@ class TripController extends Controller
             'accommodation' => $trip->accommodations,
             'macroplan' => $trip->macroPlans,
             'expense' => $showExpenses ? $trip->expenses : [],
+            'expenseLedger' => $showExpenses ? app(ExpenseLedgerService::class)->snapshot($trip, $admin || in_array($role, [0, 1], true)) : null,
             'taskList' => $showTasks ? $trip->taskLists->map(fn ($list): array => array_merge($list->toArray(), ['task' => $list->tasks->values()]))->values() : [],
             'tripUser' => $trip->users->map(function ($user) use ($isMemberOrOwner): array {
                 $userArr = ['id' => $user->id, 'handle' => $user->handle, 'activated' => (bool) $user->activated];
