@@ -8,7 +8,9 @@ import {
   Text,
   TextField,
 } from '@radix-ui/themes';
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
+import { DateTimePicker } from '../common/DatePicker2/DateTimePicker';
+import { DateTimePickerMode } from '../common/DatePicker2/DateTimePickerMode';
 import { deleteMutation, postMutation } from '../data/apiClient';
 import { id } from '../data/id';
 import { ALL_CURRENCIES } from '../data/intl/currencies';
@@ -33,6 +35,7 @@ type PaymentDraft = Omit<Settlement, 'amountMinor' | 'voided'> & {
 };
 export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
   const data = trip.expenseLedger;
+  const paymentCurrencyId = useId();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<PaymentDraft | null>(null);
   const [error, setError] = useState('');
@@ -152,7 +155,7 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
       }}
     >
       <Dialog.Trigger>
-        <Button variant="outline" size="2" type="button">
+        <Button variant="outline" color="gray" size="2" type="button">
           Balances
         </Button>
       </Dialog.Trigger>
@@ -235,8 +238,10 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
             </Text>
             {draft.crossCurrency && (
               <>
-                <Text as="label" size="2">
-                  Payment currency
+                <Flex direction="column" gap="1">
+                  <Text as="label" htmlFor={paymentCurrencyId} size="2">
+                    Payment currency
+                  </Text>
                   <Select.Root
                     value={draft.paidCurrency}
                     disabled={loading}
@@ -248,7 +253,10 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
                       })
                     }
                   >
-                    <Select.Trigger mt="1" />
+                    <Select.Trigger
+                      id={paymentCurrencyId}
+                      style={{ width: '100%' }}
+                    />
                     <Select.Content>
                       {ALL_CURRENCIES.filter((c) => c !== draft.currency).map(
                         (c) => (
@@ -259,7 +267,7 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
                       )}
                     </Select.Content>
                   </Select.Root>
-                </Text>
+                </Flex>
                 <Text as="label" size="2">
                   Amount paid · {draft.paidCurrency}
                   <TextField.Root
@@ -280,16 +288,24 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
                 )}
               </>
             )}
-            <Text as="label" size="2">
-              Date
-              <TextField.Root
-                type="date"
-                value={draft.date}
-                mt="1"
+            <Flex direction="column" gap="1">
+              <Text size="2">Date</Text>
+              <DateTimePicker
+                aria-label="Date"
+                mode={DateTimePickerMode.Date}
+                value={
+                  draft.date ? Temporal.PlainDate.from(draft.date) : undefined
+                }
                 disabled={loading}
-                onChange={(e) => setDraft({ ...draft, date: e.target.value })}
+                required
+                onChange={(date) =>
+                  setDraft({
+                    ...draft,
+                    date: date?.toString().slice(0, 10) ?? '',
+                  })
+                }
               />
-            </Text>
+            </Flex>
             <Text as="label" size="2">
               Note
               <TextField.Root

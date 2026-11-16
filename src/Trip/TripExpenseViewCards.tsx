@@ -66,7 +66,12 @@ export function TripExpenseViewCards() {
               )}
               {trip && <ExpenseBalancesDialog trip={trip} />}
               {expenses.length > 0 && (
-                <Button variant="outline" size="2" onClick={handleExportToCsv}>
+                <Button
+                  variant="outline"
+                  color="gray"
+                  size="2"
+                  onClick={handleExportToCsv}
+                >
                   <DownloadIcon />
                   Export to CSV
                 </Button>

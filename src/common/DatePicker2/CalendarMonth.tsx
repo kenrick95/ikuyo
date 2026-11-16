@@ -74,6 +74,24 @@ export function CalendarMonth({
       (_, i) => i,
     );
   }, [startOfMonth.daysInMonth]);
+  const weeks = useMemo(() => {
+    const cells: { key: string; day: number | null }[] = [
+      ...daysBeforeStartOfMonthArray.map((day) => ({
+        key: `before-${day}`,
+        day: null,
+      })),
+      ...daysInMonthArray.map((day) => ({
+        key: startOfMonth.with({ day: day + 1 }).toString(),
+        day,
+      })),
+    ];
+    while (cells.length % 7)
+      cells.push({ key: `after-${cells.length}`, day: null });
+    const rows = [];
+    for (let i = 0; i < cells.length; i += 7)
+      rows.push({ key: cells[i].key, days: cells.slice(i, i + 7) });
+    return rows;
+  }, [daysBeforeStartOfMonthArray, daysInMonthArray, startOfMonth]);
   const gridRef = useRef<HTMLDivElement>(null);
   // When the calendar is opened, focus is moved to the selected date
   const [isDayButtonFocused, setIsDayButtonFocused] = useState(true);
@@ -223,82 +241,99 @@ export function CalendarMonth({
   return (
     <Grid
       columns="repeat(7, 1fr)"
-      rows="repeat(7, 35px)"
+      rows={`repeat(${weeks.length + 2}, 35px)`}
       gap="1"
       ref={gridRef}
       className={clsx(s.calendarMonth, className)}
       role="grid"
       aria-label={`Calendar for ${startOfMonth}`}
     >
-      <Button
-        variant="surface"
-        color="gray"
-        aria-label="Previous month"
-        onClick={handlePreviousMonth}
-        className={s.prevMonthButton}
-        disabled={disabled || isPrevMonthDisabled}
-      >
-        <ArrowLeftIcon aria-hidden="true" />
-      </Button>
-      <Box gridColumnStart="2" gridColumnEnd="7" className={s.monthLabel}>
-        {formatMonthYear(startOfMonth)}
-      </Box>
-      <Button
-        variant="surface"
-        color="gray"
-        aria-label="Next month"
-        onClick={handleNextMonth}
-        className={s.nextMonthButton}
-        disabled={disabled || isNextMonthDisabled}
-      >
-        <ArrowRightIcon aria-hidden="true" />
-      </Button>
-      {dayOfWeekArray.map(({ abbr, full }) => (
-        <abbr
-          title={full}
-          aria-label={full}
-          key={abbr}
-          className={s.dayOfWeekLabel}
-        >
-          {abbr}
-        </abbr>
-      ))}
-      {daysBeforeStartOfMonthArray.map((i) => (
-        <Box key={i} />
-      ))}
-      {daysInMonthArray.map((i) => {
-        const date = startOfMonth.with({ day: i + 1 });
-        const isFocused = date.equals(focusedDate);
-        const isSelected = selectedDate ? date.equals(selectedDate) : false;
-        const isDisabled = disabled || !isDateInRange(date, min, max);
-        // A11Y: Mark today's date for screen readers
-        const isToday = date.equals(Temporal.Now.plainDateISO());
-
-        return (
-          // biome-ignore lint/a11y/useSemanticElements: this is a button on a grid
-          <button
-            type="button"
-            role="gridcell"
-            disabled={isDisabled}
-            key={date.toString()}
-            onKeyDown={handleKeyDown}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            onClick={handleClick}
-            onMouseOver={handleMouseOver}
-            tabIndex={isFocused ? 0 : -1}
-            data-date={date.toString()}
-            className={clsx(s.dayButton, {
-              [s.dayButtonSelected]: isSelected,
-            })}
-            aria-label={formatDate(date)}
-            aria-selected={isSelected}
-            aria-current={isToday ? 'date' : undefined}
+      <Box role="row" style={{ display: 'contents' }}>
+        <Box role="gridcell" style={{ display: 'contents' }}>
+          <Button
+            variant="surface"
+            color="gray"
+            aria-label="Previous month"
+            onClick={handlePreviousMonth}
+            className={s.prevMonthButton}
+            disabled={disabled || isPrevMonthDisabled}
           >
-            {date.day}
-          </button>
-        );
-      })}
+            <ArrowLeftIcon aria-hidden="true" />
+          </Button>
+        </Box>
+        <Box
+          role="gridcell"
+          aria-colspan={5}
+          gridColumnStart="2"
+          gridColumnEnd="7"
+          className={s.monthLabel}
+        >
+          {formatMonthYear(startOfMonth)}
+        </Box>
+        <Box role="gridcell" style={{ display: 'contents' }}>
+          <Button
+            variant="surface"
+            color="gray"
+            aria-label="Next month"
+            onClick={handleNextMonth}
+            className={s.nextMonthButton}
+            disabled={disabled || isNextMonthDisabled}
+          >
+            <ArrowRightIcon aria-hidden="true" />
+          </Button>
+        </Box>
+      </Box>
+      <Box role="row" style={{ display: 'contents' }}>
+        {dayOfWeekArray.map(({ abbr, full }) => (
+          // biome-ignore lint/a11y/useSemanticElements: column headers belong to this ARIA grid, not an HTML table.
+          <abbr
+            role="columnheader"
+            title={full}
+            aria-label={full}
+            key={abbr}
+            className={s.dayOfWeekLabel}
+          >
+            {abbr}
+          </abbr>
+        ))}
+      </Box>
+      {weeks.map((week) => (
+        <Box role="row" style={{ display: 'contents' }} key={week.key}>
+          {week.days.map((cell) => {
+            if (cell.day === null)
+              return <Box role="gridcell" key={cell.key} />;
+            const date = startOfMonth.with({ day: cell.day + 1 });
+            const isFocused = date.equals(focusedDate);
+            const isSelected = selectedDate ? date.equals(selectedDate) : false;
+            const isDisabled = disabled || !isDateInRange(date, min, max);
+            const isToday = date.equals(Temporal.Now.plainDateISO());
+            return (
+              // biome-ignore lint/a11y/useSemanticElements: grid cells retain native button keyboard activation.
+              <button
+                type="button"
+                role="gridcell"
+                disabled={isDisabled}
+                key={cell.key}
+                onKeyDown={handleKeyDown}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                onClick={handleClick}
+                onMouseOver={handleMouseOver}
+                tabIndex={isFocused ? 0 : -1}
+                data-date={date.toString()}
+                className={clsx(s.dayButton, {
+                  [s.dayButtonSelected]: isSelected,
+                })}
+                aria-label={formatDate(date)}
+                aria-selected={isSelected}
+                aria-current={isToday ? 'date' : undefined}
+              >
+                {date.day}
+              </button>
+            );
+          })}
+        </Box>
+      ))}
     </Grid>
   );
 }

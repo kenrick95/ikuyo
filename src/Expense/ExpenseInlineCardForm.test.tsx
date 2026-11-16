@@ -52,7 +52,7 @@ test('inline save defaults to the current payer and preserves the draft and ID a
   mocks.add
     .mockRejectedValueOnce(new Error('Connection failed'))
     .mockResolvedValueOnce({ id: 'new' });
-  const { container } = render(
+  render(
     <Theme>
       <ExpenseInlineCardForm
         trip={trip}
@@ -62,17 +62,13 @@ test('inline save defaults to the current payer and preserves the draft and ID a
       />
     </Theme>,
   );
-  await user.type(
-    container.querySelector('input[name="title"]') as HTMLInputElement,
-    'Coffee',
-  );
-  await user.type(
-    container.querySelector('input[name="amount"]') as HTMLInputElement,
-    '12',
-  );
+  await user.type(screen.getByRole('textbox', { name: 'Title *' }), 'Coffee');
+  await user.type(screen.getByRole('textbox', { name: 'Amount *' }), '12');
   await user.click(screen.getByRole('button', { name: 'Add' }));
   expect(screen.getByText('Connection failed')).toBeInTheDocument();
-  expect(container.querySelector('input[name="title"]')).toHaveValue('Coffee');
+  expect(screen.getByRole('textbox', { name: 'Title *' })).toHaveValue(
+    'Coffee',
+  );
   await user.click(screen.getByRole('button', { name: 'Add' }));
   expect(mocks.add.mock.calls[0][1].expenseId).toBe(
     mocks.add.mock.calls[1][1].expenseId,
@@ -154,7 +150,7 @@ test('a refund reuses the original split and records a positive amount with an e
       shares: [{ participantId: 'a' }],
     },
   } as unknown as TripSliceExpense;
-  const { container } = render(
+  render(
     <Theme>
       <ExpenseInlineCardForm
         trip={trip}
@@ -166,12 +162,8 @@ test('a refund reuses the original split and records a positive amount with an e
     </Theme>,
   );
   expect(screen.getByText('Record refund')).toBeInTheDocument();
-  expect(
-    screen.getByRole('checkbox', { name: 'Split expense' }),
-  ).toBeDisabled();
-  const amount = container.querySelector(
-    'input[name="amount"]',
-  ) as HTMLInputElement;
+  expect(screen.getByRole('switch', { name: 'Split expense' })).toBeDisabled();
+  const amount = screen.getByRole('textbox', { name: 'Amount *' });
   await user.clear(amount);
   await user.type(amount, '30');
   await user.click(screen.getByRole('button', { name: 'Add' }));

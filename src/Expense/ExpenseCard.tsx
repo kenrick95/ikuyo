@@ -145,7 +145,6 @@ function ExpenseCardView({
           className={s.collapsedHeader}
           type="button"
           aria-expanded={isExpanded}
-          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} expense details for ${expense.title}`}
         >
           <Text size="1" color="gray" className={s.date}>
             {trip

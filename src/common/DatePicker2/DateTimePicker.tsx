@@ -261,6 +261,14 @@ function DateTimePickerInner(
   }, []);
 
   const formattedValue = props.value?.toString() || '';
+  const visibleValue = props.value
+    ? props.mode === DateTimePickerMode.DateTime
+      ? toFormat('d LLLL yyyy HH:mm', props.value as Temporal.PlainDateTime)
+      : toFormat('d LLLL yyyy', props.value as Temporal.PlainDate)
+    : props.placeholder ||
+      (props.mode === DateTimePickerMode.DateTime
+        ? 'Select date & time'
+        : 'Select date');
 
   return (
     <>
@@ -286,27 +294,12 @@ function DateTimePickerInner(
               variant="outline"
               color="gray"
               className={s.triggerButton}
-              aria-label={
-                props['aria-label'] ||
-                (props.mode === DateTimePickerMode.DateTime
-                  ? 'Select date & time'
-                  : 'Select date')
-              }
+              aria-label={`${props['aria-label'] || (props.mode === DateTimePickerMode.DateTime ? 'Select date & time' : 'Select date')}: ${visibleValue}`}
               aria-describedby={props['aria-describedby']}
               aria-invalid={props['aria-invalid']}
               disabled={props.disabled}
             >
-              {props.value
-                ? props.mode === DateTimePickerMode.DateTime
-                  ? toFormat(
-                      'd LLLL yyyy HH:mm',
-                      props.value as Temporal.PlainDateTime,
-                    )
-                  : toFormat('d LLLL yyyy', props.value as Temporal.PlainDate)
-                : props.placeholder ||
-                  (props.mode === DateTimePickerMode.DateTime
-                    ? 'Select date & time'
-                    : 'Select date')}
+              {visibleValue}
               {state.isOpen ? (
                 <ChevronUpIcon aria-hidden="true" />
               ) : (

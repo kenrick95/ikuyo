@@ -1,0 +1,306 @@
+{
+  "fixture": "Fictional API responses; no real accounts, payments, or database writes.",
+  "browser": "156.0.8078.4",
+  "reports": [
+    {
+      "name": "expenses-overview",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 37,
+        "failures": [],
+        "skipped": ["Overview", "Timetable", "List", "Expenses"]
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-valid-attr-value",
+          "nodes": 2
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 26
+        }
+      ]
+    },
+    {
+      "name": "inline-split",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 60,
+        "failures": [],
+        "skipped": ["Overview", "Timetable", "List", "Expenses"]
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-valid-attr-value",
+          "nodes": 4
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 51
+        }
+      ]
+    },
+    {
+      "name": "people-picker",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 13,
+        "failures": [],
+        "skipped": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": 18
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 51
+        }
+      ]
+    },
+    {
+      "name": "balances",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 55,
+        "failures": [],
+        "skipped": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": 4
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 33
+        }
+      ]
+    },
+    {
+      "name": "partial-settlement",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 15,
+        "failures": [],
+        "skipped": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": 4
+        },
+        {
+          "id": "aria-valid-attr-value",
+          "nodes": 1
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 31
+        }
+      ]
+    },
+    {
+      "name": "settlement-calendar",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 31,
+        "failures": [],
+        "skipped": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": 4
+        },
+        {
+          "id": "aria-valid-attr-value",
+          "nodes": 1
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 31
+        }
+      ]
+    },
+    {
+      "name": "cross-currency-settlement",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 24,
+        "failures": [],
+        "skipped": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": 3
+        },
+        {
+          "id": "aria-valid-attr-value",
+          "nodes": 1
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 31
+        }
+      ]
+    },
+    {
+      "name": "refund",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 62,
+        "failures": [],
+        "skipped": ["Overview", "Timetable", "List", "Expenses"]
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-valid-attr-value",
+          "nodes": 4
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 51
+        }
+      ]
+    },
+    {
+      "name": "mobile-overview",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 41,
+        "failures": [],
+        "skipped": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-valid-attr-value",
+          "nodes": 2
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 27
+        }
+      ]
+    },
+    {
+      "name": "mobile-balances",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 64,
+        "failures": [],
+        "skipped": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": 3
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 27
+        }
+      ]
+    },
+    {
+      "name": "mobile-320-overview",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 41,
+        "failures": [],
+        "skipped": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-valid-attr-value",
+          "nodes": 2
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 27
+        }
+      ]
+    },
+    {
+      "name": "dark-overview",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 44,
+        "failures": [],
+        "skipped": ["Overview", "Timetable", "List", "Expenses"]
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-valid-attr-value",
+          "nodes": 2
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 31
+        }
+      ]
+    }
+  ],
+  "checks": [
+    "People picker traps Tab focus",
+    "Escape restores focus to Choose people and keeps the expense draft",
+    "Shared settlement date picker supports Enter, arrow-key selection and confirmation",
+    "Partial SGD payment updates the mock ledger without affecting JPY",
+    "Cross-currency settlement retains debt currency and actual payment currency",
+    "390px layout has no horizontal page overflow",
+    "Mobile balances dialog fits the viewport",
+    "320px layout has no horizontal page overflow"
+  ],
+  "unexpected": [],
+  "errors": []
+}

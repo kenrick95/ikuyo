@@ -150,7 +150,13 @@ export function ExpensePeopleDialog({
       }}
     >
       <Dialog.Trigger>
-        <Button type="button" variant="outline" size="2" disabled={disabled}>
+        <Button
+          type="button"
+          variant="outline"
+          color="gray"
+          size="2"
+          disabled={disabled}
+        >
           {selected ? 'Choose people' : 'People'}
         </Button>
       </Dialog.Trigger>

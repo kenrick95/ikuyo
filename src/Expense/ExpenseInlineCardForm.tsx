@@ -495,6 +495,7 @@ export function ExpenseInlineCardForm({
     return (
       <DateTimePicker
         name="timestampIncurred"
+        aria-label="Date incurred"
         mode={DateTimePickerMode.Date}
         value={formState.dateTimeIncurred}
         onChange={handleTimestampIncurredChange}
@@ -515,7 +516,7 @@ export function ExpenseInlineCardForm({
         form={idForm}
         disabled={formState.loading}
       >
-        <Select.Trigger />
+        <Select.Trigger id={`${idForm}-currency`} aria-label="Currency" />
         <Select.Content>
           {ALL_CURRENCIES.map((currency) => (
             <Select.Item key={currency} value={currency}>
@@ -561,10 +562,18 @@ export function ExpenseInlineCardForm({
       </div> */}
 
       <div className={s.formRow}>
-        <Text color="gray" size="1" weight="medium" className={s.formLabel}>
+        <Text
+          as="label"
+          htmlFor={`${idForm}-title`}
+          color="gray"
+          size="1"
+          weight="medium"
+          className={s.formLabel}
+        >
           Title *
         </Text>
         <TextField.Root
+          id={`${idForm}-title`}
           name="title"
           type="text"
           value={formState.title}
@@ -576,10 +585,18 @@ export function ExpenseInlineCardForm({
       </div>
 
       <div className={s.formRow}>
-        <Text color="gray" size="1" weight="medium" className={s.formLabel}>
+        <Text
+          as="label"
+          htmlFor={`${idForm}-description`}
+          color="gray"
+          size="1"
+          weight="medium"
+          className={s.formLabel}
+        >
           Description
         </Text>
         <TextField.Root
+          id={`${idForm}-description`}
           name="description"
           type="text"
           value={formState.description}
@@ -589,19 +606,34 @@ export function ExpenseInlineCardForm({
       </div>
 
       <div className={s.formRow}>
-        <Text color="gray" size="1" weight="medium" className={s.formLabel}>
+        <Text
+          as="label"
+          htmlFor={`${idForm}-currency`}
+          color="gray"
+          size="1"
+          weight="medium"
+          className={s.formLabel}
+        >
           Currency *
         </Text>
         {fieldSelectCurrency}
       </div>
 
       <div className={s.formRow}>
-        <Text color="gray" size="1" weight="medium" className={s.formLabel}>
+        <Text
+          as="label"
+          htmlFor={`${idForm}-amount`}
+          color="gray"
+          size="1"
+          weight="medium"
+          className={s.formLabel}
+        >
           Amount *
         </Text>
         <Flex direction="row" gap="2">
           <Box asChild flexGrow="1">
             <TextField.Root
+              id={`${idForm}-amount`}
               name="amount"
               type="text"
               inputMode="decimal"
@@ -633,90 +665,110 @@ export function ExpenseInlineCardForm({
         </Flex>
       </div>
 
-      <div className={s.formRow}>
-        <Text color="gray" size="1" weight="medium" className={s.formLabel}>
-          Currency Conversion Factor{' '}
-          <Text size="2" color="gray">
-            <Tooltip
-              content={`How much does 1 unit of origin's currency${trip?.originCurrency ? ` (${trip.originCurrency})` : ''} is worth in the entry's currency ${formState.currency ? ` (${formState.currency})` : ''}. This is equal to "Amount" divided by "Amount in Origin's Currency".`}
+      {formState.currency !== trip.originCurrency && (
+        <>
+          <div className={s.formRow}>
+            <Text
+              as="label"
+              htmlFor={`${idForm}-currencyConversionFactor`}
+              color="gray"
+              size="1"
+              weight="medium"
+              className={s.formLabel}
             >
-              <QuestionMarkCircledIcon className={s.tooltipIcon} />
-            </Tooltip>{' '}
-            :
-          </Text>
-        </Text>
-        <Flex direction="row" gap="2">
-          <Box asChild flexGrow="1">
-            <TextField.Root
-              name="currencyConversionFactor"
-              type="text"
-              inputMode="decimal"
-              value={formState.currencyConversionFactor}
-              onChange={handleInputChange}
-              onFocus={handleFocusCurrencyConversionFactor}
-              disabled={formState.loading}
-            />
-          </Box>
-          <Box asChild flexGrow="0">
-            <Tooltip
-              content={`Based on "Amount" and "Amount in Origin Currency", calculate "Currency Conversion Factor".`}
-            >
-              <Button
-                type="button"
-                variant="outline"
-                color="gray"
-                onClick={calculateCurrencyConversionFactor}
-                disabled={
-                  formState.loading ||
-                  !formState.currencyConversionFactorAbleToBeCalculated
-                }
-              >
-                <MagicWandIcon />
-                Calculate
-              </Button>
-            </Tooltip>
-          </Box>
-        </Flex>
-      </div>
+              Currency Conversion Factor{' '}
+              <Text size="2" color="gray">
+                <Tooltip
+                  content={`How much does 1 unit of origin's currency${trip?.originCurrency ? ` (${trip.originCurrency})` : ''} is worth in the entry's currency ${formState.currency ? ` (${formState.currency})` : ''}. This is equal to "Amount" divided by "Amount in Origin's Currency".`}
+                >
+                  <QuestionMarkCircledIcon className={s.tooltipIcon} />
+                </Tooltip>{' '}
+                :
+              </Text>
+            </Text>
+            <Flex direction="row" gap="2">
+              <Box asChild flexGrow="1">
+                <TextField.Root
+                  id={`${idForm}-currencyConversionFactor`}
+                  name="currencyConversionFactor"
+                  type="text"
+                  inputMode="decimal"
+                  value={formState.currencyConversionFactor}
+                  onChange={handleInputChange}
+                  onFocus={handleFocusCurrencyConversionFactor}
+                  disabled={formState.loading}
+                />
+              </Box>
+              <Box asChild flexGrow="0">
+                <Tooltip
+                  content={`Based on "Amount" and "Amount in Origin Currency", calculate "Currency Conversion Factor".`}
+                >
+                  <Button
+                    type="button"
+                    variant="outline"
+                    color="gray"
+                    onClick={calculateCurrencyConversionFactor}
+                    disabled={
+                      formState.loading ||
+                      !formState.currencyConversionFactorAbleToBeCalculated
+                    }
+                  >
+                    <MagicWandIcon />
+                    Calculate
+                  </Button>
+                </Tooltip>
+              </Box>
+            </Flex>
+          </div>
 
-      <div className={s.formRow}>
-        <Text color="gray" size="1" weight="medium" className={s.formLabel}>
-          Amount in Origin Currency
-          {trip?.originCurrency ? ` (${trip.originCurrency})` : ''}
-        </Text>
-        <Flex direction="row" gap="2">
-          <Box asChild flexGrow="1">
-            <TextField.Root
-              name="amountInOriginCurrency"
-              type="text"
-              inputMode="decimal"
-              value={formState.amountInOriginCurrency}
-              onChange={handleInputChange}
-              disabled={formState.loading}
-              onFocus={handleFocusAmountInOriginCurrency}
-            />
-          </Box>
-          <Box asChild flexGrow="0">
-            <Tooltip
-              content={`Based on "Amount" and "Currency Conversion Factor", calculate "Amount in Origin Currency".`}
+          <div className={s.formRow}>
+            <Text
+              as="label"
+              htmlFor={`${idForm}-amountInOriginCurrency`}
+              color="gray"
+              size="1"
+              weight="medium"
+              className={s.formLabel}
             >
-              <Button
-                type="button"
-                variant="outline"
-                color="gray"
-                onClick={calculateAmountInOriginCurrency}
-                disabled={
-                  formState.loading ||
-                  !formState.amountInOriginCurrencyAbleToBeCalculated
-                }
-              >
-                <MagicWandIcon />
-                Calculate
-              </Button>
-            </Tooltip>
-          </Box>
-        </Flex>
-      </div>
+              Amount in Origin Currency
+              {trip?.originCurrency ? ` (${trip.originCurrency})` : ''}
+            </Text>
+            <Flex direction="row" gap="2">
+              <Box asChild flexGrow="1">
+                <TextField.Root
+                  id={`${idForm}-amountInOriginCurrency`}
+                  name="amountInOriginCurrency"
+                  type="text"
+                  inputMode="decimal"
+                  value={formState.amountInOriginCurrency}
+                  onChange={handleInputChange}
+                  disabled={formState.loading}
+                  onFocus={handleFocusAmountInOriginCurrency}
+                />
+              </Box>
+              <Box asChild flexGrow="0">
+                <Tooltip
+                  content={`Based on "Amount" and "Currency Conversion Factor", calculate "Amount in Origin Currency".`}
+                >
+                  <Button
+                    type="button"
+                    variant="outline"
+                    color="gray"
+                    onClick={calculateAmountInOriginCurrency}
+                    disabled={
+                      formState.loading ||
+                      !formState.amountInOriginCurrencyAbleToBeCalculated
+                    }
+                  >
+                    <MagicWandIcon />
+                    Calculate
+                  </Button>
+                </Tooltip>
+              </Box>
+            </Flex>
+          </div>
+        </>
+      )}
 
       <ExpenseSplitFields
         trip={trip}
@@ -728,7 +780,12 @@ export function ExpenseInlineCardForm({
       />
 
       {errorMessage && (
-        <Text color={dangerToken} size="2" className={s.errorMessage}>
+        <Text
+          color={dangerToken}
+          size="2"
+          className={s.errorMessage}
+          role="alert"
+        >
           {errorMessage}
         </Text>
       )}

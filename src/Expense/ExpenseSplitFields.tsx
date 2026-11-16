@@ -1,5 +1,5 @@
-import { Box, Checkbox, Flex, Select, Text, TextField } from '@radix-ui/themes';
-import { useState } from 'react';
+import { Box, Flex, Select, Switch, Text, TextField } from '@radix-ui/themes';
+import { useId, useState } from 'react';
 import type { TripSliceTrip } from '../Trip/store/types';
 import {
   ExpensePeopleDialog,
@@ -31,6 +31,8 @@ export function ExpenseSplitFields({
   disabled: boolean;
 }) {
   const people = useExpensePeople(trip);
+  const methodId = useId();
+  const splitRegionId = useId();
   const [paidInputs, setPaidInputs] = useState<Record<string, string>>({});
   let preview: { participantId: string; amountMinor: string }[] = [],
     error = '';
@@ -116,7 +118,8 @@ export function ExpenseSplitFields({
         ))}
       <Text as="label" size="2">
         <Flex align="center" gap="2">
-          <Checkbox
+          <Switch
+            aria-controls={value.method ? splitRegionId : undefined}
             checked={value.method !== null}
             disabled={disabled || value.kind === 'refund'}
             onCheckedChange={(checked) =>
@@ -136,13 +139,14 @@ export function ExpenseSplitFields({
       </Text>
       {value.method && (
         <Box
+          id={splitRegionId}
           p="3"
           style={{
             background: 'var(--gray-2)',
             borderRadius: 'var(--radius-2)',
           }}
         >
-          <Flex align="center" justify="between" gap="2" wrap="wrap" mb="3">
+          <Flex align="center" gap="3" wrap="wrap" mb="3">
             <Text size="2">
               {value.shares
                 .map(
@@ -171,6 +175,15 @@ export function ExpenseSplitFields({
               }
             />
           </Flex>
+          <Text
+            as="label"
+            htmlFor={methodId}
+            size="2"
+            mb="1"
+            style={{ display: 'block' }}
+          >
+            Split method
+          </Text>
           <Select.Root
             value={value.method}
             disabled={disabled}
@@ -189,7 +202,7 @@ export function ExpenseSplitFields({
               })
             }
           >
-            <Select.Trigger aria-label="Split method" />
+            <Select.Trigger id={methodId} />
             <Select.Content>
               <Select.Item value="equal">Equally</Select.Item>
               <Select.Item value="exact">By exact amounts</Select.Item>

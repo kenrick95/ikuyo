@@ -93,13 +93,6 @@ export function ExpenseHeaderCard() {
           Total
         </Heading>
         <Amounts totals={summary.totals} />
-        {Object.keys(summary.totals).some((c) => c !== origin) && (
-          <Text as="p" size="1" color="gray">
-            {summary.missing
-              ? `Partial estimate: ${origin} ${formatCurrencyAmount(origin, summary.converted)} · ${summary.missing} missing conversion`
-              : `Estimate: ${origin} ${formatCurrencyAmount(origin, summary.converted)}`}
-          </Text>
-        )}
       </Card>
       <Card className={s.summaryItem}>
         <Heading

@@ -76,8 +76,8 @@ not transfer money.
 - `src/Expense/ExpenseHeaderCard.tsx` currently sums
   `amountInOriginCurrency || amount` under one origin-currency label. A foreign
   expense without conversion can therefore produce a misleading total. Correct
-  this when adding balances: show totals per currency and an explicitly partial
-  converted estimate when conversion data is missing. Zero must not fall through.
+  this when adding balances: show each native currency total separately.
+  The header does not show converted estimates or conversion-status prose.
 - Expense amounts are `DECIMAL(30,10)` in the database; `src/data/apiTrip.ts`
   converts them to JavaScript numbers. The schema intentionally accommodates
   unusually large and high-precision legacy data. Do not narrow these columns

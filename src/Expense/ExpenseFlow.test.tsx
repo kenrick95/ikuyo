@@ -94,7 +94,7 @@ describe('integrated expense controls', () => {
     expect(
       screen.queryByRole('button', { name: 'Choose people' }),
     ).not.toBeInTheDocument();
-    await user.click(screen.getByRole('checkbox', { name: 'Split expense' }));
+    await user.click(screen.getByRole('switch', { name: 'Split expense' }));
     expect(screen.getAllByText('SGD 30.00')).toHaveLength(2);
     await user.click(screen.getByRole('button', { name: 'Choose people' }));
     const dialog = screen.getByRole('dialog');
@@ -116,7 +116,7 @@ describe('integrated expense controls', () => {
         <Fields />
       </Theme>,
     );
-    await user.click(screen.getByRole('checkbox', { name: 'Split expense' }));
+    await user.click(screen.getByRole('switch', { name: 'Split expense' }));
     await user.click(screen.getByRole('button', { name: 'Choose people' }));
     const dialog = screen.getByRole('dialog'),
       search = within(dialog).getByPlaceholderText(

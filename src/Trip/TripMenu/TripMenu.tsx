@@ -71,7 +71,7 @@ export function TripMenu() {
     <Flex className={s.tripMenu} align="center">
       <DropdownMenu.Root>
         <DropdownMenu.Trigger className={s.hamburgerMenuTrigger}>
-          <Button variant="outline">
+          <Button variant="outline" aria-label="Actions">
             <HamburgerMenuIcon />
             <span className={s.actionsTitle}>Actions</span>
             <DropdownMenu.TriggerIcon />
