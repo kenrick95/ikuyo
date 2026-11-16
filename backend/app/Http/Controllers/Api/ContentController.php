@@ -166,6 +166,7 @@ class ContentController extends Controller
         $this->deleteEntityDescGraph($record);
         if ($record instanceof Expense) {
             abort_if($record->ledger && $request->integer('expectedRevision', -1) !== $record->ledger_revision, 409, 'Expense changed. Reload before deleting.');
+            app(ExpenseLedgerService::class)->assertDeletable($trip, $record);
             app(ExpenseLedgerService::class)->history($trip, $record->id, 'expense.delete', $record->toArray(), null, $request->user());
         }
         $record->delete();
@@ -252,6 +253,7 @@ class ContentController extends Controller
         $this->deleteEntityDescGraph($record);
         if ($record instanceof Expense) {
             abort_if($record->ledger && $request->integer('expectedRevision', -1) !== $record->ledger_revision, 409, 'Expense changed. Reload before deleting.');
+            app(ExpenseLedgerService::class)->assertDeletable($trip, $record);
             app(ExpenseLedgerService::class)->history($trip, $record->id, 'expense.delete', $record->toArray(), null, $request->user());
         }
         $record->delete();

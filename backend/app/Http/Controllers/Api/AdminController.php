@@ -221,9 +221,12 @@ class AdminController extends Controller
 
     public function deleteContent(string $trip, string $entity, string $entityId): JsonResponse
     {
-        Trip::findOrFail($trip);
+        $parent = Trip::findOrFail($trip);
         $record = $this->contentQuery($trip, $entity)->whereKey($entityId)->firstOrFail();
-        DB::transaction(function () use ($record, $entity): void {
+        DB::transaction(function () use ($record, $entity, $parent): void {
+            if ($record instanceof Expense) {
+                app(ExpenseLedgerService::class)->assertDeletable($parent, $record);
+            }
             if ($record instanceof TaskList) {
                 foreach ($record->tasks as $task) {
                     $this->softDeleteTargetComments('tasks', (string) $task->getKey());

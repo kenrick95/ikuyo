@@ -64,6 +64,7 @@ function tripSnapshot(id: string): Record<string, unknown> {
     accommodationIds: t.accommodationIds,
     macroplanIds: t.macroplanIds,
     expenseIds: t.expenseIds,
+    expenseParticipants: t.expenseLedger?.participants ?? [],
     taskListIds: t.taskListIds,
     tripUserIds: t.tripUserIds,
     commentGroupIds: t.commentGroupIds,

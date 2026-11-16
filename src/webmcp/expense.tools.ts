@@ -6,6 +6,7 @@ import {
   deletionConfirmationSchema,
   requireDeletionConfirmation,
 } from './destructive';
+import { expenseLedgerSchema, parseExpenseLedger } from './expenseLedger';
 import { idempotencyKeySchema, runIdempotent } from './idempotency';
 import type { WebMCPTool } from './modelContext';
 import {
@@ -72,6 +73,7 @@ export function createExpenseTools(): WebMCPTool[] {
           idempotencyKey: idempotencyKeySchema(),
           title: str('Expense title.'),
           amount: num('Amount spent (numeric).'),
+          ledger: expenseLedgerSchema(),
           currency: str('ISO 4217 currency code (e.g. JPY).'),
           currencyConversionFactor: num(
             'Optional conversion factor from origin currency to expense currency. Provide together with amountInOriginCurrency.',
@@ -122,6 +124,7 @@ export function createExpenseTools(): WebMCPTool[] {
             Date.now(),
           currency,
           amount,
+          ledger: parseExpenseLedger(input.ledger, amount, currency, trip),
           ...conversion,
           timeZoneIncurred:
             asOptStr(input.timeZoneIncurred, 'timeZoneIncurred') ?? null,
@@ -157,6 +160,7 @@ export function createExpenseTools(): WebMCPTool[] {
                 idempotencyKey: idempotencyKeySchema(),
                 title: str('Expense title.'),
                 amount: num('Amount spent (numeric).'),
+                ledger: expenseLedgerSchema(),
                 currency: str('ISO 4217 currency code (e.g. JPY).'),
                 currencyConversionFactor: num(
                   'Optional conversion factor from origin currency to expense currency. Provide together with amountInOriginCurrency.',
@@ -218,6 +222,7 @@ export function createExpenseTools(): WebMCPTool[] {
             ),
           });
           asStr(merged.title, 'title');
+          parseExpenseLedger(merged.ledger, amount, currency, trip);
           toEpochMs(merged.timestampIncurred, 'timestampIncurred');
           return merged;
         });
@@ -264,6 +269,12 @@ export function createExpenseTools(): WebMCPTool[] {
                         ) ?? Date.now(),
                       currency,
                       amount,
+                      ledger: parseExpenseLedger(
+                        item.ledger,
+                        amount,
+                        currency,
+                        trip,
+                      ),
                       ...conversion,
                       timeZoneIncurred:
                         asOptStr(item.timeZoneIncurred, 'timeZoneIncurred') ??

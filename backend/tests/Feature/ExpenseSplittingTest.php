@@ -130,6 +130,59 @@ class ExpenseSplittingTest extends TestCase
         $this->postJson("/api/trips/$trip->id/expenses", $this->expense($a, $b, $c))->assertConflict();
     }
 
+    public function test_viewers_and_public_readers_receive_labels_without_linked_account_fields(): void
+    {
+        [$trip, $owner, $a, $b, $c] = $this->setupTrip();
+        DB::table('expense_participants')->where('id', $a)->update(['name' => 'Alex']);
+        $this->postJson("/api/trips/$trip->id/expenses", $this->expense($a, $b, $c))->assertCreated();
+        $trip->update(['sharing_level' => 2, 'public_show_expenses' => true, 'viewer_show_expenses' => true]);
+        $reader = User::create(['id' => (string) Str::uuid(), 'handle' => 'reader']);
+        $trip->users()->attach($reader->id, ['id' => (string) Str::uuid(), 'role' => 2, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
+        $person = fn ($response) => collect($response->assertOk()->json('expenseLedger.participants'))->firstWhere('id', $a);
+        $viewer = $person($this->actingAs($reader)->getJson("/api/trips/$trip->id"));
+        $this->assertSame('Alex', $viewer['name']);
+        $this->assertNull($viewer['userId']);
+        $this->assertNull($viewer['handle']);
+        $this->assertFalse($viewer['guest']);
+        $this->app['auth']->forgetGuards();
+        $public = $person($this->getJson("/api/trips/$trip->id"));
+        $this->assertNull($public['userId']);
+        $this->assertNull($public['handle']);
+        $trip->users()->updateExistingPivot($reader->id, ['role' => 1]);
+        $editor = $person($this->actingAs($reader)->getJson("/api/trips/$trip->id"));
+        $this->assertSame($owner->id, $editor['userId']);
+        $this->assertSame('alex', $editor['handle']);
+        $own = $person($this->actingAs($owner)->getJson("/api/trips/$trip->id"));
+        $this->assertSame('alex', $own['handle']);
+        $owner->delete();
+        $deleted = $person($this->actingAs($reader)->getJson("/api/trips/$trip->id"));
+        $this->assertNull($deleted['userId']);
+        $this->assertNull($deleted['handle']);
+        $this->assertTrue($deleted['guest']);
+    }
+
+    public function test_original_expenses_cannot_be_deleted_until_active_refunds_are_deleted(): void
+    {
+        [$trip, $user, $a, $b, $c] = $this->setupTrip();
+        $user->update(['role' => 'admin']);
+        $original = $this->expense($a, $b, $c);
+        $this->postJson("/api/trips/$trip->id/expenses", $original)->assertCreated();
+        $refund = $this->expense($a, $b, $c, 'SGD', '30');
+        $refund['ledger'] += ['kind' => 'refund', 'refundOf' => $original['id']];
+        $this->postJson("/api/trips/$trip->id/expenses", $refund)->assertCreated();
+        $before = $this->getJson("/api/trips/$trip->id")->json('expenseLedger');
+        $urls = ["/api/expenses/{$original['id']}?expectedRevision=1", "/api/trips/$trip->id/expenses/{$original['id']}?expectedRevision=1", "/api/admin/trips/$trip->id/content/expenses/{$original['id']}"];
+        foreach ($urls as $url) {
+            $this->deleteJson($url)->assertUnprocessable();
+            $this->assertNotSoftDeleted('expenses', ['id' => $original['id']]);
+            $this->assertSame($before, $this->getJson("/api/trips/$trip->id")->json('expenseLedger'));
+        }
+        $this->deleteJson("/api/expenses/{$refund['id']}?expectedRevision=1")->assertOk();
+        $this->deleteJson($urls[1])->assertOk();
+        $this->getJson("/api/trips/$trip->id")->assertJsonPath('expenseLedger.currencies', []);
+        $this->postJson("/api/admin/trips/$trip->id/content/expenses/{$refund['id']}/restore")->assertUnprocessable();
+    }
+
     public function test_hidden_expenses_do_not_expose_the_ledger_or_sync_events(): void
     {
         [$trip, , $a, $b, $c] = $this->setupTrip();

@@ -119,6 +119,11 @@ class ExpenseLedgerService
         $this->assertRefundsFit($trip, $expense);
     }
 
+    public function assertDeletable(Trip $trip, Expense $expense): void
+    {
+        abort_if($trip->expenses()->where('ledger->refundOf', $expense->id)->exists(), 422, 'Delete the refunds before deleting their original expense.');
+    }
+
     private function assertRefundsFit(Trip $trip, Expense $expense): void
     {
         // Corrections and restoration must preserve the ceiling for active refunds.
@@ -257,7 +262,7 @@ class ExpenseLedgerService
             ->get(['p.id', 'p.name', 'p.user_id', 'p.archived_at_ms', 'u.handle', 'u.deleted_at'])->map(fn ($p) => [
                 'id' => $p->id, 'name' => $p->name,
                 'userId' => $includeAccounts && $p->deleted_at === null ? $p->user_id : null,
-                'handle' => $p->deleted_at === null ? $p->handle : null,
+                'handle' => $includeAccounts && $p->deleted_at === null ? $p->handle : null,
                 'guest' => $p->user_id === null || $p->deleted_at !== null,
                 'archived' => $p->archived_at_ms !== null,
             ])->all();

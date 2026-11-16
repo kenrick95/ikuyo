@@ -85,10 +85,13 @@ export function ExpenseSplitFields({
               value={(() => {
                 const typed = paidInputs[`${currency}:${p.id}`];
                 if (typed !== undefined) return typed;
+                const contribution = value.contributions?.find(
+                  (r) => r.participantId === p.id,
+                );
+                if (contribution?.amountMinor === '') return '';
                 try {
                   return minorToDecimal(
-                    value.contributions?.find((r) => r.participantId === p.id)
-                      ?.amountMinor || '0',
+                    contribution?.amountMinor ?? '0',
                     currency,
                   );
                 } catch {

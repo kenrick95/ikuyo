@@ -168,6 +168,106 @@ test('returning to a currency shows the contributions that will be saved', async
   );
 });
 
+test.each([
+  ['SGD', 'JPY', '3', '7'],
+  ['JPY', 'SGD', '300', '700'],
+  ['SGD', 'KWD', '3000', '7000'],
+])(
+  'currency changes from %s to %s preserve decimal payer amounts',
+  async (from, to, alexMinor, beaMinor) => {
+    const user = userEvent.setup();
+    render(
+      <Theme>
+        <ExpenseInlineCardForm
+          trip={{ ...peopleTrip, currency: from }}
+          expense={undefined}
+          expenseMode={ExpenseMode.Add}
+          setExpenseMode={vi.fn()}
+        />
+      </Theme>,
+    );
+    await user.type(screen.getByRole('textbox', { name: 'Title *' }), 'Taxi');
+    await user.type(screen.getByRole('textbox', { name: 'Amount *' }), '10');
+    await user.click(screen.getByRole('combobox', { name: 'Paid by' }));
+    await user.click(screen.getByRole('option', { name: 'Multiple people' }));
+    for (const [name, amount] of [
+      ['Alex', '3'],
+      ['Bea', '7'],
+    ]) {
+      const input = screen.getByRole('textbox', {
+        name: `${name} paid in ${from}`,
+      });
+      await user.clear(input);
+      await user.type(input, amount);
+    }
+    await user.click(screen.getByRole('combobox', { name: 'Currency' }));
+    await user.click(screen.getByRole('option', { name: to }));
+    expect(
+      Number(
+        screen
+          .getByRole('textbox', { name: `Alex paid in ${to}` })
+          .getAttribute('value'),
+      ),
+    ).toBe(3);
+    expect(
+      Number(
+        screen
+          .getByRole('textbox', { name: `Bea paid in ${to}` })
+          .getAttribute('value'),
+      ),
+    ).toBe(7);
+    await user.click(screen.getByRole('button', { name: 'Add' }));
+    expect(mocks.add).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currency: to,
+        ledger: expect.objectContaining({
+          contributions: [
+            { participantId: 'a', amountMinor: alexMinor },
+            { participantId: 'b', amountMinor: beaMinor },
+          ],
+        }),
+      }),
+      expect.anything(),
+    );
+  },
+);
+
+test('currency changes require re-entry when payer precision cannot fit the new currency', async () => {
+  const user = userEvent.setup();
+  render(
+    <Theme>
+      <ExpenseInlineCardForm
+        trip={peopleTrip}
+        expense={undefined}
+        expenseMode={ExpenseMode.Add}
+        setExpenseMode={vi.fn()}
+      />
+    </Theme>,
+  );
+  await user.type(screen.getByRole('textbox', { name: 'Title *' }), 'Taxi');
+  await user.type(screen.getByRole('textbox', { name: 'Amount *' }), '10');
+  await user.click(screen.getByRole('combobox', { name: 'Paid by' }));
+  await user.click(screen.getByRole('option', { name: 'Multiple people' }));
+  for (const [name, amount] of [
+    ['Alex', '3.50'],
+    ['Bea', '6.50'],
+  ]) {
+    const input = screen.getByRole('textbox', { name: `${name} paid in SGD` });
+    await user.clear(input);
+    await user.type(input, amount);
+  }
+  await user.click(screen.getByRole('combobox', { name: 'Currency' }));
+  await user.click(screen.getByRole('option', { name: 'JPY' }));
+  expect(screen.getByRole('textbox', { name: 'Alex paid in JPY' })).toHaveValue(
+    '',
+  );
+  await user.click(screen.getByRole('button', { name: 'Add' }));
+  expect(mocks.add).not.toHaveBeenCalled();
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    'Enter valid payer amounts.',
+  );
+});
+
 test('single payer selection clears invalid hidden contributions and their input cache', async () => {
   const user = userEvent.setup();
   render(

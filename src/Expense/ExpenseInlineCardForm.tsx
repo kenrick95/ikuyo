@@ -30,7 +30,12 @@ import { dbAddExpense, dbUpdateExpense } from './db';
 import s from './ExpenseCard.module.css';
 import { ExpenseMode } from './ExpenseMode';
 import { ExpenseSplitFields } from './ExpenseSplitFields';
-import { type ExpenseLedger, previewSplit, toMinor } from './ledger';
+import {
+  type ExpenseLedger,
+  minorToDecimal,
+  previewSplit,
+  toMinor,
+} from './ledger';
 
 export function ExpenseInlineCardForm({
   trip,
@@ -351,14 +356,37 @@ export function ExpenseInlineCardForm({
       setFormState((previous) => ({ ...previous, loading: false }));
     }
   };
-  const handleCurrencyChange = useCallback((value: string) => {
-    setFormState((prev) => ({
-      ...prev,
-      currency: value,
-      currencyConversionFactor: '',
-      amountInOriginCurrency: '',
-    }));
-  }, []);
+  const handleCurrencyChange = useCallback(
+    (value: string) => {
+      setLedger((previous) => ({
+        ...previous,
+        allocations: undefined,
+        contributions: previous.contributions?.map((row) => {
+          try {
+            // Changing the unit preserves the entered decimal amount, without
+            // interpreting the previous currency's integer scale as the new one.
+            return {
+              ...row,
+              amountMinor: toMinor(
+                minorToDecimal(row.amountMinor, formState.currency),
+                value,
+              ),
+            };
+          } catch {
+            // Require a new amount if its precision cannot fit the new currency.
+            return { ...row, amountMinor: '' };
+          }
+        }),
+      }));
+      setFormState((prev) => ({
+        ...prev,
+        currency: value,
+        currencyConversionFactor: '',
+        amountInOriginCurrency: '',
+      }));
+    },
+    [formState.currency],
+  );
 
   const refTimestampIncurred = useRef<HTMLButtonElement>(null);
   const refTitle = useRef<HTMLInputElement>(null);
