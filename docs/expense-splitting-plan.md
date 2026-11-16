@@ -97,7 +97,7 @@ not transfer money.
 
 The Expenses tab remains the main screen. It keeps the totals, CSV export,
 inline Add Expense form, and expense cards. There is no setup wizard or separate
-People or Balances page. The mockup is `docs/mockups/expense-splitting-flow.html`.
+People or Balances page.
 
 ### People dialog
 
@@ -109,7 +109,7 @@ A plain name offers an explicit “Add [name]” action with a Guest label.
 An exact email or username can select an existing Ikuyo account. Existing trip
 members can also appear as suggestions. Account selection never grants access
 to the trip or sends an invitation. Account lookup needs rate limits and a
-privacy review before implementation. The mockup uses fictional local matches.
+privacy review before implementation.
 
 A participant without an account has a Guest badge. An account participant has
 a username. The current user has “(you).” There are no repeated explanations
