@@ -10,9 +10,11 @@ function escapeCsvField(value: string | number | null | undefined): string {
     return '';
   }
   const original = String(value);
-  const stringValue = /^\s*[=+\-@]|^[\t\r]/.test(original)
-    ? `'${original}`
-    : original;
+  const numeric = /^-?\d+(?:\.\d+)?$/.test(original);
+  const stringValue =
+    !numeric && /^\s*[=+\-@]|^[\t\r]/.test(original)
+      ? `'${original}`
+      : original;
   // If the value contains comma, quote, or newline, wrap in quotes and escape quotes
   if (
     stringValue.includes(',') ||

@@ -1,5 +1,5 @@
 import { Theme } from '@radix-ui/themes';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
@@ -82,6 +82,59 @@ beforeEach(() => {
   mocks.post.mockReset();
   mocks.refresh.mockResolvedValue(undefined);
   mocks.patch.mockResolvedValue({});
+});
+
+test('settlement actions stay disabled until a delayed authoritative refresh completes', async () => {
+  const user = userEvent.setup();
+  mocks.post.mockResolvedValue({ id: 'payment' });
+  let finish!: () => void;
+  mocks.refresh.mockReturnValue(
+    new Promise<void>((resolve) => {
+      finish = resolve;
+    }),
+  );
+  render(
+    <Theme>
+      <ExpenseBalancesDialog trip={trip} />
+    </Theme>,
+  );
+  await user.click(screen.getByRole('button', { name: 'Balances' }));
+  await user.click(screen.getAllByRole('button', { name: /^Settle$/ })[0]);
+  await user.click(screen.getByRole('button', { name: 'Record payment' }));
+  expect(mocks.refresh).toHaveBeenCalledWith('trip');
+  for (const button of screen.getAllByRole('button', { name: /^Settle$/ }))
+    expect(button).toBeDisabled();
+  expect(
+    screen.getByRole('button', { name: 'Record settlement' }),
+  ).toBeDisabled();
+  await user.click(screen.getAllByRole('button', { name: /^Settle$/ })[0]);
+  expect(mocks.post).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    finish();
+  });
+  expect(screen.getAllByRole('button', { name: /^Settle$/ })[0]).toBeEnabled();
+});
+
+test('a failed refresh keeps stale suggestions disabled and retries the read without another payment', async () => {
+  const user = userEvent.setup();
+  mocks.post.mockResolvedValue({ id: 'payment' });
+  mocks.refresh
+    .mockRejectedValueOnce(new Error('Offline'))
+    .mockResolvedValueOnce(undefined);
+  render(
+    <Theme>
+      <ExpenseBalancesDialog trip={trip} />
+    </Theme>,
+  );
+  await user.click(screen.getByRole('button', { name: 'Balances' }));
+  await user.click(screen.getAllByRole('button', { name: /^Settle$/ })[0]);
+  await user.click(screen.getByRole('button', { name: 'Record payment' }));
+  expect(screen.getByRole('alert')).toHaveTextContent('Offline');
+  expect(screen.getAllByRole('button', { name: /^Settle$/ })[0]).toBeDisabled();
+  await user.click(screen.getByRole('button', { name: 'Refresh balances' }));
+  expect(mocks.post).toHaveBeenCalledTimes(1);
+  expect(mocks.refresh).toHaveBeenCalledTimes(2);
+  expect(screen.getAllByRole('button', { name: /^Settle$/ })[0]).toBeEnabled();
 });
 describe('integrated expense controls', () => {
   test('splitting expands inline and the people picker cancels without changing the selection', async () => {

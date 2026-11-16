@@ -87,7 +87,7 @@ export function ExpenseInlineCardForm({
                   expense.currencyConversionFactor,
                   false,
                 )
-              : '1',
+              : '',
           amountInOriginCurrency:
             expense.amountInOriginCurrency != null
               ? formatCurrencyAmount(
@@ -150,6 +150,7 @@ export function ExpenseInlineCardForm({
       : (expense?.ledger ?? { paidBy: selfId, method: null, shares: [] }),
   );
   const [expectedRevision] = useState(expense?.ledgerRevision);
+  const [payerEdited, setPayerEdited] = useState(false);
   const submitting = useRef(false);
   const [creationId, setCreationId] = useState(() => newExpenseId());
   useEffect(() => {
@@ -270,7 +271,7 @@ export function ExpenseInlineCardForm({
       )
         throw new Error('Enter a title, date and positive amount.');
       const includeLedger =
-        !expense || !!expense.ledger || ledger.method !== null;
+        !expense || !!expense.ledger || ledger.method !== null || payerEdited;
       if (includeLedger) previewSplit(amount, currency, ledger);
       if (includeLedger && ledger.paidBy === 'multiple') {
         const contributions = ledger.contributions ?? [];
@@ -771,11 +772,20 @@ export function ExpenseInlineCardForm({
       )}
 
       <ExpenseSplitFields
+        key={formState.currency}
         trip={trip}
         amount={formState.amount}
         currency={formState.currency}
         value={ledger}
-        onChange={setLedger}
+        onChange={(next) => {
+          if (
+            next.paidBy !== ledger.paidBy ||
+            next.contributions !== ledger.contributions
+          ) {
+            setPayerEdited(true);
+          }
+          setLedger(next);
+        }}
         disabled={formState.loading}
       />
 

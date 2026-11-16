@@ -8,6 +8,7 @@ use App\Models\Activity;
 use App\Models\Trip;
 use App\Models\User;
 use App\Services\AccountDeletionService;
+use App\Services\ExpenseLedgerService;
 use Closure;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
@@ -197,6 +198,74 @@ class AccountDeletionConcurrencyTest extends TestCase
         } else {
             $this->assertSoftDeleted($target->getTable(), ['id' => (string) $target->id]);
         }
+    }
+
+    public function test_trip_read_blocks_financial_writes_until_all_snapshot_queries_finish(): void
+    {
+        $owner = $this->user();
+        $trip = $this->trip($owner);
+        $result = $this->race(
+            fn () => $this->write($owner, $trip, fn () => $this->financialRows($owner, $trip)),
+            function (Closure $wait) use ($trip, $owner) {
+                $waited = false;
+                DB::listen(function (QueryExecuted $query) use ($wait, &$waited) {
+                    if (! $waited && str_contains($query->sql, 'from `expense_participants`')) {
+                        $waited = true;
+                        $wait();
+                    }
+                });
+                $this->actingAs($owner)->getJson('/api/trips/' . $trip->id)->assertOk()
+                    ->assertJsonPath('expense', [])->assertJsonPath('expenseLedger.participants', [])
+                    ->assertJsonPath('expenseLedger.currencies', [])->assertJsonPath('expenseLedger.payments', []);
+                $this->assertTrue($waited);
+            },
+        );
+        $this->assertSame('ok', $result);
+        $this->assertFinancialSnapshot($owner, $trip);
+    }
+
+    public function test_trip_read_waiting_for_a_writer_sees_its_whole_committed_ledger(): void
+    {
+        $owner = $this->user();
+        $trip = $this->trip($owner);
+        $result = $this->race(
+            fn () => $this->assertFinancialSnapshot($owner, $trip),
+            fn (Closure $wait) => $this->write($owner, $trip, function () use ($owner, $trip, $wait) {
+                $this->financialRows($owner, $trip);
+                $wait();
+            }),
+        );
+        $this->assertSame('ok', $result);
+    }
+
+    private function financialRows(User $owner, Trip $trip): void
+    {
+        $service = app(ExpenseLedgerService::class);
+        $payer = $service->participant($trip, $owner, $owner->handle);
+        $guest = $service->participant($trip, null, 'Guest');
+        $request = new Request([
+            'id' => (string) Str::uuid(), 'title' => 'Dinner', 'currency' => 'SGD', 'amount' => '90', 'timestampIncurred' => 1,
+            'ledger' => ['paidBy' => $payer, 'method' => 'equal', 'shares' => [['participantId' => $guest]]],
+        ]);
+        $request->setUserResolver(fn () => $owner);
+        $service->write($request, $trip);
+        DB::table('expense_payments')->insert([
+            'id' => (string) Str::uuid(), 'trip_id' => $trip->id, 'sender_id' => $guest, 'recipient_id' => $payer,
+            'currency' => 'SGD', 'amount_minor' => 3000, 'paid_currency' => 'SGD', 'paid_amount_minor' => 3000,
+            'paid_on' => '2026-11-16', 'created_at_ms' => 1,
+        ]);
+    }
+
+    private function assertFinancialSnapshot(User $owner, Trip $trip): void
+    {
+        $response = $this->actingAs($owner)->getJson('/api/trips/' . $trip->id)->assertOk()
+            ->assertJsonCount(1, 'expense')->assertJsonCount(2, 'expenseLedger.participants')
+            ->assertJsonCount(1, 'expenseLedger.payments');
+        $ledger = $response->json('expenseLedger');
+        $ids = array_column($ledger['participants'], 'id');
+        $this->assertEqualsCanonicalizing($ids, array_column($ledger['currencies'][0]['balances'], 'participantId'));
+        $nets = array_column($ledger['currencies'][0]['balances'], 'amountMinor');
+        $this->assertEqualsCanonicalizing(['6000', '-6000'], $nets);
     }
 
     private function user(string $role = 'user'): User

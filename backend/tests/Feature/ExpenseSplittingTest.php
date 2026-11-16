@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\ExpenseLedgerService;
 use App\Services\ExpenseMoney;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -202,6 +203,106 @@ class ExpenseSplittingTest extends TestCase
         $trip->users()->attach($viewer->id, ['id' => (string) Str::uuid(), 'role' => 2, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
         $this->actingAs($viewer)->getJson("/api/trips/$trip->id/expense-history")->assertOk()->assertJsonPath('items', []);
         $this->patchJson("/api/trips/$trip->id/expense-participants/$b", ['archived' => true])->assertForbidden();
+    }
+
+    public function test_restoring_a_refund_rechecks_the_ceiling_and_original_compatibility(): void
+    {
+        [$trip, $user, $a, $b, $c] = $this->setupTrip();
+        $user->update(['role' => 'admin']);
+        $original = $this->expense($a, $b, $c);
+        $this->postJson("/api/trips/$trip->id/expenses", $original)->assertCreated();
+        $refund = $this->expense($a, $b, $c);
+        $refund['ledger'] += ['kind' => 'refund', 'refundOf' => $original['id']];
+        $this->postJson("/api/trips/$trip->id/expenses", $refund)->assertCreated();
+        $this->deleteJson("/api/expenses/{$refund['id']}?expectedRevision=1")->assertOk();
+        $replacement = [...$refund, 'id' => (string) Str::uuid()];
+        $this->postJson("/api/trips/$trip->id/expenses", $replacement)->assertCreated();
+        $restore = "/api/admin/trips/$trip->id/content/expenses/{$refund['id']}/restore";
+        $this->postJson($restore)->assertUnprocessable();
+        $this->assertSoftDeleted('expenses', ['id' => $refund['id']]);
+        $this->deleteJson("/api/expenses/{$replacement['id']}?expectedRevision=1")->assertOk();
+        $this->postJson($restore)->assertOk();
+        $this->assertNotSoftDeleted('expenses', ['id' => $refund['id']]);
+        $this->deleteJson("/api/expenses/{$refund['id']}?expectedRevision=1")->assertOk();
+        $this->putJson("/api/expenses/{$original['id']}", [...$original, 'currency' => 'USD', 'expectedRevision' => 1])->assertOk();
+        $this->postJson($restore)->assertUnprocessable();
+        $this->assertSoftDeleted('expenses', ['id' => $refund['id']]);
+        $this->deleteJson("/api/expenses/{$original['id']}?expectedRevision=2")->assertOk();
+        $this->postJson($restore)->assertUnprocessable();
+    }
+
+    public function test_trip_duplicates_preserve_refund_spending_without_debts(): void
+    {
+        [$trip, , $a, $b, $c] = $this->setupTrip();
+        $original = $this->expense($a, $b, $c);
+        $this->postJson("/api/trips/$trip->id/expenses", $original)->assertCreated();
+        $refund = $this->expense($a, $b, $c, 'SGD', '30');
+        $refund['ledger'] += ['kind' => 'refund', 'refundOf' => $original['id']];
+        $refund += ['amountInOriginCurrency' => '20', 'currencyConversionFactor' => '1.5'];
+        $this->postJson("/api/trips/$trip->id/expenses", $refund)->assertCreated();
+        $this->postJson("/api/trips/$trip->id/expense-payments", ['id' => (string) Str::uuid(), 'senderId' => $b, 'recipientId' => $a, 'currency' => 'SGD', 'amountMinor' => '1000', 'date' => '2026-11-15'])->assertCreated();
+        $copyId = $this->postJson("/api/trips/$trip->id/duplicate", ['title' => 'Copy', 'startDateMs' => 1, 'endDateMs' => 2, 'includeExpenses' => true])->assertCreated()->json('id');
+        $copy = $this->getJson("/api/trips/$copyId")->assertOk();
+        $this->assertEquals(60, array_sum(array_column($copy->json('expense'), 'amount')));
+        $this->assertDatabaseHas('expenses', ['trip_id' => $copyId, 'amount' => -30, 'amount_in_origin_currency' => -20, 'ledger' => null]);
+        $copy->assertJsonPath('expenseLedger.participants', [])->assertJsonPath('expenseLedger.payments', [])->assertJsonPath('expenseLedger.currencies', []);
+    }
+
+    public function test_creation_retry_accepts_resolved_self_aliases_but_rejects_changed_finances(): void
+    {
+        [$trip, , $a, $b, $c] = $this->setupTrip();
+        DB::table('expense_participants')->where('id', $a)->delete();
+        foreach (['me', 'multiple'] as $payer) {
+            $data = $this->expense('me', $b, $c);
+            $data['ledger']['paidBy'] = $payer;
+            if ($payer === 'multiple') {
+                $data['ledger']['contributions'] = [['participantId' => 'me', 'amountMinor' => '9000']];
+            }
+            $created = $this->postJson("/api/trips/$trip->id/expenses", $data)->assertCreated()->json('ledger');
+            $resolved = DB::table('expense_participants')->where('trip_id', $trip->id)->whereNotNull('user_id')->value('id');
+            $data['ledger']['paidBy'] = $payer === 'me' ? $resolved : $payer;
+            $data['ledger']['shares'][0]['participantId'] = $resolved;
+            if ($payer === 'multiple') {
+                $data['ledger']['contributions'][0]['participantId'] = $resolved;
+            }
+            $this->postJson("/api/trips/$trip->id/expenses", $data)->assertCreated()->assertJsonPath('ledger', $created);
+            $this->postJson("/api/trips/$trip->id/expenses", [...$data, 'amount' => '100'])->assertConflict();
+        }
+        $this->assertDatabaseCount('expenses', 2);
+    }
+
+    public function test_disabled_split_and_single_payer_ignore_unused_draft_rows(): void
+    {
+        [$trip, , $a, $b, $c] = $this->setupTrip();
+        $data = $this->expense($a, $b, $c, 'SGD', '200');
+        $data['ledger']['method'] = null;
+        $data['ledger']['shares'] = [['participantId' => 'foreign', 'value' => '200']];
+        $data['ledger']['contributions'] = [['participantId' => $b, 'amountMinor' => '']];
+        $this->postJson("/api/trips/$trip->id/expenses", $data)->assertCreated()
+            ->assertJsonPath('ledger.shares', [])->assertJsonPath('ledger.allocations', [])
+            ->assertJsonPath('ledger.contributions', [['participantId' => $a, 'amountMinor' => '20000']]);
+        $data['id'] = (string) Str::uuid();
+        $data['ledger']['paidBy'] = 'multiple';
+        $this->postJson("/api/trips/$trip->id/expenses", $data)->assertUnprocessable();
+        $data['ledger']['paidBy'] = $a;
+        $data['ledger']['method'] = 'exact';
+        $this->postJson("/api/trips/$trip->id/expenses", $data)->assertUnprocessable();
+    }
+
+    public function test_trip_and_ledger_reads_hold_the_trip_lock_in_one_transaction(): void
+    {
+        [$trip, , $a, $b, $c] = $this->setupTrip();
+        $this->postJson("/api/trips/$trip->id/expenses", $this->expense($a, $b, $c))->assertCreated();
+        $baseline = DB::transactionLevel();
+        $reads = [];
+        DB::listen(function ($query) use (&$reads, $baseline) {
+            if (str_starts_with(strtolower($query->sql), 'select') && preg_match('/(?:expenses|expense_participants|expense_payments)/', $query->sql)) {
+                $reads[] = $query->sql;
+                $this->assertGreaterThan($baseline, DB::transactionLevel(), 'All financial reads need a common transaction.');
+            }
+        });
+        $this->getJson("/api/trips/$trip->id")->assertOk()->assertJsonCount(1, 'expense');
+        $this->assertGreaterThanOrEqual(3, count($reads));
     }
 
     public function test_expense_deletion_rejects_stale_confirmation_and_retains_payment_history(): void

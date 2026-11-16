@@ -44,6 +44,171 @@ const trip = {
 beforeEach(() => {
   mocks.add.mockReset();
   mocks.update.mockReset();
+  HTMLElement.prototype.scrollIntoView = vi.fn();
+  HTMLElement.prototype.hasPointerCapture = vi.fn(() => false);
+  HTMLElement.prototype.setPointerCapture = vi.fn();
+  HTMLElement.prototype.releasePointerCapture = vi.fn();
+});
+
+const legacyExpense = {
+  id: 'legacy',
+  title: 'Coffee',
+  description: '',
+  amount: 10,
+  currency: 'USD',
+  timestampIncurred: 1,
+  ledgerRevision: 0,
+} as TripSliceExpense;
+const peopleTrip = {
+  ...trip,
+  expenseLedger: {
+    ...trip.expenseLedger,
+    participants: [
+      ...(trip.expenseLedger?.participants ?? []),
+      { id: 'b', name: 'Bea', userId: null, handle: null, guest: true },
+    ],
+  },
+} as TripSliceTrip;
+
+test('a foreign historical expense without conversion supports a title-only edit without adding a ledger', async () => {
+  const user = userEvent.setup();
+  render(
+    <Theme>
+      <ExpenseInlineCardForm
+        trip={trip}
+        expense={legacyExpense}
+        expenseMode={ExpenseMode.Edit}
+        setExpenseMode={vi.fn()}
+      />
+    </Theme>,
+  );
+  await user.type(
+    screen.getByRole('textbox', { name: 'Title *' }),
+    ' corrected',
+  );
+  await user.click(screen.getByRole('button', { name: 'Save' }));
+  expect(mocks.update).toHaveBeenCalledWith(
+    expect.objectContaining({
+      title: 'Coffee corrected',
+      currencyConversionFactor: undefined,
+      amountInOriginCurrency: undefined,
+    }),
+  );
+  expect(mocks.update.mock.calls[0][0]).not.toHaveProperty('ledger');
+});
+
+test('an explicit historical payer edit is saved when splitting stays off', async () => {
+  const user = userEvent.setup();
+  render(
+    <Theme>
+      <ExpenseInlineCardForm
+        trip={peopleTrip}
+        expense={legacyExpense}
+        expenseMode={ExpenseMode.Edit}
+        setExpenseMode={vi.fn()}
+      />
+    </Theme>,
+  );
+  await user.click(screen.getByRole('combobox', { name: 'Paid by' }));
+  await user.click(screen.getByRole('option', { name: 'Bea · Guest' }));
+  await user.click(screen.getByRole('button', { name: 'Save' }));
+  expect(mocks.update).toHaveBeenCalledWith(
+    expect.objectContaining({
+      ledger: expect.objectContaining({ paidBy: 'b', method: null }),
+    }),
+  );
+});
+
+test('returning to a currency shows the contributions that will be saved', async () => {
+  const user = userEvent.setup();
+  render(
+    <Theme>
+      <ExpenseInlineCardForm
+        trip={peopleTrip}
+        expense={undefined}
+        expenseMode={ExpenseMode.Add}
+        setExpenseMode={vi.fn()}
+      />
+    </Theme>,
+  );
+  await user.type(screen.getByRole('textbox', { name: 'Title *' }), 'Taxi');
+  await user.type(screen.getByRole('textbox', { name: 'Amount *' }), '10');
+  await user.click(screen.getByRole('combobox', { name: 'Paid by' }));
+  await user.click(screen.getByRole('option', { name: 'Multiple people' }));
+  const fill = async (name: string, value: string) => {
+    const input = screen.getByRole('textbox', { name });
+    await user.clear(input);
+    await user.type(input, value);
+  };
+  await fill('Alex paid in SGD', '3');
+  await fill('Bea paid in SGD', '7');
+  await user.click(screen.getByRole('combobox', { name: 'Currency' }));
+  await user.click(screen.getByRole('option', { name: 'USD' }));
+  await fill('Alex paid in USD', '6');
+  await fill('Bea paid in USD', '4');
+  await user.click(screen.getByRole('combobox', { name: 'Currency' }));
+  await user.click(screen.getByRole('option', { name: 'SGD' }));
+  expect(screen.getByRole('textbox', { name: 'Alex paid in SGD' })).toHaveValue(
+    '6.00',
+  );
+  expect(screen.getByRole('textbox', { name: 'Bea paid in SGD' })).toHaveValue(
+    '4.00',
+  );
+  await user.click(screen.getByRole('button', { name: 'Add' }));
+  expect(mocks.add).toHaveBeenCalledWith(
+    expect.objectContaining({
+      ledger: expect.objectContaining({
+        contributions: [
+          { participantId: 'a', amountMinor: '600' },
+          { participantId: 'b', amountMinor: '400' },
+        ],
+      }),
+    }),
+    expect.anything(),
+  );
+});
+
+test('single payer selection clears invalid hidden contributions and their input cache', async () => {
+  const user = userEvent.setup();
+  render(
+    <Theme>
+      <ExpenseInlineCardForm
+        trip={peopleTrip}
+        expense={legacyExpense}
+        expenseMode={ExpenseMode.Edit}
+        setExpenseMode={vi.fn()}
+      />
+    </Theme>,
+  );
+  const choosePayer = async (name: string) => {
+    await user.click(screen.getByRole('combobox', { name: 'Paid by' }));
+    await user.click(screen.getByRole('option', { name }));
+  };
+  await choosePayer('Multiple people');
+  await user.type(
+    screen.getByRole('textbox', { name: 'Alex paid in USD' }),
+    'invalid',
+  );
+  await choosePayer('Bea · Guest');
+  await choosePayer('Multiple people');
+  expect(screen.getByRole('textbox', { name: 'Alex paid in USD' })).toHaveValue(
+    '0.00',
+  );
+  await user.clear(screen.getByRole('textbox', { name: 'Alex paid in USD' }));
+  await user.type(
+    screen.getByRole('textbox', { name: 'Alex paid in USD' }),
+    '10',
+  );
+  await user.click(screen.getByRole('button', { name: 'Save' }));
+  expect(mocks.update).toHaveBeenCalledWith(
+    expect.objectContaining({
+      ledger: expect.objectContaining({
+        paidBy: 'multiple',
+        method: null,
+        contributions: [{ participantId: 'a', amountMinor: '1000' }],
+      }),
+    }),
+  );
 });
 
 test('inline save defaults to the current payer and preserves the draft and ID after a failed request', async () => {

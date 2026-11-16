@@ -51,7 +51,10 @@ export function ExpenseSplitFields({
         {value.kind === 'refund' ? 'Received by' : 'Paid by'}
         <Select.Root
           value={value.paidBy}
-          onValueChange={(paidBy) => patch({ paidBy })}
+          onValueChange={(paidBy) => {
+            setPaidInputs({});
+            patch({ paidBy, contributions: [] });
+          }}
           disabled={disabled}
         >
           <Select.Trigger style={{ width: '100%' }} mt="1" />

@@ -53,7 +53,23 @@ class ExpenseLedgerService
             $creating = ! $expense;
             if ($creating) {
                 $id = $validated['id'] ?? (string) Str::uuid();
-                $hash = hash('sha256', json_encode([$request->user()->id, $validated], JSON_THROW_ON_ERROR));
+                // The client can resolve `me` after a lost response and a sync.
+                // Use the same identity for both forms of a creation retry.
+                $fingerprint = $validated;
+                $selfId = DB::table('expense_participants')->where('trip_id', $trip->id)->where('user_id', $request->user()->id)->value('id');
+                if (isset($fingerprint['ledger'])) {
+                    if (($fingerprint['ledger']['paidBy'] ?? null) === $selfId) {
+                        $fingerprint['ledger']['paidBy'] = 'me';
+                    }
+                    foreach (['shares', 'contributions'] as $key) {
+                        foreach ($fingerprint['ledger'][$key] ?? [] as $i => $row) {
+                            if (($row['participantId'] ?? null) === $selfId) {
+                                $fingerprint['ledger'][$key][$i]['participantId'] = 'me';
+                            }
+                        }
+                    }
+                }
+                $hash = hash('sha256', json_encode([$request->user()->id, $fingerprint], JSON_THROW_ON_ERROR));
                 $existing = Expense::withTrashed()->whereKey($id)->first();
                 if ($existing) {
                     abort_unless(! $existing->trashed() && $existing->trip_id === $trip->id && $existing->creation_hash === $hash, 409, 'Expense ID already used with different details.');
@@ -81,22 +97,40 @@ class ExpenseLedgerService
             if ($hasLedger) {
                 $expense->ledger = $validated['ledger'] === null ? null : $this->validateLedger($request, $trip, $expense);
             }
-            // A correction cannot invalidate refunds already recorded against this charge.
-            $refunds = $trip->expenses()->where('ledger->refundOf', $expense->id)->get();
-            if ($refunds->isNotEmpty()) {
-                $refunded = 0;
-                foreach ($refunds as $refund) {
-                    abort_unless($expense->currency === $refund->currency && ($expense->ledger['kind'] ?? 'expense') === 'expense' && ($expense->ledger['method'] ?? null), 422, 'Keep the original currency and split while refunds exist.');
-                    $refunded += ExpenseMoney::minor((string) $refund->amount, $refund->currency);
-                }
-                abort_if($refunded > ExpenseMoney::minor((string) $expense->amount, $expense->currency), 422, 'Amount cannot be less than its recorded refunds.');
-            }
+            $this->assertRefundsFit($trip, $expense);
             $expense->ledger_revision = ((int) $expense->ledger_revision) + 1;
             $expense->save();
             $this->history($trip, $expense->id, 'expense.save', $before, $expense->toArray(), $request->user());
 
             return $expense->fresh();
         });
+    }
+
+    public function assertRestorable(Trip $trip, Expense $expense): void
+    {
+        if ($expense->ledger) {
+            if (($expense->ledger['kind'] ?? 'expense') === 'refund') {
+                abort_unless($trip->expenses()->whereKey($expense->ledger['refundOf'])->exists(), 422, 'Restore the original expense before restoring its refund.');
+            }
+            $request = new Request(['ledger' => $expense->ledger]);
+            $request->setUserResolver(fn () => request()->user());
+            $this->validateLedger($request, $trip, $expense);
+        }
+        $this->assertRefundsFit($trip, $expense);
+    }
+
+    private function assertRefundsFit(Trip $trip, Expense $expense): void
+    {
+        // Corrections and restoration must preserve the ceiling for active refunds.
+        $refunds = $trip->expenses()->where('ledger->refundOf', $expense->id)->get();
+        $refunded = 0;
+        foreach ($refunds as $refund) {
+            abort_unless($expense->currency === $refund->currency && ($expense->ledger['kind'] ?? 'expense') === 'expense' && ($expense->ledger['method'] ?? null), 422, 'Keep the original currency and split while refunds exist.');
+            $refunded += ExpenseMoney::minor((string) $refund->amount, $refund->currency);
+        }
+        if ($refunds->isNotEmpty()) {
+            abort_if($refunded > ExpenseMoney::minor((string) $expense->amount, $expense->currency), 422, 'Amount cannot be less than its recorded refunds.');
+        }
     }
 
     /** @return array<string, mixed> */
@@ -107,13 +141,23 @@ class ExpenseLedgerService
             'ledger.method' => ['nullable', 'in:equal,exact,percent,shares'],
             'ledger.kind' => ['sometimes', 'in:expense,refund'],
             'ledger.refundOf' => ['required_if:ledger.kind,refund', 'nullable', 'string', 'max:40'],
-            'ledger.shares' => ['required_with:ledger.method', 'array', 'max:100'],
-            'ledger.shares.*.participantId' => ['required', 'string', 'distinct'],
-            'ledger.shares.*.value' => ['sometimes', 'string', 'max:30'],
-            'ledger.contributions' => ['required_if:ledger.paidBy,multiple', 'array', 'min:1', 'max:100'],
-            'ledger.contributions.*.participantId' => ['required', 'string', 'distinct'],
-            'ledger.contributions.*.amountMinor' => ['required', 'string', 'regex:/^\d+$/D', 'max:13'],
+            ...($request->input('ledger.method') ? [
+                'ledger.shares' => ['required', 'array', 'max:100'],
+                'ledger.shares.*.participantId' => ['required', 'string', 'distinct'],
+                'ledger.shares.*.value' => ['sometimes', 'string', 'max:30'],
+            ] : []),
+            ...($request->input('ledger.paidBy') === 'multiple' ? [
+                'ledger.contributions' => ['required', 'array', 'min:1', 'max:100'],
+                'ledger.contributions.*.participantId' => ['required', 'string', 'distinct'],
+                'ledger.contributions.*.amountMinor' => ['required', 'string', 'regex:/^\d+$/D', 'max:13'],
+            ] : []),
         ])['ledger'];
+        if (! ($data['method'] ?? null)) {
+            $data['shares'] = [];
+        }
+        if ($data['paidBy'] !== 'multiple') {
+            unset($data['contributions']);
+        }
         $payer = $data['paidBy'];
         if ($payer === 'me') {
             $payer = $this->participant($trip, $request->user(), $request->user()->handle);
@@ -195,6 +239,18 @@ class ExpenseLedgerService
 
     /** @return array<string, mixed> */
     public function snapshot(Trip $trip, bool $includeAccounts = false): array
+    {
+        return DB::transaction(function () use ($trip, $includeAccounts): array {
+            // Writers take the trip's exclusive lock before changing any ledger
+            // rows. Keep it stable across participants, expenses and payments.
+            Trip::whereKey($trip->id)->sharedLock()->firstOrFail();
+
+            return $this->buildSnapshot($trip, $includeAccounts);
+        });
+    }
+
+    /** @return array<string, mixed> */
+    private function buildSnapshot(Trip $trip, bool $includeAccounts): array
     {
         $participants = DB::table('expense_participants as p')->leftJoin('users as u', 'p.user_id', '=', 'u.id')
             ->where('p.trip_id', $trip->id)->orderBy('p.created_at_ms')->orderBy('p.id')

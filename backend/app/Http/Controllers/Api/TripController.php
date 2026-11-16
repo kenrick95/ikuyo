@@ -249,7 +249,17 @@ class TripController extends Controller
             }
             if ($data['includeExpenses'] ?? false) {
                 foreach ($trip->expenses as $item) {
-                    $copy->expenses()->create($item->only(['amount', 'amount_in_origin_currency', 'currency', 'currency_conversion_factor', 'title', 'description', 'incurred_at_ms', 'timezone_incurred']));
+                    $row = $item->only(['amount', 'amount_in_origin_currency', 'currency', 'currency_conversion_factor', 'title', 'description', 'incurred_at_ms', 'timezone_incurred']);
+                    $row['id'] = (string) Str::uuid();
+                    // Duplicates are track-only. Preserve refund spending with
+                    // signed amounts without carrying old debts or identities.
+                    if (($item->ledger['kind'] ?? 'expense') === 'refund') {
+                        $row['amount'] = -$row['amount'];
+                        if ($row['amount_in_origin_currency'] !== null) {
+                            $row['amount_in_origin_currency'] = -$row['amount_in_origin_currency'];
+                        }
+                    }
+                    $copy->expenses()->create($row);
                 }
             }
             if ($data['includeTasks'] ?? false) {
@@ -268,6 +278,17 @@ class TripController extends Controller
     }
 
     public function show(Request $request, Trip $trip, TripAccessService $access): JsonResponse
+    {
+        return DB::transaction(function () use ($request, $trip, $access): JsonResponse {
+            // The trip lock covers the expense list and the derived ledger.
+            // All trip writers acquire its exclusive counterpart first.
+            $current = Trip::whereKey($trip->id)->sharedLock()->firstOrFail();
+
+            return $this->showSnapshot($request, $current, $access);
+        });
+    }
+
+    private function showSnapshot(Request $request, Trip $trip, TripAccessService $access): JsonResponse
     {
         $trip->load([
             'activities',

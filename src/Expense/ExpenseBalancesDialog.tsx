@@ -40,6 +40,7 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
   const [draft, setDraft] = useState<PaymentDraft | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [needsRefresh, setNeedsRefresh] = useState(false);
   const [voiding, setVoiding] = useState<string | null>(null);
   const submitting = useRef(false);
   const refreshTrip = useBoundStore((state) => state.refreshTrip);
@@ -52,6 +53,7 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
     row: { senderId: string; recipientId: string; amountMinor: string },
     custom = false,
   ) {
+    if (loading || needsRefresh || submitting.current) return;
     setError('');
     setVoiding(null);
     setDraft({
@@ -98,8 +100,10 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
           paidAmountMinor,
         },
       );
-      await refreshTrip(trip.id);
       setDraft(null);
+      setNeedsRefresh(true);
+      await refreshTrip(trip.id);
+      setNeedsRefresh(false);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Unable to record payment.',
@@ -118,10 +122,29 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
       await deleteMutation(
         `/api/trips/${encodeURIComponent(trip.id)}/expense-payments/${encodeURIComponent(payment)}`,
       );
-      await refreshTrip(trip.id);
       setVoiding(null);
+      setNeedsRefresh(true);
+      await refreshTrip(trip.id);
+      setNeedsRefresh(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to void payment.');
+    } finally {
+      submitting.current = false;
+      setLoading(false);
+    }
+  }
+  async function retryRefresh() {
+    if (submitting.current) return;
+    submitting.current = true;
+    setLoading(true);
+    setError('');
+    try {
+      await refreshTrip(trip.id);
+      setNeedsRefresh(false);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Unable to refresh balances.',
+      );
     } finally {
       submitting.current = false;
       setLoading(false);
@@ -379,6 +402,7 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
                           <Button
                             type="button"
                             variant="outline"
+                            disabled={loading || needsRefresh}
                             onClick={() => settle(group.currency, row)}
                           >
                             Settle
@@ -432,7 +456,7 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
                             <Button
                               type="button"
                               color="red"
-                              disabled={loading}
+                              disabled={loading || needsRefresh}
                               onClick={() => void voidPayment(payment.id)}
                             >
                               Confirm void
@@ -450,6 +474,7 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
                           <Button
                             type="button"
                             variant="ghost"
+                            disabled={loading || needsRefresh}
                             onClick={() => setVoiding(payment.id)}
                           >
                             Void
@@ -466,6 +491,17 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
           <Text as="p" color="red" size="2" mt="3" role="alert">
             {error}
           </Text>
+        )}
+        {needsRefresh && (
+          <Button
+            type="button"
+            variant="outline"
+            mt="3"
+            loading={loading}
+            onClick={() => void retryRefresh()}
+          >
+            Refresh balances
+          </Button>
         )}
         <Flex justify="end" gap="2" mt="5">
           {draft ? (
@@ -507,6 +543,7 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
                 <Button
                   type="button"
                   variant="outline"
+                  disabled={loading || needsRefresh}
                   onClick={() =>
                     settle(
                       data?.currencies[0]?.currency ?? trip.currency,

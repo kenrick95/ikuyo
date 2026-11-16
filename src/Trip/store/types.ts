@@ -393,7 +393,7 @@ export interface TripSlice {
   /** return: unsubscribe function */
   subscribeTrip: (id: string) => () => void;
   /** Re-fetch a backend trip and merge changes into the store (no loading flash). */
-  refreshTrip: (id: string) => void;
+  refreshTrip: (id: string) => Promise<void>;
   /** Load a trip on demand and make it the current non-visual tool context. */
   loadTrip: (id: string) => Promise<TripSliceTrip>;
 
