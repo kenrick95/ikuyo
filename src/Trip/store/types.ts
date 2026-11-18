@@ -6,6 +6,7 @@ import type { ExpenseLedger, ExpenseLedgerData } from '../../Expense/ledger';
 import type { DbMacroplanWithTrip } from '../../Macroplan/db';
 import type { TripUserRole } from '../../User/TripUserRole';
 import type { DbTrip } from '../db';
+import type { TripPerson } from '../people/types';
 
 export type TripSliceTrip = Omit<
   DbTrip,
@@ -19,6 +20,7 @@ export type TripSliceTrip = Omit<
   commentGroupIds: string[];
   expenseIds: string[];
   expenseLedger?: ExpenseLedgerData | null;
+  people?: TripPerson[];
   taskListIds: string[];
 
   currentUserRole: TripUserRole;
@@ -106,6 +108,7 @@ export type TripSliceTripUser = {
   activated: boolean;
   handle: string;
   email: string;
+  accountType?: 'guest' | 'registered' | null;
 };
 
 export type TripSliceTask = {
@@ -210,6 +213,7 @@ export type DbTripQueryReturnType = {
     timeZoneEnd?: string | null | undefined;
   }[];
   expenseLedger?: ExpenseLedgerData | null;
+  people?: TripPerson[];
   expense: {
     ledger?: ExpenseLedger | null;
     ledgerRevision?: number;
@@ -252,6 +256,7 @@ export type DbTripQueryReturnType = {
     user: {
       id: string;
       email: string | undefined;
+      accountType?: 'guest' | 'registered' | null;
       activated: boolean;
       handle: string;
     }[];

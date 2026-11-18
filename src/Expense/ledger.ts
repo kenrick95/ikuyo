@@ -1,13 +1,5 @@
 import exponents from '../../shared/currency-minor-units.json';
 
-export type ExpenseParticipant = {
-  id: string;
-  name: string;
-  handle: string | null;
-  userId: string | null;
-  guest: boolean;
-  archived?: boolean;
-};
 export type SplitMethod = 'equal' | 'exact' | 'percent' | 'shares';
 export type ExpenseLedger = {
   kind?: 'expense' | 'refund';
@@ -31,7 +23,6 @@ export type Settlement = {
   voided: boolean;
 };
 export type ExpenseLedgerData = {
-  participants: ExpenseParticipant[];
   currencies: {
     currency: string;
     balances: { participantId: string; amountMinor: string }[];

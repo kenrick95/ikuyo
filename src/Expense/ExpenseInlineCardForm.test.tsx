@@ -35,11 +35,19 @@ const trip = {
   originCurrency: 'SGD',
   timeZone: 'Asia/Singapore',
   timestampStart: 1,
-  expenseLedger: {
-    participants: [
-      { id: 'a', name: 'Alex', userId: 'u', handle: 'alex', guest: false },
-    ],
-  },
+  people: [
+    {
+      id: 'a',
+      name: 'Alex',
+      userId: 'u',
+      handle: 'alex',
+      hasAccount: true,
+      accountType: 'registered',
+      isParticipant: true,
+      accessRole: null,
+    },
+  ],
+  expenseLedger: {},
 } as unknown as TripSliceTrip;
 beforeEach(() => {
   mocks.add.mockReset();
@@ -61,13 +69,19 @@ const legacyExpense = {
 } as TripSliceExpense;
 const peopleTrip = {
   ...trip,
-  expenseLedger: {
-    ...trip.expenseLedger,
-    participants: [
-      ...(trip.expenseLedger?.participants ?? []),
-      { id: 'b', name: 'Bea', userId: null, handle: null, guest: true },
-    ],
-  },
+  people: [
+    ...(trip.people ?? []),
+    {
+      id: 'b',
+      name: 'Bea',
+      userId: null,
+      handle: null,
+      hasAccount: false,
+      accountType: null,
+      isParticipant: true,
+      accessRole: null,
+    },
+  ],
 } as TripSliceTrip;
 
 test('a foreign historical expense without conversion supports a title-only edit without adding a ledger', async () => {
@@ -110,7 +124,7 @@ test('an explicit historical payer edit is saved when splitting stays off', asyn
     </Theme>,
   );
   await user.click(screen.getByRole('combobox', { name: 'Paid by' }));
-  await user.click(screen.getByRole('option', { name: 'Bea · Guest' }));
+  await user.click(screen.getByRole('option', { name: 'Bea · No account' }));
   await user.click(screen.getByRole('button', { name: 'Save' }));
   expect(mocks.update).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -289,7 +303,7 @@ test('single payer selection clears invalid hidden contributions and their input
     screen.getByRole('textbox', { name: 'Alex paid in USD' }),
     'invalid',
   );
-  await choosePayer('Bea · Guest');
+  await choosePayer('Bea · No account');
   await choosePayer('Multiple people');
   expect(screen.getByRole('textbox', { name: 'Alex paid in USD' })).toHaveValue(
     '0.00',

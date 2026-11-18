@@ -30,8 +30,10 @@ violation, text contrast failure, browser error, or unexpected API request occur
 
 The checks cover expense entry, the people picker, partial payments, an explicit
 cross-currency payment, refunds, the shared calendar, keyboard focus, 390px and
-320px layouts, and dark mode. The fixture adds a guest and records fictional
+320px layouts, and dark mode. They also cover trip people, separate Joining and
+access, and linking a name-only person to a guest account. The fixture adds a person and records fictional
 payments through the real UI. Every API response comes from the runner's memory.
+The fictional date is fixed so calendar checks stay repeatable.
 
 Axe cannot resolve all of Radix's CSS color expressions. A second browser check
 converts those colors through canvas, composites solid backgrounds, and checks

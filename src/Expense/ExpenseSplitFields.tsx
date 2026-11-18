@@ -1,11 +1,11 @@
 import { Box, Flex, Select, Switch, Text, TextField } from '@radix-ui/themes';
 import { useId, useState } from 'react';
-import type { TripSliceTrip } from '../Trip/store/types';
 import {
-  ExpensePeopleDialog,
-  ParticipantLabel,
-  useExpensePeople,
-} from './ExpensePeopleDialog';
+  PersonLabel,
+  TripPeopleDialog,
+  useTripPeople,
+} from '../Trip/people/TripPeopleDialog';
+import type { TripSliceTrip } from '../Trip/store/types';
 import {
   type ExpenseLedger,
   formatMinor,
@@ -30,7 +30,7 @@ export function ExpenseSplitFields({
   onChange: (ledger: ExpenseLedger) => void;
   disabled: boolean;
 }) {
-  const people = useExpensePeople(trip);
+  const people = useTripPeople(trip, true);
   const methodId = useId();
   const splitRegionId = useId();
   const [paidInputs, setPaidInputs] = useState<Record<string, string>>({});
@@ -66,7 +66,11 @@ export function ExpenseSplitFields({
                 disabled={p.archived && value.paidBy !== p.id}
               >
                 {p.name}
-                {p.id === 'me' ? ' (you)' : p.guest ? ' · Guest' : ''}
+                {p.id === 'me'
+                  ? ' (you)'
+                  : !p.hasAccount
+                    ? ' · No account'
+                    : ''}
               </Select.Item>
             ))}
             <Select.Item value="multiple">Multiple people</Select.Item>
@@ -76,7 +80,7 @@ export function ExpenseSplitFields({
       {value.paidBy === 'multiple' &&
         people.map((p) => (
           <Flex key={p.id} justify="between" align="center" gap="2">
-            <ParticipantLabel person={p} />
+            <PersonLabel person={p} />
             <TextField.Root
               aria-label={`${p.name} paid in ${currency}`}
               style={{ maxWidth: 140 }}
@@ -134,7 +138,7 @@ export function ExpenseSplitFields({
                 shares:
                   checked && !value.shares.length
                     ? people
-                        .filter((p) => !p.archived)
+                        .filter((p) => !p.archived && p.isParticipant)
                         .map((p) => ({ participantId: p.id }))
                     : value.shares,
               })
@@ -162,7 +166,7 @@ export function ExpenseSplitFields({
                 )
                 .join(', ') || 'No people selected'}
             </Text>
-            <ExpensePeopleDialog
+            <TripPeopleDialog
               trip={trip}
               selected={value.shares.map((r) => r.participantId)}
               disabled={disabled}

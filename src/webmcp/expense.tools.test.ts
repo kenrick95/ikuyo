@@ -2,7 +2,12 @@ import { beforeEach, expect, test, vi } from 'vitest';
 import { createExpenseTools } from './expense.tools';
 import { createTripTools } from './trip.tools';
 
-const mocks = vi.hoisted(() => ({ add: vi.fn(), state: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  add: vi.fn(),
+  state: vi.fn(),
+  share: vi.fn(),
+}));
+vi.mock('../Trip/db', () => ({ dbAddUserToTrip: mocks.share }));
 vi.mock('../data/store', () => ({ useBoundStore: { getState: mocks.state } }));
 vi.mock('../data/backendConfig', () => ({ assertWritable: vi.fn() }));
 vi.mock('../Expense/db', () => ({
@@ -22,12 +27,18 @@ beforeEach(() => {
         id: 'trip',
         currency: 'SGD',
         originCurrency: 'SGD',
-        expenseLedger: {
-          participants: [
-            { id: 'guest', name: 'Bea', guest: true },
-            { id: 'archived', name: 'Chen', archived: true },
-          ],
-        },
+        people: [
+          {
+            id: 'guest',
+            name: 'Bea',
+            hasAccount: false,
+            accountType: null,
+            isParticipant: true,
+            accessRole: null,
+          },
+          { id: 'archived', name: 'Chen', archived: true },
+        ],
+        expenseLedger: {},
       },
     },
   });
@@ -71,12 +82,39 @@ test('trip context exposes guest participant IDs for expense creation', () => {
   if (!get) throw new Error('Missing trip-get');
   expect(get.execute({ tripId: 'trip' })).toMatchObject({
     trip: {
-      expenseParticipants: expect.arrayContaining([
-        { id: 'guest', name: 'Bea', guest: true },
+      people: expect.arrayContaining([
+        {
+          id: 'guest',
+          name: 'Bea',
+          hasAccount: false,
+          accountType: null,
+          isParticipant: true,
+          accessRole: null,
+        },
       ]),
     },
   });
 });
+
+test.each([false, true])(
+  'WebMCP sharing keeps guest-account access and Joining independent: %s',
+  async (joining) => {
+    const share = createTripTools().find((t) => t.name === 'trip-add-member');
+    if (!share) throw new Error('Missing trip-add-member');
+    await share.execute({
+      tripId: 'trip',
+      email: '@Guest_account',
+      role: 'viewer',
+      ...(joining ? { addToParticipants: true } : {}),
+    });
+    expect(mocks.share).toHaveBeenLastCalledWith({
+      tripId: 'trip',
+      userEmail: '@guest_account',
+      userRole: 'viewer',
+      addToParticipants: joining,
+    });
+  },
+);
 
 test.each([
   ['equal', [{ participantId: 'me' }, { participantId: 'guest' }]],

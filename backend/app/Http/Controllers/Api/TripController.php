@@ -12,6 +12,7 @@ use App\Models\Task;
 use App\Models\Trip;
 use App\Services\ExpenseLedgerService;
 use App\Services\TripAccessService;
+use App\Services\TripPeopleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -145,6 +146,7 @@ class TripController extends Controller
                 'created_at_ms' => (int) round(microtime(true) * 1000),
                 'updated_at_ms' => (int) round(microtime(true) * 1000),
             ]);
+            app(TripPeopleService::class)->person($trip, $user, $user->handle);
 
             return $trip;
         });
@@ -232,6 +234,7 @@ class TripController extends Controller
                 'origin_timezone' => $trip->origin_timezone, 'sharing_level' => 0,
             ]);
             $copy->users()->attach($user->id, ['id' => (string) Str::uuid(), 'role' => 0, 'created_at_ms' => $now, 'updated_at_ms' => $now]);
+            app(TripPeopleService::class)->person($copy, $user, $user->handle);
             if ($data['includeActivities'] ?? false) {
                 foreach ($trip->activities as $item) {
                     $copy->activities()->create($this->copyActivity($item, $data['removeActivityDates'] ?? false, $trip, $data['startDateMs']));
@@ -388,13 +391,15 @@ class TripController extends Controller
             'accommodation' => $trip->accommodations,
             'macroplan' => $trip->macroPlans,
             'expense' => $showExpenses ? $trip->expenses : [],
-            'expenseLedger' => $showExpenses ? app(ExpenseLedgerService::class)->snapshot($trip, $admin || in_array($role, [0, 1], true)) : null,
+            'people' => app(TripPeopleService::class)->snapshot($trip, $admin || in_array($role, [0, 1], true), $showExpenses || $admin || in_array($role, [0, 1], true)),
+            'expenseLedger' => $showExpenses ? app(ExpenseLedgerService::class)->snapshot($trip) : null,
             'taskList' => $showTasks ? $trip->taskLists->map(fn ($list): array => array_merge($list->toArray(), ['task' => $list->tasks->values()]))->values() : [],
             'tripUser' => $trip->users->map(function ($user) use ($isMemberOrOwner): array {
                 $userArr = ['id' => $user->id, 'handle' => $user->handle, 'activated' => (bool) $user->activated];
                 // Email is only exposed to authenticated members, matching instant.perms.ts.
                 if ($isMemberOrOwner) {
                     $userArr['email'] = $user->email;
+                    $userArr['accountType'] = $userArr['email'] === null ? 'guest' : 'registered';
                 }
 
                 return ['id' => $user->pivot?->id, 'role' => $user->pivot?->role, 'user' => $userArr];

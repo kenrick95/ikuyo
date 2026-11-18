@@ -1,4 +1,5 @@
 import { toFormat } from '../common/dateTime/temporalFormatter';
+import type { TripPerson } from '../Trip/people/types';
 import type { TripSliceExpense } from '../Trip/store/types';
 import { minorToDecimal } from './ledger';
 
@@ -32,7 +33,7 @@ function escapeCsvField(value: string | number | null | undefined): string {
 export function expensesToCsv(
   expenses: TripSliceExpense[],
   timeZone: string,
-  participants: import('./ledger').ExpenseParticipant[] = [],
+  participants: TripPerson[] = [],
 ): string {
   // Define CSV headers
   const headers = [
@@ -46,7 +47,7 @@ export function expensesToCsv(
     'Time Zone',
     'Created At',
     'Last Updated At',
-    'Paid by (participant IDs)',
+    'Paid by (person IDs)',
     'Split method',
     'Allocations (minor units)',
     'Entry kind',
@@ -153,15 +154,15 @@ export function downloadCsv(csvContent: string, filename: string): void {
 /** Balances and recorded payments retain separate native currency amounts. */
 export function ledgerStatementToCsv(
   ledger: import('./ledger').ExpenseLedgerData,
+  people: TripPerson[] = [],
 ): string {
-  const name = (id: string) =>
-    ledger.participants.find((p) => p.id === id)?.name ?? '';
+  const name = (id: string) => people.find((p) => p.id === id)?.name ?? '';
   const rows: (string | number)[][] = [
     [
       'Type',
       'Currency',
       'Person',
-      'Participant ID',
+      'Person ID',
       'Paid to',
       'Recipient ID',
       'Amount',

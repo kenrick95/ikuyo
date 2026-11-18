@@ -11,29 +11,6 @@ use Illuminate\Support\Str;
 
 class ExpenseLedgerService
 {
-    public function participant(Trip $trip, ?User $user, string $name, ?string $id = null): string
-    {
-        if ($user) {
-            $existing = DB::table('expense_participants')->where('trip_id', $trip->id)->where('user_id', $user->id)->value('id');
-            if ($existing) {
-                return $existing;
-            }
-        }
-        $id ??= (string) Str::uuid();
-        $existing = DB::table('expense_participants')->where('id', $id)->first();
-        if ($existing) {
-            abort_unless($existing->trip_id === $trip->id && $existing->name === $name && $existing->user_id === $user?->id, 409, 'Participant ID already used.');
-
-            return $id;
-        }
-        DB::table('expense_participants')->insert([
-            'id' => $id, 'trip_id' => $trip->id, 'user_id' => $user?->id,
-            'name' => $user ? $user->handle : $name, 'created_at_ms' => now()->getTimestampMs(),
-        ]);
-
-        return $id;
-    }
-
     public function write(Request $request, Trip $trip, ?Expense $expense = null): Expense
     {
         return DB::transaction(function () use ($request, $trip, $expense): Expense {
@@ -56,7 +33,7 @@ class ExpenseLedgerService
                 // The client can resolve `me` after a lost response and a sync.
                 // Use the same identity for both forms of a creation retry.
                 $fingerprint = $validated;
-                $selfId = DB::table('expense_participants')->where('trip_id', $trip->id)->where('user_id', $request->user()->id)->value('id');
+                $selfId = DB::table('trip_people')->where('trip_id', $trip->id)->where('user_id', $request->user()->id)->value('id');
                 if (isset($fingerprint['ledger'])) {
                     if (($fingerprint['ledger']['paidBy'] ?? null) === $selfId) {
                         $fingerprint['ledger']['paidBy'] = 'me';
@@ -165,11 +142,11 @@ class ExpenseLedgerService
         }
         $payer = $data['paidBy'];
         if ($payer === 'me') {
-            $payer = $this->participant($trip, $request->user(), $request->user()->handle);
+            $payer = app(TripPeopleService::class)->person($trip, $request->user(), $request->user()->handle, null, false);
         }
         $needsSelf = collect([...($data['shares'] ?? []), ...($data['contributions'] ?? [])])->contains('participantId', 'me');
         if ($needsSelf) {
-            $selfId = $this->participant($trip, $request->user(), $request->user()->handle);
+            $selfId = app(TripPeopleService::class)->person($trip, $request->user(), $request->user()->handle, null, false);
             foreach (['shares', 'contributions'] as $key) {
                 foreach ($data[$key] ?? [] as $i => $row) {
                     if ($row['participantId'] === 'me') {
@@ -182,7 +159,7 @@ class ExpenseLedgerService
                 }
             }
         }
-        $participants = DB::table('expense_participants')->where('trip_id', $trip->id)->get()->keyBy('id');
+        $participants = DB::table('trip_people')->where('trip_id', $trip->id)->get()->keyBy('id');
         $ids = $participants->keys()->all();
         $total = ExpenseMoney::minor((string) $expense->amount, $expense->currency);
         if ($total <= 0) {
@@ -243,29 +220,20 @@ class ExpenseLedgerService
     }
 
     /** @return array<string, mixed> */
-    public function snapshot(Trip $trip, bool $includeAccounts = false): array
+    public function snapshot(Trip $trip): array
     {
-        return DB::transaction(function () use ($trip, $includeAccounts): array {
+        return DB::transaction(function () use ($trip): array {
             // Writers take the trip's exclusive lock before changing any ledger
             // rows. Keep it stable across participants, expenses and payments.
             Trip::whereKey($trip->id)->sharedLock()->firstOrFail();
 
-            return $this->buildSnapshot($trip, $includeAccounts);
+            return $this->buildSnapshot($trip);
         });
     }
 
     /** @return array<string, mixed> */
-    private function buildSnapshot(Trip $trip, bool $includeAccounts): array
+    private function buildSnapshot(Trip $trip): array
     {
-        $participants = DB::table('expense_participants as p')->leftJoin('users as u', 'p.user_id', '=', 'u.id')
-            ->where('p.trip_id', $trip->id)->orderBy('p.created_at_ms')->orderBy('p.id')
-            ->get(['p.id', 'p.name', 'p.user_id', 'p.archived_at_ms', 'u.handle', 'u.deleted_at'])->map(fn ($p) => [
-                'id' => $p->id, 'name' => $p->name,
-                'userId' => $includeAccounts && $p->deleted_at === null ? $p->user_id : null,
-                'handle' => $includeAccounts && $p->deleted_at === null ? $p->handle : null,
-                'guest' => $p->user_id === null || $p->deleted_at !== null,
-                'archived' => $p->archived_at_ms !== null,
-            ])->all();
         $balances = [];
         $add = function (string $currency, string $id, int $amount) use (&$balances): void {
             $balances[$currency][$id] = ($balances[$currency][$id] ?? 0) + $amount;
@@ -320,7 +288,7 @@ class ExpenseLedgerService
             $currencies[] = ['currency' => $currency, 'balances' => array_map(fn ($id, $n) => ['participantId' => $id, 'amountMinor' => (string) $n], array_keys($nets), array_values($nets)), 'suggestions' => $suggestions];
         }
 
-        return ['participants' => $participants, 'currencies' => $currencies, 'splitCount' => $splitCount, 'expenseCount' => $expenses->count(), 'payments' => $payments->map(fn ($p) => [
+        return ['currencies' => $currencies, 'splitCount' => $splitCount, 'expenseCount' => $expenses->count(), 'payments' => $payments->map(fn ($p) => [
             'id' => $p->id, 'senderId' => $p->sender_id, 'recipientId' => $p->recipient_id,
             'currency' => $p->currency, 'amountMinor' => (string) $p->amount_minor,
             'paidCurrency' => $p->paid_currency, 'paidAmountMinor' => (string) $p->paid_amount_minor,

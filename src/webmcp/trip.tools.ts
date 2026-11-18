@@ -17,7 +17,7 @@ import {
 import { TripUserRole } from '../User/TripUserRole';
 import { idempotencyKeySchema, runIdempotent } from './idempotency';
 import type { WebMCPTool } from './modelContext';
-import { asOptStr, asStr, bool, int, str, strEnum } from './schema';
+import { asOptBool, asOptStr, asStr, bool, int, str, strEnum } from './schema';
 import { epochToTripDate, resolveTripDates } from './tripDates';
 
 type TripSummary = {
@@ -64,7 +64,7 @@ function tripSnapshot(id: string): Record<string, unknown> {
     accommodationIds: t.accommodationIds,
     macroplanIds: t.macroplanIds,
     expenseIds: t.expenseIds,
-    expenseParticipants: t.expenseLedger?.participants ?? [],
+    people: t.people ?? [],
     taskListIds: t.taskListIds,
     tripUserIds: t.tripUserIds,
     commentGroupIds: t.commentGroupIds,
@@ -401,13 +401,16 @@ export function createTripTools(): WebMCPTool[] {
     {
       name: 'trip-add-member',
       description:
-        'Adds a member to a trip by email with a role (editor or viewer).',
+        'Shares a trip with an account by email or exact @username, including guest accounts. Participation changes only when addToParticipants is true.',
       inputSchema: {
         type: 'object',
         properties: {
           tripId: str('Trip id. Defaults to the currently open trip.'),
-          email: str('Email of the member to invite.'),
+          email: str('Email or exact @username of the account to invite.'),
           role: strEnum('Member role (editor or viewer).', memberRoleValues),
+          addToParticipants: bool(
+            'Also mark the person as joining. Defaults to false.',
+          ),
         },
         required: ['email', 'role'],
       },
@@ -421,7 +424,13 @@ export function createTripTools(): WebMCPTool[] {
         if (!memberRoleValues.includes(role)) {
           throw new Error(`role must be one of ${memberRoleValues.join(', ')}`);
         }
-        await dbAddUserToTrip({ tripId, userEmail: email, userRole: role });
+        await dbAddUserToTrip({
+          tripId,
+          userEmail: email,
+          userRole: role,
+          addToParticipants:
+            asOptBool(input.addToParticipants, 'addToParticipants') ?? false,
+        });
         return { ok: true, tripId, email, role };
       },
     },

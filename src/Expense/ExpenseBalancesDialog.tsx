@@ -15,11 +15,11 @@ import { deleteMutation, postMutation } from '../data/apiClient';
 import { id } from '../data/id';
 import { ALL_CURRENCIES } from '../data/intl/currencies';
 import { useBoundStore } from '../data/store';
+import { PersonLabel } from '../Trip/people/TripPeopleDialog';
 import { canModifyTripContent } from '../Trip/permissions';
 import type { TripSliceTrip } from '../Trip/store/types';
 import { downloadCsv, ledgerStatementToCsv } from './csvExport';
 import { ExpenseHistory } from './ExpenseHistory';
-import { ParticipantLabel } from './ExpensePeopleDialog';
 import {
   formatMinor,
   minorToDecimal,
@@ -45,7 +45,7 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
   const submitting = useRef(false);
   const refreshTrip = useBoundStore((state) => state.refreshTrip);
   const editable = canModifyTripContent(trip);
-  const participants = data?.participants ?? [];
+  const participants = trip.people ?? [];
   const person = (id: string) => participants.find((p) => p.id === id);
   const title = (id: string) => person(id)?.name ?? 'Person';
   function settle(
@@ -207,7 +207,7 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
                       {participants.map((p) => (
                         <Select.Item key={p.id} value={p.id}>
                           {p.name}
-                          {p.guest ? ' · Guest' : ''}
+                          {!p.hasAccount ? ' · No account' : ''}
                         </Select.Item>
                       ))}
                     </Select.Content>
@@ -371,7 +371,7 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
                       gap="2"
                       wrap="wrap"
                     >
-                      {p && <ParticipantLabel person={p} />}
+                      {p && <PersonLabel person={p} />}
                       <Text size="2">
                         {n === 0n
                           ? 'Settled'
@@ -533,7 +533,10 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
                   type="button"
                   variant="outline"
                   onClick={() =>
-                    downloadCsv(ledgerStatementToCsv(data), 'trip-balances.csv')
+                    downloadCsv(
+                      ledgerStatementToCsv(data, trip.people),
+                      'trip-balances.csv',
+                    )
                   }
                 >
                   Export

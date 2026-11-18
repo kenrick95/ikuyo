@@ -25,7 +25,7 @@ Existing expenses remain unsplit. Currency totals no longer include unconverted
 foreign amounts under the origin currency. The existing deployment controller
 will detect the additive migration and require its normal migration authorization.
 
-Participant merging and account claims for historical guests remain future work.
+Participant merging and account-holder self-claims remain future work.
 Receipt scanning, provider payments, recurring costs, notifications, and imports
 remain in the later roadmap. Deployment is pending.
 
@@ -95,6 +95,10 @@ not transfer money.
 
 ## User experience
 
+People use the shared [trip people model](trip-people.md). The trip overview and
+Expenses open the same People dialog. Joining controls default split selection;
+Sharing controls account access separately. A payer can be a non-participant.
+
 The Expenses tab remains the main screen. It keeps the totals, CSV export,
 inline Add Expense form, and expense cards. There is no setup wizard or separate
 People or Balances page.
@@ -105,14 +109,14 @@ The Expenses header has People and Balances buttons beside Export to CSV.
 People opens a dialog with an input labeled “Add or find a person.” Its
 placeholder is “Name, Ikuyo email or @username.”
 
-A plain name offers an explicit “Add [name]” action with a Guest label.
+A plain name offers an explicit “Add [name]” action with a No account label.
 An exact email or username can select an existing Ikuyo account. Existing trip
 members can also appear as suggestions. Account selection never grants access
 to the trip or sends an invitation. Account lookup needs rate limits and a
 privacy review before implementation.
 
-A participant without an account has a Guest badge. An account participant has
-a username. The current user has “(you).” There are no repeated explanations
+A person without an account has a No account badge. A linked Ikuyo guest account
+has a Guest account badge and username. The current user has “(you).” There are no repeated explanations
 about accounts, permissions, or guest capabilities in the normal flow.
 
 “Choose people” inside the expense form opens this same dialog with checkboxes.
@@ -126,8 +130,8 @@ The Add Expense button opens the existing inline form. Its date, title,
 description, currency, amount, and conversion fields remain in place.
 
 A new “Paid by” field defaults to the current user. The first saved expense can
-create that user's linked participant record. This does not add all trip members
-as financial participants. Users can select a different payer, including a guest,
+create that user's linked person record with Joining off. This does not add all trip members
+as participants. Users can select a different payer, including a name-only person,
 or select Multiple people and enter each contribution.
 
 “Split expense” is initially collapsed and off. An expense without a split records
@@ -171,7 +175,7 @@ A payment can involve guests on either side. Zero, negative, and self-payments
 are invalid. An overpayment shows the resulting credit before submission.
 Corrections void and replace a payment with an audit record.
 
-No guest authentication or bearer-link access is included in the first release.
+No authentication for name-only people or bearer-link access is included in the first release.
 Editors can download expense, allocation, balance, and payment exports. Each
 export includes currency, participant IDs, and names. Spreadsheet cells receive
 formula escaping.
@@ -183,7 +187,7 @@ follow implementation order; these responsibilities should remain separate.
 
 | Record | Proposed fields and rules |
 | --- | --- |
-| `expense_participants` | `id`, `trip_id`, `display_name`, optional `user_id`, optional `archived_at_ms`, timestamps. IDs are stable; an account link is metadata, never the ledger key. At most one linked participant per user per trip. |
+| `trip_people` | `id`, `trip_id`, `name`, optional `user_id`, `is_participant`, optional `archived_at_ms`, `created_at_ms`. IDs are stable across expenses and future room assignments. Linked accounts are unique within each trip. Participation, account type, and access are independent. |
 | Expense extension | Nullable `split_method`, `ledger_amount_minor`, `ledger_currency_exponent`, integer `revision`, `entry_kind` (`expense`/`refund`), optional original-expense reference. Null split means track-only. Keep existing amount and conversion columns. |
 | `expense_contributions` | `expense_id`, `participant_id`, nonnegative `amount_minor`; unique expense/participant. One row per payer or refund recipient. |
 | `expense_allocations` | `expense_id`, `participant_id`, nonnegative `amount_minor`, optional exact decimal-string input weight/percentage; unique expense/participant. Persist both method inputs and final rounded results. |
@@ -199,9 +203,9 @@ removal is allowed only if never referenced. Participant merging is deferred;
 rename or archive accidental unused duplicates instead.
 
 Selecting an existing account creates an explicit association by its account ID.
-It does not change membership. Linking a historical guest requires a separate
-confirmation with the account holder. A name or search result never claims or
-merges a guest's history automatically.
+It does not change access. Editors can use Link account to associate a name-only
+person with an exact existing account. This keeps the person ID and financial
+history. Account-holder self-claims and duplicate-person merging remain deferred.
 Removing a member removes access without changing ledger balances. Deleting an
 account detaches its links and actor references; apply the existing owned-trip
 deletion policy. Do not introduce a new data-retention policy in this feature.

@@ -147,8 +147,7 @@ export function ExpenseInlineCardForm({
   const [errorMessage, setErrorMessage] = useState('');
   const currentUser = useBoundStore((state) => state.currentUser);
   const selfId =
-    trip.expenseLedger?.participants.find((p) => p.userId === currentUser?.id)
-      ?.id ?? 'me';
+    trip.people?.find((p) => p.userId === currentUser?.id)?.id ?? 'me';
   const [ledger, setLedger] = useState<ExpenseLedger>(
     refundOf?.ledger
       ? { ...refundOf.ledger, kind: 'refund', refundOf: refundOf.id }

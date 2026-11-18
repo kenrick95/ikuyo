@@ -6,7 +6,7 @@ export function expenseLedgerSchema(): Record<string, unknown> {
   return {
     type: 'object',
     description:
-      'Optional payer and split. Defaults to paid by you, without splitting. Use participant IDs from trip-open.expenseParticipants; guests are supported. "me" means you.',
+      'Optional payer and split. Defaults to paid by you, without splitting. Use participant IDs from trip-open.people; guests are supported. "me" means you.',
     additionalProperties: false,
     properties: {
       paidBy: {
@@ -79,10 +79,7 @@ export function parseExpenseLedger(
   }
   const participant = (value: unknown): string => {
     const id = asStr(value, 'participantId');
-    if (
-      id !== 'me' &&
-      !trip.expenseLedger?.participants.some((p) => p.id === id && !p.archived)
-    )
+    if (id !== 'me' && !trip.people?.some((p) => p.id === id && !p.archived))
       throw new Error('Choose an active participant from this trip or "me".');
     return id;
   };

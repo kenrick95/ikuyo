@@ -3,10 +3,10 @@ import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { TripPeopleDialog } from '../Trip/people/TripPeopleDialog';
 import type { TripSliceTrip } from '../Trip/store/types';
 import { TripUserRole } from '../User/TripUserRole';
 import { ExpenseBalancesDialog } from './ExpenseBalancesDialog';
-import { ExpensePeopleDialog } from './ExpensePeopleDialog';
 import { ExpenseSplitFields } from './ExpenseSplitFields';
 import type { ExpenseLedger } from './ledger';
 
@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   patch: vi.fn(),
   refresh: vi.fn(),
   currentUser: { id: 'user-a', handle: 'alex' },
+  pushDialog: vi.fn(),
 }));
 vi.mock('../data/apiClient', () => ({
   postMutation: mocks.post,
@@ -23,7 +24,11 @@ vi.mock('../data/apiClient', () => ({
 }));
 vi.mock('../data/store', () => ({
   useBoundStore: (selector: (s: unknown) => unknown) =>
-    selector({ currentUser: mocks.currentUser, refreshTrip: mocks.refresh }),
+    selector({
+      currentUser: mocks.currentUser,
+      refreshTrip: mocks.refresh,
+      pushDialog: mocks.pushDialog,
+    }),
 }));
 
 const trip = {
@@ -31,11 +36,29 @@ const trip = {
   currency: 'SGD',
   timeZone: 'Asia/Singapore',
   currentUserRole: TripUserRole.Owner,
+  people: [
+    {
+      id: 'a',
+      name: 'Alex',
+      handle: 'alex',
+      userId: 'user-a',
+      hasAccount: true,
+      accountType: 'registered',
+      isParticipant: true,
+      accessRole: null,
+    },
+    {
+      id: 'b',
+      name: 'Bea',
+      handle: null,
+      userId: null,
+      hasAccount: false,
+      accountType: null,
+      isParticipant: true,
+      accessRole: null,
+    },
+  ],
   expenseLedger: {
-    participants: [
-      { id: 'a', name: 'Alex', handle: 'alex', userId: 'user-a', guest: false },
-      { id: 'b', name: 'Bea', handle: null, userId: null, guest: true },
-    ],
     currencies: [
       {
         currency: 'SGD',
@@ -60,7 +83,7 @@ const trip = {
   },
 } as unknown as TripSliceTrip;
 
-function Fields() {
+function Fields({ context = trip }: { context?: TripSliceTrip }) {
   const [ledger, setLedger] = useState<ExpenseLedger>({
     paidBy: 'a',
     method: null,
@@ -68,7 +91,7 @@ function Fields() {
   });
   return (
     <ExpenseSplitFields
-      trip={trip}
+      trip={context}
       amount="60"
       currency="SGD"
       value={ledger}
@@ -151,7 +174,7 @@ describe('integrated expense controls', () => {
     expect(screen.getAllByText('SGD 30.00')).toHaveLength(2);
     await user.click(screen.getByRole('button', { name: 'Choose people' }));
     const dialog = screen.getByRole('dialog');
-    expect(within(dialog).getByText('Guest')).toBeInTheDocument();
+    expect(within(dialog).getByText('No account')).toBeInTheDocument();
     await user.click(
       within(dialog).getByRole('checkbox', { name: 'Include Bea' }),
     );
@@ -178,18 +201,17 @@ describe('integrated expense controls', () => {
     await user.type(search, 'Dana');
     await user.click(within(dialog).getByRole('button', { name: 'Add' }));
     expect(mocks.post).toHaveBeenCalledWith(
-      '/api/trips/trip/expense-participants',
+      '/api/trips/trip/people',
       expect.objectContaining({ name: 'Dana' }),
     );
     await user.type(search, '@morgan');
     await user.click(within(dialog).getByRole('button', { name: 'Find' }));
-    expect(mocks.post).toHaveBeenCalledWith(
-      '/api/trips/trip/expense-participants/lookup',
-      { identity: '@morgan' },
-    );
+    expect(mocks.post).toHaveBeenCalledWith('/api/trips/trip/people/lookup', {
+      identity: '@morgan',
+    });
     await user.click(within(dialog).getByRole('button', { name: 'Add' }));
     expect(mocks.post).toHaveBeenLastCalledWith(
-      '/api/trips/trip/expense-participants',
+      '/api/trips/trip/people',
       expect.objectContaining({ userId: 'm' }),
     );
   });
@@ -263,17 +285,106 @@ test('participant management renames a label without changing its financial iden
   const user = userEvent.setup();
   render(
     <Theme>
-      <ExpensePeopleDialog trip={trip} />
+      <TripPeopleDialog trip={trip} />
     </Theme>,
   );
   await user.click(screen.getByRole('button', { name: 'People' }));
-  await user.click(screen.getAllByRole('button', { name: 'Rename' })[1]);
+  await user.click(screen.getByRole('button', { name: 'Actions for Bea' }));
+  await user.click(screen.getByRole('menuitem', { name: 'Rename' }));
   const input = screen.getByRole('textbox', { name: 'Name for Bea' });
   await user.clear(input);
   await user.type(input, 'Beatrice');
   await user.click(screen.getByRole('button', { name: 'Save' }));
-  expect(mocks.patch).toHaveBeenCalledWith(
-    '/api/trips/trip/expense-participants/b',
-    { name: 'Beatrice' },
+  expect(mocks.patch).toHaveBeenCalledWith('/api/trips/trip/people/b', {
+    name: 'Beatrice',
+  });
+});
+
+test('a name-only person and a guest account receive different labels', async () => {
+  const user = userEvent.setup();
+  render(
+    <Theme>
+      <TripPeopleDialog
+        trip={{
+          ...trip,
+          people: trip.people?.map((p) =>
+            p.id === 'a' ? { ...p, accountType: 'guest' } : p,
+          ),
+        }}
+      />
+    </Theme>,
   );
+  await user.click(screen.getByRole('button', { name: 'People' }));
+  expect(screen.getByText('No account')).toBeInTheDocument();
+  expect(screen.getByText('Guest account')).toBeInTheDocument();
+});
+
+test('linking an account changes the existing trip person without granting access', async () => {
+  const user = userEvent.setup();
+  mocks.post.mockResolvedValue({
+    user: { id: 'guest-user', handle: 'guest_account' },
+  });
+  render(
+    <Theme>
+      <TripPeopleDialog trip={trip} />
+    </Theme>,
+  );
+  await user.click(screen.getByRole('button', { name: 'People' }));
+  await user.click(screen.getByRole('button', { name: 'Actions for Bea' }));
+  await user.click(screen.getByRole('menuitem', { name: 'Link account' }));
+  await user.type(
+    screen.getByPlaceholderText('Name, Ikuyo email or @username'),
+    '@guest_account',
+  );
+  await user.click(screen.getByRole('button', { name: 'Find' }));
+  await user.click(screen.getByRole('button', { name: 'Link' }));
+  expect(mocks.post).toHaveBeenCalledTimes(1);
+  expect(mocks.post).toHaveBeenCalledWith('/api/trips/trip/people/lookup', {
+    identity: '@guest_account',
+  });
+  expect(mocks.patch).toHaveBeenCalledWith('/api/trips/trip/people/b', {
+    userId: 'guest-user',
+  });
+});
+
+test('participation can change separately from access and financial records', async () => {
+  const user = userEvent.setup();
+  render(
+    <Theme>
+      <TripPeopleDialog trip={trip} />
+    </Theme>,
+  );
+  await user.click(screen.getByRole('button', { name: 'People' }));
+  await user.click(
+    screen.getByRole('checkbox', { name: 'Bea is joining the trip' }),
+  );
+  expect(mocks.patch).toHaveBeenCalledWith('/api/trips/trip/people/b', {
+    isParticipant: false,
+  });
+  expect(mocks.post).not.toHaveBeenCalled();
+});
+
+test('the split defaults to participants while its payer can be a non-travelling planner', async () => {
+  const user = userEvent.setup();
+  const context = {
+    ...trip,
+    people: trip.people?.map((p) =>
+      p.id === 'a' ? { ...p, isParticipant: false } : p,
+    ),
+  };
+  render(
+    <Theme>
+      <Fields context={context} />
+    </Theme>,
+  );
+  expect(screen.getByRole('combobox', { name: 'Paid by' })).toHaveTextContent(
+    'Alex',
+  );
+  await user.click(screen.getByRole('switch', { name: 'Split expense' }));
+  expect(screen.getByText('SGD 60.00')).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Choose people' }));
+  expect(
+    screen.getByRole('checkbox', { name: 'Include Alex' }),
+  ).not.toBeChecked();
+  expect(screen.getByRole('checkbox', { name: 'Include Bea' })).toBeChecked();
 });

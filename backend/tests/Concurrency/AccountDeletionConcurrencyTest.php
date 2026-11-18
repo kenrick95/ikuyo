@@ -9,6 +9,7 @@ use App\Models\Trip;
 use App\Models\User;
 use App\Services\AccountDeletionService;
 use App\Services\ExpenseLedgerService;
+use App\Services\TripPeopleService;
 use Closure;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
@@ -209,13 +210,13 @@ class AccountDeletionConcurrencyTest extends TestCase
             function (Closure $wait) use ($trip, $owner) {
                 $waited = false;
                 DB::listen(function (QueryExecuted $query) use ($wait, &$waited) {
-                    if (! $waited && str_contains($query->sql, 'from `expense_participants`')) {
+                    if (! $waited && str_contains($query->sql, 'from `trip_people`')) {
                         $waited = true;
                         $wait();
                     }
                 });
                 $this->actingAs($owner)->getJson('/api/trips/' . $trip->id)->assertOk()
-                    ->assertJsonPath('expense', [])->assertJsonPath('expenseLedger.participants', [])
+                    ->assertJsonPath('expense', [])->assertJsonPath('people', [])
                     ->assertJsonPath('expenseLedger.currencies', [])->assertJsonPath('expenseLedger.payments', []);
                 $this->assertTrue($waited);
             },
@@ -241,8 +242,8 @@ class AccountDeletionConcurrencyTest extends TestCase
     private function financialRows(User $owner, Trip $trip): void
     {
         $service = app(ExpenseLedgerService::class);
-        $payer = $service->participant($trip, $owner, $owner->handle);
-        $guest = $service->participant($trip, null, 'Guest');
+        $payer = app(TripPeopleService::class)->person($trip, $owner, $owner->handle);
+        $guest = app(TripPeopleService::class)->person($trip, null, 'Guest');
         $request = new Request([
             'id' => (string) Str::uuid(), 'title' => 'Dinner', 'currency' => 'SGD', 'amount' => '90', 'timestampIncurred' => 1,
             'ledger' => ['paidBy' => $payer, 'method' => 'equal', 'shares' => [['participantId' => $guest]]],
@@ -259,10 +260,10 @@ class AccountDeletionConcurrencyTest extends TestCase
     private function assertFinancialSnapshot(User $owner, Trip $trip): void
     {
         $response = $this->actingAs($owner)->getJson('/api/trips/' . $trip->id)->assertOk()
-            ->assertJsonCount(1, 'expense')->assertJsonCount(2, 'expenseLedger.participants')
+            ->assertJsonCount(1, 'expense')->assertJsonCount(2, 'people')
             ->assertJsonCount(1, 'expenseLedger.payments');
         $ledger = $response->json('expenseLedger');
-        $ids = array_column($ledger['participants'], 'id');
+        $ids = array_column($response->json('people'), 'id');
         $this->assertEqualsCanonicalizing($ids, array_column($ledger['currencies'][0]['balances'], 'participantId'));
         $nets = array_column($ledger['currencies'][0]['balances'], 'amountMinor');
         $this->assertEqualsCanonicalizing(['6000', '-6000'], $nets);

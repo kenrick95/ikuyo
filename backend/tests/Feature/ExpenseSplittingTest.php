@@ -6,6 +6,7 @@ use App\Models\Trip;
 use App\Models\User;
 use App\Services\ExpenseLedgerService;
 use App\Services\ExpenseMoney;
+use App\Services\TripPeopleService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -21,9 +22,9 @@ class ExpenseSplittingTest extends TestCase
         $trip = Trip::create(['id' => (string) Str::uuid(), 'title' => 'Trip', 'region' => 'SG', 'currency' => 'SGD', 'origin_currency' => 'SGD', 'timezone' => 'Asia/Singapore', 'timestamp_start_ms' => 1, 'timestamp_end_ms' => 2, 'sharing_level' => 0]);
         $trip->users()->attach($user->id, ['id' => (string) Str::uuid(), 'role' => 0, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
         $ledger = app(ExpenseLedgerService::class);
-        $a = $ledger->participant($trip, $user, 'alex');
-        $b = $ledger->participant($trip, null, 'Bea');
-        $c = $ledger->participant($trip, null, 'Chen');
+        $a = app(TripPeopleService::class)->person($trip, $user, 'alex');
+        $b = app(TripPeopleService::class)->person($trip, null, 'Bea');
+        $c = app(TripPeopleService::class)->person($trip, null, 'Chen');
         $this->actingAs($user);
 
         return [$trip, $user, $a, $b, $c];
@@ -67,7 +68,7 @@ class ExpenseSplittingTest extends TestCase
         $snapshot = $this->getJson("/api/trips/$trip->id")->assertOk()->json('expenseLedger');
         $this->assertSame([], $snapshot['currencies']);
         $this->assertSame(0, $snapshot['splitCount']);
-        $this->assertDatabaseHas('expense_participants', ['id' => $a, 'user_id' => $user->id]);
+        $this->assertDatabaseHas('trip_people', ['id' => $a, 'user_id' => $user->id]);
     }
 
     public function test_multiple_payers_can_pay_for_somebody_else_and_invalid_updates_roll_back(): void
@@ -114,7 +115,7 @@ class ExpenseSplittingTest extends TestCase
         $data = $this->expense($a, $b, $c);
         unset($data['ledger']);
         $this->postJson("/api/trips/$trip->id/expenses", $data)->assertCreated()->assertJsonPath('ledger', null);
-        $this->assertDatabaseCount('expense_participants', 3);
+        $this->assertDatabaseCount('trip_people', 3);
         $this->assertSame(0, $this->getJson("/api/trips/$trip->id")->json('expenseLedger.splitCount'));
     }
 
@@ -122,28 +123,28 @@ class ExpenseSplittingTest extends TestCase
     {
         [$trip, , $a, $b, $c] = $this->setupTrip();
         $other = User::create(['id' => (string) Str::uuid(), 'handle' => 'morgan', 'email' => 'morgan@example.com']);
-        $this->postJson("/api/trips/$trip->id/expense-participants/lookup", ['identity' => '@morgan'])->assertOk()->assertJsonPath('user.id', $other->id);
-        $this->postJson("/api/trips/$trip->id/expense-participants", ['id' => (string) Str::uuid(), 'userId' => $other->id])->assertCreated();
+        $this->postJson("/api/trips/$trip->id/people/lookup", ['identity' => '@morgan'])->assertOk()->assertJsonPath('user.id', $other->id);
+        $this->postJson("/api/trips/$trip->id/people", ['id' => (string) Str::uuid(), 'userId' => $other->id])->assertCreated();
         $this->assertSame(1, $trip->users()->count());
         $trip->update(['archived_at_ms' => 1]);
-        $this->postJson("/api/trips/$trip->id/expense-participants", ['id' => (string) Str::uuid(), 'name' => 'Dana'])->assertConflict();
+        $this->postJson("/api/trips/$trip->id/people", ['id' => (string) Str::uuid(), 'name' => 'Dana'])->assertConflict();
         $this->postJson("/api/trips/$trip->id/expenses", $this->expense($a, $b, $c))->assertConflict();
     }
 
     public function test_viewers_and_public_readers_receive_labels_without_linked_account_fields(): void
     {
         [$trip, $owner, $a, $b, $c] = $this->setupTrip();
-        DB::table('expense_participants')->where('id', $a)->update(['name' => 'Alex']);
+        DB::table('trip_people')->where('id', $a)->update(['name' => 'Alex']);
         $this->postJson("/api/trips/$trip->id/expenses", $this->expense($a, $b, $c))->assertCreated();
         $trip->update(['sharing_level' => 2, 'public_show_expenses' => true, 'viewer_show_expenses' => true]);
         $reader = User::create(['id' => (string) Str::uuid(), 'handle' => 'reader']);
         $trip->users()->attach($reader->id, ['id' => (string) Str::uuid(), 'role' => 2, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
-        $person = fn ($response) => collect($response->assertOk()->json('expenseLedger.participants'))->firstWhere('id', $a);
+        $person = fn ($response) => collect($response->assertOk()->json('people'))->firstWhere('id', $a);
         $viewer = $person($this->actingAs($reader)->getJson("/api/trips/$trip->id"));
         $this->assertSame('Alex', $viewer['name']);
         $this->assertNull($viewer['userId']);
         $this->assertNull($viewer['handle']);
-        $this->assertFalse($viewer['guest']);
+        $this->assertTrue($viewer['hasAccount']);
         $this->app['auth']->forgetGuards();
         $public = $person($this->getJson("/api/trips/$trip->id"));
         $this->assertNull($public['userId']);
@@ -158,7 +159,7 @@ class ExpenseSplittingTest extends TestCase
         $deleted = $person($this->actingAs($reader)->getJson("/api/trips/$trip->id"));
         $this->assertNull($deleted['userId']);
         $this->assertNull($deleted['handle']);
-        $this->assertTrue($deleted['guest']);
+        $this->assertFalse($deleted['hasAccount']);
     }
 
     public function test_original_expenses_cannot_be_deleted_until_active_refunds_are_deleted(): void
@@ -242,20 +243,20 @@ class ExpenseSplittingTest extends TestCase
     {
         [$trip, , $a, $b, $c] = $this->setupTrip();
         $this->postJson("/api/trips/$trip->id/expenses", $this->expense($a, $b, $c))->assertCreated();
-        $this->patchJson("/api/trips/$trip->id/expense-participants/$b", ['name' => 'Beatrice', 'archived' => true])->assertOk();
+        $this->patchJson("/api/trips/$trip->id/people/$b", ['name' => 'Beatrice', 'archived' => true])->assertOk();
         $snapshot = $this->getJson("/api/trips/$trip->id")->json('expenseLedger');
-        $this->assertSame('Beatrice', collect($snapshot['participants'])->firstWhere('id', $b)['name']);
-        $this->assertTrue(collect($snapshot['participants'])->firstWhere('id', $b)['archived']);
+        $this->assertSame('Beatrice', collect($this->getJson("/api/trips/$trip->id")->json('people'))->firstWhere('id', $b)['name']);
+        $this->assertTrue(collect($this->getJson("/api/trips/$trip->id")->json('people'))->firstWhere('id', $b)['archived']);
         $this->assertSame('-3000', collect($snapshot['currencies'][0]['balances'])->firstWhere('participantId', $b)['amountMinor']);
         $this->postJson("/api/trips/$trip->id/expenses", $this->expense($a, $b, $c))->assertUnprocessable();
-        $this->patchJson("/api/trips/$trip->id/expense-participants/$b", ['archived' => false])->assertOk();
+        $this->patchJson("/api/trips/$trip->id/people/$b", ['archived' => false])->assertOk();
         $this->postJson("/api/trips/$trip->id/expenses", $this->expense($a, $b, $c))->assertCreated();
         $this->getJson("/api/trips/$trip->id/expense-history")->assertOk()->assertJsonStructure(['items' => [['operation', 'changes']], 'nextCursor']);
         $trip->update(['sharing_level' => 2, 'viewer_show_expenses' => false]);
         $viewer = User::create(['id' => (string) Str::uuid(), 'handle' => 'guest-viewer']);
         $trip->users()->attach($viewer->id, ['id' => (string) Str::uuid(), 'role' => 2, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
         $this->actingAs($viewer)->getJson("/api/trips/$trip->id/expense-history")->assertOk()->assertJsonPath('items', []);
-        $this->patchJson("/api/trips/$trip->id/expense-participants/$b", ['archived' => true])->assertForbidden();
+        $this->patchJson("/api/trips/$trip->id/people/$b", ['archived' => true])->assertForbidden();
     }
 
     public function test_restoring_a_refund_rechecks_the_ceiling_and_original_compatibility(): void
@@ -298,13 +299,13 @@ class ExpenseSplittingTest extends TestCase
         $copy = $this->getJson("/api/trips/$copyId")->assertOk();
         $this->assertEquals(60, array_sum(array_column($copy->json('expense'), 'amount')));
         $this->assertDatabaseHas('expenses', ['trip_id' => $copyId, 'amount' => -30, 'amount_in_origin_currency' => -20, 'ledger' => null]);
-        $copy->assertJsonPath('expenseLedger.participants', [])->assertJsonPath('expenseLedger.payments', [])->assertJsonPath('expenseLedger.currencies', []);
+        $copy->assertJsonCount(1, 'people')->assertJsonPath('expenseLedger.payments', [])->assertJsonPath('expenseLedger.currencies', []);
     }
 
     public function test_creation_retry_accepts_resolved_self_aliases_but_rejects_changed_finances(): void
     {
         [$trip, , $a, $b, $c] = $this->setupTrip();
-        DB::table('expense_participants')->where('id', $a)->delete();
+        DB::table('trip_people')->where('id', $a)->delete();
         foreach (['me', 'multiple'] as $payer) {
             $data = $this->expense('me', $b, $c);
             $data['ledger']['paidBy'] = $payer;
@@ -312,7 +313,7 @@ class ExpenseSplittingTest extends TestCase
                 $data['ledger']['contributions'] = [['participantId' => 'me', 'amountMinor' => '9000']];
             }
             $created = $this->postJson("/api/trips/$trip->id/expenses", $data)->assertCreated()->json('ledger');
-            $resolved = DB::table('expense_participants')->where('trip_id', $trip->id)->whereNotNull('user_id')->value('id');
+            $resolved = DB::table('trip_people')->where('trip_id', $trip->id)->whereNotNull('user_id')->value('id');
             $data['ledger']['paidBy'] = $payer === 'me' ? $resolved : $payer;
             $data['ledger']['shares'][0]['participantId'] = $resolved;
             if ($payer === 'multiple') {
@@ -349,7 +350,7 @@ class ExpenseSplittingTest extends TestCase
         $baseline = DB::transactionLevel();
         $reads = [];
         DB::listen(function ($query) use (&$reads, $baseline) {
-            if (str_starts_with(strtolower($query->sql), 'select') && preg_match('/(?:expenses|expense_participants|expense_payments)/', $query->sql)) {
+            if (str_starts_with(strtolower($query->sql), 'select') && preg_match('/(?:expenses|trip_people|expense_payments)/', $query->sql)) {
                 $reads[] = $query->sql;
                 $this->assertGreaterThan($baseline, DB::transactionLevel(), 'All financial reads need a common transaction.');
             }

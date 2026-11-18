@@ -25,6 +25,7 @@ import { CommentGroupWithForm } from '../Comment/CommentGroupWithForm';
 import { COMMENT_GROUP_OBJECT_TYPE } from '../Comment/db';
 import { dangerToken } from '../common/ui';
 import { useBoundStore, useDeepBoundStore } from '../data/store';
+import { PersonLabel } from '../Trip/people/TripPeopleDialog';
 import { canModifyTripContent } from '../Trip/permissions';
 import { useTrip } from '../Trip/store/hooks';
 import type { TripSliceExpense } from '../Trip/store/types';
@@ -33,7 +34,6 @@ import { dbDeleteExpense } from './db';
 import s from './ExpenseCard.module.css';
 import { ExpenseInlineCardForm } from './ExpenseInlineCardForm';
 import { ExpenseMode } from './ExpenseMode';
-import { ParticipantLabel } from './ExpensePeopleDialog';
 import { formatMinor } from './ledger';
 import { formatTimestampToReadableDate } from './time';
 
@@ -127,7 +127,7 @@ function ExpenseCardView({
   }, [expense.id, expense.title, publishToast]);
 
   const userCanEditOrDelete = canModifyTripContent(trip);
-  const people = trip?.expenseLedger?.participants ?? [];
+  const people = trip?.people ?? [];
   const payerNames = expense.ledger?.contributions
     ?.filter((row) => BigInt(row.amountMinor) > 0n)
     .map((row) =>
@@ -239,7 +239,7 @@ function ExpenseCardView({
                       wrap="wrap"
                     >
                       {person ? (
-                        <ParticipantLabel person={person} />
+                        <PersonLabel person={person} />
                       ) : (
                         <Text>Person</Text>
                       )}

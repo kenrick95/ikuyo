@@ -45,6 +45,7 @@ export function deriveNewTripState(
       originTimeZone: trip.originTimeZone ?? '',
       archivedAt: trip.archivedAt,
       expenseLedger: trip.expenseLedger,
+      people: trip.people ?? [],
       timeZone: trip.timeZone,
       accommodationIds: trip.accommodation.map((a) => a.id),
       activityIds: trip.activity.map((a) => a.id),
@@ -256,6 +257,7 @@ export function deriveNewTripUserState(
       activated: tripUser.user?.[0]?.activated ?? false,
       handle: tripUser.user?.[0]?.handle ?? '',
       email: tripUser.user?.[0]?.email ?? '',
+      accountType: tripUser.user?.[0]?.accountType ?? null,
     } satisfies TripSliceTripUser;
   }
   return newTripUserState;

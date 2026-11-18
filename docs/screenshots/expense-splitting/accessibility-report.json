@@ -9,7 +9,7 @@
         "version": "4.14.0"
       },
       "contrast": {
-        "checked": 37,
+        "checked": 42,
         "failures": [],
         "skipped": ["Overview", "Timetable", "List", "Expenses"]
       },
@@ -21,7 +21,76 @@
         },
         {
           "id": "color-contrast",
-          "nodes": 26
+          "nodes": 31
+        }
+      ]
+    },
+    {
+      "name": "trip-people",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 20,
+        "failures": [],
+        "skipped": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": 3
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 31
+        }
+      ]
+    },
+    {
+      "name": "trip-person-link",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 24,
+        "failures": [],
+        "skipped": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": 3
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 31
+        }
+      ]
+    },
+    {
+      "name": "trip-sharing",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 18,
+        "failures": [],
+        "skipped": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": 3
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 31
         }
       ]
     },
@@ -32,7 +101,7 @@
         "version": "4.14.0"
       },
       "contrast": {
-        "checked": 60,
+        "checked": 65,
         "failures": [],
         "skipped": ["Overview", "Timetable", "List", "Expenses"]
       },
@@ -44,7 +113,7 @@
         },
         {
           "id": "color-contrast",
-          "nodes": 51
+          "nodes": 56
         }
       ]
     },
@@ -55,7 +124,7 @@
         "version": "4.14.0"
       },
       "contrast": {
-        "checked": 13,
+        "checked": 17,
         "failures": [],
         "skipped": []
       },
@@ -67,7 +136,7 @@
         },
         {
           "id": "color-contrast",
-          "nodes": 51
+          "nodes": 56
         }
       ]
     },
@@ -78,7 +147,7 @@
         "version": "4.14.0"
       },
       "contrast": {
-        "checked": 55,
+        "checked": 57,
         "failures": [],
         "skipped": []
       },
@@ -90,7 +159,7 @@
         },
         {
           "id": "color-contrast",
-          "nodes": 33
+          "nodes": 40
         }
       ]
     },
@@ -117,7 +186,7 @@
         },
         {
           "id": "color-contrast",
-          "nodes": 31
+          "nodes": 36
         }
       ]
     },
@@ -144,7 +213,7 @@
         },
         {
           "id": "color-contrast",
-          "nodes": 31
+          "nodes": 36
         }
       ]
     },
@@ -171,7 +240,7 @@
         },
         {
           "id": "color-contrast",
-          "nodes": 31
+          "nodes": 36
         }
       ]
     },
@@ -182,7 +251,7 @@
         "version": "4.14.0"
       },
       "contrast": {
-        "checked": 62,
+        "checked": 67,
         "failures": [],
         "skipped": ["Overview", "Timetable", "List", "Expenses"]
       },
@@ -194,7 +263,7 @@
         },
         {
           "id": "color-contrast",
-          "nodes": 51
+          "nodes": 56
         }
       ]
     },
@@ -205,7 +274,7 @@
         "version": "4.14.0"
       },
       "contrast": {
-        "checked": 41,
+        "checked": 46,
         "failures": [],
         "skipped": []
       },
@@ -217,18 +286,18 @@
         },
         {
           "id": "color-contrast",
-          "nodes": 27
+          "nodes": 32
         }
       ]
     },
     {
-      "name": "mobile-balances",
+      "name": "mobile-trip-people",
       "engine": {
         "name": "axe-core",
         "version": "4.14.0"
       },
       "contrast": {
-        "checked": 64,
+        "checked": 25,
         "failures": [],
         "skipped": []
       },
@@ -240,7 +309,57 @@
         },
         {
           "id": "color-contrast",
-          "nodes": 27
+          "nodes": 32
+        }
+      ]
+    },
+    {
+      "name": "trip-person-actions",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 4,
+        "failures": [],
+        "skipped": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": 4
+        },
+        {
+          "id": "bypass",
+          "nodes": 1
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 32
+        }
+      ]
+    },
+    {
+      "name": "mobile-balances",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 66,
+        "failures": [],
+        "skipped": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": 3
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 32
         }
       ]
     },
@@ -251,7 +370,7 @@
         "version": "4.14.0"
       },
       "contrast": {
-        "checked": 41,
+        "checked": 46,
         "failures": [],
         "skipped": []
       },
@@ -263,7 +382,7 @@
         },
         {
           "id": "color-contrast",
-          "nodes": 27
+          "nodes": 32
         }
       ]
     },
@@ -274,7 +393,7 @@
         "version": "4.14.0"
       },
       "contrast": {
-        "checked": 44,
+        "checked": 49,
         "failures": [],
         "skipped": ["Overview", "Timetable", "List", "Expenses"]
       },
@@ -286,12 +405,14 @@
         },
         {
           "id": "color-contrast",
-          "nodes": 31
+          "nodes": 36
         }
       ]
     }
   ],
   "checks": [
+    "Linking a guest account preserves the person ID and grants no access; joining does not change existing access",
+    "People opens Sharing with a guest account selected and Joining independent of account access",
     "People picker traps Tab focus",
     "Escape restores focus to Choose people and keeps the expense draft",
     "Shared settlement date picker supports Enter, arrow-key selection and confirmation",

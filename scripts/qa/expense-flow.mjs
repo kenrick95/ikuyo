@@ -36,6 +36,7 @@ const reports = [],
   errors = [];
 page.on('pageerror', (error) => errors.push(error.message));
 const stamp = Date.parse('2026-11-16T04:00:00Z');
+await page.clock.setFixedTime(new Date(stamp));
 const user = {
   id: 'mock-user-alex',
   handle: 'alex',
@@ -51,7 +52,10 @@ const people = [
     name: 'Alex',
     userId: user.id,
     handle: 'alex',
-    guest: false,
+    hasAccount: true,
+    accountType: 'registered',
+    isParticipant: true,
+    accessRole: 0,
     archived: false,
   },
   {
@@ -59,7 +63,10 @@ const people = [
     name: 'Bea',
     userId: null,
     handle: null,
-    guest: true,
+    hasAccount: false,
+    accountType: null,
+    isParticipant: true,
+    accessRole: null,
     archived: false,
   },
   {
@@ -67,7 +74,21 @@ const people = [
     name: 'Chen',
     userId: null,
     handle: null,
-    guest: true,
+    hasAccount: false,
+    accountType: null,
+    isParticipant: true,
+    accessRole: null,
+    archived: false,
+  },
+  {
+    id: 'd',
+    name: 'Morgan',
+    userId: 'mock-guest-account',
+    handle: 'guest_account',
+    hasAccount: true,
+    accountType: 'guest',
+    isParticipant: false,
+    accessRole: 1,
     archived: false,
   },
 ];
@@ -129,7 +150,11 @@ function addExpense(title, amount, currency, paidBy, shared = true) {
     {
       paidBy,
       method: shared ? 'equal' : null,
-      shares: shared ? people.map((p) => ({ participantId: p.id })) : [],
+      shares: shared
+        ? people
+            .filter((p) => p.isParticipant)
+            .map((p) => ({ participantId: p.id }))
+        : [],
     },
     amount,
     currency,
@@ -193,7 +218,6 @@ function snapshot() {
       };
     });
   return {
-    participants: people,
     currencies,
     payments,
     splitCount: expenses.filter((e) => e.ledger?.method).length,
@@ -218,9 +242,27 @@ function trip() {
     accommodation: [],
     macroplan: [],
     expense: expenses,
+    people,
     expenseLedger: snapshot(),
     taskList: [],
-    tripUser: [{ id: 'mock-member-alex', role: 0, user }],
+    tripUser: [
+      {
+        id: 'mock-member-alex',
+        role: 0,
+        user: { ...user, accountType: 'registered' },
+      },
+      {
+        id: 'mock-member-morgan',
+        role: 1,
+        user: {
+          id: 'mock-guest-account',
+          handle: 'guest_account',
+          email: null,
+          accountType: 'guest',
+          activated: true,
+        },
+      },
+    ],
     commentGroup: [],
   };
 }
@@ -246,23 +288,40 @@ await page.route('**/*', async (route) => {
     return respond(trip());
   if (url.pathname.endsWith('/expense-history'))
     return respond({ items: history, nextCursor: null });
-  if (url.pathname.endsWith('/expense-participants/lookup'))
+  if (url.pathname.endsWith('/people/lookup'))
     return respond({
       user:
-        body.identity === '@morgan'
-          ? { id: 'mock-user-morgan', handle: 'morgan' }
-          : null,
+        body.identity === '@new_guest'
+          ? { id: 'mock-new-guest-account', handle: 'new_guest' }
+          : body.identity === '@morgan'
+            ? { id: 'mock-user-morgan', handle: 'morgan' }
+            : null,
     });
-  if (url.pathname.endsWith('/expense-participants') && method === 'POST') {
+  if (url.pathname.endsWith('/people') && method === 'POST') {
     people.push({
       id: body.id,
       name: body.name || 'Morgan',
       userId: body.userId || null,
       handle: body.userId ? 'morgan' : null,
-      guest: !body.userId,
+      hasAccount: !!body.userId,
+      accountType: body.userId ? 'registered' : null,
+      isParticipant: body.isParticipant ?? true,
+      accessRole: null,
       archived: false,
     });
     return respond({ id: body.id }, 201);
+  }
+  if (method === 'PATCH' && /\/people\/[^/]+$/.test(url.pathname)) {
+    const person = people.find((p) => p.id === url.pathname.split('/').at(-1));
+    assert(person, 'Unknown mock person');
+    Object.assign(person, body);
+    if ('userId' in body)
+      Object.assign(person, {
+        hasAccount: !!body.userId,
+        handle: body.userId ? 'new_guest' : null,
+        accountType: body.userId ? 'guest' : null,
+      });
+    return respond({ id: person.id });
   }
   if (url.pathname.endsWith('/expense-payments') && method === 'POST') {
     payments.push({ ...body, voided: false });
@@ -422,6 +481,9 @@ async function capture(name) {
       '04-balances',
       '05-partial-settlement',
       '06-cross-currency-settlement',
+      '11-trip-people',
+      '12-link-account',
+      '14-trip-sharing',
     ].includes(name)
   ) {
     await page
@@ -448,6 +510,83 @@ try {
   await page.getByRole('button', { name: 'Balances', exact: true }).waitFor();
   await audit('expenses-overview');
   await capture('01-expenses-overview');
+  await page.getByRole('button', { name: 'People', exact: true }).click();
+  await audit('trip-people');
+  await capture('11-trip-people');
+  assert(await page.getByText('No account', { exact: true }).count());
+  assert(await page.getByText('Guest account', { exact: true }).count());
+  const joining = page.getByRole('checkbox', {
+    name: 'Morgan is joining the trip',
+  });
+  assert.equal(await joining.isChecked(), false);
+  await joining.click();
+  await page.waitForFunction(
+    () =>
+      document
+        .querySelector('[aria-label="Morgan is joining the trip"]')
+        ?.getAttribute('aria-checked') === 'true',
+  );
+  await joining.click();
+  await page.waitForFunction(
+    () =>
+      document
+        .querySelector('[aria-label="Morgan is joining the trip"]')
+        ?.getAttribute('aria-checked') === 'false',
+  );
+  assert.equal(people.find((p) => p.id === 'd').accessRole, 1);
+  await page.getByRole('button', { name: 'Actions for Chen' }).click();
+  await page
+    .getByRole('menuitem', { name: 'Link account', exact: true })
+    .click();
+  await page
+    .getByPlaceholder('Name, Ikuyo email or @username')
+    .fill('@new_guest');
+  await page.getByRole('button', { name: 'Find', exact: true }).click();
+  await page.getByRole('button', { name: 'Link', exact: true }).waitFor();
+  await audit('trip-person-link');
+  await capture('12-link-account');
+  await page.getByRole('button', { name: 'Link', exact: true }).click();
+  await page.waitForFunction(
+    () =>
+      document.querySelectorAll('[data-state="open"] [role="checkbox"]')
+        .length >= 4,
+  );
+  assert.equal(people.find((p) => p.id === 'c').id, 'c');
+  assert.equal(people.find((p) => p.id === 'c').accessRole, null);
+  checks.push(
+    'Linking a guest account preserves the person ID and grants no access; joining does not change existing access',
+  );
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await page.getByRole('button', { name: 'People', exact: true }).click();
+  await page.getByRole('button', { name: 'Actions for Morgan' }).click();
+  await page.getByRole('menuitem', { name: 'Share', exact: true }).click();
+  await page
+    .getByRole('heading', { name: 'Sharing & Privacy for Trip' })
+    .waitFor();
+  assert.equal(
+    await page
+      .getByRole('textbox', { name: 'Account to share with' })
+      .inputValue(),
+    '@guest_account',
+  );
+  assert.equal(
+    await page
+      .getByRole('checkbox', { name: 'Also add to participants' })
+      .isChecked(),
+    false,
+  );
+  assert.equal(
+    await page
+      .getByRole('checkbox', { name: 'guest_account is joining the trip' })
+      .isChecked(),
+    false,
+  );
+  await audit('trip-sharing');
+  await capture('14-trip-sharing');
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  checks.push(
+    'People opens Sharing with a guest account selected and Joining independent of account access',
+  );
   await page.getByRole('button', { name: 'Add Expense', exact: true }).click();
   await page.locator('input[name="title"]').fill('Hotel deposit');
   await page.locator('input[name="amount"]').fill('120');
@@ -587,6 +726,19 @@ try {
     'Mobile viewport has horizontal overflow',
   );
   checks.push('390px layout has no horizontal page overflow');
+  await page.getByRole('button', { name: 'People', exact: true }).click();
+  await audit('mobile-trip-people');
+  await capture('13-mobile-trip-people');
+  assert(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+    'Mobile people dialog has horizontal overflow',
+  );
+  await page.getByRole('button', { name: 'Actions for Morgan' }).click();
+  await audit('trip-person-actions');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
   await page.getByRole('button', { name: 'Balances', exact: true }).click();
   await audit('mobile-balances');
   await capture('09-mobile-balances');

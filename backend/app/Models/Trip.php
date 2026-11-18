@@ -71,4 +71,10 @@ class Trip extends Model
         return $this->belongsToMany(User::class, 'trip_user')
             ->withPivot('id', 'role', 'created_at_ms', 'updated_at_ms');
     }
+
+    /** @return HasMany<TripPerson, $this> */
+    public function people(): HasMany
+    {
+        return $this->hasMany(TripPerson::class);
+    }
 }

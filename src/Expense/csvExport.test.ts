@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest';
+import type { TripPerson } from '../Trip/people/types';
 import type { TripSliceExpense } from '../Trip/store/types';
 import { expensesToCsv, ledgerStatementToCsv } from './csvExport';
 import type { ExpenseLedgerData } from './ledger';
@@ -33,10 +34,19 @@ test('refund and origin amounts remain numeric in expense CSV', () => {
 });
 
 test('negative balances remain numeric while spreadsheet formulas in names and notes are escaped', () => {
+  const people: TripPerson[] = [
+    {
+      id: 'a',
+      name: '@SUM(A1)',
+      userId: null,
+      handle: null,
+      hasAccount: false,
+      accountType: null,
+      isParticipant: true,
+      accessRole: null,
+    },
+  ];
   const data: ExpenseLedgerData = {
-    participants: [
-      { id: 'a', name: '@SUM(A1)', userId: null, handle: null, guest: true },
-    ],
     currencies: [
       {
         currency: 'SGD',
@@ -59,7 +69,7 @@ test('negative balances remain numeric while spreadsheet formulas in names and n
     splitCount: 1,
     expenseCount: 1,
   };
-  const rows = ledgerStatementToCsv(data)
+  const rows = ledgerStatementToCsv(data, people)
     .split('\n')
     .map((row) => row.split(','));
   expect(rows[1][6]).toBe('-30.00');

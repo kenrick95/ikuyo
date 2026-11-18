@@ -16,8 +16,8 @@ import { ExpenseCard } from '../Expense/ExpenseCard';
 import { ExpenseHeaderCard } from '../Expense/ExpenseHeaderCard';
 import { ExpenseInlineCardForm } from '../Expense/ExpenseInlineCardForm';
 import { ExpenseMode } from '../Expense/ExpenseMode';
-import { ExpensePeopleDialog } from '../Expense/ExpensePeopleDialog';
 import { DocTitle } from '../Nav/DocTitle';
+import { TripPeopleDialog } from './people/TripPeopleDialog';
 import { canModifyTripContent } from './permissions';
 import { getSectionVisibility } from './sectionVisibility';
 import { useCurrentTrip, useTripExpenses } from './store/hooks';
@@ -37,11 +37,7 @@ export function TripExpenseViewCards() {
   const handleExportToCsv = useCallback(() => {
     if (!trip || expenses.length === 0) return;
 
-    const csvContent = expensesToCsv(
-      expenses,
-      trip.timeZone,
-      trip.expenseLedger?.participants,
-    );
+    const csvContent = expensesToCsv(expenses, trip.timeZone, trip.people);
     const filename = `${trip.title.replace(/[^a-z0-9]/gi, '_')}_expenses_${new Date().toISOString().split('T')[0]}.csv`;
     downloadCsv(csvContent, filename);
   }, [trip, expenses]);
@@ -61,9 +57,7 @@ export function TripExpenseViewCards() {
               Expenses
             </Heading>
             <Flex gap="2" wrap="wrap" justify="end">
-              {trip && userCanModifyExpense && (
-                <ExpensePeopleDialog trip={trip} />
-              )}
+              {trip && userCanModifyExpense && <TripPeopleDialog trip={trip} />}
               {trip && <ExpenseBalancesDialog trip={trip} />}
               {expenses.length > 0 && (
                 <Button

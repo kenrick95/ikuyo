@@ -1,37 +1,49 @@
+import { DotsHorizontalIcon } from '@radix-ui/react-icons';
 import {
   Badge,
   Button,
   Checkbox,
   Dialog,
+  DropdownMenu,
   Flex,
   Text,
   TextField,
 } from '@radix-ui/themes';
 import { useState } from 'react';
-import { patchMutation, postMutation } from '../data/apiClient';
-import { id } from '../data/id';
-import { useBoundStore } from '../data/store';
-import type { TripSliceTrip } from '../Trip/store/types';
-import type { ExpenseParticipant } from './ledger';
+import { patchMutation, postMutation } from '../../data/apiClient';
+import { id } from '../../data/id';
+import { useBoundStore } from '../../data/store';
+import { isTripOwner } from '../permissions';
+import type { TripSliceTrip } from '../store/types';
+import { TripSharingDialog } from '../TripDialog/TripSharingDialog';
+import type { TripPerson } from './types';
 
-export function useExpensePeople(trip: TripSliceTrip): ExpenseParticipant[] {
+export function useTripPeople(
+  trip: TripSliceTrip,
+  includeSelf = false,
+): TripPerson[] {
   const currentUser = useBoundStore((state) => state.currentUser);
-  const people = trip.expenseLedger?.participants ?? [];
-  return currentUser && !people.some((p) => p.userId === currentUser.id)
+  const people = trip.people ?? [];
+  return includeSelf &&
+    currentUser &&
+    !people.some((p) => p.userId === currentUser.id)
     ? [
         {
           id: 'me',
           name: currentUser.handle,
           handle: currentUser.handle,
           userId: currentUser.id,
-          guest: false,
+          hasAccount: true,
+          accountType: currentUser.email ? 'registered' : 'guest',
+          isParticipant: false,
+          accessRole: null,
         },
         ...people,
       ]
     : people;
 }
 
-export function ParticipantLabel({ person }: { person: ExpenseParticipant }) {
+export function PersonLabel({ person }: { person: TripPerson }) {
   const currentId = useBoundStore((state) => state.currentUser?.id);
   return (
     <Flex as="span" align="center" gap="2" wrap="wrap">
@@ -39,8 +51,8 @@ export function ParticipantLabel({ person }: { person: ExpenseParticipant }) {
         {person.name}
         {person.userId && person.userId === currentId ? ' (you)' : ''}
       </Text>
-      {person.guest ? (
-        <Badge color="gray">Guest</Badge>
+      {!person.hasAccount ? (
+        <Badge color="gray">No account</Badge>
       ) : (
         person.handle && (
           <Text size="1" color="gray">
@@ -48,12 +60,15 @@ export function ParticipantLabel({ person }: { person: ExpenseParticipant }) {
           </Text>
         )
       )}
+      {person.accountType === 'guest' && (
+        <Badge color="gray">Guest account</Badge>
+      )}
       {person.archived && <Badge color="gray">Archived</Badge>}
     </Flex>
   );
 }
 
-export function ExpensePeopleDialog({
+export function TripPeopleDialog({
   trip,
   selected,
   onApply,
@@ -64,7 +79,7 @@ export function ExpensePeopleDialog({
   onApply?: (ids: string[]) => void;
   disabled?: boolean;
 }) {
-  const people = useExpensePeople(trip);
+  const people = useTripPeople(trip, selected !== undefined);
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState<string[]>([]);
   const [query, setQuery] = useState('');
@@ -75,13 +90,20 @@ export function ExpensePeopleDialog({
   const [loading, setLoading] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
+  const [linking, setLinking] = useState<string | null>(null);
   const refreshTrip = useBoundStore((state) => state.refreshTrip);
-  const prefix = `/api/trips/${encodeURIComponent(trip.id)}/expense-participants`;
+  const pushDialog = useBoundStore((state) => state.pushDialog);
+  const prefix = `/api/trips/${encodeURIComponent(trip.id)}/people`;
   const lookup = query.startsWith('@') || query.includes('@');
 
   async function updateParticipant(
     participant: string,
-    data: { name?: string; archived?: boolean },
+    data: {
+      name?: string;
+      archived?: boolean;
+      isParticipant?: boolean;
+      userId?: string | null;
+    },
   ) {
     setLoading(true);
     setError('');
@@ -89,6 +111,7 @@ export function ExpensePeopleDialog({
       await patchMutation(`${prefix}/${encodeURIComponent(participant)}`, data);
       await refreshTrip(trip.id);
       setRenaming(null);
+      setLinking(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to update person.');
     } finally {
@@ -100,6 +123,12 @@ export function ExpensePeopleDialog({
     setLoading(true);
     setError('');
     try {
+      if (linking && user) {
+        await updateParticipant(linking, { userId: user.id });
+        setQuery('');
+        setMatch(null);
+        return;
+      }
       const result = await postMutation<{ id: string }>(
         prefix,
         user ? { id: id(), userId: user.id } : { id: id(), name: query.trim() },
@@ -117,6 +146,10 @@ export function ExpensePeopleDialog({
   }
 
   async function findOrAdd() {
+    if (linking && !lookup) {
+      setError('Enter an Ikuyo email or @username.');
+      return;
+    }
     if (!lookup) return add();
     setLoading(true);
     setError('');
@@ -146,6 +179,7 @@ export function ExpensePeopleDialog({
           setMatch(null);
           setError('');
           setRenaming(null);
+          setLinking(null);
         }
       }}
     >
@@ -164,7 +198,9 @@ export function ExpensePeopleDialog({
         <Dialog.Title>{selected ? 'Split between' : 'People'}</Dialog.Title>
         <Flex direction="column" gap="3">
           <Text as="label" size="2">
-            Add or find a person
+            {linking
+              ? `Link account to ${people.find((p) => p.id === linking)?.name}`
+              : 'Add or find a person'}
             <Flex gap="2" mt="1">
               <TextField.Root
                 style={{ flex: 1 }}
@@ -189,7 +225,7 @@ export function ExpensePeopleDialog({
                 disabled={loading || !query.trim()}
                 onClick={() => void findOrAdd()}
               >
-                {lookup ? 'Find' : 'Add'}
+                {lookup || linking ? 'Find' : 'Add'}
               </Button>
             </Flex>
           </Text>
@@ -202,12 +238,26 @@ export function ExpensePeopleDialog({
                 disabled={loading}
                 onClick={() => void add(match)}
               >
-                Add
+                {linking ? 'Link' : 'Add'}
               </Button>
             </Flex>
           )}
+          {linking && (
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={loading}
+              onClick={() => {
+                setLinking(null);
+                setMatch(null);
+                setQuery('');
+              }}
+            >
+              Cancel link
+            </Button>
+          )}
           {people.map((p) => (
-            <Flex key={p.id} align="center" gap="3" py="1">
+            <Flex key={p.id} align="center" gap="3" py="1" wrap="wrap">
               {selected && (
                 <Checkbox
                   aria-label={`Include ${p.name}`}
@@ -222,7 +272,35 @@ export function ExpensePeopleDialog({
                   disabled={loading || (p.archived && !pending.includes(p.id))}
                 />
               )}
-              <ParticipantLabel person={p} />
+              <PersonLabel person={p} />
+              {!selected && (
+                <Text as="label" size="2">
+                  <Flex align="center" gap="2">
+                    <Checkbox
+                      checked={p.isParticipant}
+                      disabled={loading || p.archived}
+                      aria-label={`${p.name} is joining the trip`}
+                      onCheckedChange={(checked) =>
+                        void updateParticipant(p.id, {
+                          isParticipant: checked === true,
+                        })
+                      }
+                    />
+                    Joining
+                  </Flex>
+                </Text>
+              )}
+              {!selected && p.hasAccount && (
+                <Text size="1" color="gray">
+                  {p.accessRole === 0
+                    ? 'Owner'
+                    : p.accessRole === 1
+                      ? 'Editor'
+                      : p.accessRole === 2
+                        ? 'Viewer'
+                        : 'No access'}
+                </Text>
+              )}
               {!selected && p.id !== 'me' && (
                 <Flex gap="2" wrap="wrap" ml="auto">
                   {renaming === p.id ? (
@@ -255,33 +333,74 @@ export function ExpensePeopleDialog({
                       </Button>
                     </>
                   ) : (
-                    <>
-                      <Button
-                        type="button"
-                        size="1"
-                        variant="ghost"
-                        disabled={loading}
-                        onClick={() => {
-                          setRenaming(p.id);
-                          setNewName(p.name);
-                        }}
-                      >
-                        Rename
-                      </Button>
-                      <Button
-                        type="button"
-                        size="1"
-                        variant="ghost"
-                        disabled={loading}
-                        onClick={() =>
-                          void updateParticipant(p.id, {
-                            archived: !p.archived,
-                          })
-                        }
-                      >
-                        {p.archived ? 'Restore' : 'Archive'}
-                      </Button>
-                    </>
+                    <DropdownMenu.Root>
+                      <DropdownMenu.Trigger>
+                        <Button
+                          type="button"
+                          size="1"
+                          variant="ghost"
+                          color="gray"
+                          disabled={loading}
+                          aria-label={`Actions for ${p.name}`}
+                        >
+                          <DotsHorizontalIcon />
+                        </Button>
+                      </DropdownMenu.Trigger>
+                      <DropdownMenu.Content>
+                        <DropdownMenu.Item
+                          onSelect={() => {
+                            setRenaming(p.id);
+                            setNewName(p.name);
+                          }}
+                        >
+                          Rename
+                        </DropdownMenu.Item>
+                        {!p.hasAccount ? (
+                          <DropdownMenu.Item
+                            onSelect={() => {
+                              setLinking(p.id);
+                              setQuery('');
+                              setMatch(null);
+                              setError('');
+                            }}
+                          >
+                            Link account
+                          </DropdownMenu.Item>
+                        ) : (
+                          <DropdownMenu.Item
+                            onSelect={() =>
+                              void updateParticipant(p.id, { userId: null })
+                            }
+                          >
+                            Unlink account
+                          </DropdownMenu.Item>
+                        )}
+                        {p.handle &&
+                          p.accessRole !== 0 &&
+                          isTripOwner(trip) && (
+                            <DropdownMenu.Item
+                              onSelect={() => {
+                                setOpen(false);
+                                pushDialog(TripSharingDialog, {
+                                  tripId: trip.id,
+                                  accountIdentity: `@${p.handle}`,
+                                });
+                              }}
+                            >
+                              Share
+                            </DropdownMenu.Item>
+                          )}
+                        <DropdownMenu.Item
+                          onSelect={() =>
+                            void updateParticipant(p.id, {
+                              archived: !p.archived,
+                            })
+                          }
+                        >
+                          {p.archived ? 'Restore' : 'Archive'}
+                        </DropdownMenu.Item>
+                      </DropdownMenu.Content>
+                    </DropdownMenu.Root>
                   )}
                 </Flex>
               )}
