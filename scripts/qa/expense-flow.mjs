@@ -477,6 +477,25 @@ async function audit(name) {
 async function capture(name) {
   if (
     [
+      '15-mobile-inline-split',
+      '16-narrow-inline-split',
+      '17-narrow-share-split',
+    ].includes(name)
+  ) {
+    const fields = page
+      .getByRole('region', { name: 'Expense split', exact: true })
+      .locator('..');
+    await fields.evaluate((element) =>
+      element.scrollIntoView({ block: 'center' }),
+    );
+    await fields.screenshot({
+      path: path.join(output, `${name}.png`),
+      animations: 'disabled',
+    });
+    return;
+  }
+  if (
+    [
       '03-people-picker',
       '04-balances',
       '05-partial-settlement',
@@ -530,6 +549,50 @@ async function checkPeopleGrid() {
       });
     }),
     'People cells must align with their columns and fit without horizontal scrolling',
+  );
+}
+
+async function checkSplitGrid() {
+  const region = page.getByRole('region', {
+    name: 'Expense split',
+    exact: true,
+  });
+  const choose = await region
+    .getByRole('button', { name: 'Choose people' })
+    .boundingBox();
+  const method = await region
+    .getByRole('combobox', { name: 'Split method:' })
+    .boundingBox();
+  const bounds = await region.boundingBox();
+  assert(
+    bounds.width <= 640,
+    'Split controls should have a bounded reading width',
+  );
+  assert(
+    Math.abs(choose.x + choose.width - method.x - method.width) < 1,
+    'Split controls should share a right edge',
+  );
+  assert(
+    await region.evaluate((section) => {
+      if (section.scrollWidth > section.clientWidth + 1) return false;
+      return [...section.querySelectorAll('li')].every((row) => {
+        const amount = row.lastElementChild;
+        return (
+          row.scrollWidth <= row.clientWidth + 1 &&
+          Math.abs(
+            amount.getBoundingClientRect().right -
+              row.getBoundingClientRect().right,
+          ) < 1
+        );
+      });
+    }),
+    'Split names and amounts should fit with aligned right edges',
+  );
+  assert(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+    'Split form should fit the viewport',
   );
 }
 
@@ -623,7 +686,47 @@ try {
     .getByRole('switch', { name: 'Split expense', exact: true })
     .click();
   await audit('inline-split');
+  await checkSplitGrid();
   await capture('02-inline-split');
+  await page.setViewportSize({ width: 1920, height: 1040 });
+  await checkSplitGrid();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await audit('mobile-inline-split');
+  await checkSplitGrid();
+  await capture('15-mobile-inline-split');
+  await page.setViewportSize({ width: 320, height: 800 });
+  await audit('mobile-320-inline-split');
+  await checkSplitGrid();
+  await capture('16-narrow-inline-split');
+  for (const [option, state] of [
+    ['By exact amounts', 'exact'],
+    ['By percentage', 'percent'],
+    ['By shares', 'shares'],
+  ]) {
+    await page.getByRole('combobox', { name: 'Split method:' }).click();
+    await page.getByRole('option', { name: option, exact: true }).click();
+    if (state === 'exact')
+      await page
+        .getByRole('textbox', { name: 'Alex share', exact: true })
+        .fill('120');
+    await audit(`mobile-320-split-${state}`);
+    await checkSplitGrid();
+    assert.equal(
+      await page
+        .getByRole('list', { name: 'Split amounts' })
+        .getByRole('listitem')
+        .count(),
+      3,
+      'Each person should have one allocation row',
+    );
+  }
+  await capture('17-narrow-share-split');
+  await page.getByRole('combobox', { name: 'Split method:' }).click();
+  await page.getByRole('option', { name: 'Equally', exact: true }).click();
+  await page.setViewportSize({ width: 1280, height: 1040 });
+  checks.push(
+    'Split controls and amount rows align at 320px, 390px, 1280px, and 1920px; all four methods fit on narrow screens',
+  );
   await page
     .getByRole('button', { name: 'Choose people', exact: true })
     .click();

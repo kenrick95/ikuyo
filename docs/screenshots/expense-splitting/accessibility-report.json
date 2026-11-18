@@ -101,7 +101,7 @@
         "version": "4.14.0"
       },
       "contrast": {
-        "checked": 65,
+        "checked": 66,
         "failures": [],
         "skipped": ["Overview", "Timetable", "List", "Expenses"]
       },
@@ -114,6 +114,121 @@
         {
           "id": "color-contrast",
           "nodes": 56
+        }
+      ]
+    },
+    {
+      "name": "mobile-inline-split",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 63,
+        "failures": [],
+        "skipped": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-valid-attr-value",
+          "nodes": 4
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 52
+        }
+      ]
+    },
+    {
+      "name": "mobile-320-inline-split",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 63,
+        "failures": [],
+        "skipped": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-valid-attr-value",
+          "nodes": 4
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 52
+        }
+      ]
+    },
+    {
+      "name": "mobile-320-split-exact",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 63,
+        "failures": [],
+        "skipped": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-valid-attr-value",
+          "nodes": 4
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 55
+        }
+      ]
+    },
+    {
+      "name": "mobile-320-split-percent",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 63,
+        "failures": [],
+        "skipped": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-valid-attr-value",
+          "nodes": 4
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 55
+        }
+      ]
+    },
+    {
+      "name": "mobile-320-split-shares",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 66,
+        "failures": [],
+        "skipped": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-valid-attr-value",
+          "nodes": 4
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 58
         }
       ]
     },
@@ -159,7 +274,7 @@
         },
         {
           "id": "color-contrast",
-          "nodes": 40
+          "nodes": 39
         }
       ]
     },
@@ -251,7 +366,7 @@
         "version": "4.14.0"
       },
       "contrast": {
-        "checked": 67,
+        "checked": 68,
         "failures": [],
         "skipped": ["Overview", "Timetable", "List", "Expenses"]
       },
@@ -459,6 +574,7 @@
   "checks": [
     "Linking a guest account preserves the person ID and grants no access; joining does not change existing access",
     "People opens Sharing with a guest account selected and Joining independent of account access",
+    "Split controls and amount rows align at 320px, 390px, 1280px, and 1920px; all four methods fit on narrow screens",
     "People picker traps Tab focus",
     "Escape restores focus to Choose people and keeps the expense draft",
     "Shared settlement date picker supports Enter, arrow-key selection and confirmation",

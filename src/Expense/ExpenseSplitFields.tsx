@@ -1,4 +1,4 @@
-import { Box, Flex, Select, Switch, Text, TextField } from '@radix-ui/themes';
+import { Flex, Select, Switch, Text, TextField } from '@radix-ui/themes';
 import { useId, useState } from 'react';
 import {
   PersonLabel,
@@ -6,6 +6,7 @@ import {
   useTripPeople,
 } from '../Trip/people/TripPeopleDialog';
 import type { TripSliceTrip } from '../Trip/store/types';
+import s from './ExpenseSplitFields.module.css';
 import {
   type ExpenseLedger,
   formatMinor,
@@ -46,7 +47,7 @@ export function ExpenseSplitFields({
   const patch = (update: Partial<ExpenseLedger>) =>
     onChange({ ...value, ...update });
   return (
-    <Flex direction="column" gap="3">
+    <Flex direction="column" gap="3" className={s.fields}>
       <Text as="label" size="2">
         {value.kind === 'refund' ? 'Received by' : 'Paid by'}
         <Select.Root
@@ -148,16 +149,14 @@ export function ExpenseSplitFields({
         </Flex>
       </Text>
       {value.method && (
-        <Box
+        <section
           id={splitRegionId}
-          p="3"
-          style={{
-            background: 'var(--gray-2)',
-            borderRadius: 'var(--radius-2)',
-          }}
+          aria-label="Expense split"
+          className={s.splitSection}
         >
-          <Flex align="center" gap="3" wrap="wrap" mb="3">
-            <Text size="2">
+          <div className={s.controlRow}>
+            <Text size="2" className={s.peopleSummary}>
+              Split among:{' '}
               {value.shares
                 .map(
                   (row) =>
@@ -166,113 +165,128 @@ export function ExpenseSplitFields({
                 )
                 .join(', ') || 'No people selected'}
             </Text>
-            <TripPeopleDialog
-              trip={trip}
-              selected={value.shares.map((r) => r.participantId)}
+            <div className={s.control}>
+              <TripPeopleDialog
+                trip={trip}
+                selected={value.shares.map((r) => r.participantId)}
+                disabled={disabled}
+                onApply={(ids) =>
+                  patch({
+                    shares: ids.map(
+                      (participantId) =>
+                        value.shares.find(
+                          (r) => r.participantId === participantId,
+                        ) ?? {
+                          participantId,
+                          value: value.method === 'shares' ? '1' : '0',
+                        },
+                    ),
+                  })
+                }
+              />
+            </div>
+          </div>
+          <div className={s.controlRow}>
+            <Text as="label" htmlFor={methodId} size="2">
+              Split method:
+            </Text>
+            <Select.Root
+              value={value.method}
               disabled={disabled}
-              onApply={(ids) =>
+              onValueChange={(method) =>
                 patch({
-                  shares: ids.map(
-                    (participantId) =>
-                      value.shares.find(
-                        (r) => r.participantId === participantId,
-                      ) ?? {
-                        participantId,
-                        value: value.method === 'shares' ? '1' : '0',
-                      },
-                  ),
+                  method: method as SplitMethod,
+                  shares: value.shares.map((row, i) => ({
+                    participantId: row.participantId,
+                    value:
+                      method === 'shares'
+                        ? '1'
+                        : method === 'percent' && i === 0
+                          ? '100'
+                          : '0',
+                  })),
                 })
               }
-            />
-          </Flex>
-          <Text
-            as="label"
-            htmlFor={methodId}
-            size="2"
-            mb="1"
-            style={{ display: 'block' }}
-          >
-            Split method
-          </Text>
-          <Select.Root
-            value={value.method}
-            disabled={disabled}
-            onValueChange={(method) =>
-              patch({
-                method: method as SplitMethod,
-                shares: value.shares.map((row, i) => ({
-                  participantId: row.participantId,
-                  value:
-                    method === 'shares'
-                      ? '1'
-                      : method === 'percent' && i === 0
-                        ? '100'
-                        : '0',
-                })),
-              })
-            }
-          >
-            <Select.Trigger id={methodId} />
-            <Select.Content>
-              <Select.Item value="equal">Equally</Select.Item>
-              <Select.Item value="exact">By exact amounts</Select.Item>
-              <Select.Item value="percent">By percentage</Select.Item>
-              <Select.Item value="shares">By shares</Select.Item>
-            </Select.Content>
-          </Select.Root>
-          {value.method !== 'equal' &&
-            value.shares.map((row) => (
-              <Flex
-                key={row.participantId}
-                justify="between"
-                align="center"
-                gap="2"
-                mt="2"
-              >
-                <Text size="2">
-                  {people.find((p) => p.id === row.participantId)?.name}
-                </Text>
-                <Flex align="center" gap="2">
-                  <TextField.Root
-                    style={{ maxWidth: 120 }}
-                    aria-label={`${people.find((p) => p.id === row.participantId)?.name} share`}
-                    inputMode="decimal"
-                    disabled={disabled}
-                    value={row.value ?? ''}
-                    onChange={(e) =>
-                      patch({
-                        shares: value.shares.map((r) =>
-                          r === row ? { ...r, value: e.target.value } : r,
-                        ),
-                      })
-                    }
-                  />
-                  <Text size="1">
-                    {value.method === 'percent'
-                      ? '%'
-                      : value.method === 'shares'
-                        ? 'shares'
-                        : currency}
+            >
+              <Select.Trigger id={methodId} className={s.control} />
+              <Select.Content>
+                <Select.Item value="equal">Equally</Select.Item>
+                <Select.Item value="exact">By exact amounts</Select.Item>
+                <Select.Item value="percent">By percentage</Select.Item>
+                <Select.Item value="shares">By shares</Select.Item>
+              </Select.Content>
+            </Select.Root>
+          </div>
+          <ul className={s.allocations} aria-label="Split amounts">
+            {value.shares.map((row) => {
+              const name =
+                people.find((p) => p.id === row.participantId)?.name ??
+                'Person';
+              const allocation = preview.find(
+                (p) => p.participantId === row.participantId,
+              );
+              return (
+                <li className={s.allocationRow} key={row.participantId}>
+                  <Text size="2" className={s.personName}>
+                    {name}
                   </Text>
-                </Flex>
-              </Flex>
-            ))}
-          <Flex direction="column" gap="2" mt="3" aria-live="polite">
-            {preview.map((row) => (
-              <Flex justify="between" gap="2" key={row.participantId}>
-                <Text size="2">
-                  {people.find((p) => p.id === row.participantId)?.name}
-                </Text>
-                <Text size="2">{formatMinor(row.amountMinor, currency)}</Text>
-              </Flex>
-            ))}
-            {error && (
-              <Text color="red" size="2" role="alert">
-                {error}
-              </Text>
-            )}
-          </Flex>
-        </Box>
+                  <div className={s.valueCell}>
+                    {value.method === 'equal' ? (
+                      <Text size="2" className={s.amount} aria-live="polite">
+                        {allocation
+                          ? formatMinor(allocation.amountMinor, currency)
+                          : '—'}
+                      </Text>
+                    ) : (
+                      <>
+                        <div className={s.allocationInput}>
+                          <TextField.Root
+                            className={s.shareInput}
+                            aria-label={`${name} share`}
+                            inputMode="decimal"
+                            disabled={disabled}
+                            value={row.value ?? ''}
+                            onChange={(e) =>
+                              patch({
+                                shares: value.shares.map((r) =>
+                                  r === row
+                                    ? { ...r, value: e.target.value }
+                                    : r,
+                                ),
+                              })
+                            }
+                          />
+                          <Text size="1">
+                            {value.method === 'percent'
+                              ? '%'
+                              : value.method === 'shares'
+                                ? 'shares'
+                                : currency}
+                          </Text>
+                        </div>
+                        {value.method !== 'exact' && allocation && (
+                          <Text
+                            size="1"
+                            color="gray"
+                            className={s.amount}
+                            aria-live="polite"
+                          >
+                            {formatMinor(allocation.amountMinor, currency)}
+                          </Text>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          {error && (
+            <Text color="red" size="2" role="alert">
+              {error}
+            </Text>
+          )}
+        </section>
       )}
     </Flex>
   );
