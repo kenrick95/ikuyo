@@ -32,7 +32,7 @@
         "version": "4.14.0"
       },
       "contrast": {
-        "checked": 20,
+        "checked": 22,
         "failures": [],
         "skipped": []
       },
@@ -55,7 +55,7 @@
         "version": "4.14.0"
       },
       "contrast": {
-        "checked": 24,
+        "checked": 26,
         "failures": [],
         "skipped": []
       },
@@ -124,7 +124,7 @@
         "version": "4.14.0"
       },
       "contrast": {
-        "checked": 17,
+        "checked": 19,
         "failures": [],
         "skipped": []
       },
@@ -387,6 +387,52 @@
       ]
     },
     {
+      "name": "mobile-320-trip-people",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 25,
+        "failures": [],
+        "skipped": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": 3
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 32
+        }
+      ]
+    },
+    {
+      "name": "mobile-320-person-rename",
+      "engine": {
+        "name": "axe-core",
+        "version": "4.14.0"
+      },
+      "contrast": {
+        "checked": 24,
+        "failures": [],
+        "skipped": []
+      },
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": 3
+        },
+        {
+          "id": "color-contrast",
+          "nodes": 32
+        }
+      ]
+    },
+    {
       "name": "dark-overview",
       "engine": {
         "name": "axe-core",
@@ -420,7 +466,8 @@
     "Cross-currency settlement retains debt currency and actual payment currency",
     "390px layout has no horizontal page overflow",
     "Mobile balances dialog fits the viewport",
-    "320px layout has no horizontal page overflow"
+    "320px layout has no horizontal page overflow",
+    "People columns align on desktop, 390px, and 320px, including inline renaming"
   ],
   "unexpected": [],
   "errors": []

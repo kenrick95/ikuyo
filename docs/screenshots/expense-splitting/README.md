@@ -15,15 +15,17 @@ payments. All API responses are local fixtures. No real trip or account appears.
 | [Mobile Expenses](08-mobile-overview.png) | Read the expense list at 390px. |
 | [Mobile balances](09-mobile-balances.png) | Read balances and settlements at 390px. |
 | [Shared calendar](10-settlement-calendar.png) | Choose a payment date with the shared date picker. |
-| [Trip people](11-trip-people.png) | Distinguish No account from Guest account, and participation from access. |
+| [Trip people](11-trip-people.png) | Manage people in aligned Person, Joining, Access, and Actions columns. |
 | [Link account](12-link-account.png) | Link Chen to an account while preserving the person ID. |
-| [Mobile people](13-mobile-trip-people.png) | Manage trip people at 390px. |
+| [Mobile people](13-mobile-trip-people.png) | Manage trip people at 390px; access appears beneath each name. |
 | [Sharing](14-trip-sharing.png) | Share with a guest account; Joining stays optional. |
 
-The [browser report](accessibility-report.json) covers 17 states, including the
+The [browser report](accessibility-report.json) covers 19 states, including the
 calendar, a 320px layout and dark mode. It contains zero axe violations and zero
-failures across 616 rendered text contrast samples. Keyboard checks cover focus
+failures across 671 rendered text contrast samples. Keyboard checks cover focus
 trapping, Escape focus return, and date selection with arrow keys and Enter.
+People table checks verify column alignment and horizontal fit on desktop,
+390px, and 320px, including inline renaming.
 
 The review fixed field labels, navigation names, calendar row semantics, and
 mobile summary overflow. The latest UX changes use gray outline header actions,

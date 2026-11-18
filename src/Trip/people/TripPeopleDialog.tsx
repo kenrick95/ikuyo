@@ -6,6 +6,7 @@ import {
   Dialog,
   DropdownMenu,
   Flex,
+  Table,
   Text,
   TextField,
 } from '@radix-ui/themes';
@@ -16,6 +17,7 @@ import { useBoundStore } from '../../data/store';
 import { isTripOwner } from '../permissions';
 import type { TripSliceTrip } from '../store/types';
 import { TripSharingDialog } from '../TripDialog/TripSharingDialog';
+import s from './TripPeopleDialog.module.css';
 import type { TripPerson } from './types';
 
 export function useTripPeople(
@@ -194,7 +196,7 @@ export function TripPeopleDialog({
           {selected ? 'Choose people' : 'People'}
         </Button>
       </Dialog.Trigger>
-      <Dialog.Content maxWidth="440px" aria-describedby={undefined}>
+      <Dialog.Content maxWidth="600px" aria-describedby={undefined}>
         <Dialog.Title>{selected ? 'Split between' : 'People'}</Dialog.Title>
         <Flex direction="column" gap="3">
           <Text as="label" size="2">
@@ -256,156 +258,188 @@ export function TripPeopleDialog({
               Cancel link
             </Button>
           )}
-          {people.map((p) => (
-            <Flex key={p.id} align="center" gap="3" py="1" wrap="wrap">
-              {selected && (
-                <Checkbox
-                  aria-label={`Include ${p.name}`}
-                  checked={pending.includes(p.id)}
-                  onCheckedChange={(checked) =>
-                    setPending((previous) =>
-                      checked
-                        ? [...previous, p.id]
-                        : previous.filter((x) => x !== p.id),
-                    )
-                  }
-                  disabled={loading || (p.archived && !pending.includes(p.id))}
-                />
-              )}
-              <PersonLabel person={p} />
-              {!selected && (
-                <Text as="label" size="2">
-                  <Flex align="center" gap="2">
-                    <Checkbox
-                      checked={p.isParticipant}
-                      disabled={loading || p.archived}
-                      aria-label={`${p.name} is joining the trip`}
-                      onCheckedChange={(checked) =>
-                        void updateParticipant(p.id, {
-                          isParticipant: checked === true,
-                        })
-                      }
-                    />
-                    Joining
-                  </Flex>
-                </Text>
-              )}
-              {!selected && p.hasAccount && (
-                <Text size="1" color="gray">
-                  {p.accessRole === 0
-                    ? 'Owner'
-                    : p.accessRole === 1
-                      ? 'Editor'
-                      : p.accessRole === 2
-                        ? 'Viewer'
-                        : 'No access'}
-                </Text>
-              )}
-              {!selected && p.id !== 'me' && (
-                <Flex gap="2" wrap="wrap" ml="auto">
-                  {renaming === p.id ? (
-                    <>
-                      <TextField.Root
-                        aria-label={`Name for ${p.name}`}
-                        value={newName}
-                        disabled={loading}
-                        style={{ maxWidth: 160 }}
-                        onChange={(e) => setNewName(e.target.value)}
-                      />
-                      <Button
-                        type="button"
-                        size="1"
-                        disabled={loading || !newName.trim()}
-                        onClick={() =>
-                          void updateParticipant(p.id, { name: newName.trim() })
-                        }
-                      >
-                        Save
-                      </Button>
-                      <Button
-                        type="button"
-                        size="1"
-                        variant="ghost"
-                        disabled={loading}
-                        onClick={() => setRenaming(null)}
-                      >
-                        Cancel
-                      </Button>
-                    </>
-                  ) : (
-                    <DropdownMenu.Root>
-                      <DropdownMenu.Trigger>
-                        <Button
-                          type="button"
-                          size="1"
-                          variant="ghost"
-                          color="gray"
+          <Table.Root layout="fixed" className={s.peopleTable}>
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeaderCell>Person</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell className={s.joiningColumn}>
+                  {selected ? 'Include' : 'Joining'}
+                </Table.ColumnHeaderCell>
+                {!selected && (
+                  <>
+                    <Table.ColumnHeaderCell className={s.accessColumn}>
+                      Access
+                    </Table.ColumnHeaderCell>
+                    <Table.ColumnHeaderCell className={s.actionsColumn}>
+                      Actions
+                    </Table.ColumnHeaderCell>
+                  </>
+                )}
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              {people.map((p) => (
+                <Table.Row key={p.id}>
+                  <Table.RowHeaderCell className={s.personCell}>
+                    {renaming === p.id ? (
+                      <Flex direction="column" gap="2">
+                        <TextField.Root
+                          aria-label={`Name for ${p.name}`}
+                          value={newName}
                           disabled={loading}
-                          aria-label={`Actions for ${p.name}`}
-                        >
-                          <DotsHorizontalIcon />
-                        </Button>
-                      </DropdownMenu.Trigger>
-                      <DropdownMenu.Content>
-                        <DropdownMenu.Item
-                          onSelect={() => {
-                            setRenaming(p.id);
-                            setNewName(p.name);
-                          }}
-                        >
-                          Rename
-                        </DropdownMenu.Item>
-                        {!p.hasAccount ? (
-                          <DropdownMenu.Item
-                            onSelect={() => {
-                              setLinking(p.id);
-                              setQuery('');
-                              setMatch(null);
-                              setError('');
-                            }}
-                          >
-                            Link account
-                          </DropdownMenu.Item>
-                        ) : (
-                          <DropdownMenu.Item
-                            onSelect={() =>
-                              void updateParticipant(p.id, { userId: null })
+                          style={{ minWidth: 0, width: '100%' }}
+                          onChange={(e) => setNewName(e.target.value)}
+                        />
+                        <Flex gap="2" wrap="wrap">
+                          <Button
+                            type="button"
+                            size="1"
+                            disabled={loading || !newName.trim()}
+                            onClick={() =>
+                              void updateParticipant(p.id, {
+                                name: newName.trim(),
+                              })
                             }
                           >
-                            Unlink account
-                          </DropdownMenu.Item>
+                            Save
+                          </Button>
+                          <Button
+                            type="button"
+                            size="1"
+                            variant="soft"
+                            color="gray"
+                            disabled={loading}
+                            onClick={() => setRenaming(null)}
+                          >
+                            Cancel
+                          </Button>
+                        </Flex>
+                      </Flex>
+                    ) : (
+                      <PersonLabel person={p} />
+                    )}
+                    {!selected && (
+                      <Text size="1" color="gray" className={s.mobileAccess}>
+                        {accessLabel(p)}
+                      </Text>
+                    )}
+                  </Table.RowHeaderCell>
+                  <Table.Cell className={s.joiningColumn}>
+                    {selected ? (
+                      <Checkbox
+                        aria-label={`Include ${p.name}`}
+                        checked={pending.includes(p.id)}
+                        onCheckedChange={(checked) =>
+                          setPending((previous) =>
+                            checked
+                              ? [...previous, p.id]
+                              : previous.filter((x) => x !== p.id),
+                          )
+                        }
+                        disabled={
+                          loading || (p.archived && !pending.includes(p.id))
+                        }
+                      />
+                    ) : (
+                      <Checkbox
+                        checked={p.isParticipant}
+                        disabled={loading || p.archived}
+                        aria-label={`${p.name} is joining the trip`}
+                        onCheckedChange={(checked) =>
+                          void updateParticipant(p.id, {
+                            isParticipant: checked === true,
+                          })
+                        }
+                      />
+                    )}
+                  </Table.Cell>
+                  {!selected && (
+                    <>
+                      <Table.Cell className={s.accessColumn}>
+                        <Text size="2" color="gray">
+                          {accessLabel(p)}
+                        </Text>
+                      </Table.Cell>
+                      <Table.Cell className={s.actionsColumn}>
+                        {p.id !== 'me' && (
+                          <DropdownMenu.Root>
+                            <DropdownMenu.Trigger>
+                              <Button
+                                type="button"
+                                size="1"
+                                variant="ghost"
+                                color="gray"
+                                disabled={loading}
+                                aria-label={`Actions for ${p.name}`}
+                              >
+                                <DotsHorizontalIcon />
+                              </Button>
+                            </DropdownMenu.Trigger>
+                            <DropdownMenu.Content>
+                              <DropdownMenu.Item
+                                onSelect={() => {
+                                  setRenaming(p.id);
+                                  setNewName(p.name);
+                                }}
+                              >
+                                Rename
+                              </DropdownMenu.Item>
+                              {!p.hasAccount ? (
+                                <DropdownMenu.Item
+                                  onSelect={() => {
+                                    setLinking(p.id);
+                                    setQuery('');
+                                    setMatch(null);
+                                    setError('');
+                                  }}
+                                >
+                                  Link account
+                                </DropdownMenu.Item>
+                              ) : (
+                                <DropdownMenu.Item
+                                  onSelect={() =>
+                                    void updateParticipant(p.id, {
+                                      userId: null,
+                                    })
+                                  }
+                                >
+                                  Unlink account
+                                </DropdownMenu.Item>
+                              )}
+                              {p.handle &&
+                                p.accessRole !== 0 &&
+                                isTripOwner(trip) && (
+                                  <DropdownMenu.Item
+                                    onSelect={() => {
+                                      setOpen(false);
+                                      pushDialog(TripSharingDialog, {
+                                        tripId: trip.id,
+                                        accountIdentity: `@${p.handle}`,
+                                      });
+                                    }}
+                                  >
+                                    Share
+                                  </DropdownMenu.Item>
+                                )}
+                              <DropdownMenu.Item
+                                onSelect={() =>
+                                  void updateParticipant(p.id, {
+                                    archived: !p.archived,
+                                  })
+                                }
+                              >
+                                {p.archived ? 'Restore' : 'Archive'}
+                              </DropdownMenu.Item>
+                            </DropdownMenu.Content>
+                          </DropdownMenu.Root>
                         )}
-                        {p.handle &&
-                          p.accessRole !== 0 &&
-                          isTripOwner(trip) && (
-                            <DropdownMenu.Item
-                              onSelect={() => {
-                                setOpen(false);
-                                pushDialog(TripSharingDialog, {
-                                  tripId: trip.id,
-                                  accountIdentity: `@${p.handle}`,
-                                });
-                              }}
-                            >
-                              Share
-                            </DropdownMenu.Item>
-                          )}
-                        <DropdownMenu.Item
-                          onSelect={() =>
-                            void updateParticipant(p.id, {
-                              archived: !p.archived,
-                            })
-                          }
-                        >
-                          {p.archived ? 'Restore' : 'Archive'}
-                        </DropdownMenu.Item>
-                      </DropdownMenu.Content>
-                    </DropdownMenu.Root>
+                      </Table.Cell>
+                    </>
                   )}
-                </Flex>
-              )}
-            </Flex>
-          ))}
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table.Root>
           {error && (
             <Text color="red" size="2" role="alert">
               {error}
@@ -437,4 +471,14 @@ export function TripPeopleDialog({
       </Dialog.Content>
     </Dialog.Root>
   );
+}
+
+function accessLabel(person: TripPerson) {
+  return person.accessRole === 0
+    ? 'Owner'
+    : person.accessRole === 1
+      ? 'Editor'
+      : person.accessRole === 2
+        ? 'Viewer'
+        : 'No access';
 }

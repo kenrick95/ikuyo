@@ -505,6 +505,34 @@ async function capture(name) {
     animations: 'disabled',
   });
 }
+
+async function checkPeopleGrid() {
+  assert(
+    await page.getByRole('dialog').evaluate((dialog) => {
+      const table = dialog.querySelector('table');
+      if (!table || table.scrollWidth > table.clientWidth + 1) return false;
+      const headers = [...table.querySelectorAll('thead th')].filter(
+        (cell) => getComputedStyle(cell).display !== 'none',
+      );
+      return [...table.querySelectorAll('thead tr, tbody tr')].every((row) => {
+        const cells = [...row.children].filter(
+          (cell) => getComputedStyle(cell).display !== 'none',
+        );
+        return cells.every((cell, index) => {
+          const bounds = cell.getBoundingClientRect();
+          const header = headers[index].getBoundingClientRect();
+          return (
+            Math.abs(bounds.left - header.left) < 1 &&
+            Math.abs(bounds.width - header.width) < 1 &&
+            cell.scrollWidth <= cell.clientWidth + 1
+          );
+        });
+      });
+    }),
+    'People cells must align with their columns and fit without horizontal scrolling',
+  );
+}
+
 try {
   await page.goto(`${base}/trip/mock-friends-trip/expenses`);
   await page.getByRole('button', { name: 'Balances', exact: true }).waitFor();
@@ -512,6 +540,7 @@ try {
   await capture('01-expenses-overview');
   await page.getByRole('button', { name: 'People', exact: true }).click();
   await audit('trip-people');
+  await checkPeopleGrid();
   await capture('11-trip-people');
   assert(await page.getByText('No account', { exact: true }).count());
   assert(await page.getByText('Guest account', { exact: true }).count());
@@ -728,6 +757,7 @@ try {
   checks.push('390px layout has no horizontal page overflow');
   await page.getByRole('button', { name: 'People', exact: true }).click();
   await audit('mobile-trip-people');
+  await checkPeopleGrid();
   await capture('13-mobile-trip-people');
   assert(
     await page.evaluate(
@@ -760,6 +790,24 @@ try {
     '320px layout has horizontal overflow',
   );
   checks.push('320px layout has no horizontal page overflow');
+  await page.getByRole('button', { name: 'People', exact: true }).click();
+  await audit('mobile-320-trip-people');
+  await checkPeopleGrid();
+  await page.getByRole('button', { name: 'Actions for Morgan' }).click();
+  await page.getByRole('menuitem', { name: 'Rename', exact: true }).click();
+  await page
+    .getByRole('textbox', { name: 'Name for Morgan' })
+    .fill('Morgan with a longer display name');
+  await audit('mobile-320-person-rename');
+  await checkPeopleGrid();
+  await page
+    .getByRole('button', { name: 'Cancel', exact: true })
+    .first()
+    .click();
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  checks.push(
+    'People columns align on desktop, 390px, and 320px, including inline renaming',
+  );
   await page.setViewportSize({ width: 1280, height: 1040 });
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.waitForFunction(() =>
