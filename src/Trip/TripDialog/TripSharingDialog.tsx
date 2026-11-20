@@ -192,6 +192,7 @@ export function TripSharingDialog({
   return (
     <Dialog.Root open={true}>
       <Dialog.Content
+        width="calc(100% - 2 * var(--space-4))"
         maxWidth={CommonLargeDialogMaxWidth}
         onEscapeKeyDown={(e) => {
           if (e.defaultPrevented) return;
@@ -370,7 +371,7 @@ export function TripSharingDialog({
                 {errorMessage}&nbsp;
               </Text>
 
-              <Flex direction="row" gap="1" justify="end">
+              <Flex direction="row" gap="1" justify="end" wrap="wrap">
                 <TextField.Root
                   placeholder="Email or @username"
                   aria-label="Account to share with"
@@ -433,15 +434,21 @@ export function TripSharingDialog({
           </form>
         ) : null}
 
-        <Inset side="x" my="2">
-          <Table.Root>
+        <Inset side="x" my="2" className={s.peopleTable}>
+          <Table.Root layout="fixed">
             <Table.Header>
               <Table.Row>
                 <Table.ColumnHeaderCell>Person</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell>Role</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell>Joining</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell className={s.accessColumn}>
+                  Role
+                </Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell className={s.joiningColumn}>
+                  Joining
+                </Table.ColumnHeaderCell>
                 {currentUserIsOwner ? (
-                  <Table.ColumnHeaderCell>Actions</Table.ColumnHeaderCell>
+                  <Table.ColumnHeaderCell className={s.actionsColumn}>
+                    Actions
+                  </Table.ColumnHeaderCell>
                 ) : null}
               </Table.Row>
             </Table.Header>
@@ -450,7 +457,7 @@ export function TripSharingDialog({
               {tripUsers.map((tripUser) => {
                 return (
                   <Table.Row key={tripUser.id}>
-                    <Table.RowHeaderCell>
+                    <Table.RowHeaderCell className={s.personCell}>
                       {tripUser.activated ? (
                         tripUser.handle
                       ) : (
@@ -464,9 +471,14 @@ export function TripSharingDialog({
                           Guest account
                         </Badge>
                       )}
+                      <Text size="1" color="gray" className={s.mobileAccess}>
+                        {capitalizeFirst(tripUser.role)}
+                      </Text>
                     </Table.RowHeaderCell>
-                    <Table.Cell>{capitalizeFirst(tripUser.role)}</Table.Cell>
-                    <Table.Cell>
+                    <Table.Cell className={s.accessColumn}>
+                      {capitalizeFirst(tripUser.role)}
+                    </Table.Cell>
+                    <Table.Cell className={s.joiningColumn}>
                       <Checkbox
                         aria-label={`${tripUser.handle} is joining the trip`}
                         checked={
@@ -518,7 +530,7 @@ export function TripSharingDialog({
                       />
                     </Table.Cell>
                     {currentUserIsOwner ? (
-                      <Table.Cell>
+                      <Table.Cell className={s.actionsColumn}>
                         {currentUser?.id === tripUser.userId ? (
                           ''
                         ) : (
@@ -531,7 +543,7 @@ export function TripSharingDialog({
                             }}
                             loading={isLoading}
                           >
-                            <TrashIcon /> Delete
+                            <TrashIcon /> Remove
                           </Button>
                         )}
                       </Table.Cell>
@@ -543,7 +555,7 @@ export function TripSharingDialog({
           </Table.Root>
         </Inset>
 
-        <Flex gap="3" mt="5" justify="end">
+        <Flex gap="3" mt="5" justify="end" wrap="wrap">
           {tripSharingLevel === TripSharingLevel.PublicListed ||
           tripSharingLevel === TripSharingLevel.PublicUnlisted ? (
             <Button

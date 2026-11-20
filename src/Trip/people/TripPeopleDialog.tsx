@@ -10,7 +10,7 @@ import {
   Text,
   TextField,
 } from '@radix-ui/themes';
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { patchMutation, postMutation } from '../../data/apiClient';
 import { id } from '../../data/id';
 import { useBoundStore } from '../../data/store';
@@ -92,11 +92,21 @@ export function TripPeopleDialog({
   const [loading, setLoading] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
+  const renameInput = useRef<HTMLInputElement>(null);
+  const rowActions = useRef(new Map<string, HTMLButtonElement>());
+  const renameReturnId = useRef<string | null>(null);
   const [linking, setLinking] = useState<string | null>(null);
   const refreshTrip = useBoundStore((state) => state.refreshTrip);
   const pushDialog = useBoundStore((state) => state.pushDialog);
   const prefix = `/api/trips/${encodeURIComponent(trip.id)}/people`;
   const lookup = query.startsWith('@') || query.includes('@');
+
+  useLayoutEffect(() => {
+    if (!renaming && !loading && renameReturnId.current) {
+      if (open) rowActions.current.get(renameReturnId.current)?.focus();
+      renameReturnId.current = null;
+    }
+  }, [loading, open, renaming]);
 
   async function updateParticipant(
     participant: string,
@@ -284,6 +294,7 @@ export function TripPeopleDialog({
                     {renaming === p.id ? (
                       <Flex direction="column" gap="2">
                         <TextField.Root
+                          ref={renameInput}
                           aria-label={`Name for ${p.name}`}
                           value={newName}
                           disabled={loading}
@@ -365,6 +376,11 @@ export function TripPeopleDialog({
                           <DropdownMenu.Root>
                             <DropdownMenu.Trigger>
                               <Button
+                                ref={(button) => {
+                                  if (button)
+                                    rowActions.current.set(p.id, button);
+                                  else rowActions.current.delete(p.id);
+                                }}
                                 type="button"
                                 size="1"
                                 variant="ghost"
@@ -375,9 +391,18 @@ export function TripPeopleDialog({
                                 <DotsHorizontalIcon />
                               </Button>
                             </DropdownMenu.Trigger>
-                            <DropdownMenu.Content>
+                            <DropdownMenu.Content
+                              onCloseAutoFocus={(event) => {
+                                const input = renameInput.current;
+                                if (!input || renameReturnId.current !== p.id)
+                                  return;
+                                event.preventDefault();
+                                input.focus();
+                              }}
+                            >
                               <DropdownMenu.Item
                                 onSelect={() => {
+                                  renameReturnId.current = p.id;
                                   setRenaming(p.id);
                                   setNewName(p.name);
                                 }}
@@ -454,19 +479,21 @@ export function TripPeopleDialog({
               color="gray"
               disabled={loading}
             >
-              Cancel
+              {selected ? 'Cancel' : 'Close'}
             </Button>
           </Dialog.Close>
-          <Button
-            type="button"
-            disabled={loading}
-            onClick={() => {
-              onApply?.(pending);
-              setOpen(false);
-            }}
-          >
-            Done
-          </Button>
+          {selected && (
+            <Button
+              type="button"
+              disabled={loading}
+              onClick={() => {
+                onApply?.(pending);
+                setOpen(false);
+              }}
+            >
+              Done
+            </Button>
+          )}
         </Flex>
       </Dialog.Content>
     </Dialog.Root>

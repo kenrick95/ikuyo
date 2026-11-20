@@ -648,7 +648,7 @@ try {
   checks.push(
     'Linking a guest account preserves the person ID and grants no access; joining does not change existing access',
   );
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
   await page.getByRole('button', { name: 'People', exact: true }).click();
   await page.getByRole('button', { name: 'Actions for Morgan' }).click();
   await page.getByRole('menuitem', { name: 'Share', exact: true }).click();
@@ -871,7 +871,7 @@ try {
   await page.getByRole('button', { name: 'Actions for Morgan' }).click();
   await audit('trip-person-actions');
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
   await page.getByRole('button', { name: 'Balances', exact: true }).click();
   await audit('mobile-balances');
   await capture('09-mobile-balances');
@@ -896,21 +896,92 @@ try {
   await page.getByRole('button', { name: 'People', exact: true }).click();
   await audit('mobile-320-trip-people');
   await checkPeopleGrid();
-  await page.getByRole('button', { name: 'Actions for Morgan' }).click();
-  await page.getByRole('menuitem', { name: 'Rename', exact: true }).click();
+  const morganActions = page.getByRole('button', {
+    name: 'Actions for Morgan',
+  });
+  await morganActions.press('Enter');
   await page
-    .getByRole('textbox', { name: 'Name for Morgan' })
-    .fill('Morgan with a longer display name');
+    .getByRole('menuitem', { name: 'Rename', exact: true })
+    .press('Enter');
+  const renameInput = page.getByRole('textbox', { name: 'Name for Morgan' });
+  await page.waitForFunction(
+    () =>
+      document.activeElement?.getAttribute('aria-label') === 'Name for Morgan',
+  );
+  await renameInput.fill('Morgan with a longer display name');
   await audit('mobile-320-person-rename');
   await checkPeopleGrid();
   await page
     .getByRole('button', { name: 'Cancel', exact: true })
-    .first()
-    .click();
-  await page.getByRole('button', { name: 'Done', exact: true }).click();
-  checks.push(
-    'People columns align on desktop, 390px, and 320px, including inline renaming',
+    .press('Enter');
+  assert(
+    await morganActions.evaluate((button) => button === document.activeElement),
   );
+  const peopleDialog = page.getByRole('dialog');
+  assert.equal(
+    await peopleDialog
+      .getByRole('button', { name: 'Cancel', exact: true })
+      .count(),
+    0,
+  );
+  await morganActions.press('Enter');
+  await page
+    .getByRole('menuitem', { name: 'Rename', exact: true })
+    .press('Enter');
+  await renameInput.fill('Morgan Updated');
+  await peopleDialog
+    .getByRole('button', { name: 'Save', exact: true })
+    .press('Enter');
+  await page.waitForFunction(
+    () =>
+      document.activeElement?.getAttribute('aria-label') ===
+      'Actions for Morgan Updated',
+  );
+  await peopleDialog
+    .getByRole('button', { name: 'Close', exact: true })
+    .click();
+  checks.push(
+    'People columns align while renaming, and keyboard focus returns to Actions after Save or Cancel',
+  );
+  await page.getByRole('button', { name: 'People', exact: true }).click();
+  await page
+    .getByRole('button', { name: 'Actions for Morgan Updated' })
+    .click();
+  await page.getByRole('menuitem', { name: 'Share', exact: true }).click();
+  const removeAccess = page.getByRole('button', {
+    name: 'Remove',
+    exact: true,
+  });
+  const removeBounds = await removeAccess.boundingBox();
+  assert(
+    removeBounds && removeBounds.x + removeBounds.width <= 320,
+    'Sharing keeps Remove inside the viewport',
+  );
+  assert(
+    await peopleDialog.evaluate(
+      (dialog) => dialog.scrollWidth <= dialog.clientWidth + 1,
+    ),
+  );
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  checks.push('Sharing keeps row actions visible at 320px');
+
+  people.find((person) => person.id === 'c').name =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.repeat(3);
+  await page.reload();
+  await page.getByRole('button', { name: 'Balances', exact: true }).click();
+  assert(
+    await peopleDialog.evaluate((dialog) => {
+      const bounds = dialog.getBoundingClientRect();
+      return (
+        bounds.left >= 0 &&
+        bounds.right <= innerWidth &&
+        dialog.scrollWidth <= dialog.clientWidth + 1
+      );
+    }),
+    'Balances fits the viewport with long participant names',
+  );
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  checks.push('Balances wraps long participant names at 320px');
   await page.setViewportSize({ width: 1280, height: 1040 });
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.waitForFunction(() =>

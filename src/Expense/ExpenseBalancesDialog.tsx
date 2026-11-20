@@ -19,6 +19,7 @@ import { PersonLabel } from '../Trip/people/TripPeopleDialog';
 import { canModifyTripContent } from '../Trip/permissions';
 import type { TripSliceTrip } from '../Trip/store/types';
 import { downloadCsv, ledgerStatementToCsv } from './csvExport';
+import s from './ExpenseBalancesDialog.module.css';
 import { ExpenseHistory } from './ExpenseHistory';
 import {
   formatMinor,
@@ -182,7 +183,12 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
           Balances
         </Button>
       </Dialog.Trigger>
-      <Dialog.Content maxWidth="500px" aria-describedby={undefined}>
+      <Dialog.Content
+        width="calc(100% - 2 * var(--space-4))"
+        maxWidth="500px"
+        className={s.content}
+        aria-describedby={undefined}
+      >
         <Dialog.Title>{draft ? 'Settle balance' : 'Balances'}</Dialog.Title>
         {draft ? (
           <Flex direction="column" gap="3">
@@ -202,7 +208,7 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
                       setDraft({ ...draft, [key]: value })
                     }
                   >
-                    <Select.Trigger style={{ width: '100%' }} mt="1" />
+                    <Select.Trigger className={s.personSelect} mt="1" />
                     <Select.Content>
                       {participants.map((p) => (
                         <Select.Item key={p.id} value={p.id}>
@@ -503,7 +509,7 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
             Refresh balances
           </Button>
         )}
-        <Flex justify="end" gap="2" mt="5">
+        <Flex justify="end" gap="2" mt="5" wrap="wrap">
           {draft ? (
             <>
               <Button
