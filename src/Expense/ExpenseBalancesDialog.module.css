@@ -1,0 +1,8 @@
+.content {
+  overflow-wrap: anywhere;
+}
+
+.personSelect {
+  width: 100%;
+  min-width: 0;
+}

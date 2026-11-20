@@ -84,7 +84,9 @@ export function PageTrip({ params }: RouteComponentProps<{ id: string }>) {
   }, [tripId, subscribeTrip]);
   // Poll the sync cursor and refetch the trip whenever changes arrive, so edits
   // by collaborators are reflected without a reload.
-  usePeriodicTripSync(tripId, () => refreshTrip(tripId));
+  usePeriodicTripSync(tripId, () => {
+    void refreshTrip(tripId).catch(() => undefined);
+  });
   const { trip, loading, error } = useTrip(tripId);
 
   return (

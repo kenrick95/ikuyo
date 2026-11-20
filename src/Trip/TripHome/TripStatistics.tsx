@@ -10,6 +10,8 @@ import { useBoundStore } from '../../data/store';
 import { formatCurrencyAmount } from '../../Expense/currency';
 import { RouteTripExpenses } from '../../Routes/routes';
 import { TripUserRole } from '../../User/TripUserRole';
+import { PersonLabel, TripPeopleDialog } from '../people/TripPeopleDialog';
+import { canModifyTripContent } from '../permissions';
 import {
   useCurrentTrip,
   useTripExpenses,
@@ -130,6 +132,25 @@ export function TripStatistics() {
         <DataList.Item>
           <DataList.Label>
             Participants
+            {trip && canModifyTripContent(trip) && (
+              <TripPeopleDialog trip={trip} />
+            )}
+          </DataList.Label>
+          <DataList.Value>
+            <Flex gap="2" wrap="wrap">
+              {trip?.people
+                ?.filter((p) => p.isParticipant && !p.archived)
+                .map((person) => (
+                  <PersonLabel key={person.id} person={person} />
+                ))}
+              {!trip?.people?.some((p) => p.isParticipant && !p.archived) &&
+                'No participants yet'}
+            </Flex>
+          </DataList.Value>
+        </DataList.Item>
+        <DataList.Item>
+          <DataList.Label>
+            Shared with
             <Button
               variant="outline"
               mx="2"

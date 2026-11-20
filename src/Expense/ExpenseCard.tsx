@@ -20,12 +20,12 @@ import {
   Text,
   Tooltip,
 } from '@radix-ui/themes';
-
 import { useCallback, useState } from 'react';
 import { CommentGroupWithForm } from '../Comment/CommentGroupWithForm';
 import { COMMENT_GROUP_OBJECT_TYPE } from '../Comment/db';
 import { dangerToken } from '../common/ui';
 import { useBoundStore, useDeepBoundStore } from '../data/store';
+import { PersonLabel } from '../Trip/people/TripPeopleDialog';
 import { canModifyTripContent } from '../Trip/permissions';
 import { useTrip } from '../Trip/store/hooks';
 import type { TripSliceExpense } from '../Trip/store/types';
@@ -34,6 +34,7 @@ import { dbDeleteExpense } from './db';
 import s from './ExpenseCard.module.css';
 import { ExpenseInlineCardForm } from './ExpenseInlineCardForm';
 import { ExpenseMode } from './ExpenseMode';
+import { formatMinor } from './ledger';
 import { formatTimestampToReadableDate } from './time';
 
 const noop = () => {};
@@ -52,7 +53,11 @@ export function ExpenseCard({ expense }: { expense: TripSliceExpense }) {
           setIsExpanded={setIsExpanded}
         />
       ) : (
-        <ExpenseCardEdit expense={expense} setExpenseMode={setExpenseMode} />
+        <ExpenseCardEdit
+          expense={expense}
+          setExpenseMode={setExpenseMode}
+          mode={expenseMode}
+        />
       )}
     </Card>
   );
@@ -61,16 +66,19 @@ export function ExpenseCard({ expense }: { expense: TripSliceExpense }) {
 function ExpenseCardEdit({
   expense,
   setExpenseMode,
+  mode,
 }: {
   expense: TripSliceExpense;
+  mode: ExpenseMode;
   setExpenseMode: (mode: ExpenseMode) => void;
 }) {
   const { trip } = useTrip(expense.tripId);
   return trip ? (
     <ExpenseInlineCardForm
-      expense={expense}
+      expense={mode === ExpenseMode.Edit ? expense : undefined}
+      refundOf={mode === ExpenseMode.Add ? expense : undefined}
       trip={trip}
-      expenseMode={ExpenseMode.Edit}
+      expenseMode={mode}
       setExpenseMode={setExpenseMode}
     />
   ) : null;
@@ -119,6 +127,16 @@ function ExpenseCardView({
   }, [expense.id, expense.title, publishToast]);
 
   const userCanEditOrDelete = canModifyTripContent(trip);
+  const people = trip?.people ?? [];
+  const payerNames = expense.ledger?.contributions
+    ?.filter((row) => BigInt(row.amountMinor) > 0n)
+    .map((row) =>
+      row.participantId === 'me'
+        ? currentUser?.handle
+        : people.find((p) => p.id === row.participantId)?.name,
+    )
+    .filter(Boolean)
+    .join(', ');
   return (
     <Collapsible open={isExpanded} onOpenChange={setIsExpanded} asChild>
       <Inset className={s.cardContent}>
@@ -127,7 +145,6 @@ function ExpenseCardView({
           className={s.collapsedHeader}
           type="button"
           aria-expanded={isExpanded}
-          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} expense details for ${expense.title}`}
         >
           <Text size="1" color="gray" className={s.date}>
             {trip
@@ -141,6 +158,15 @@ function ExpenseCardView({
           <Text size="3" weight="bold" className={s.title}>
             {expense.title}
           </Text>
+          {expense.ledger && (
+            <Text size="1" color="gray" className={s.paidBy}>
+              {payerNames || 'Recorded payer'}{' '}
+              {expense.ledger.kind === 'refund' ? 'received refund' : 'paid'}
+              {expense.ledger.method
+                ? ` · ${expense.ledger.shares.length} people`
+                : ''}
+            </Text>
+          )}
           <Badge
             variant="soft"
             color="grass"
@@ -150,6 +176,7 @@ function ExpenseCardView({
             {expense.currency}
           </Badge>
           <Text size="4" weight="bold">
+            {expense.ledger?.kind === 'refund' ? '− ' : ''}
             {formatCurrencyAmount(expense.currency, expense.amount)}
           </Text>
           <ChevronRightIcon className={s.expandButton} />
@@ -196,6 +223,45 @@ function ExpenseCardView({
               </div>
             ) : null}
 
+            {!!expense.ledger?.allocations?.length && (
+              <Flex direction="column" gap="2">
+                <Heading as="h5" size="1" color="gray">
+                  Split
+                </Heading>
+                {expense.ledger.allocations.map((row) => {
+                  const person = people.find((p) => p.id === row.participantId);
+                  return (
+                    <Flex
+                      key={row.participantId}
+                      justify="between"
+                      align="center"
+                      gap="2"
+                      wrap="wrap"
+                    >
+                      {person ? (
+                        <PersonLabel person={person} />
+                      ) : (
+                        <Text>Person</Text>
+                      )}
+                      <Text size="2">
+                        {formatMinor(row.amountMinor, expense.currency)}
+                      </Text>
+                    </Flex>
+                  );
+                })}
+              </Flex>
+            )}
+            {userCanEditOrDelete &&
+              expense.ledger?.method &&
+              expense.ledger.kind !== 'refund' && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setExpenseMode(ExpenseMode.Add)}
+                >
+                  Record refund
+                </Button>
+              )}
             {/* Description */}
             {expense.description ? (
               <div className={s.detailSection}>
@@ -232,6 +298,7 @@ function ExpenseCardView({
                   </Text>
                   <Flex align="center" gap="1">
                     <Text size="2">
+                      {expense.ledger?.kind === 'refund' ? '− ' : ''}
                       {formatCurrencyAmount(expense.currency, expense.amount)}
                     </Text>
                   </Flex>

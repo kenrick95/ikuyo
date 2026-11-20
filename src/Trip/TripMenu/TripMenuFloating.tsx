@@ -9,6 +9,7 @@ import {
   TableIcon,
 } from '@radix-ui/react-icons';
 import {
+  Button,
   DropdownMenu,
   SegmentedControl,
   Text,
@@ -60,10 +61,11 @@ function TripMenuFloatingInner() {
     [setLocation],
   );
   return (
-    <nav className={s.nav}>
+    <nav className={s.nav} aria-label="Trip sections">
       <RouteTransition default="vt-chrome">
         <div className={s.controlContainer}>
           <SegmentedControl.Root
+            aria-label="Trip view"
             defaultValue={activeTab}
             value={activeTab}
             size="3"
@@ -78,6 +80,7 @@ function TripMenuFloatingInner() {
           >
             <Tooltip content="Trip home">
               <SegmentedControl.Item
+                aria-label="Overview"
                 value={RouteTripHome.routePath}
                 data-state={
                   activeTab === (RouteTripHome.routePath as string)
@@ -93,6 +96,7 @@ function TripMenuFloatingInner() {
             </Tooltip>
             <Tooltip content="Timetable view">
               <SegmentedControl.Item
+                aria-label="Timetable"
                 value={RouteTripTimetableView.routePath}
                 data-state={
                   activeTab === (RouteTripTimetableView.routePath as string)
@@ -108,6 +112,7 @@ function TripMenuFloatingInner() {
             </Tooltip>
             <Tooltip content="List view">
               <SegmentedControl.Item
+                aria-label="List"
                 value={RouteTripListView.routePath}
                 data-state={
                   activeTab === (RouteTripListView.routePath as string)
@@ -123,6 +128,7 @@ function TripMenuFloatingInner() {
             </Tooltip>
             <Tooltip content="Expenses">
               <SegmentedControl.Item
+                aria-label="Expenses"
                 value={RouteTripExpenses.routePath}
                 data-state={
                   activeTab === (RouteTripExpenses.routePath as string)
@@ -136,40 +142,44 @@ function TripMenuFloatingInner() {
                 </Text>
               </SegmentedControl.Item>
             </Tooltip>
-            <DropdownMenu.Root>
-              <DropdownMenu.Trigger>
-                <SegmentedControl.Item
-                  value={RouteOthers}
-                  data-state={activeTab === RouteOthers ? 'on' : 'off'}
-                >
-                  <HamburgerMenuIcon className={s.controlIcon} />
-                  <Text size="1" className={s.controlText}>
-                    Others
-                  </Text>
-                </SegmentedControl.Item>
-              </DropdownMenu.Trigger>
-              <DropdownMenu.Content>
-                <DropdownMenu.Item
-                  data-target={RouteTripMap.routePath}
-                  onClick={handleRouteClick}
-                >
-                  <SewingPinIcon /> Map
-                </DropdownMenu.Item>
-                <DropdownMenu.Item
-                  data-target={RouteTripTaskList.routePath}
-                  onClick={handleRouteClick}
-                >
-                  <CheckboxIcon /> Tasks
-                </DropdownMenu.Item>
-                <DropdownMenu.Item
-                  data-target={RouteTripComment.routePath}
-                  onClick={handleRouteClick}
-                >
-                  <ChatBubbleIcon /> Comments
-                </DropdownMenu.Item>
-              </DropdownMenu.Content>
-            </DropdownMenu.Root>
           </SegmentedControl.Root>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger>
+              <Button
+                type="button"
+                size="3"
+                color="gray"
+                variant={activeTab === RouteOthers ? 'soft' : 'ghost'}
+                className={s.othersButton}
+                aria-label="Others"
+              >
+                <HamburgerMenuIcon className={s.controlIcon} />
+                <Text size="1" className={s.controlText}>
+                  Others
+                </Text>
+              </Button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content>
+              <DropdownMenu.Item
+                data-target={RouteTripMap.routePath}
+                onClick={handleRouteClick}
+              >
+                <SewingPinIcon /> Map
+              </DropdownMenu.Item>
+              <DropdownMenu.Item
+                data-target={RouteTripTaskList.routePath}
+                onClick={handleRouteClick}
+              >
+                <CheckboxIcon /> Tasks
+              </DropdownMenu.Item>
+              <DropdownMenu.Item
+                data-target={RouteTripComment.routePath}
+                onClick={handleRouteClick}
+              >
+                <ChatBubbleIcon /> Comments
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
         </div>
       </RouteTransition>
     </nav>

@@ -11,7 +11,7 @@ export function formatCurrencyAmount(
     maximumFractionDigits: forDisplay ? 11 : 15,
     currency: currency ?? undefined,
     useGrouping: forDisplay,
-    signDisplay: 'never',
+    signDisplay: 'auto',
   });
 
   return formatter.format(amount);

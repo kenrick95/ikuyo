@@ -8,10 +8,12 @@ use App\Models\TripUser;
 use App\Models\User;
 use App\Services\AccountDeletionService;
 use App\Services\TripAccessService;
+use App\Services\TripPeopleService;
 use App\Services\UserHandleGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class UserController extends Controller
@@ -75,16 +77,30 @@ class UserController extends Controller
 
     public function addMember(Request $request, Trip $trip): JsonResponse
     {
-        $data = $request->validate(['email' => ['required', 'email'], 'role' => ['required', 'integer', 'in:1,2']]);
-        $handle = app(UserHandleGenerator::class)->generate();
-        $user = User::withTrashed()->firstOrCreate(
-            ['email' => $data['email']],
-            ['id' => (string) Str::uuid(), 'handle' => $handle, 'handle_key' => strtolower($handle), 'activated' => false],
-        );
+        $data = $request->validate(['email' => ['required', 'string', 'max:255'], 'role' => ['required', 'integer', 'in:1,2'], 'addToParticipants' => ['sometimes', 'boolean']]);
+        $identity = trim($data['email']);
+        if (str_starts_with($identity, '@')) {
+            // A guest account has a handle even though it has no email address.
+            $user = User::withTrashed()->whereRaw('LOWER(handle) = ?', [mb_strtolower(substr($identity, 1))])->firstOrFail();
+        } else {
+            validator(['email' => $identity], ['email' => ['required', 'email']])->validate();
+            $handle = app(UserHandleGenerator::class)->generate();
+            $user = User::withTrashed()->firstOrCreate(
+                ['email' => $identity],
+                ['id' => (string) Str::uuid(), 'handle' => $handle, 'handle_key' => strtolower($handle), 'activated' => false],
+            );
+        }
         abort_if($user->trashed(), 409, 'Restore this account before inviting it.');
+        abort_if($trip->users()->whereKey($user->id)->wherePivot('role', 0)->exists(), 409, 'Cannot change the owner through sharing.');
         $trip->users()->syncWithoutDetaching([$user->id => [
             'id' => (string) Str::uuid(), 'role' => $data['role'], 'created_at_ms' => $this->nowMs(), 'updated_at_ms' => $this->nowMs(),
         ]]);
+        if ($data['addToParticipants'] ?? false) {
+            $people = app(TripPeopleService::class);
+            $personId = $people->person($trip, $user, $user->handle);
+            DB::table('trip_people')->where('id', $personId)->update(['is_participant' => true, 'archived_at_ms' => null]);
+            $people->notify($trip);
+        }
 
         return response()->json(['user' => $this->serialize($user)], 201);
     }

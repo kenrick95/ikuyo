@@ -5,8 +5,10 @@ import {
   TrashIcon,
 } from '@radix-ui/react-icons';
 import {
+  Badge,
   Button,
   Callout,
+  Checkbox,
   Dialog,
   Flex,
   Inset,
@@ -20,6 +22,8 @@ import { type SyntheticEvent, useCallback, useMemo, useState } from 'react';
 import { useCurrentUser } from '../../Auth/hooks';
 import { dangerToken } from '../../common/ui';
 import { CommonLargeDialogMaxWidth } from '../../Dialog/ui';
+import { patchMutation, postMutation } from '../../data/apiClient';
+import { id } from '../../data/id';
 import { useBoundStore } from '../../data/store';
 import { TripUserRole } from '../../User/TripUserRole';
 import {
@@ -36,7 +40,13 @@ import {
 } from '../tripSharingLevel';
 import s from './TripSharingDialog.module.css';
 
-export function TripSharingDialog({ tripId }: { tripId: string }) {
+export function TripSharingDialog({
+  tripId,
+  accountIdentity,
+}: {
+  tripId: string;
+  accountIdentity?: string;
+}) {
   const { trip } = useTrip(tripId);
   const currentUser = useCurrentUser();
   const [dialogClosable, setDialogClosable] = useState(true);
@@ -49,8 +59,9 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
   }, [trip?.currentUserRole]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserEmail, setNewUserEmail] = useState(accountIdentity ?? '');
   const [newUserRole, setNewUserRole] = useState(TripUserRole.Viewer);
+  const [addToParticipants, setAddToParticipants] = useState(false);
 
   const [tripSharingLevel, setTripSharingLevel] =
     useState<TripSharingLevelType>(
@@ -79,10 +90,6 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
         (formData.get('newUserEmail') as string | null) ?? '';
       const newUserRole = (formData.get('newUserRole') as string | null) ?? '';
 
-      console.log('TripForm', {
-        newUserEmail,
-        newUserRole,
-      });
       if (!newUserEmail || !newUserRole) {
         return;
       }
@@ -97,25 +104,33 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
         return;
       }
       setIsLoading(true);
-
-      await dbAddUserToTrip({
-        tripId: trip.id,
-        userEmail: newUserEmail,
-        userRole: newUserRole as TripUserRole,
-      });
-      publishToast({
-        root: {},
-        title: {
-          children: `Added ${newUserEmail} to trip ${trip.title} as ${newUserRole}`,
-        },
-        close: {},
-      });
-      elForm.reset();
-      setIsLoading(false);
-      setNewUserEmail('');
-      setNewUserRole(TripUserRole.Viewer);
+      try {
+        await dbAddUserToTrip({
+          tripId: trip.id,
+          userEmail: newUserEmail,
+          userRole: newUserRole as TripUserRole,
+          addToParticipants,
+        });
+        publishToast({
+          root: {},
+          title: {
+            children: `Added ${newUserEmail} to trip ${trip.title} as ${newUserRole}`,
+          },
+          close: {},
+        });
+        elForm.reset();
+        setNewUserEmail('');
+        setNewUserRole(TripUserRole.Viewer);
+        setAddToParticipants(false);
+      } catch (error) {
+        setErrorMessage(
+          error instanceof Error ? error.message : 'Unable to share trip.',
+        );
+      } finally {
+        setIsLoading(false);
+      }
     };
-  }, [currentUserIsOwner, currentUser, trip, publishToast]);
+  }, [currentUserIsOwner, currentUser, trip, publishToast, addToParticipants]);
 
   const handleFormSubmit = useCallback(
     (e: SyntheticEvent<HTMLFormElement>) => {
@@ -177,6 +192,7 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
   return (
     <Dialog.Root open={true}>
       <Dialog.Content
+        width="calc(100% - 2 * var(--space-4))"
         maxWidth={CommonLargeDialogMaxWidth}
         onEscapeKeyDown={(e) => {
           if (e.defaultPrevented) return;
@@ -210,7 +226,10 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
                 size="2"
                 disabled={isLoading}
               >
-                <Select.Trigger className={s.tripSharingLevelField} />
+                <Select.Trigger
+                  className={s.tripSharingLevelField}
+                  aria-label="Trip privacy"
+                />
                 <Select.Content>
                   <Select.Item value={String(TripSharingLevel.Private)}>
                     Private
@@ -344,13 +363,18 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
             onSubmit={handleFormSubmit}
           >
             <Flex direction="column" gap="2">
-              <Text color={dangerToken} size="2">
+              <Text
+                color={dangerToken}
+                size="2"
+                role={errorMessage ? 'alert' : undefined}
+              >
                 {errorMessage}&nbsp;
               </Text>
 
-              <Flex direction="row" gap="1" justify="end">
+              <Flex direction="row" gap="1" justify="end" wrap="wrap">
                 <TextField.Root
-                  placeholder="abc@example.com"
+                  placeholder="Email or @username"
+                  aria-label="Account to share with"
                   name="newUserEmail"
                   type="text"
                   required
@@ -371,7 +395,10 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
                   required
                   disabled={isLoading}
                 >
-                  <Select.Trigger className={s.roleField} />
+                  <Select.Trigger
+                    className={s.roleField}
+                    aria-label="Access role"
+                  />
                   <Select.Content>
                     <Select.Item value={TripUserRole.Viewer}>
                       Viewer
@@ -391,17 +418,37 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
                 </Button>
               </Flex>
             </Flex>
+            <Text as="label" size="2">
+              <Flex gap="2" align="center">
+                <Checkbox
+                  checked={addToParticipants}
+                  style={{ minWidth: 24, minHeight: 24 }}
+                  disabled={isLoading}
+                  onCheckedChange={(checked) =>
+                    setAddToParticipants(checked === true)
+                  }
+                />
+                Also add to participants
+              </Flex>
+            </Text>
           </form>
         ) : null}
 
-        <Inset side="x" my="2">
-          <Table.Root>
+        <Inset side="x" my="2" className={s.peopleTable}>
+          <Table.Root layout="fixed">
             <Table.Header>
               <Table.Row>
                 <Table.ColumnHeaderCell>Person</Table.ColumnHeaderCell>
-                <Table.ColumnHeaderCell>Role</Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell className={s.accessColumn}>
+                  Role
+                </Table.ColumnHeaderCell>
+                <Table.ColumnHeaderCell className={s.joiningColumn}>
+                  Joining
+                </Table.ColumnHeaderCell>
                 {currentUserIsOwner ? (
-                  <Table.ColumnHeaderCell>Actions</Table.ColumnHeaderCell>
+                  <Table.ColumnHeaderCell className={s.actionsColumn}>
+                    Actions
+                  </Table.ColumnHeaderCell>
                 ) : null}
               </Table.Row>
             </Table.Header>
@@ -410,7 +457,7 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
               {tripUsers.map((tripUser) => {
                 return (
                   <Table.Row key={tripUser.id}>
-                    <Table.RowHeaderCell>
+                    <Table.RowHeaderCell className={s.personCell}>
                       {tripUser.activated ? (
                         tripUser.handle
                       ) : (
@@ -419,10 +466,71 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
                           <Text size="1">(not activated)</Text>
                         </>
                       )}
+                      {tripUser.accountType === 'guest' && (
+                        <Badge color="gray" ml="2">
+                          Guest account
+                        </Badge>
+                      )}
+                      <Text size="1" color="gray" className={s.mobileAccess}>
+                        {capitalizeFirst(tripUser.role)}
+                      </Text>
                     </Table.RowHeaderCell>
-                    <Table.Cell>{capitalizeFirst(tripUser.role)}</Table.Cell>
+                    <Table.Cell className={s.accessColumn}>
+                      {capitalizeFirst(tripUser.role)}
+                    </Table.Cell>
+                    <Table.Cell className={s.joiningColumn}>
+                      <Checkbox
+                        aria-label={`${tripUser.handle} is joining the trip`}
+                        checked={
+                          !!trip?.people?.some(
+                            (p) =>
+                              p.userId === tripUser.userId &&
+                              p.isParticipant &&
+                              !p.archived,
+                          )
+                        }
+                        disabled={
+                          isLoading ||
+                          !currentUserIsOwner ||
+                          trip?.archivedAt != null
+                        }
+                        onCheckedChange={(checked) => {
+                          if (!trip) return;
+                          const person = trip.people?.find(
+                            (p) => p.userId === tripUser.userId,
+                          );
+                          setIsLoading(true);
+                          const prefix = `/api/trips/${encodeURIComponent(trip.id)}/people`;
+                          const request = person
+                            ? patchMutation(
+                                `${prefix}/${encodeURIComponent(person.id)}`,
+                                {
+                                  isParticipant: checked === true,
+                                  ...(checked ? { archived: false } : {}),
+                                },
+                              )
+                            : postMutation(prefix, {
+                                id: id(),
+                                userId: tripUser.userId,
+                                isParticipant: checked === true,
+                              });
+                          void request
+                            .then(() =>
+                              useBoundStore.getState().refreshTrip(trip.id),
+                            )
+                            .catch((error: unknown) =>
+                              setErrorMessage(
+                                error instanceof Error
+                                  ? error.message
+                                  : 'Unable to update person.',
+                              ),
+                            )
+                            .finally(() => setIsLoading(false));
+                        }}
+                      />
+                    </Table.Cell>
                     {currentUserIsOwner ? (
-                      <Table.Cell>
+                      <Table.Cell className={s.actionsColumn}>
                         {currentUser?.id === tripUser.userId ? (
                           ''
                         ) : (
@@ -435,7 +543,7 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
                             }}
                             loading={isLoading}
                           >
-                            <TrashIcon /> Delete
+                            <TrashIcon /> Remove
                           </Button>
                         )}
                       </Table.Cell>
@@ -447,7 +555,7 @@ export function TripSharingDialog({ tripId }: { tripId: string }) {
           </Table.Root>
         </Inset>
 
-        <Flex gap="3" mt="5" justify="end">
+        <Flex gap="3" mt="5" justify="end" wrap="wrap">
           {tripSharingLevel === TripSharingLevel.PublicListed ||
           tripSharingLevel === TripSharingLevel.PublicUnlisted ? (
             <Button

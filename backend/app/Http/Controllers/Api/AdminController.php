@@ -15,6 +15,7 @@ use App\Models\Task;
 use App\Models\TaskList;
 use App\Models\Trip;
 use App\Models\User;
+use App\Services\ExpenseLedgerService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -220,9 +221,12 @@ class AdminController extends Controller
 
     public function deleteContent(string $trip, string $entity, string $entityId): JsonResponse
     {
-        Trip::findOrFail($trip);
+        $parent = Trip::findOrFail($trip);
         $record = $this->contentQuery($trip, $entity)->whereKey($entityId)->firstOrFail();
-        DB::transaction(function () use ($record, $entity): void {
+        DB::transaction(function () use ($record, $entity, $parent): void {
+            if ($record instanceof Expense) {
+                app(ExpenseLedgerService::class)->assertDeletable($parent, $record);
+            }
             if ($record instanceof TaskList) {
                 foreach ($record->tasks as $task) {
                     $this->softDeleteTargetComments('tasks', (string) $task->getKey());
@@ -254,8 +258,11 @@ class AdminController extends Controller
     public function restoreContent(string $trip, string $entity, string $entityId): JsonResponse
     {
         DB::transaction(function () use ($trip, $entity, $entityId): void {
-            Trip::whereKey($trip)->lockForUpdate()->firstOrFail();
+            $lockedTrip = Trip::whereKey($trip)->lockForUpdate()->firstOrFail();
             $record = $this->contentQuery($trip, $entity, 'deleted')->whereKey($entityId)->lockForUpdate()->firstOrFail();
+            if ($record instanceof Expense) {
+                app(ExpenseLedgerService::class)->assertRestorable($lockedTrip, $record);
+            }
             if ($entity === 'tasks') {
                 abort_unless(TaskList::whereKey($record->getAttribute('task_list_id'))->lockForUpdate()->first() !== null, 409, 'Restore the task list first.');
             }

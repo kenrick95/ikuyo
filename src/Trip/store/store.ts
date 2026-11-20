@@ -147,12 +147,20 @@ function fetchTripAndMerge(
   get: () => BoundStoreType,
   tripId: string,
   showLoading: boolean,
+  fresh = false,
 ): Promise<void> {
   const sessionUserId = get().currentUser?.id;
   const sessionEpoch = get().sessionEpoch;
   const key = JSON.stringify([tripId, sessionUserId, sessionEpoch]);
   const existing = inFlightTrips.get(key);
-  if (existing) return existing;
+  if (existing) {
+    // A mutation must not reuse a request that started before it committed.
+    return fresh
+      ? existing
+          .catch(() => undefined)
+          .then(() => fetchTripAndMerge(set, get, tripId, showLoading, true))
+      : existing;
+  }
   const promise = (async () => {
     try {
       if (showLoading) {
@@ -293,9 +301,8 @@ export const createTripSlice: StateCreator<
       // another consumer (including WebMCP's trip-open) can safely await it.
       return () => undefined;
     },
-    refreshTrip: (tripId: string) => {
-      void fetchTripAndMerge(set, get, tripId, false).catch(() => undefined);
-    },
+    refreshTrip: (tripId: string) =>
+      fetchTripAndMerge(set, get, tripId, false, true),
     loadTrip: async (tripId: string) => {
       await fetchTripAndMerge(set, get, tripId, true);
       const trip = get().trip[tripId];

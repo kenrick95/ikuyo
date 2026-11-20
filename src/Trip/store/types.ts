@@ -2,9 +2,11 @@ import type { DbAccommodationWithTrip } from '../../Accommodation/db';
 import type { DbActivity } from '../../Activity/db';
 import type { DbCommentGroupObjectType } from '../../Comment/db';
 import type { DbExpense } from '../../Expense/db';
+import type { ExpenseLedger, ExpenseLedgerData } from '../../Expense/ledger';
 import type { DbMacroplanWithTrip } from '../../Macroplan/db';
 import type { TripUserRole } from '../../User/TripUserRole';
 import type { DbTrip } from '../db';
+import type { TripPerson } from '../people/types';
 
 export type TripSliceTrip = Omit<
   DbTrip,
@@ -17,6 +19,8 @@ export type TripSliceTrip = Omit<
   tripUserIds: string[];
   commentGroupIds: string[];
   expenseIds: string[];
+  expenseLedger?: ExpenseLedgerData | null;
+  people?: TripPerson[];
   taskListIds: string[];
 
   currentUserRole: TripUserRole;
@@ -31,7 +35,7 @@ export type TripSliceTripMeta = {
 export type TripSliceTripLocalState = {
   /* For next entry of expense: save last used currency, currency conversion factor, and timestamp inccured, use it again */
   expenseCurrency: string;
-  expenseCurrencyConversionFactor: number;
+  expenseCurrencyConversionFactor: number | undefined;
   expenseTimestampIncurred: number;
 
   /* For next entry of activity: save last timestamp end, use it as new timestamp start */
@@ -104,6 +108,7 @@ export type TripSliceTripUser = {
   activated: boolean;
   handle: string;
   email: string;
+  accountType?: 'guest' | 'registered' | null;
 };
 
 export type TripSliceTask = {
@@ -207,7 +212,11 @@ export type DbTripQueryReturnType = {
     timeZoneStart?: string | null | undefined;
     timeZoneEnd?: string | null | undefined;
   }[];
+  expenseLedger?: ExpenseLedgerData | null;
+  people?: TripPerson[];
   expense: {
+    ledger?: ExpenseLedger | null;
+    ledgerRevision?: number;
     id: string;
     title: string;
     currency: string;
@@ -247,6 +256,7 @@ export type DbTripQueryReturnType = {
     user: {
       id: string;
       email: string | undefined;
+      accountType?: 'guest' | 'registered' | null;
       activated: boolean;
       handle: string;
     }[];
@@ -388,7 +398,7 @@ export interface TripSlice {
   /** return: unsubscribe function */
   subscribeTrip: (id: string) => () => void;
   /** Re-fetch a backend trip and merge changes into the store (no loading flash). */
-  refreshTrip: (id: string) => void;
+  refreshTrip: (id: string) => Promise<void>;
   /** Load a trip on demand and make it the current non-visual tool context. */
   loadTrip: (id: string) => Promise<TripSliceTrip>;
 

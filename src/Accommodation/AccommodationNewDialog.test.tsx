@@ -105,7 +105,7 @@ test.each([false, true])(
       screen.getByRole('dialog', { name: 'New Accommodation' }),
     ).toBeInTheDocument();
     const checkIn = screen.getByRole('button', {
-      name: 'Accommodation check in time',
+      name: /^Accommodation check in time:/,
     });
     expect(checkIn).toHaveTextContent(
       existing ? '3 November 2026' : '1 November 2026',
@@ -149,6 +149,6 @@ test('opens a new accommodation prefilled from a timetable day', () => {
     </Theme>,
   );
   expect(
-    screen.getByRole('button', { name: 'Accommodation check in time' }),
+    screen.getByRole('button', { name: /^Accommodation check in time:/ }),
   ).toHaveTextContent('4 November 2026');
 });

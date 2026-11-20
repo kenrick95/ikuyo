@@ -70,7 +70,10 @@ export function usePeriodicTripSync(
         ) {
           // Revalidate through the trip loader, which clears expired sessions
           // and evicts denied trips together with their cached content/dialogs.
-          useBoundStore.getState().refreshTrip(tripId);
+          void useBoundStore
+            .getState()
+            .refreshTrip(tripId)
+            .catch(() => undefined);
         }
         // Transient background failures leave the current trip visible.
       } finally {

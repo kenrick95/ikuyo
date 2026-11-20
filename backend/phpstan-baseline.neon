@@ -535,12 +535,6 @@ parameters:
 			path: app/Models/Trip.php
 
 		-
-			message: '#^Method App\\Models\\Trip\:\:expenses\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
-			identifier: missingType.generics
-			count: 1
-			path: app/Models/Trip.php
-
-		-
 			message: '#^Method App\\Models\\Trip\:\:macroPlans\(\) return type with generic class Illuminate\\Database\\Eloquent\\Relations\\HasMany does not specify its types\: TRelatedModel, TDeclaringModel$#'
 			identifier: missingType.generics
 			count: 1
