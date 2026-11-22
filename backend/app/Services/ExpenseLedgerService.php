@@ -13,6 +13,8 @@ class ExpenseLedgerService
 {
     public function write(Request $request, Trip $trip, ?Expense $expense = null): Expense
     {
+        // The HTTP caller loads the expense under the exclusive trip lock held
+        // by SerializeTripLifecycle through the revision check and save.
         return DB::transaction(function () use ($request, $trip, $expense): Expense {
             $validated = $request->validate([
                 'id' => ['sometimes', 'string', 'max:40'],
@@ -223,8 +225,8 @@ class ExpenseLedgerService
     public function snapshot(Trip $trip): array
     {
         return DB::transaction(function () use ($trip): array {
-            // Writers take the trip's exclusive lock before changing any ledger
-            // rows. Keep it stable across participants, expenses and payments.
+            // SerializeTripLifecycle takes the exclusive lock for API writers.
+            // Keep it stable across participants, expenses and payments.
             Trip::whereKey($trip->id)->sharedLock()->firstOrFail();
 
             return $this->buildSnapshot($trip);

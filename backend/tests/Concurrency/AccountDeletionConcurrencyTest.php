@@ -239,6 +239,65 @@ class AccountDeletionConcurrencyTest extends TestCase
         $this->assertSame('ok', $result);
     }
 
+    public static function financialWriteRoutes(): array
+    {
+        return [
+            'create expense' => ['POST', 'expenses', 201],
+            'add person' => ['POST', 'people', 201],
+            'update person' => ['PATCH', 'people/{person}', 200],
+            'record payment' => ['POST', 'expense-payments', 201],
+            'void payment' => ['DELETE', 'expense-payments/{payment}', 200],
+        ];
+    }
+
+    #[DataProvider('financialWriteRoutes')]
+    public function test_financial_api_writes_wait_for_the_trip_read_lock(string $method, string $path, int $status): void
+    {
+        $owner = $this->user();
+        $trip = $this->trip($owner);
+        $this->financialRows($owner, $trip);
+        $payment = DB::table('expense_payments')->where('trip_id', $trip->id)->first();
+        $url = "/api/trips/$trip->id/" . strtr($path, ['{person}' => $payment->sender_id, '{payment}' => $payment->id]);
+        $data = match ($path) {
+            'expenses' => ['title' => 'Taxi', 'currency' => 'SGD', 'amount' => '15', 'timestampIncurred' => 1],
+            'people' => ['id' => (string) Str::uuid(), 'name' => 'New Guest'],
+            'people/{person}' => ['name' => 'Renamed Guest'],
+            'expense-payments' => [
+                'id' => (string) Str::uuid(), 'senderId' => $payment->sender_id, 'recipientId' => $payment->recipient_id,
+                'currency' => 'SGD', 'amountMinor' => '1000', 'date' => '2026-11-16',
+            ],
+            default => [],
+        };
+        $result = $this->race(
+            fn () => $this->actingAs($owner)->json($method, $url, $data)->assertStatus($status),
+            fn (Closure $wait) => DB::transaction(function () use ($trip, $wait): void {
+                Trip::whereKey($trip->id)->sharedLock()->firstOrFail();
+                $wait();
+            }),
+        );
+        $this->assertSame('ok', $result);
+    }
+
+    public function test_concurrent_expense_update_aliases_reject_the_stale_revision(): void
+    {
+        $owner = $this->user();
+        $editor = $this->user();
+        $trip = $this->trip($owner);
+        $trip->users()->attach($editor->id, ['id' => (string) Str::uuid(), 'role' => 1, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
+        $this->financialRows($owner, $trip);
+        $expenseId = $trip->expenses()->sole()->id;
+        $result = $this->race(
+            fn () => $this->actingAs($editor)->putJson("/api/expenses/$expenseId", ['title' => 'Stale edit', 'expectedRevision' => 1])->assertConflict(),
+            fn (Closure $wait) => DB::transaction(function () use ($owner, $trip, $expenseId, $wait): void {
+                $this->actingAs($owner)->putJson("/api/trips/$trip->id/expenses/$expenseId", ['title' => 'Committed edit', 'expectedRevision' => 1])
+                    ->assertOk()->assertJsonPath('ledger_revision', 2);
+                $wait();
+            }),
+        );
+        $this->assertSame('ok', $result);
+        $this->assertDatabaseHas('expenses', ['id' => $expenseId, 'title' => 'Committed edit', 'ledger_revision' => 2]);
+    }
+
     private function financialRows(User $owner, Trip $trip): void
     {
         $service = app(ExpenseLedgerService::class);

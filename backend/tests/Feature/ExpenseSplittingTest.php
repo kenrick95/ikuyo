@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Enums\CommentObjectType;
 use App\Models\Trip;
 use App\Models\User;
 use App\Services\ExpenseLedgerService;
 use App\Services\ExpenseMoney;
 use App\Services\TripPeopleService;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -171,15 +173,35 @@ class ExpenseSplittingTest extends TestCase
         $refund = $this->expense($a, $b, $c, 'SGD', '30');
         $refund['ledger'] += ['kind' => 'refund', 'refundOf' => $original['id']];
         $this->postJson("/api/trips/$trip->id/expenses", $refund)->assertCreated();
+        $comment = $this->postJson("/api/trips/$trip->id/comment-groups", [
+            'objectType' => CommentObjectType::Expense->value,
+            'objectId' => $original['id'],
+            'content' => 'Keep this receipt.',
+        ])->assertCreated()->json();
         $before = $this->getJson("/api/trips/$trip->id")->json('expenseLedger');
-        $urls = ["/api/expenses/{$original['id']}?expectedRevision=1", "/api/trips/$trip->id/expenses/{$original['id']}?expectedRevision=1", "/api/admin/trips/$trip->id/content/expenses/{$original['id']}"];
-        foreach ($urls as $url) {
+        $commentWrites = [];
+        DB::listen(function (QueryExecuted $query) use (&$commentWrites): void {
+            if (preg_match('/^(?:update|delete from) ["`](?:comments|comment_groups|comment_group_objects)["`]/i', $query->sql)) {
+                $commentWrites[] = $query->sql;
+            }
+        });
+        $direct = "/api/expenses/{$original['id']}";
+        $scoped = "/api/trips/$trip->id/expenses/{$original['id']}";
+        foreach ([$direct, $scoped] as $url) {
+            $this->deleteJson("$url?expectedRevision=0")->assertConflict();
+        }
+        foreach (["$direct?expectedRevision=1", "$scoped?expectedRevision=1", "/api/admin/trips/$trip->id/content/expenses/{$original['id']}"] as $url) {
             $this->deleteJson($url)->assertUnprocessable();
             $this->assertNotSoftDeleted('expenses', ['id' => $original['id']]);
             $this->assertSame($before, $this->getJson("/api/trips/$trip->id")->json('expenseLedger'));
         }
+        $this->assertSame([], $commentWrites);
+        $this->assertNotSoftDeleted('comments', ['id' => $comment['id']]);
+        $this->assertNotSoftDeleted('comment_groups', ['id' => $comment['comment_group_id']]);
+        $this->assertNotSoftDeleted('comment_group_objects', ['comment_group_id' => $comment['comment_group_id']]);
         $this->deleteJson("/api/expenses/{$refund['id']}?expectedRevision=1")->assertOk();
-        $this->deleteJson($urls[1])->assertOk();
+        $this->deleteJson("$scoped?expectedRevision=1")->assertOk();
+        $this->assertSoftDeleted('comments', ['id' => $comment['id']]);
         $this->getJson("/api/trips/$trip->id")->assertJsonPath('expenseLedger.currencies', []);
         $this->postJson("/api/admin/trips/$trip->id/content/expenses/{$refund['id']}/restore")->assertUnprocessable();
     }

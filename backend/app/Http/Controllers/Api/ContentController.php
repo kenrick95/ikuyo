@@ -163,13 +163,7 @@ class ContentController extends Controller
         $trip = $this->tripFor($record);
         abort_unless($request->user() && $access->canEdit($trip, $request->user()), 403);
         $access->ensureContentWritable($trip);
-        $this->deleteEntityDescGraph($record);
-        if ($record instanceof Expense) {
-            abort_if($record->ledger && $request->integer('expectedRevision', -1) !== $record->ledger_revision, 409, 'Expense changed. Reload before deleting.');
-            app(ExpenseLedgerService::class)->assertDeletable($trip, $record);
-            app(ExpenseLedgerService::class)->history($trip, $record->id, 'expense.delete', $record->toArray(), null, $request->user());
-        }
-        $record->delete();
+        $this->deleteRecord($request, $trip, $record);
 
         return response()->json(['ok' => true]);
     }
@@ -249,16 +243,21 @@ class ContentController extends Controller
 
     public function destroy(Request $request, Trip $trip, string $entity, string $entityId): JsonResponse
     {
-        $record = $this->record($trip, $entity, $entityId);
-        $this->deleteEntityDescGraph($record);
-        if ($record instanceof Expense) {
-            abort_if($record->ledger && $request->integer('expectedRevision', -1) !== $record->ledger_revision, 409, 'Expense changed. Reload before deleting.');
-            app(ExpenseLedgerService::class)->assertDeletable($trip, $record);
-            app(ExpenseLedgerService::class)->history($trip, $record->id, 'expense.delete', $record->toArray(), null, $request->user());
-        }
-        $record->delete();
+        $this->deleteRecord($request, $trip, $this->record($trip, $entity, $entityId));
 
         return response()->json(['ok' => true]);
+    }
+
+    private function deleteRecord(Request $request, Trip $trip, Activity|Accommodation|MacroPlan|Expense $record): void
+    {
+        if ($record instanceof Expense) {
+            abort_if($record->ledger && $request->integer('expectedRevision', -1) !== $record->ledger_revision, 409, 'Expense changed. Reload before deleting.');
+            $ledger = app(ExpenseLedgerService::class);
+            $ledger->assertDeletable($trip, $record);
+            $ledger->history($trip, $record->id, 'expense.delete', $record->toArray(), null, $request->user());
+        }
+        $this->deleteEntityDescGraph($record);
+        $record->delete();
     }
 
     /** Delete a content entity's polymorphic comment graph (groups/objects/comments). */
