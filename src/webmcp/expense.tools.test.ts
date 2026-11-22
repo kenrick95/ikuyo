@@ -96,6 +96,32 @@ test('trip context exposes guest participant IDs for expense creation', () => {
   });
 });
 
+test.each(['expense-create', 'expense-create-many'])(
+  '%s retries with the same server key after losing the response',
+  async (name) => {
+    const expense = { title: 'Coffee', amount: 12, idempotencyKey: name };
+    const input =
+      name === 'expense-create-many' ? { expenses: [expense] } : expense;
+    const create = () => tool(name).execute(input);
+    mocks.add.mockRejectedValueOnce(new Error('Lost response'));
+    if (name === 'expense-create-many') {
+      await expect(create()).resolves.toMatchObject({
+        ok: false,
+        failedIndex: 0,
+      });
+    } else {
+      await expect(create()).rejects.toThrow('Lost response');
+    }
+    await expect(create()).resolves.toMatchObject({ ok: true });
+    expect(mocks.add).toHaveBeenCalledTimes(2);
+    expect(mocks.add.mock.calls[1]).toEqual(mocks.add.mock.calls[0]);
+    expect(mocks.add).toHaveBeenLastCalledWith(
+      expect.objectContaining({ timestampIncurred: undefined }),
+      { tripId: 'trip', idempotencyKey: name },
+    );
+  },
+);
+
 test.each([false, true])(
   'WebMCP sharing keeps guest-account access and Joining independent: %s',
   async (joining) => {

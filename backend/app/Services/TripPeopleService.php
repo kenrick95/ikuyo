@@ -14,7 +14,10 @@ class TripPeopleService
         if ($user) {
             $existing = DB::table('trip_people')->where('trip_id', $trip->id)->where('user_id', $user->id)->value('id');
             if ($existing) {
-                return $existing;
+                if ($id === null) {
+                    return $existing;
+                }
+                abort_unless($id === $existing, 409, 'That account is already linked to another person in this trip.');
             }
         }
         $id ??= (string) Str::uuid();

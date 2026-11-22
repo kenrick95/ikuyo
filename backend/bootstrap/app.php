@@ -39,6 +39,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->remove(
             ConvertEmptyStringsToNull::class,
         );
+
+        // Retry keys are opaque. Keep the caller's exact value.
+        $middleware->trimStrings(except: ['idempotencyKey']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

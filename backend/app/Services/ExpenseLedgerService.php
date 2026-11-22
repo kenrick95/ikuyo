@@ -22,16 +22,20 @@ class ExpenseLedgerService
                 'description' => ['sometimes', 'nullable', 'string'],
                 'amount' => [$expense ? 'sometimes' : 'required', 'numeric'],
                 'currency' => [$expense ? 'sometimes' : 'required', 'string', 'max:8'],
-                'timestampIncurred' => [$expense ? 'sometimes' : 'required', 'integer'],
+                'timestampIncurred' => [$expense ? 'sometimes' : 'required_without:idempotencyKey', 'integer'],
                 'timeZoneIncurred' => ['sometimes', 'nullable', 'timezone'],
                 'currencyConversionFactor' => ['sometimes', 'nullable', 'numeric', 'gt:0'],
                 'amountInOriginCurrency' => ['sometimes', 'nullable', 'numeric'],
                 'ledger' => ['sometimes', 'nullable', 'array'],
                 'expectedRevision' => ['sometimes', 'integer', 'min:0'],
+                'idempotencyKey' => ['sometimes', $expense ? 'prohibited' : 'required', 'string', 'max:200', 'prohibits:id'],
             ]);
             $creating = ! $expense;
             if ($creating) {
-                $id = $validated['id'] ?? (string) Str::uuid();
+                $key = $validated['idempotencyKey'] ?? null;
+                $id = $key === null
+                    ? ($validated['id'] ?? (string) Str::uuid())
+                    : substr(hash('sha256', json_encode(['expense-create', $request->user()->id, $trip->id, $key], JSON_THROW_ON_ERROR)), 0, 40);
                 // The client can resolve `me` after a lost response and a sync.
                 // Use the same identity for both forms of a creation retry.
                 $fingerprint = $validated;
@@ -55,7 +59,10 @@ class ExpenseLedgerService
 
                     return $existing;
                 }
-                $expense = new Expense(['id' => $id, 'trip_id' => $trip->id, 'creation_hash' => $hash]);
+                $expense = new Expense([
+                    'id' => $id, 'trip_id' => $trip->id, 'creation_hash' => $hash,
+                    'incurred_at_ms' => $validated['timestampIncurred'] ?? now()->getTimestampMs(),
+                ]);
             }
             $before = $expense->toArray();
             $hasLedger = array_key_exists('ledger', $validated);

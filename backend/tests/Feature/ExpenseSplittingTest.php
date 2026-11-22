@@ -73,6 +73,35 @@ class ExpenseSplittingTest extends TestCase
         $this->assertDatabaseHas('trip_people', ['id' => $a, 'user_id' => $user->id]);
     }
 
+    public function test_expense_creation_keys_replay_the_same_expense_and_default_timestamp(): void
+    {
+        [$trip, , $a] = $this->setupTrip();
+        $url = "/api/trips/$trip->id/expenses";
+        $expense = [
+            'idempotencyKey' => 'receipt-1', 'title' => 'Coffee', 'amount' => '12', 'currency' => 'SGD',
+            'ledger' => ['paidBy' => 'me', 'method' => null],
+        ];
+        $this->freezeTime();
+        $first = $this->postJson($url, $expense)->assertCreated()
+            ->assertJsonPath('incurred_at_ms', fn ($timestamp) => (int) $timestamp === now()->getTimestampMs())
+            ->json();
+        $this->travel(1)->hour();
+        $this->postJson($url, $expense)->assertCreated()
+            ->assertJsonPath('id', $first['id'])->assertJsonPath('incurred_at_ms', $first['incurred_at_ms']);
+        $this->postJson($url, [...$expense, 'ledger' => ['paidBy' => $a, 'method' => null]])->assertCreated()
+            ->assertJsonPath('id', $first['id']);
+        $this->postJson($url, [...$expense, 'amount' => '13'])->assertConflict();
+        $this->postJson($url, [...$expense, 'timestampIncurred' => 1])->assertConflict();
+        $this->postJson($url, [...$expense, 'id' => (string) Str::uuid()])->assertUnprocessable();
+        $unkeyed = $expense;
+        unset($unkeyed['idempotencyKey']);
+        $this->postJson($url, $unkeyed)->assertUnprocessable();
+        $this->assertDatabaseCount('expenses', 1);
+        $this->postJson($url, [...$expense, 'idempotencyKey' => ' receipt-1 '])->assertCreated()
+            ->assertJsonPath('id', fn ($id) => $id !== $first['id']);
+        $this->assertDatabaseCount('expenses', 2);
+    }
+
     public function test_multiple_payers_can_pay_for_somebody_else_and_invalid_updates_roll_back(): void
     {
         [$trip, , $a, $b, $c] = $this->setupTrip();

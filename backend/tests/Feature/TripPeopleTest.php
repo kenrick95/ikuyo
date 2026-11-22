@@ -39,6 +39,21 @@ class TripPeopleTest extends TestCase
         return $this->getJson("/api/trips/$trip->id")->assertOk()->json('people');
     }
 
+    public function test_creating_a_person_rejects_reusing_a_linked_account_with_a_different_id(): void
+    {
+        $trip = $this->trip($this->account('owner', 'owner@example.com'));
+        $guest = $this->account('guest_account');
+        $url = "/api/trips/$trip->id/people";
+        $person = ['id' => (string) Str::uuid(), 'userId' => $guest->id, 'name' => 'Guest'];
+
+        $this->postJson($url, $person)->assertCreated()->assertJsonPath('id', $person['id']);
+        $this->postJson($url, $person)->assertCreated()->assertJsonPath('id', $person['id']);
+        $this->postJson($url, [...$person, 'name' => 'Different'])->assertConflict();
+        $this->postJson($url, [...$person, 'id' => (string) Str::uuid()])->assertConflict()
+            ->assertJsonPath('message', 'That account is already linked to another person in this trip.');
+        $this->assertDatabaseCount('trip_people', 1);
+    }
+
     public function test_name_only_people_and_guest_accounts_are_distinct_and_do_not_grant_access(): void
     {
         $owner = $this->account('owner', 'owner@example.com');

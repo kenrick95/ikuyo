@@ -39,17 +39,38 @@ export type DbExpense = {
 };
 
 export async function dbAddExpense(
-  newExpense: Omit<DbExpense, 'id' | 'createdAt' | 'lastUpdatedAt' | 'trip'>,
-  { tripId, expenseId }: { tripId: string; expenseId?: string },
+  newExpense: Omit<
+    DbExpense,
+    'id' | 'createdAt' | 'lastUpdatedAt' | 'trip' | 'timestampIncurred'
+  > & { timestampIncurred?: number },
+  {
+    tripId,
+    expenseId,
+    idempotencyKey,
+  }: { tripId: string; expenseId?: string; idempotencyKey?: string },
 ) {
+  const path = `/api/trips/${encodeURIComponent(tripId)}/expenses`;
+  if (idempotencyKey !== undefined) {
+    // The server assigns the same ID and default date across retries.
+    const result = await postMutation<{ id: string }>(path, {
+      ...newExpense,
+      idempotencyKey,
+    });
+    return { id: result.id, result };
+  }
+
   const newId = expenseId ?? id();
+  const expense = {
+    ...newExpense,
+    timestampIncurred: newExpense.timestampIncurred ?? Date.now(),
+    id: newId,
+  };
   return optimisticRun(
     ['expense', 'trip'],
     () => {
       const now = Date.now();
       optimisticExpenseUpsert(tripId, {
-        ...newExpense,
-        id: newId,
+        ...expense,
         createdAt: now,
         lastUpdatedAt: now,
         tripId,
@@ -57,10 +78,7 @@ export async function dbAddExpense(
       } as TripSliceExpense);
     },
     async () => {
-      const result = await postMutation<{ id: string }>(
-        `/api/trips/${encodeURIComponent(tripId)}/expenses`,
-        { ...newExpense, id: newId },
-      );
+      const result = await postMutation<{ id: string }>(path, expense);
       return { id: result.id, result };
     },
   );
