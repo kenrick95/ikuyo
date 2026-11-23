@@ -38,6 +38,7 @@ export function TripNavbar() {
         size="3"
       >
         <Select.Trigger
+          aria-label={`Trip view: ${selection === RouteTripHome.routePath ? 'Overview' : selection === RouteTripExpenses.routePath ? 'Expenses' : selection.slice(1)}`}
           radius="large"
           variant="ghost"
           color="gray"

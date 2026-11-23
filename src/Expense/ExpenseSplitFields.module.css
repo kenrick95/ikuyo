@@ -1,0 +1,65 @@
+.fields {
+  width: 100%;
+  max-width: 40rem;
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.splitSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  border-top: 1px solid var(--gray-5);
+  padding-top: var(--space-3);
+}
+
+.methodSelect {
+  padding-inline: var(--space-2);
+}
+
+.personName {
+  overflow-wrap: anywhere;
+}
+
+.allocations {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.allocationRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 2.5rem;
+  padding-block: var(--space-2);
+  border-bottom: 1px solid var(--gray-4);
+}
+
+.valueCell {
+  display: flex;
+  flex-direction: column;
+  align-items: end;
+  gap: var(--space-1);
+}
+
+.allocationInput {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: clamp(7rem, 45cqi, 11rem);
+}
+
+.shareInput {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.amount {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}

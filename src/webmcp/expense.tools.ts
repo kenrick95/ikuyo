@@ -1,11 +1,13 @@
 import { assertWritable } from '../data/backendConfig';
 import { useBoundStore } from '../data/store';
 import { dbAddExpense, dbDeleteExpense, dbUpdateExpense } from '../Expense/db';
+import type { TripSliceTrip } from '../Trip/store/types';
 import { requireAuthUser, requireLoadedTrip, resolveTripId } from './context';
 import {
   deletionConfirmationSchema,
   requireDeletionConfirmation,
 } from './destructive';
+import { expenseLedgerSchema, parseExpenseLedger } from './expenseLedger';
 import { idempotencyKeySchema, runIdempotent } from './idempotency';
 import type { WebMCPTool } from './modelContext';
 import {
@@ -59,6 +61,59 @@ export function resolveExpenseConversion({
   };
 }
 
+function prepareExpense(input: Record<string, unknown>, trip: TripSliceTrip) {
+  const amount = asOptNum(input.amount, 'amount');
+  if (amount === undefined || amount === null) {
+    throw new Error('amount is required and must be a number');
+  }
+  const currency =
+    (input.currency as string | undefined)?.toUpperCase() ?? trip.currency;
+  return {
+    title: asStr(input.title, 'title'),
+    description: asOptStr(input.description, 'description') ?? '',
+    timestampIncurred:
+      toEpochMs(input.timestampIncurred, 'timestampIncurred') ?? undefined,
+    currency,
+    amount,
+    ledger: parseExpenseLedger(input.ledger, amount, currency, trip),
+    ...resolveExpenseConversion({
+      amount,
+      currency,
+      originCurrency: trip.originCurrency,
+      currencyConversionFactor: asOptNum(
+        input.currencyConversionFactor,
+        'currencyConversionFactor',
+      ),
+      amountInOriginCurrency: asOptNum(
+        input.amountInOriginCurrency,
+        'amountInOriginCurrency',
+      ),
+    }),
+    timeZoneIncurred:
+      asOptStr(input.timeZoneIncurred, 'timeZoneIncurred') ?? null,
+  };
+}
+
+function createExpense(
+  tripId: string,
+  input: Record<string, unknown>,
+  data: ReturnType<typeof prepareExpense>,
+) {
+  return runIdempotent(
+    'expense-create',
+    tripId,
+    input.idempotencyKey,
+    input,
+    async (idempotencyKey) => {
+      const result = await dbAddExpense(
+        data,
+        idempotencyKey === undefined ? { tripId } : { tripId, idempotencyKey },
+      );
+      return { ok: true, id: result.id, expenseId: result.id };
+    },
+  );
+}
+
 export function createExpenseTools(): WebMCPTool[] {
   return [
     {
@@ -72,6 +127,7 @@ export function createExpenseTools(): WebMCPTool[] {
           idempotencyKey: idempotencyKeySchema(),
           title: str('Expense title.'),
           amount: num('Amount spent (numeric).'),
+          ledger: expenseLedgerSchema(),
           currency: str('ISO 4217 currency code (e.g. JPY).'),
           currencyConversionFactor: num(
             'Optional conversion factor from origin currency to expense currency. Provide together with amountInOriginCurrency.',
@@ -95,47 +151,7 @@ export function createExpenseTools(): WebMCPTool[] {
         const tripId = resolveTripId(input.tripId);
         requireLoadedTrip(tripId);
         const trip = useBoundStore.getState().trip[tripId];
-        const amount = asOptNum(input.amount, 'amount');
-        if (amount === undefined || amount === null)
-          throw new Error('amount is required and must be a number');
-        const currency =
-          (input.currency as string | undefined)?.toUpperCase() ??
-          trip.currency;
-        const conversion = resolveExpenseConversion({
-          amount,
-          currency,
-          originCurrency: trip.originCurrency,
-          currencyConversionFactor: asOptNum(
-            input.currencyConversionFactor,
-            'currencyConversionFactor',
-          ),
-          amountInOriginCurrency: asOptNum(
-            input.amountInOriginCurrency,
-            'amountInOriginCurrency',
-          ),
-        });
-        const data = {
-          title: asStr(input.title, 'title'),
-          description: asOptStr(input.description, 'description') ?? '',
-          timestampIncurred:
-            toEpochMs(input.timestampIncurred, 'timestampIncurred') ??
-            Date.now(),
-          currency,
-          amount,
-          ...conversion,
-          timeZoneIncurred:
-            asOptStr(input.timeZoneIncurred, 'timeZoneIncurred') ?? null,
-        };
-        return runIdempotent(
-          'expense-create',
-          tripId,
-          input.idempotencyKey,
-          input,
-          async () => {
-            const result = await dbAddExpense(data, { tripId });
-            return { ok: true, id: result.id, expenseId: result.id };
-          },
-        );
+        return createExpense(tripId, input, prepareExpense(input, trip));
       },
     },
     {
@@ -157,6 +173,7 @@ export function createExpenseTools(): WebMCPTool[] {
                 idempotencyKey: idempotencyKeySchema(),
                 title: str('Expense title.'),
                 amount: num('Amount spent (numeric).'),
+                ledger: expenseLedgerSchema(),
                 currency: str('ISO 4217 currency code (e.g. JPY).'),
                 currencyConversionFactor: num(
                   'Optional conversion factor from origin currency to expense currency. Provide together with amountInOriginCurrency.',
@@ -198,83 +215,13 @@ export function createExpenseTools(): WebMCPTool[] {
             tripId,
             ...(item as Record<string, unknown>),
           };
-          const amount = asOptNum(merged.amount, 'amount');
-          if (amount === undefined || amount === null)
-            throw new Error('amount is required and must be a number');
-          const currency =
-            (merged.currency as string | undefined)?.toUpperCase() ??
-            trip.currency;
-          resolveExpenseConversion({
-            amount,
-            currency,
-            originCurrency: trip.originCurrency,
-            currencyConversionFactor: asOptNum(
-              merged.currencyConversionFactor,
-              'currencyConversionFactor',
-            ),
-            amountInOriginCurrency: asOptNum(
-              merged.amountInOriginCurrency,
-              'amountInOriginCurrency',
-            ),
-          });
-          asStr(merged.title, 'title');
-          toEpochMs(merged.timestampIncurred, 'timestampIncurred');
-          return merged;
+          return { input: merged, data: prepareExpense(merged, trip) };
         });
         const results: Array<Record<string, unknown>> = [];
         for (let index = 0; index < items.length; index++) {
           try {
-            const item = items[index];
-            const amount = asOptNum(item.amount, 'amount');
-            if (amount === undefined || amount === null) {
-              throw new Error('amount is required and must be a number');
-            }
-            const currency =
-              (item.currency as string | undefined)?.toUpperCase() ??
-              trip.currency;
-            const conversion = resolveExpenseConversion({
-              amount,
-              currency,
-              originCurrency: trip.originCurrency,
-              currencyConversionFactor: asOptNum(
-                item.currencyConversionFactor,
-                'currencyConversionFactor',
-              ),
-              amountInOriginCurrency: asOptNum(
-                item.amountInOriginCurrency,
-                'amountInOriginCurrency',
-              ),
-            });
-            results.push(
-              await runIdempotent(
-                'expense-create',
-                tripId,
-                item.idempotencyKey,
-                item,
-                async () => {
-                  const result = await dbAddExpense(
-                    {
-                      title: asStr(item.title, 'title'),
-                      description:
-                        asOptStr(item.description, 'description') ?? '',
-                      timestampIncurred:
-                        toEpochMs(
-                          item.timestampIncurred,
-                          'timestampIncurred',
-                        ) ?? Date.now(),
-                      currency,
-                      amount,
-                      ...conversion,
-                      timeZoneIncurred:
-                        asOptStr(item.timeZoneIncurred, 'timeZoneIncurred') ??
-                        null,
-                    },
-                    { tripId },
-                  );
-                  return { ok: true, id: result.id, expenseId: result.id };
-                },
-              ),
-            );
+            const { input: item, data } = items[index];
+            results.push(await createExpense(tripId, item, data));
           } catch (error) {
             return {
               ok: false,
@@ -404,6 +351,8 @@ export function createExpenseTools(): WebMCPTool[] {
             (input.currency as string | undefined)?.toUpperCase() ??
             existing.currency,
           amount,
+          ledger: existing.ledger,
+          ledgerRevision: existing.ledgerRevision,
           ...conversion,
           timeZoneIncurred:
             asOptStr(input.timeZoneIncurred, 'timeZoneIncurred') ??

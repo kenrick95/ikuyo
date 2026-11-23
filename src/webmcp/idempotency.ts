@@ -79,7 +79,7 @@ export async function runIdempotent<T extends object>(
   scope: string,
   key: unknown,
   input: Record<string, unknown>,
-  create: () => Promise<T>,
+  create: (key?: string) => Promise<T>,
 ): Promise<T & { idempotentReplay?: boolean }> {
   if (key === undefined) return create();
   if (typeof key !== 'string' || key.length === 0 || key.length > 200) {
@@ -109,7 +109,7 @@ export async function runIdempotent<T extends object>(
     }
     return (await pending.promise) as T;
   }
-  const promise = create();
+  const promise = create(key);
   inFlight.set(storageKey, { fingerprint, promise });
   try {
     const result = await promise;

@@ -1,4 +1,9 @@
-import { useBoundStore, useDeepBoundStore } from '../../data/store';
+import { useMemo } from 'react';
+import {
+  type BoundStoreType,
+  useBoundStore,
+  useDeepBoundStore,
+} from '../../data/store';
 import type { TripSliceAccommodation, TripSliceMacroplan } from './types';
 
 export function useTrip(tripId: string | undefined) {
@@ -80,9 +85,21 @@ export function useTripExpense(expenseId: string) {
   const expense = useDeepBoundStore((state) => state.getExpense(expenseId));
   return expense;
 }
-export function useTripExpenses(expenseIds: string[]) {
-  const tripUsers = useDeepBoundStore((state) => state.getExpenses(expenseIds));
-  return tripUsers;
+const EMPTY_EXPENSE_IDS: string[] = [];
+
+export function useTripExpenses(expenseIds = EMPTY_EXPENSE_IDS) {
+  const selectExpenses = useMemo(() => {
+    let expenseState: BoundStoreType['expense'] | undefined;
+    let expenses: ReturnType<BoundStoreType['getExpenses']>;
+    return (state: BoundStoreType) => {
+      if (expenseState !== state.expense) {
+        expenseState = state.expense;
+        expenses = state.getExpenses(expenseIds);
+      }
+      return expenses;
+    };
+  }, [expenseIds]);
+  return useDeepBoundStore(selectExpenses);
 }
 
 export function useTripTask(taskId: string) {

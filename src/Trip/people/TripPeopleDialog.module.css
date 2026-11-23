@@ -1,0 +1,74 @@
+.peopleTable {
+  width: 100%;
+
+  & th,
+  & td {
+    vertical-align: middle;
+    padding-inline: var(--space-2);
+  }
+
+  & thead th {
+    white-space: nowrap;
+  }
+}
+
+.personCell {
+  font-weight: normal;
+  overflow-wrap: anywhere;
+}
+
+.joiningColumn {
+  width: 72px;
+  text-align: center;
+}
+
+.accessColumn {
+  width: 88px;
+}
+
+.actionsColumn {
+  width: 80px;
+  text-align: center;
+}
+
+.mobileAccess {
+  display: none;
+}
+
+.linkPopover {
+  width: min(20rem, var(--radix-popover-content-available-width));
+  max-height: var(--radix-popover-content-available-height);
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+}
+
+.linkIdentity {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 479px) {
+  .peopleTable {
+    & th,
+    & td {
+      padding-inline: var(--space-1);
+    }
+  }
+
+  .joiningColumn {
+    width: 64px;
+  }
+
+  .actionsColumn {
+    width: 72px;
+  }
+
+  .accessColumn {
+    display: none;
+  }
+
+  .mobileAccess {
+    display: block;
+    margin-top: var(--space-1);
+  }
+}

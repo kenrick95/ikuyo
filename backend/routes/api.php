@@ -4,11 +4,13 @@ use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CommentController;
 use App\Http\Controllers\Api\ContentController;
+use App\Http\Controllers\Api\ExpenseLedgerController;
 use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\Api\MetadataController;
 use App\Http\Controllers\Api\SyncController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TripController;
+use App\Http\Controllers\Api\TripPeopleController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -89,6 +91,16 @@ Route::middleware(['web', 'trip.lifecycle', 'admin.audit'])->group(function (): 
     Route::patch('/trips/{trip}/sections', [TripController::class, 'sections'])
         ->middleware(['auth', 'trip.access:manage', 'trip.writable']);
 
+    Route::get('/trips/{trip}/expense-history', [ExpenseLedgerController::class, 'history'])->middleware('trip.access:view');
+    Route::patch('/trips/{trip}/people/{person}', [TripPeopleController::class, 'update'])->middleware(['auth', 'trip.access:edit', 'trip.writable']);
+    Route::post('/trips/{trip}/people/lookup', [TripPeopleController::class, 'lookup'])
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable', 'throttle:20,1']);
+    Route::post('/trips/{trip}/people', [TripPeopleController::class, 'store'])
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
+    Route::post('/trips/{trip}/expense-payments', [ExpenseLedgerController::class, 'storePayment'])
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
+    Route::delete('/trips/{trip}/expense-payments/{payment}', [ExpenseLedgerController::class, 'voidPayment'])
+        ->middleware(['auth', 'trip.access:edit', 'trip.writable']);
     Route::get('/trips/{trip}/{entity}', [ContentController::class, 'index'])
         ->whereIn('entity', ['activities', 'accommodations', 'macroplans', 'expenses'])
         ->middleware('trip.access:view');

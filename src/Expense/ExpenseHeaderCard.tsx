@@ -1,84 +1,97 @@
 import { Badge, Box, Card, Heading, Text } from '@radix-ui/themes';
 import { useMemo } from 'react';
-import { getTripStatus } from '../Trip/getTripStatus';
-import { useCurrentTrip, useTripExpenses } from '../Trip/store/hooks';
+import type { TripSliceExpense, TripSliceTrip } from '../Trip/store/types';
 import { formatCurrencyAmount } from './currency';
 import s from './ExpenseHeaderCard.module.css';
 
-export function ExpenseHeaderCard() {
-  const { trip } = useCurrentTrip();
+export function expenseTotals(
+  expenses: {
+    currency: string;
+    amount: number;
+    amountInOriginCurrency?: number;
+    ledger?: { kind?: string } | null;
+  }[],
+  originCurrency: string,
+) {
+  const totals: Record<string, number> = {};
+  let converted = 0,
+    missing = 0;
+  for (const expense of expenses) {
+    const sign = expense.ledger?.kind === 'refund' ? -1 : 1;
+    totals[expense.currency] =
+      (totals[expense.currency] ?? 0) + sign * expense.amount;
+    if (expense.currency === originCurrency) converted += sign * expense.amount;
+    else if (expense.amountInOriginCurrency != null)
+      converted += sign * expense.amountInOriginCurrency;
+    else missing++;
+  }
+  return { totals, converted, missing };
+}
 
-  const expenses = useTripExpenses(trip?.expenseIds ?? []);
-  const expenseSummary = useMemo(() => {
-    if (!expenses || expenses.length === 0)
-      return { total: 0, currency: trip?.originCurrency || 'USD' };
+function Amounts({ totals }: { totals: Record<string, number> }) {
+  return Object.entries(totals).map(([currency, amount]) => (
+    <Box key={currency} className={s.summaryValue}>
+      <Badge
+        variant="soft"
+        color="grass"
+        size="1"
+        className={s.summaryCurrencyBadge}
+      >
+        {currency}
+      </Badge>
+      <Text size="3" className={s.summaryTotalAmount}>
+        {formatCurrencyAmount(currency, amount)}
+      </Text>
+    </Box>
+  ));
+}
 
-    let total = 0;
-    for (const expense of expenses) {
-      total += expense.amountInOriginCurrency || expense.amount;
+export function ExpenseHeaderCard({
+  trip,
+  expenses,
+}: {
+  trip: TripSliceTrip | undefined;
+  expenses: TripSliceExpense[];
+}) {
+  const origin = trip?.originCurrency || trip?.currency || 'USD';
+  const displayCurrency = trip?.currency || origin;
+  const totals = useMemo(
+    () =>
+      expenses.length
+        ? expenseTotals(expenses, origin).totals
+        : { [displayCurrency]: 0 },
+    [expenses, origin, displayCurrency],
+  );
+  let label: string | undefined;
+  let dayStart: number | undefined;
+  let dayEnd: number | undefined;
+  if (trip) {
+    const now = Temporal.Now.instant();
+    if (now.epochMilliseconds >= trip.timestampStart) {
+      const isCurrent = now.epochMilliseconds < trip.timestampEnd;
+      const day = isCurrent
+        ? now.toZonedDateTimeISO(trip.timeZone)
+        : Temporal.Instant.fromEpochMilliseconds(trip.timestampEnd)
+            .toZonedDateTimeISO(trip.timeZone)
+            .subtract({ days: 1 });
+      label = isCurrent ? 'Today' : 'Final Day';
+      dayStart = day.startOfDay().epochMilliseconds;
+      dayEnd = day.add({ days: 1 }).startOfDay().epochMilliseconds;
     }
-
-    return { total, currency: trip?.originCurrency || 'USD' };
-  }, [expenses, trip?.originCurrency]);
-
-  const dailyExpenseSummary = useMemo(() => {
-    if (!trip || !expenses || expenses.length === 0) return null;
-
-    const tripStart = Temporal.Instant.fromEpochMilliseconds(
-      trip.timestampStart,
-    ).toZonedDateTimeISO(trip.timeZone);
-    const tripEnd = Temporal.Instant.fromEpochMilliseconds(
-      trip.timestampEnd,
-    ).toZonedDateTimeISO(trip.timeZone);
-    const tripStatus = getTripStatus(tripStart, tripEnd);
-
-    // Future trip - don't show this item
-    if (!tripStatus || tripStatus.status === 'upcoming') {
-      return null;
-    }
-
-    let targetDate: Temporal.ZonedDateTime;
-    let label: string;
-
-    // Current trip - show today's total
-    if (tripStatus.status === 'current') {
-      targetDate = Temporal.Now.zonedDateTimeISO(trip.timeZone).startOfDay();
-      label = 'Today';
-    }
-    // Past trip - show final day's expense
-    else {
-      // Final day is one day before timestampEnd
-      targetDate = tripEnd.subtract({ days: 1 }).startOfDay();
-      label = 'Final Day';
-    }
-
-    const targetExpenses = expenses.filter((expense) => {
-      const expenseDate = Temporal.Instant.fromEpochMilliseconds(
-        expense.timestampIncurred,
-      ).toZonedDateTimeISO(trip.timeZone);
-      // Check if expenseDate is the same day as targetDate
-      return (
-        Temporal.ZonedDateTime.compare(expenseDate.startOfDay(), targetDate) ===
-        0
-      );
-    });
-
-    let total = 0;
-    for (const expense of targetExpenses) {
-      total += expense.amountInOriginCurrency || expense.amount;
-    }
-
-    return {
-      total,
-      count: targetExpenses.length,
-      currency: trip.originCurrency || 'USD',
-      label,
-    };
-  }, [expenses, trip]);
-
+  }
+  const dailyTotals = useMemo(() => {
+    if (dayStart === undefined || dayEnd === undefined) return null;
+    const filtered = expenses.filter(
+      (expense) =>
+        expense.timestampIncurred >= dayStart &&
+        expense.timestampIncurred < dayEnd,
+    );
+    return filtered.length
+      ? expenseTotals(filtered, origin).totals
+      : { [displayCurrency]: 0 };
+  }, [expenses, origin, displayCurrency, dayStart, dayEnd]);
   return (
     <Box className={s.expenseHeaderCard}>
-      {/* Total */}
       <Card className={s.summaryItem}>
         <Heading
           as="h4"
@@ -89,24 +102,8 @@ export function ExpenseHeaderCard() {
         >
           Total
         </Heading>
-        <Box className={s.summaryValue}>
-          <Badge
-            variant="soft"
-            color="grass"
-            size="1"
-            className={s.summaryCurrencyBadge}
-          >
-            {expenseSummary.currency}
-          </Badge>
-          <Text size="3" className={s.summaryTotalAmount}>
-            {formatCurrencyAmount(
-              expenseSummary.currency,
-              expenseSummary.total,
-            )}
-          </Text>
-        </Box>
+        <Amounts totals={totals} />
       </Card>
-      {/*  Count */}
       <Card className={s.summaryItem}>
         <Heading
           as="h4"
@@ -123,8 +120,7 @@ export function ExpenseHeaderCard() {
           </Text>
         </Box>
       </Card>
-      {/* For current trip, show total for today; for past trips, show final day's expense; for future trip, don't show this item */}
-      {dailyExpenseSummary && (
+      {dailyTotals && (
         <Card className={s.summaryItem}>
           <Heading
             as="h4"
@@ -133,24 +129,9 @@ export function ExpenseHeaderCard() {
             size="2"
             className={s.summaryKey}
           >
-            {dailyExpenseSummary.label}
+            {label}
           </Heading>
-          <Box className={s.summaryValue}>
-            <Badge
-              variant="soft"
-              color="grass"
-              size="1"
-              className={s.summaryCurrencyBadge}
-            >
-              {dailyExpenseSummary.currency}
-            </Badge>
-            <Text size="3" className={s.summaryTotalAmount}>
-              {formatCurrencyAmount(
-                dailyExpenseSummary.currency,
-                dailyExpenseSummary.total,
-              )}
-            </Text>
-          </Box>
+          <Amounts totals={dailyTotals} />
         </Card>
       )}
     </Box>

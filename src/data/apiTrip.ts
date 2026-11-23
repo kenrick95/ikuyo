@@ -53,6 +53,7 @@ export function mapApiTrip(trip: ApiTrip): DbTripQueryReturnType {
       row.currencyConversionFactor ?? row.currency_conversion_factor,
     ),
     amount: toNum(row.amount),
+    ledgerRevision: toNum(row.ledgerRevision ?? row.ledger_revision),
     timestampIncurred: toNum(row.timestampIncurred ?? row.incurred_at_ms),
     timeZoneIncurred: row.timeZoneIncurred ?? row.timezone_incurred,
     dueAt: toNum(row.dueAt ?? row.due_at_ms),

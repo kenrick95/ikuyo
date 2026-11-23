@@ -71,3 +71,20 @@
     vertical-align: 1px;
   }
 }
+
+.controlContainer {
+  display: flex;
+  align-items: center;
+}
+.control {
+  flex: 1;
+}
+.othersButton {
+  flex: 0 0 20%;
+  margin: 0;
+}
+@media (min-width: 520px) {
+  .othersButton {
+    flex: 0 0 auto;
+  }
+}

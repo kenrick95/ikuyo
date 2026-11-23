@@ -4,6 +4,7 @@
 lefthook-local.yml
 .codex/hooks.json
 *.log*
+/docs/screenshots/expense-splitting/accessibility-report.json
 
 # Dist
 node_modules

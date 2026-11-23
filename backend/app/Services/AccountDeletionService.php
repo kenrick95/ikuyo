@@ -34,7 +34,8 @@ class AccountDeletionService
             $ownedTrips = DB::table('trip_user')->where('user_id', $target->id)->where('role', 0)->select('trip_id');
             $commentTrips = DB::table('comments')->join('comment_groups', 'comments.comment_group_id', '=', 'comment_groups.id')
                 ->where('comments.user_id', $target->id)->whereNull('comments.deleted_at')->select('comment_groups.trip_id');
-            $trips = Trip::withTrashed()->where(fn ($query) => $query->whereIn('id', $ownedTrips)->orWhereIn('id', $commentTrips))
+            $personTrips = DB::table('trip_people')->where('user_id', $target->id)->select('trip_id');
+            $trips = Trip::withTrashed()->where(fn ($query) => $query->whereIn('id', $ownedTrips)->orWhereIn('id', $commentTrips)->orWhereIn('id', $personTrips))
                 ->orderBy('id')->lockForUpdate()->get();
             // Re-read ownership only after all candidate trip locks are held.
             // A locking read sees membership changes committed while we waited,
@@ -92,6 +93,10 @@ class AccountDeletionService
                 'email_verify_token_hash' => null, 'email_verify_token_at' => null,
                 'pending_email' => null,
             ])->save();
+            DB::table('trip_people')->where('user_id', $target->id)->update(['user_id' => null]);
+            foreach ($trips as $trip) {
+                app(TripPeopleService::class)->notify($trip);
+            }
             $target->delete();
             DB::table((string) config('session.table', 'sessions'))->where('user_id', $target->id)->delete();
 

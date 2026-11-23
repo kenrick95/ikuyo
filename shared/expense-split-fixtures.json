@@ -1,0 +1,65 @@
+[
+  {
+    "currency": "SGD",
+    "amount": "10",
+    "method": "equal",
+    "shares": [
+      { "participantId": "c" },
+      { "participantId": "a" },
+      { "participantId": "b" }
+    ],
+    "expected": { "a": "334", "b": "333", "c": "333" }
+  },
+  {
+    "currency": "JPY",
+    "amount": "100",
+    "method": "equal",
+    "shares": [
+      { "participantId": "a" },
+      { "participantId": "b" },
+      { "participantId": "c" }
+    ],
+    "expected": { "a": "34", "b": "33", "c": "33" }
+  },
+  {
+    "currency": "KWD",
+    "amount": "1",
+    "method": "equal",
+    "shares": [
+      { "participantId": "a" },
+      { "participantId": "b" },
+      { "participantId": "c" }
+    ],
+    "expected": { "a": "334", "b": "333", "c": "333" }
+  },
+  {
+    "currency": "SGD",
+    "amount": "90",
+    "method": "shares",
+    "shares": [
+      { "participantId": "a", "value": "2" },
+      { "participantId": "b", "value": "1" }
+    ],
+    "expected": { "a": "6000", "b": "3000" }
+  },
+  {
+    "currency": "SGD",
+    "amount": "90",
+    "method": "percent",
+    "shares": [
+      { "participantId": "a", "value": "25" },
+      { "participantId": "b", "value": "75" }
+    ],
+    "expected": { "a": "2250", "b": "6750" }
+  },
+  {
+    "currency": "SGD",
+    "amount": "10",
+    "method": "exact",
+    "shares": [
+      { "participantId": "a", "value": "0.01" },
+      { "participantId": "b", "value": "9.99" }
+    ],
+    "expected": { "a": "1", "b": "999" }
+  }
+]

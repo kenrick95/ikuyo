@@ -10,7 +10,9 @@ use App\Models\Expense;
 use App\Models\MacroPlan;
 use App\Models\Task;
 use App\Models\Trip;
+use App\Services\ExpenseLedgerService;
 use App\Services\TripAccessService;
+use App\Services\TripPeopleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -144,6 +146,7 @@ class TripController extends Controller
                 'created_at_ms' => (int) round(microtime(true) * 1000),
                 'updated_at_ms' => (int) round(microtime(true) * 1000),
             ]);
+            app(TripPeopleService::class)->person($trip, $user, $user->handle);
 
             return $trip;
         });
@@ -231,6 +234,7 @@ class TripController extends Controller
                 'origin_timezone' => $trip->origin_timezone, 'sharing_level' => 0,
             ]);
             $copy->users()->attach($user->id, ['id' => (string) Str::uuid(), 'role' => 0, 'created_at_ms' => $now, 'updated_at_ms' => $now]);
+            app(TripPeopleService::class)->person($copy, $user, $user->handle);
             if ($data['includeActivities'] ?? false) {
                 foreach ($trip->activities as $item) {
                     $copy->activities()->create($this->copyActivity($item, $data['removeActivityDates'] ?? false, $trip, $data['startDateMs']));
@@ -248,7 +252,17 @@ class TripController extends Controller
             }
             if ($data['includeExpenses'] ?? false) {
                 foreach ($trip->expenses as $item) {
-                    $copy->expenses()->create($item->only(['amount', 'amount_in_origin_currency', 'currency', 'currency_conversion_factor', 'title', 'description', 'incurred_at_ms', 'timezone_incurred']));
+                    $row = $item->only(['amount', 'amount_in_origin_currency', 'currency', 'currency_conversion_factor', 'title', 'description', 'incurred_at_ms', 'timezone_incurred']);
+                    $row['id'] = (string) Str::uuid();
+                    // Duplicates are track-only. Preserve refund spending with
+                    // signed amounts without carrying old debts or identities.
+                    if (($item->ledger['kind'] ?? 'expense') === 'refund') {
+                        $row['amount'] = -$row['amount'];
+                        if ($row['amount_in_origin_currency'] !== null) {
+                            $row['amount_in_origin_currency'] = -$row['amount_in_origin_currency'];
+                        }
+                    }
+                    $copy->expenses()->create($row);
                 }
             }
             if ($data['includeTasks'] ?? false) {
@@ -267,6 +281,17 @@ class TripController extends Controller
     }
 
     public function show(Request $request, Trip $trip, TripAccessService $access): JsonResponse
+    {
+        return DB::transaction(function () use ($request, $trip, $access): JsonResponse {
+            // The trip lock covers the expense list and the derived ledger.
+            // All trip writers acquire its exclusive counterpart first.
+            $current = Trip::whereKey($trip->id)->sharedLock()->firstOrFail();
+
+            return $this->showSnapshot($request, $current, $access);
+        });
+    }
+
+    private function showSnapshot(Request $request, Trip $trip, TripAccessService $access): JsonResponse
     {
         $trip->load([
             'activities',
@@ -366,12 +391,15 @@ class TripController extends Controller
             'accommodation' => $trip->accommodations,
             'macroplan' => $trip->macroPlans,
             'expense' => $showExpenses ? $trip->expenses : [],
+            'people' => app(TripPeopleService::class)->snapshot($trip, $admin || in_array($role, [0, 1], true), $showExpenses || $admin || in_array($role, [0, 1], true)),
+            'expenseLedger' => $showExpenses ? app(ExpenseLedgerService::class)->snapshot($trip) : null,
             'taskList' => $showTasks ? $trip->taskLists->map(fn ($list): array => array_merge($list->toArray(), ['task' => $list->tasks->values()]))->values() : [],
             'tripUser' => $trip->users->map(function ($user) use ($isMemberOrOwner): array {
                 $userArr = ['id' => $user->id, 'handle' => $user->handle, 'activated' => (bool) $user->activated];
                 // Email is only exposed to authenticated members, matching instant.perms.ts.
                 if ($isMemberOrOwner) {
                     $userArr['email'] = $user->email;
+                    $userArr['accountType'] = $userArr['email'] === null ? 'guest' : 'registered';
                 }
 
                 return ['id' => $user->pivot?->id, 'role' => $user->pivot?->role, 'user' => $userArr];

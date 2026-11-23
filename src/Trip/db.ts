@@ -223,14 +223,17 @@ export async function dbAddUserToTrip({
   tripId,
   userEmail,
   userRole,
+  addToParticipants = false,
 }: {
   tripId: string;
   userEmail: string;
   userRole: TripUserRole;
+  addToParticipants?: boolean;
 }) {
   return postMutation(`/api/trips/${encodeURIComponent(tripId)}/members`, {
     email: userEmail,
     role: roleNumber(userRole),
+    addToParticipants,
   });
 }
 

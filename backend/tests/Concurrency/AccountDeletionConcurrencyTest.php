@@ -8,6 +8,8 @@ use App\Models\Activity;
 use App\Models\Trip;
 use App\Models\User;
 use App\Services\AccountDeletionService;
+use App\Services\ExpenseLedgerService;
+use App\Services\TripPeopleService;
 use Closure;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Http\Request;
@@ -197,6 +199,133 @@ class AccountDeletionConcurrencyTest extends TestCase
         } else {
             $this->assertSoftDeleted($target->getTable(), ['id' => (string) $target->id]);
         }
+    }
+
+    public function test_trip_read_blocks_financial_writes_until_all_snapshot_queries_finish(): void
+    {
+        $owner = $this->user();
+        $trip = $this->trip($owner);
+        $result = $this->race(
+            fn () => $this->write($owner, $trip, fn () => $this->financialRows($owner, $trip)),
+            function (Closure $wait) use ($trip, $owner) {
+                $waited = false;
+                DB::listen(function (QueryExecuted $query) use ($wait, &$waited) {
+                    if (! $waited && str_contains($query->sql, 'from `trip_people`')) {
+                        $waited = true;
+                        $wait();
+                    }
+                });
+                $this->actingAs($owner)->getJson('/api/trips/' . $trip->id)->assertOk()
+                    ->assertJsonPath('expense', [])->assertJsonPath('people', [])
+                    ->assertJsonPath('expenseLedger.currencies', [])->assertJsonPath('expenseLedger.payments', []);
+                $this->assertTrue($waited);
+            },
+        );
+        $this->assertSame('ok', $result);
+        $this->assertFinancialSnapshot($owner, $trip);
+    }
+
+    public function test_trip_read_waiting_for_a_writer_sees_its_whole_committed_ledger(): void
+    {
+        $owner = $this->user();
+        $trip = $this->trip($owner);
+        $result = $this->race(
+            fn () => $this->assertFinancialSnapshot($owner, $trip),
+            fn (Closure $wait) => $this->write($owner, $trip, function () use ($owner, $trip, $wait) {
+                $this->financialRows($owner, $trip);
+                $wait();
+            }),
+        );
+        $this->assertSame('ok', $result);
+    }
+
+    public static function financialWriteRoutes(): array
+    {
+        return [
+            'create expense' => ['POST', 'expenses', 201],
+            'add person' => ['POST', 'people', 201],
+            'update person' => ['PATCH', 'people/{person}', 200],
+            'record payment' => ['POST', 'expense-payments', 201],
+            'void payment' => ['DELETE', 'expense-payments/{payment}', 200],
+        ];
+    }
+
+    #[DataProvider('financialWriteRoutes')]
+    public function test_financial_api_writes_wait_for_the_trip_read_lock(string $method, string $path, int $status): void
+    {
+        $owner = $this->user();
+        $trip = $this->trip($owner);
+        $this->financialRows($owner, $trip);
+        $payment = DB::table('expense_payments')->where('trip_id', $trip->id)->first();
+        $url = "/api/trips/$trip->id/" . strtr($path, ['{person}' => $payment->sender_id, '{payment}' => $payment->id]);
+        $data = match ($path) {
+            'expenses' => ['title' => 'Taxi', 'currency' => 'SGD', 'amount' => '15', 'timestampIncurred' => 1],
+            'people' => ['id' => (string) Str::uuid(), 'name' => 'New Guest'],
+            'people/{person}' => ['name' => 'Renamed Guest'],
+            'expense-payments' => [
+                'id' => (string) Str::uuid(), 'senderId' => $payment->sender_id, 'recipientId' => $payment->recipient_id,
+                'currency' => 'SGD', 'amountMinor' => '1000', 'date' => '2026-11-16',
+            ],
+            default => [],
+        };
+        $result = $this->race(
+            fn () => $this->actingAs($owner)->json($method, $url, $data)->assertStatus($status),
+            fn (Closure $wait) => DB::transaction(function () use ($trip, $wait): void {
+                Trip::whereKey($trip->id)->sharedLock()->firstOrFail();
+                $wait();
+            }),
+        );
+        $this->assertSame('ok', $result);
+    }
+
+    public function test_concurrent_expense_update_aliases_reject_the_stale_revision(): void
+    {
+        $owner = $this->user();
+        $editor = $this->user();
+        $trip = $this->trip($owner);
+        $trip->users()->attach($editor->id, ['id' => (string) Str::uuid(), 'role' => 1, 'created_at_ms' => 1, 'updated_at_ms' => 1]);
+        $this->financialRows($owner, $trip);
+        $expenseId = $trip->expenses()->sole()->id;
+        $result = $this->race(
+            fn () => $this->actingAs($editor)->putJson("/api/expenses/$expenseId", ['title' => 'Stale edit', 'expectedRevision' => 1])->assertConflict(),
+            fn (Closure $wait) => DB::transaction(function () use ($owner, $trip, $expenseId, $wait): void {
+                $this->actingAs($owner)->putJson("/api/trips/$trip->id/expenses/$expenseId", ['title' => 'Committed edit', 'expectedRevision' => 1])
+                    ->assertOk()->assertJsonPath('ledger_revision', 2);
+                $wait();
+            }),
+        );
+        $this->assertSame('ok', $result);
+        $this->assertDatabaseHas('expenses', ['id' => $expenseId, 'title' => 'Committed edit', 'ledger_revision' => 2]);
+    }
+
+    private function financialRows(User $owner, Trip $trip): void
+    {
+        $service = app(ExpenseLedgerService::class);
+        $payer = app(TripPeopleService::class)->person($trip, $owner, $owner->handle);
+        $guest = app(TripPeopleService::class)->person($trip, null, 'Guest');
+        $request = new Request([
+            'id' => (string) Str::uuid(), 'title' => 'Dinner', 'currency' => 'SGD', 'amount' => '90', 'timestampIncurred' => 1,
+            'ledger' => ['paidBy' => $payer, 'method' => 'equal', 'shares' => [['participantId' => $guest]]],
+        ]);
+        $request->setUserResolver(fn () => $owner);
+        $service->write($request, $trip);
+        DB::table('expense_payments')->insert([
+            'id' => (string) Str::uuid(), 'trip_id' => $trip->id, 'sender_id' => $guest, 'recipient_id' => $payer,
+            'currency' => 'SGD', 'amount_minor' => 3000, 'paid_currency' => 'SGD', 'paid_amount_minor' => 3000,
+            'paid_on' => '2026-11-16', 'created_at_ms' => 1,
+        ]);
+    }
+
+    private function assertFinancialSnapshot(User $owner, Trip $trip): void
+    {
+        $response = $this->actingAs($owner)->getJson('/api/trips/' . $trip->id)->assertOk()
+            ->assertJsonCount(1, 'expense')->assertJsonCount(2, 'people')
+            ->assertJsonCount(1, 'expenseLedger.payments');
+        $ledger = $response->json('expenseLedger');
+        $ids = array_column($response->json('people'), 'id');
+        $this->assertEqualsCanonicalizing($ids, array_column($ledger['currencies'][0]['balances'], 'participantId'));
+        $nets = array_column($ledger['currencies'][0]['balances'], 'amountMinor');
+        $this->assertEqualsCanonicalizing(['6000', '-6000'], $nets);
     }
 
     private function user(string $role = 'user'): User

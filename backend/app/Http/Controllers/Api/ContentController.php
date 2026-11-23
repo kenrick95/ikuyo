@@ -14,6 +14,7 @@ use App\Models\CommentGroupObject;
 use App\Models\Expense;
 use App\Models\MacroPlan;
 use App\Models\Trip;
+use App\Services\ExpenseLedgerService;
 use App\Services\TripAccessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -147,6 +148,9 @@ class ContentController extends Controller
         if ($record instanceof Activity) {
             $this->validateActivityPlanning($request, $trip);
         }
+        if ($record instanceof Expense) {
+            return response()->json(app(ExpenseLedgerService::class)->write($request, $trip, $record));
+        }
         $record->fill($this->mapFields($request->except(['id', 'trip_id', 'created_at_ms', 'updated_at_ms'])));
         $record->save();
 
@@ -159,8 +163,7 @@ class ContentController extends Controller
         $trip = $this->tripFor($record);
         abort_unless($request->user() && $access->canEdit($trip, $request->user()), 403);
         $access->ensureContentWritable($trip);
-        $this->deleteEntityDescGraph($record);
-        $record->delete();
+        $this->deleteRecord($request, $trip, $record);
 
         return response()->json(['ok' => true]);
     }
@@ -204,6 +207,9 @@ class ContentController extends Controller
     public function store(Request $request, Trip $trip, string $entity): JsonResponse
     {
         $model = $this->model($entity);
+        if ($entity === 'expenses') {
+            return response()->json(app(ExpenseLedgerService::class)->write($request, $trip), 201);
+        }
         if ($entity === 'activities') {
             $this->validateActivityPlanning($request, $trip);
         }
@@ -226,19 +232,32 @@ class ContentController extends Controller
         if ($record instanceof Activity) {
             $this->validateActivityPlanning($request, $trip);
         }
+        if ($record instanceof Expense) {
+            return response()->json(app(ExpenseLedgerService::class)->write($request, $trip, $record));
+        }
         $record->fill($this->mapFields($request->except(['id', 'trip_id', 'created_at_ms', 'updated_at_ms'])));
         $record->save();
 
         return response()->json($record->fresh());
     }
 
-    public function destroy(Trip $trip, string $entity, string $entityId): JsonResponse
+    public function destroy(Request $request, Trip $trip, string $entity, string $entityId): JsonResponse
     {
-        $record = $this->record($trip, $entity, $entityId);
-        $this->deleteEntityDescGraph($record);
-        $record->delete();
+        $this->deleteRecord($request, $trip, $this->record($trip, $entity, $entityId));
 
         return response()->json(['ok' => true]);
+    }
+
+    private function deleteRecord(Request $request, Trip $trip, Activity|Accommodation|MacroPlan|Expense $record): void
+    {
+        if ($record instanceof Expense) {
+            abort_if($record->ledger && $request->integer('expectedRevision', -1) !== $record->ledger_revision, 409, 'Expense changed. Reload before deleting.');
+            $ledger = app(ExpenseLedgerService::class);
+            $ledger->assertDeletable($trip, $record);
+            $ledger->history($trip, $record->id, 'expense.delete', $record->toArray(), null, $request->user());
+        }
+        $this->deleteEntityDescGraph($record);
+        $record->delete();
     }
 
     /** Delete a content entity's polymorphic comment graph (groups/objects/comments). */

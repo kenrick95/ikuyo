@@ -227,7 +227,10 @@ describe('persisted trip revocation', () => {
       })),
     );
 
-    useBoundStore.getState().refreshTrip('trip-1');
+    void useBoundStore
+      .getState()
+      .refreshTrip('trip-1')
+      .catch(() => undefined);
     await waitFor(() =>
       expect(useBoundStore.getState().trip['trip-1']).toBeUndefined(),
     );
@@ -261,10 +264,16 @@ describe('persisted trip revocation', () => {
       .mockResolvedValueOnce(denied);
     vi.stubGlobal('fetch', fetchMock);
 
-    useBoundStore.getState().refreshTrip('trip-1');
+    void useBoundStore
+      .getState()
+      .refreshTrip('trip-1')
+      .catch(() => undefined);
     useBoundStore.getState().clearSession();
     useBoundStore.setState({ currentUser: { ...user, id: 'user-2' } });
-    useBoundStore.getState().refreshTrip('trip-1');
+    void useBoundStore
+      .getState()
+      .refreshTrip('trip-1')
+      .catch(() => undefined);
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     releaseOld(denied);
     await waitFor(() =>
@@ -273,5 +282,57 @@ describe('persisted trip revocation', () => {
       ),
     );
     expect(useBoundStore.getState().currentUser?.id).toBe('user-2');
+  });
+
+  it('refresh waits for a new authoritative request after a fetch that began before a mutation', async () => {
+    const payload = (title: string) => ({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          id: 'trip-1',
+          title,
+          activity: [],
+          accommodation: [],
+          macroplan: [],
+          expense: [],
+          taskList: [],
+          tripUser: [],
+          commentGroup: [],
+        }),
+    });
+    let finishOld!: (value: ReturnType<typeof payload>) => void;
+    let finishFresh!: (value: ReturnType<typeof payload>) => void;
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishOld = resolve;
+          }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishFresh = resolve;
+          }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+    useBoundStore.getState().subscribeTrip('trip-1');
+    let refreshed = false;
+    const refresh = useBoundStore
+      .getState()
+      .refreshTrip('trip-1')
+      .then(() => {
+        refreshed = true;
+      });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    finishOld(payload('Before payment'));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(refreshed).toBe(false);
+    finishFresh(payload('After payment'));
+    await refresh;
+    expect(refreshed).toBe(true);
+    expect(useBoundStore.getState().trip['trip-1'].title).toBe('After payment');
   });
 });

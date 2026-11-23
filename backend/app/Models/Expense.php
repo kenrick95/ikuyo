@@ -11,6 +11,8 @@ class Expense extends Model
 {
     protected $guarded = [];
 
+    protected $hidden = ['creation_hash'];
+
     use HasMsTimestamps, SoftDeletes;
 
     public $incrementing = false;
@@ -18,6 +20,8 @@ class Expense extends Model
     protected $keyType = 'string';
 
     public $timestamps = false;
+
+    protected $casts = ['ledger' => 'array', 'ledger_revision' => 'integer'];
 
     public function trip(): BelongsTo
     {

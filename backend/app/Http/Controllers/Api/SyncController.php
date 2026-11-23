@@ -7,6 +7,7 @@ use App\Models\SyncEvent;
 use App\Models\Trip;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SyncController extends Controller
 {
@@ -43,20 +44,31 @@ class SyncController extends Controller
 
         $events = $query->get();
 
-        // Section visibility: a non-member public visitor must not receive events
-        // (expenses / tasks / comments) hidden by the trip's public_show_* flags.
-        if ($trip && ! $user?->isAdmin() && $trip->sharing_level >= 2 && ! ($user && $trip->users()->whereKey($user->getKey())->exists())) {
-            $hiddenEntities = collect();
-            if ($trip->public_show_expenses === false) {
-                $hiddenEntities->push('expense');
-            }
-            if ($trip->public_show_tasks === false) {
-                $hiddenEntities->push('task_list', 'task');
-            }
-            if ($trip->public_show_comments === false) {
-                $hiddenEntities->push('comment_group', 'comment');
-            }
-            $events = $events->reject(fn (SyncEvent $e) => $hiddenEntities->contains($e->entity));
+        $nextCursor = $events->last()?->id ?? $cursor;
+        // Filter after advancing the cursor, including unscoped polls and viewers.
+        // Observer entity names use plural table names; accept legacy aliases too.
+        if (! $user?->isAdmin()) {
+            $trips = Trip::whereIn('id', $events->pluck('trip_id')->filter()->unique())->get()->keyBy('id');
+            $roles = $user ? DB::table('trip_user')->where('user_id', $user->id)->whereIn('trip_id', $trips->keys())->pluck('role', 'trip_id') : collect();
+            $events = $events->filter(function (SyncEvent $event) use ($trips, $roles): bool {
+                $eventTrip = $trips->get($event->trip_id);
+                if (! $eventTrip) {
+                    return false;
+                }
+                $role = $roles->get($eventTrip->id);
+                if (in_array($role, [0, 1], true)) {
+                    return true;
+                }
+                $prefix = $role !== null ? 'viewer_show_' : 'public_show_';
+                $section = match ($event->entity) {
+                    'expense', 'expenses', 'expense_ledger' => 'expenses',
+                    'task_list', 'task_lists', 'task', 'tasks' => 'tasks',
+                    'comment_group', 'comment_groups', 'comment', 'comments', 'comment_group_objects' => 'comments',
+                    default => null,
+                };
+
+                return $section === null || $eventTrip->getAttribute($prefix . $section) !== false;
+            });
         }
 
         return response()->json([
@@ -67,7 +79,7 @@ class SyncController extends Controller
                 'op' => $event->operation,
                 'data' => $event->payload,
             ])->values(),
-            'nextCursor' => $events->last()?->id ?? $cursor,
+            'nextCursor' => $nextCursor,
         ]);
     }
 }
