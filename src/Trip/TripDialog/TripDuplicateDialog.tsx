@@ -127,7 +127,10 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
         console.error('Error duplicating trip', err);
         publishToast({
           root: {},
-          title: { children: 'Error duplicating trip' },
+          title: {
+            children:
+              err instanceof Error ? err.message : 'Error duplicating trip',
+          },
           close: {},
         });
         setIsSubmitting(false);

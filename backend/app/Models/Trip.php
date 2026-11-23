@@ -8,6 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+/**
+ * @phpstan-import-type Destination from \App\Services\TripDestinations
+ *
+ * @property list<Destination>|null $destinations
+ */
 class Trip extends Model
 {
     protected $guarded = [];
@@ -24,6 +29,8 @@ class Trip extends Model
     {
         return [
             'archived_at_ms' => 'integer',
+            'destinations' => 'array',
+            'destination_revision' => 'integer',
             // Nullable section-visibility flags: null = visible, 0/'0' = hidden.
             'public_show_expenses' => 'boolean',
             'public_show_tasks' => 'boolean',

@@ -57,12 +57,13 @@ export type WizardState = {
   travelMode: 'flight' | 'train' | 'other' | null;
   outboundFlight: FlightCapture | null;
   returnFlight: FlightCapture | null;
+  returnDefaultTimeZone?: string;
   outboundTrain: TrainCapture | null;
   returnTrain: TrainCapture | null;
 };
 
 export type WizardAction =
-  | { type: 'SET_STEP'; step: 1 | 2 | 3 }
+  | { type: 'SET_STEP'; step: 1 | 2 | 3; returnTimeZone?: string }
   | { type: 'SET_TITLE'; title: string }
   | { type: 'SET_REGION'; region: string }
   | { type: 'SET_START_DATE'; date: Temporal.PlainDate | undefined }
@@ -92,6 +93,7 @@ export function wizardReducer(
         // When moving from step 2 to 3, pre-fill outbound flight and return flight with default values based on the trip's start and end dates only if it has not been set yet
         const currentTimeZone = Temporal.Now.timeZoneId();
         const originTimeZone = state.originTimeZone || currentTimeZone;
+        const returnTimeZone = action.returnTimeZone ?? state.timeZone;
         let newState = { ...state, step: action.step };
         if (!state.outboundFlight && state.startDate) {
           // Outbound flight: default departure: 9 am at trip time zone (converted to current time zone); default arrival: 12 pm at trip time zone
@@ -127,7 +129,7 @@ export function wizardReducer(
               hour: 15,
               minute: 0,
             },
-            timeZone: state.timeZone,
+            timeZone: returnTimeZone,
           });
           const zonedArrivalDateTime = state.endDate
             .toZonedDateTime({
@@ -135,14 +137,14 @@ export function wizardReducer(
                 hour: 18,
                 minute: 0,
               },
-              timeZone: state.timeZone,
+              timeZone: returnTimeZone,
             })
             .withTimeZone(originTimeZone);
 
           const defaultReturnFlight: FlightCapture = {
             departureDateTime: zonedDepartureDateTime.toPlainDateTime(),
             arrivalDateTime: zonedArrivalDateTime.toPlainDateTime(),
-            departureTimeZone: state.timeZone,
+            departureTimeZone: returnTimeZone,
             arrivalTimeZone: originTimeZone,
           };
           newState = { ...newState, returnFlight: defaultReturnFlight };
@@ -179,7 +181,7 @@ export function wizardReducer(
               hour: 15,
               minute: 0,
             },
-            timeZone: state.timeZone,
+            timeZone: returnTimeZone,
           });
           const zonedArrivalDateTime = state.endDate
             .toZonedDateTime({
@@ -187,18 +189,41 @@ export function wizardReducer(
                 hour: 18,
                 minute: 0,
               },
-              timeZone: state.timeZone,
+              timeZone: returnTimeZone,
             })
             .withTimeZone(originTimeZone);
 
           const defaultReturnTrain: TrainCapture = {
             departureDateTime: zonedDepartureDateTime.toPlainDateTime(),
             arrivalDateTime: zonedArrivalDateTime.toPlainDateTime(),
-            departureTimeZone: state.timeZone,
+            departureTimeZone: returnTimeZone,
             arrivalTimeZone: originTimeZone,
           };
           newState = { ...newState, returnTrain: defaultReturnTrain };
         }
+        if (
+          state.returnDefaultTimeZone &&
+          state.returnDefaultTimeZone !== returnTimeZone
+        ) {
+          if (
+            state.returnFlight?.departureTimeZone ===
+            state.returnDefaultTimeZone
+          ) {
+            newState.returnFlight = {
+              ...state.returnFlight,
+              departureTimeZone: returnTimeZone,
+            };
+          }
+          if (
+            state.returnTrain?.departureTimeZone === state.returnDefaultTimeZone
+          ) {
+            newState.returnTrain = {
+              ...state.returnTrain,
+              departureTimeZone: returnTimeZone,
+            };
+          }
+        }
+        newState.returnDefaultTimeZone = returnTimeZone;
         return newState;
       }
 

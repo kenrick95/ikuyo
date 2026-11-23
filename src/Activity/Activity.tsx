@@ -5,7 +5,6 @@ import {
 } from '@radix-ui/react-icons';
 import { Box, ContextMenu, Text, Tooltip } from '@radix-ui/themes';
 import clsx from 'clsx';
-
 import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { toFormat } from '../common/dateTime/temporalFormatter';
@@ -13,6 +12,7 @@ import { useShouldDisableDragAndDrop } from '../common/deviceUtils';
 import { dangerToken } from '../common/ui';
 import { useTripTimetableDragging } from '../Trip/store/hooks';
 import type { TripSliceActivityWithTime } from '../Trip/store/types';
+import { gridTime } from '../Trip/TripTimetableView/time';
 import { TripViewMode, type TripViewModeType } from '../Trip/TripViewMode';
 import style from './Activity.module.css';
 import { useActivityDialogHooks } from './ActivityDialog/activityDialogHooks';
@@ -61,6 +61,7 @@ function ActivityInner({
   tripViewMode,
   tripTimeZone,
   tripTimestampStart,
+  useZonedGrid,
   userCanEditOrDelete,
 }: {
   activity: TripSliceActivityWithTime;
@@ -71,6 +72,7 @@ function ActivityInner({
 
   tripTimeZone: string;
   tripTimestampStart: number;
+  useZonedGrid?: boolean;
   userCanEditOrDelete: boolean;
 }) {
   const activityStartDateTime =
@@ -344,14 +346,28 @@ function ActivityInner({
 
   const activityTitle = getActivityDisplayTitle(activity);
   const boxStyle = useMemo(() => {
+    const instant = (ms: number) =>
+      Temporal.Instant.fromEpochMilliseconds(ms).toZonedDateTimeISO(
+        tripTimeZone,
+      );
+    const gridStart = useZonedGrid
+      ? gridTime(instant(activity.timestampStart))
+      : timeStartRelativeToTrip;
+    const gridEnd = useZonedGrid
+      ? gridTime(instant(activity.timestampEnd - 1))
+      : timeEndRelativeToTrip;
     return {
-      gridRowStart: `t${timeStartRelativeToTrip}`,
-      gridRowEnd: `te${timeEndRelativeToTrip}`,
+      gridRowStart: `t${gridStart}`,
+      gridRowEnd: `te${gridEnd}`,
       gridColumnStart: `d${String(dayStart)}-c${String(columnIndex)}`,
       gridColumnEnd:
         columnIndex === columnEndIndex ? undefined : `de${String(dayEnd)}`,
     };
   }, [
+    activity.timestampEnd,
+    activity.timestampStart,
+    tripTimeZone,
+    useZonedGrid,
     columnEndIndex,
     columnIndex,
     dayEnd,
@@ -564,6 +580,7 @@ export const Activity = memo(ActivityInner, (prevProps, nextProps) => {
     prevProps.columnEndIndex === nextProps.columnEndIndex &&
     prevProps.tripViewMode === nextProps.tripViewMode &&
     prevProps.tripTimeZone === nextProps.tripTimeZone &&
+    prevProps.useZonedGrid === nextProps.useZonedGrid &&
     prevProps.tripTimestampStart === nextProps.tripTimestampStart &&
     prevProps.userCanEditOrDelete === nextProps.userCanEditOrDelete
   );

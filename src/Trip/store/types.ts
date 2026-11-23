@@ -6,6 +6,7 @@ import type { ExpenseLedger, ExpenseLedgerData } from '../../Expense/ledger';
 import type { DbMacroplanWithTrip } from '../../Macroplan/db';
 import type { TripUserRole } from '../../User/TripUserRole';
 import type { DbTrip } from '../db';
+import type { TripDestination } from '../destinations/destinations';
 import type { TripPerson } from '../people/types';
 
 export type TripSliceTrip = Omit<
@@ -35,6 +36,7 @@ export type TripSliceTripMeta = {
 export type TripSliceTripLocalState = {
   /* For next entry of expense: save last used currency, currency conversion factor, and timestamp inccured, use it again */
   expenseCurrency: string;
+  displayTimeZone?: string;
   expenseCurrencyConversionFactor: number | undefined;
   expenseTimestampIncurred: number;
 
@@ -151,6 +153,8 @@ export type DbTripQueryReturnType = {
   currency: string;
   region: string;
   originCurrency: string;
+  destinations?: TripDestination[];
+  destinationRevision?: number;
   originRegion?: string | null;
   originTimeZone?: string | null;
   archivedAt?: number;

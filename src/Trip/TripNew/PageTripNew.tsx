@@ -17,12 +17,20 @@ import { DateTimePicker } from '../../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../../common/DatePicker2/DateTimePickerMode';
 import { toFormat } from '../../common/dateTime/temporalFormatter';
 import { TimeZoneSelect } from '../../common/TimeZoneSelect/TimeZoneSelect';
+import { get } from '../../data/apiClient';
+import { id } from '../../data/id';
 import { REGIONS_LIST } from '../../data/intl/regions';
 import { useBoundStore } from '../../data/store';
 import { DocTitle } from '../../Nav/DocTitle';
 import { pageTitle } from '../../Nav/pageMeta';
 import { RouteTrip, RouteTripNew, RouteTrips } from '../../Routes/routes';
 import { dbAddTrip } from '../db';
+import { DestinationEditor } from '../destinations/DestinationEditor';
+import {
+  destinationError,
+  destinationStart,
+  type TripDestination,
+} from '../destinations/destinations';
 import { TripSharingLevel } from '../tripSharingLevel';
 import { FlightSubform } from './FlightSubform';
 import s from './PageTripNew.module.css';
@@ -54,6 +62,17 @@ export default function PageTripNew() {
     }),
   );
 
+  const [multiRegion, setMultiRegion] = useState(false);
+  const [destinations, setDestinations] = useState<TripDestination[]>([]);
+  const [isDestinationDraft, setIsDestinationDraft] = useState(false);
+  const [initialAdd, setInitialAdd] = useState(false);
+  const lastDestination = multiRegion
+    ? destinations
+        .toSorted(
+          (a, b) => (destinationStart(a) ?? 0) - (destinationStart(b) ?? 0),
+        )
+        .at(-1)
+    : undefined;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const publishToast = useBoundStore((store) => store.publishToast);
 
@@ -164,10 +183,19 @@ export default function PageTripNew() {
           originRegion,
           originTimeZone,
           sharingLevel: TripSharingLevel.Private,
+          ...(multiRegion ? { destinations } : {}),
         },
         { userId: currentUser.id },
       );
-      const activityPromises: Promise<unknown>[] = [];
+      const transports: { id: string; save: () => Promise<unknown> }[] = [];
+      function addTransport(activity: Parameters<typeof dbAddActivity>[0]) {
+        const activityId = id();
+        transports.push({
+          id: activityId,
+          save: () =>
+            dbAddActivity(activity, { tripId: newTripId, activityId }),
+        });
+      }
       if (
         state.travelMode === 'flight' &&
         state.outboundFlight?.flightNumber &&
@@ -181,29 +209,24 @@ export default function PageTripNew() {
           .toZonedDateTime(state.outboundFlight.arrivalTimeZone || timeZone)
           .toInstant().epochMilliseconds;
 
-        activityPromises.push(
-          dbAddActivity(
-            {
-              title: state.outboundFlight.flightNumber,
-              location: state.outboundFlight.departureAirport || '',
-              locationLat: state.outboundFlight.departureLat,
-              locationLng: state.outboundFlight.departureLng,
-              locationZoom: state.outboundFlight.departureZoom,
-              locationDestination: state.outboundFlight.arrivalAirport,
-              locationDestinationLat: state.outboundFlight.arrivalLat,
-              locationDestinationLng: state.outboundFlight.arrivalLng,
-              locationDestinationZoom: state.outboundFlight.arrivalZoom,
-              description: '',
-              timestampStart,
-              timestampEnd,
-              timeZoneStart: state.outboundFlight.departureTimeZone,
-              timeZoneEnd: state.outboundFlight.arrivalTimeZone,
-              flags: ActivityFlag.IsFlight,
-              icon: '✈️',
-            },
-            { tripId: newTripId },
-          ),
-        );
+        addTransport({
+          title: state.outboundFlight.flightNumber,
+          location: state.outboundFlight.departureAirport || '',
+          locationLat: state.outboundFlight.departureLat,
+          locationLng: state.outboundFlight.departureLng,
+          locationZoom: state.outboundFlight.departureZoom,
+          locationDestination: state.outboundFlight.arrivalAirport,
+          locationDestinationLat: state.outboundFlight.arrivalLat,
+          locationDestinationLng: state.outboundFlight.arrivalLng,
+          locationDestinationZoom: state.outboundFlight.arrivalZoom,
+          description: '',
+          timestampStart,
+          timestampEnd,
+          timeZoneStart: state.outboundFlight.departureTimeZone,
+          timeZoneEnd: state.outboundFlight.arrivalTimeZone,
+          flags: ActivityFlag.IsFlight,
+          icon: '✈️',
+        });
       }
       if (
         state.travelMode === 'flight' &&
@@ -217,29 +240,24 @@ export default function PageTripNew() {
         const timestampEnd = state.returnFlight.arrivalDateTime
           .toZonedDateTime(state.returnFlight.arrivalTimeZone || timeZone)
           .toInstant().epochMilliseconds;
-        activityPromises.push(
-          dbAddActivity(
-            {
-              title: state.returnFlight.flightNumber,
-              location: state.returnFlight.departureAirport || '',
-              locationLat: state.returnFlight.departureLat,
-              locationLng: state.returnFlight.departureLng,
-              locationZoom: state.returnFlight.departureZoom,
-              locationDestination: state.returnFlight.arrivalAirport,
-              locationDestinationLat: state.returnFlight.arrivalLat,
-              locationDestinationLng: state.returnFlight.arrivalLng,
-              locationDestinationZoom: state.returnFlight.arrivalZoom,
-              description: '',
-              timestampStart,
-              timestampEnd,
-              timeZoneStart: state.returnFlight.departureTimeZone,
-              timeZoneEnd: state.returnFlight.arrivalTimeZone,
-              flags: ActivityFlag.IsFlight,
-              icon: '✈️',
-            },
-            { tripId: newTripId },
-          ),
-        );
+        addTransport({
+          title: state.returnFlight.flightNumber,
+          location: state.returnFlight.departureAirport || '',
+          locationLat: state.returnFlight.departureLat,
+          locationLng: state.returnFlight.departureLng,
+          locationZoom: state.returnFlight.departureZoom,
+          locationDestination: state.returnFlight.arrivalAirport,
+          locationDestinationLat: state.returnFlight.arrivalLat,
+          locationDestinationLng: state.returnFlight.arrivalLng,
+          locationDestinationZoom: state.returnFlight.arrivalZoom,
+          description: '',
+          timestampStart,
+          timestampEnd,
+          timeZoneStart: state.returnFlight.departureTimeZone,
+          timeZoneEnd: state.returnFlight.arrivalTimeZone,
+          flags: ActivityFlag.IsFlight,
+          icon: '✈️',
+        });
       }
       if (
         state.travelMode === 'train' &&
@@ -254,29 +272,24 @@ export default function PageTripNew() {
           .toZonedDateTime(state.outboundTrain.arrivalTimeZone || timeZone)
           .toInstant().epochMilliseconds;
 
-        activityPromises.push(
-          dbAddActivity(
-            {
-              title: state.outboundTrain.trainNumber,
-              location: state.outboundTrain.departureStation || '',
-              locationLat: state.outboundTrain.departureLat,
-              locationLng: state.outboundTrain.departureLng,
-              locationZoom: state.outboundTrain.departureZoom,
-              locationDestination: state.outboundTrain.arrivalStation,
-              locationDestinationLat: state.outboundTrain.arrivalLat,
-              locationDestinationLng: state.outboundTrain.arrivalLng,
-              locationDestinationZoom: state.outboundTrain.arrivalZoom,
-              description: '',
-              timestampStart,
-              timestampEnd,
-              timeZoneStart: state.outboundTrain.departureTimeZone,
-              timeZoneEnd: state.outboundTrain.arrivalTimeZone,
-              flags: ActivityFlag.IsTrain,
-              icon: '🚆',
-            },
-            { tripId: newTripId },
-          ),
-        );
+        addTransport({
+          title: state.outboundTrain.trainNumber,
+          location: state.outboundTrain.departureStation || '',
+          locationLat: state.outboundTrain.departureLat,
+          locationLng: state.outboundTrain.departureLng,
+          locationZoom: state.outboundTrain.departureZoom,
+          locationDestination: state.outboundTrain.arrivalStation,
+          locationDestinationLat: state.outboundTrain.arrivalLat,
+          locationDestinationLng: state.outboundTrain.arrivalLng,
+          locationDestinationZoom: state.outboundTrain.arrivalZoom,
+          description: '',
+          timestampStart,
+          timestampEnd,
+          timeZoneStart: state.outboundTrain.departureTimeZone,
+          timeZoneEnd: state.outboundTrain.arrivalTimeZone,
+          flags: ActivityFlag.IsTrain,
+          icon: '🚆',
+        });
       }
       if (
         state.travelMode === 'train' &&
@@ -290,47 +303,64 @@ export default function PageTripNew() {
         const timestampEnd = state.returnTrain.arrivalDateTime
           .toZonedDateTime(state.returnTrain.arrivalTimeZone || timeZone)
           .toInstant().epochMilliseconds;
-        activityPromises.push(
-          dbAddActivity(
-            {
-              title: state.returnTrain.trainNumber,
-              location: state.returnTrain.departureStation || '',
-              locationLat: state.returnTrain.departureLat,
-              locationLng: state.returnTrain.departureLng,
-              locationZoom: state.returnTrain.departureZoom,
-              locationDestination: state.returnTrain.arrivalStation,
-              locationDestinationLat: state.returnTrain.arrivalLat,
-              locationDestinationLng: state.returnTrain.arrivalLng,
-              locationDestinationZoom: state.returnTrain.arrivalZoom,
-              description: '',
-              timestampStart,
-              timestampEnd,
-              timeZoneStart: state.returnTrain.departureTimeZone,
-              timeZoneEnd: state.returnTrain.arrivalTimeZone,
-              flags: ActivityFlag.IsTrain,
-              icon: '🚆',
-            },
-            { tripId: newTripId },
+        addTransport({
+          title: state.returnTrain.trainNumber,
+          location: state.returnTrain.departureStation || '',
+          locationLat: state.returnTrain.departureLat,
+          locationLng: state.returnTrain.departureLng,
+          locationZoom: state.returnTrain.departureZoom,
+          locationDestination: state.returnTrain.arrivalStation,
+          locationDestinationLat: state.returnTrain.arrivalLat,
+          locationDestinationLng: state.returnTrain.arrivalLng,
+          locationDestinationZoom: state.returnTrain.arrivalZoom,
+          description: '',
+          timestampStart,
+          timestampEnd,
+          timeZoneStart: state.returnTrain.departureTimeZone,
+          timeZoneEnd: state.returnTrain.arrivalTimeZone,
+          flags: ActivityFlag.IsTrain,
+          icon: '🚆',
+        });
+      }
+      async function saveTransports(items: typeof transports, retry = false) {
+        const recorded = retry
+          ? (
+              await get<{ activity: { id: string }[] }>(
+                `/api/trips/${encodeURIComponent(newTripId)}`,
+              ).catch(() => undefined)
+            )?.activity
+          : undefined;
+        const savedIds = new Set(recorded?.map((activity) => activity.id));
+        const results = await Promise.allSettled(
+          items.map((item) =>
+            savedIds.has(item.id) ? undefined : item.save(),
           ),
         );
-      }
-      try {
-        await Promise.all(activityPromises);
-        publishToast({
-          root: {},
-          title: { children: 'Trip created!' },
-          close: {},
-        });
-      } catch {
+        const failed = items.filter(
+          (_, index) => results[index]?.status === 'rejected',
+        );
         publishToast({
           root: {},
           title: {
-            children:
-              'Trip created, but we could not add your transport details. You can add them later.',
+            children: failed.length
+              ? 'Trip created. Some transport details could not be saved.'
+              : retry
+                ? 'Transport saved.'
+                : 'Trip created!',
           },
+          ...(failed.length
+            ? {
+                action: {
+                  children: 'Retry',
+                  altText: 'Retry failed transport details',
+                  onClick: () => saveTransports(failed, true),
+                },
+              }
+            : {}),
           close: {},
         });
       }
+      await saveTransports(transports);
       saveOriginPreferences(
         currentUser,
         originRegion,
@@ -338,15 +368,27 @@ export default function PageTripNew() {
         state.originTimeZone,
       );
       setLocation(RouteTrip.asRouteTarget(newTripId));
-    } catch {
+    } catch (error) {
       publishToast({
         root: {},
-        title: { children: 'Failed to create trip. Please try again.' },
+        title: {
+          children:
+            error instanceof Error
+              ? error.message
+              : 'Failed to create trip. Please try again.',
+        },
         close: {},
       });
       setIsSubmitting(false);
     }
-  }, [state, currentUser, publishToast, setLocation]);
+  }, [
+    state,
+    currentUser,
+    publishToast,
+    setLocation,
+    destinations,
+    multiRegion,
+  ]);
 
   const dateError =
     state.startDate !== undefined &&
@@ -361,6 +403,15 @@ export default function PageTripNew() {
     state.startDate !== undefined &&
     state.endDate !== undefined &&
     dateError === undefined;
+
+  const itineraryError = multiRegion
+    ? destinationError(
+        destinations,
+        state.startDate?.toZonedDateTime(state.timeZone).epochMilliseconds,
+        state.endDate?.add({ days: 1 }).toZonedDateTime(state.timeZone)
+          .epochMilliseconds,
+      )
+    : undefined;
 
   const step2Valid =
     state.timeZone !== '' &&
@@ -474,6 +525,24 @@ export default function PageTripNew() {
               Destination Region / Country
             </Text>
             {regionSelect}
+            <Button
+              type="button"
+              size="2"
+              variant="ghost"
+              style={{ alignSelf: 'start' }}
+              onClick={() => {
+                setMultiRegion(!multiRegion);
+                setInitialAdd(!multiRegion && destinations.length === 0);
+                setIsDestinationDraft(
+                  !multiRegion && destinations.length === 0,
+                );
+                if (!multiRegion && step1Valid)
+                  dispatch({ type: 'SET_STEP', step: 2 });
+                if (multiRegion) setDestinations([]);
+              }}
+            >
+              {multiRegion ? 'Single destination' : 'Add another destination'}
+            </Button>
           </Flex>
 
           <Flex direction="column" gap="1">
@@ -514,6 +583,7 @@ export default function PageTripNew() {
               mode={DateTimePickerMode.Date}
               name="startDate"
               required
+              aria-label="Trip start date"
               placeholder="Pick a start date"
             />
           </Flex>
@@ -528,6 +598,7 @@ export default function PageTripNew() {
               mode={DateTimePickerMode.Date}
               name="endDate"
               required
+              aria-label="Trip end date"
               placeholder="Pick an end date"
               min={state.startDate}
             />
@@ -549,7 +620,12 @@ export default function PageTripNew() {
           </Button>
           <Button
             disabled={!step1Valid}
-            onClick={() => dispatch({ type: 'SET_STEP', step: 2 })}
+            onClick={() => {
+              setIsDestinationDraft(
+                multiRegion && initialAdd && !destinations.length,
+              );
+              dispatch({ type: 'SET_STEP', step: 2 });
+            }}
           >
             Next →
           </Button>
@@ -559,19 +635,52 @@ export default function PageTripNew() {
   }
 
   if (state.step === 2) {
+    const firstFields = (
+      <Flex direction="column" gap="3">
+        <Flex direction="column" gap="1">
+          <Text as="label" htmlFor="wizard-timezone" size="2" weight="medium">
+            Time zone
+          </Text>
+          <TimeZoneSelect
+            name="timeZone"
+            id="wizard-timezone"
+            value={state.timeZone}
+            isFormLoading={false}
+            handleChange={(tz) =>
+              dispatch({ type: 'SET_TIMEZONE', timeZone: tz })
+            }
+          />
+        </Flex>
+
+        <Flex direction="column" gap="1">
+          <Text as="label" htmlFor="wizard-currency" size="2" weight="medium">
+            Destination currency
+          </Text>
+          <CurrencySelect
+            name="currency"
+            id="wizard-currency"
+            value={state.currency}
+            isFormLoading={false}
+            handleChange={(c) =>
+              dispatch({ type: 'SET_CURRENCY', currency: c })
+            }
+          />
+        </Flex>
+      </Flex>
+    );
     return (
       <div className={s.page}>
         <DocTitle title={pageTitle(RouteTripNew.routePath)} />
         <WizardProgressDots step={2} />
         <Heading size="5" mb="4">
-          Trip details
+          {multiRegion ? 'Destinations' : 'Trip details'}
         </Heading>
 
         <div className={s.summaryCard}>
           <Text size="2" weight="bold">
             {state.title}
           </Text>
-          {regionDisplayName ? (
+          {regionDisplayName && !multiRegion ? (
             <Text as="p" size="2" color="gray">
               {regionDisplayName}
             </Text>
@@ -584,36 +693,34 @@ export default function PageTripNew() {
         </div>
 
         <Flex direction="column" gap="3">
-          <Flex direction="column" gap="1">
-            <Text as="label" htmlFor="wizard-timezone" size="2" weight="medium">
-              Time zone
-            </Text>
-            <TimeZoneSelect
-              name="timeZone"
-              id="wizard-timezone"
-              value={state.timeZone}
-              isFormLoading={false}
-              handleChange={(tz) =>
-                dispatch({ type: 'SET_TIMEZONE', timeZone: tz })
-              }
+          {multiRegion ? (
+            <DestinationEditor
+              first={{
+                region: state.region,
+                timeZone: state.timeZone,
+                currency: state.currency,
+                date: state.startDate?.toLocaleString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                }),
+              }}
+              firstFields={firstFields}
+              destinations={destinations}
+              onChange={setDestinations}
+              onDraftChange={(value) => {
+                setInitialAdd(false);
+                setIsDestinationDraft(value);
+              }}
+              initialAdd={initialAdd}
             />
-          </Flex>
-
-          <Flex direction="column" gap="1">
-            <Text as="label" htmlFor="wizard-currency" size="2" weight="medium">
-              Destination currency
+          ) : (
+            firstFields
+          )}
+          {itineraryError ? (
+            <Text color="red" size="2" role="alert">
+              {itineraryError}
             </Text>
-            <CurrencySelect
-              name="currency"
-              id="wizard-currency"
-              value={state.currency}
-              isFormLoading={false}
-              handleChange={(c) =>
-                dispatch({ type: 'SET_CURRENCY', currency: c })
-              }
-            />
-          </Flex>
-
+          ) : null}
           <Flex direction="column" gap="1">
             <Text
               as="label"
@@ -644,8 +751,19 @@ export default function PageTripNew() {
             ← Back
           </Button>
           <Button
-            disabled={!step2Valid}
-            onClick={() => dispatch({ type: 'SET_STEP', step: 3 })}
+            disabled={
+              !step2Valid ||
+              isDestinationDraft ||
+              Boolean(itineraryError) ||
+              (multiRegion && !destinations.length)
+            }
+            onClick={() => {
+              dispatch({
+                type: 'SET_STEP',
+                step: 3,
+                returnTimeZone: lastDestination?.timeZone,
+              });
+            }}
           >
             Next →
           </Button>
@@ -721,9 +839,9 @@ export default function PageTripNew() {
             label="Return flight"
             value={state.returnFlight}
             originTimeZone={state.originTimeZone}
-            destinationTimeZone={state.timeZone}
+            destinationTimeZone={lastDestination?.timeZone ?? state.timeZone}
             originRegion={state.originRegion}
-            destinationRegion={state.region}
+            destinationRegion={lastDestination?.region ?? state.region}
             isOutbound={false}
             error={returnFlightError}
             tripStartDate={state.startDate}
@@ -752,9 +870,9 @@ export default function PageTripNew() {
             label="Return train"
             value={state.returnTrain}
             originTimeZone={state.originTimeZone}
-            destinationTimeZone={state.timeZone}
+            destinationTimeZone={lastDestination?.timeZone ?? state.timeZone}
             originRegion={state.originRegion}
-            destinationRegion={state.region}
+            destinationRegion={lastDestination?.region ?? state.region}
             isOutbound={false}
             error={returnTrainError}
             tripStartDate={state.startDate}

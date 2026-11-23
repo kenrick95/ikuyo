@@ -2,6 +2,7 @@ import { Box, Dialog } from '@radix-ui/themes';
 import { useCallback, useMemo } from 'react';
 import { CommonLargeDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
+import { destinationAt } from '../Trip/destinations/destinations';
 import { useTripAccommodations } from '../Trip/store/hooks';
 import type { TripSliceTrip } from '../Trip/store/types';
 import { AccommodationForm } from './AccommodationForm/AccommodationForm';
@@ -15,6 +16,7 @@ export function AccommodationNewDialog({
   trip: TripSliceTrip;
   prefillData?: {
     dayOfTrip: number;
+    date?: string;
   };
 }) {
   const popDialog = useBoundStore((state) => state.popDialog);
@@ -44,6 +46,24 @@ export function AccommodationNewDialog({
     accommodationCheckInTimeZone,
     accommodationCheckOutTimeZone,
   ] = useMemo(() => {
+    if (trip.destinations?.length) {
+      const date = prefillData?.date
+        ? Temporal.PlainDate.from(prefillData.date)
+        : getDefaultAccommodationCheckInDate(trip, accommodations);
+      const checkIn = date.toPlainDateTime({ hour: 15 });
+      const destination = destinationAt(
+        trip,
+        checkIn.toZonedDateTime(trip.timeZone).epochMilliseconds,
+      );
+      return [
+        checkIn,
+        prefillData
+          ? date.add({ days: 1 }).toPlainDateTime({ hour: 11 })
+          : tripEndDateTime.toPlainDateTime({ hour: 11 }),
+        destination.timeZone,
+        destination.timeZone,
+      ] as const;
+    }
     if (prefillData) {
       // Calculate the start of the selected day
       const tripStart = Temporal.Instant.fromEpochMilliseconds(
@@ -87,7 +107,7 @@ export function AccommodationNewDialog({
       trip.timeZone,
       trip.timeZone,
     ];
-  }, [trip, accommodations, prefillData]);
+  }, [trip, accommodations, prefillData, tripEndDateTime]);
 
   return (
     <Dialog.Root open>
@@ -103,6 +123,7 @@ export function AccommodationNewDialog({
         <AccommodationForm
           mode={AccommodationFormMode.New}
           tripId={trip.id}
+          destinationTrip={trip}
           tripTimeZone={trip.timeZone}
           tripStartDateTime={tripStartDateTime}
           tripEndDateTime={tripEndDateTime}

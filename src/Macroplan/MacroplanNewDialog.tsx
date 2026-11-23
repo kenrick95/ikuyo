@@ -13,6 +13,7 @@ export function MacroplanNewDialog({
   trip: TripSliceTrip;
   prefillData?: {
     dayOfTrip: number;
+    date?: string;
   };
 }) {
   const popDialog = useBoundStore((state) => state.popDialog);
@@ -42,6 +43,10 @@ export function MacroplanNewDialog({
     macroplanEndTimeZone,
   ] = useMemo(() => {
     if (prefillData) {
+      if (prefillData.date) {
+        const selected = Temporal.PlainDate.from(prefillData.date);
+        return [selected, selected, trip.timeZone, trip.timeZone];
+      }
       // Calculate the start of the selected day
       const tripStart = Temporal.Instant.fromEpochMilliseconds(
         trip.timestampStart,

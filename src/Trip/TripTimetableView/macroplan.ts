@@ -1,4 +1,5 @@
 import type { DayGroups } from '../../Activity/eventGrouping';
+import { macroplanDates } from '../../Macroplan/time';
 import type { TripSliceMacroplan, TripSliceTrip } from '../store/types';
 
 export function getMacroplanIndexes({
@@ -21,6 +22,26 @@ export function getMacroplanIndexes({
     trip.timestampStart,
   ).toZonedDateTimeISO(trip.timeZone);
   for (const macroplan of macroplans) {
+    if (trip.destinations?.length) {
+      const firstDay = tripStartDateTime.toPlainDate();
+      const finalDay = Temporal.Instant.fromEpochMilliseconds(
+        trip.timestampEnd - 1,
+      )
+        .toZonedDateTimeISO(trip.timeZone)
+        .toPlainDate();
+      const { start, end } = macroplanDates(macroplan, trip.timeZone);
+      const startDay = Math.max(1, firstDay.until(start).days + 1);
+      const endDay = Math.min(
+        firstDay.until(finalDay).days + 1,
+        firstDay.until(end).days + 1,
+      );
+      if (startDay <= endDay)
+        res.push({
+          macroplan,
+          day: { start: startDay, end: endDay, startColumn: 1, endColumn: 1 },
+        });
+      continue;
+    }
     const startDateTime = Temporal.Instant.fromEpochMilliseconds(
       macroplan.timestampStart,
     ).toZonedDateTimeISO(trip.timeZone);

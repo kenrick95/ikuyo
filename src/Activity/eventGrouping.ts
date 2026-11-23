@@ -1,4 +1,5 @@
 import { AccommodationDisplayTimeMode } from '../Accommodation/AccommodationDisplayTimeMode';
+import { macroplanDates } from '../Macroplan/time';
 import type {
   TripSliceAccommodation,
   TripSliceActivity,
@@ -154,6 +155,17 @@ export function groupActivitiesByDays({
     });
 
     for (const macroplan of macroplans) {
+      if (trip.destinations?.length) {
+        const { start, end } = macroplanDates(macroplan, trip.timeZone);
+        const date = dayStartDateTime.toPlainDate();
+        if (
+          Temporal.PlainDate.compare(date, start) >= 0 &&
+          Temporal.PlainDate.compare(date, end) <= 0
+        ) {
+          dayMacroplans.push(macroplan);
+        }
+        continue;
+      }
       // Must use trip time zone even though macroplan start/end may have their own time zones; for accuracy of calculations
       const macroplanStartDateTime = Temporal.Instant.fromEpochMilliseconds(
         macroplan.timestampStart,

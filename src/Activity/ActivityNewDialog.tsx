@@ -2,6 +2,10 @@ import { Box, Dialog } from '@radix-ui/themes';
 import { useCallback, useMemo } from 'react';
 import { CommonLargeDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
+import {
+  type NewItemPrefill,
+  newActivityTimes,
+} from '../Trip/destinations/newItemTimes';
 import { useTripLocalState } from '../Trip/store/hooks';
 import type { TripSliceTrip } from '../Trip/store/types';
 import { ActivityForm } from './ActivityForm/ActivityForm';
@@ -12,10 +16,7 @@ export function ActivityNewDialog({
   prefillData,
 }: {
   trip: TripSliceTrip;
-  prefillData?: {
-    dayOfTrip: number;
-    timeStart: string;
-  };
+  prefillData?: NewItemPrefill;
 }) {
   const localState = useTripLocalState(trip.id);
   const popDialog = useBoundStore((state) => state.popDialog);
@@ -43,48 +44,18 @@ export function ActivityNewDialog({
     activityEndDateTime,
     activityStartTimeZone,
     activityEndTimeZone,
-  ] = useMemo(() => {
-    if (prefillData) {
-      // Convert timeStart (HHMM format) to DateTime
-      const hours = parseInt(prefillData.timeStart.substring(0, 2), 10);
-      const minutes = parseInt(prefillData.timeStart.substring(2, 4), 10);
-
-      // Calculate the start of the selected day
-      const tripStart = Temporal.Instant.fromEpochMilliseconds(
-        trip.timestampStart,
-      ).toZonedDateTimeISO(trip.timeZone);
-      const activityDay = tripStart
-        .add({ days: prefillData.dayOfTrip - 1 })
-        .startOfDay();
-
-      // Set the specific time on that day
-      const activityStartZonedTime = activityDay.with({
-        hour: hours,
-        minute: minutes,
-      });
-      const activityEndZonedTime = activityStartZonedTime.add({ hours: 1 });
-
-      return [
-        activityStartZonedTime.toPlainDateTime(),
-        activityEndZonedTime.toPlainDateTime(),
-        activityStartZonedTime.timeZoneId,
-        activityEndZonedTime.timeZoneId,
-      ];
-    }
-
-    // Default behavior when no prefillData
-    const activityStartZonedTime = Temporal.Instant.fromEpochMilliseconds(
-      localState?.activityTimestampStart ?? trip.timestampStart,
-    ).toZonedDateTimeISO(trip.timeZone);
-    const activityEndZonedTime = activityStartZonedTime.add({ hours: 1 });
-
-    return [
-      activityStartZonedTime.toPlainDateTime(),
-      activityEndZonedTime.toPlainDateTime(),
-      activityStartZonedTime.timeZoneId,
-      activityEndZonedTime.timeZoneId,
-    ];
-  }, [trip, prefillData, localState?.activityTimestampStart]);
+    prefilledStart,
+    prefilledEnd,
+  ] = useMemo(
+    () =>
+      newActivityTimes(
+        trip,
+        prefillData,
+        localState?.activityTimestampStart,
+        1,
+      ),
+    [trip, prefillData, localState?.activityTimestampStart],
+  );
 
   return (
     <Dialog.Root open>
@@ -100,6 +71,9 @@ export function ActivityNewDialog({
         <ActivityForm
           mode={ActivityFormMode.New}
           tripId={trip.id}
+          destinationTrip={trip}
+          prefilledStart={prefilledStart}
+          prefilledEnd={prefilledEnd}
           tripStartDateTime={tripStartDateTime}
           tripEndDateTime={tripEndDateTime}
           tripTimeZone={trip.timeZone}

@@ -18,6 +18,7 @@ import {
 import type { DbUser } from '../data/types';
 import type { DbMacroplan, DbMacroplanWithTrip } from '../Macroplan/db';
 import { TripUserRole } from '../User/TripUserRole';
+import type { TripDestination } from './destinations/destinations';
 import type { TripSliceTrip } from './store/types';
 import type { TripSharingLevelType } from './tripSharingLevel';
 
@@ -55,6 +56,8 @@ export type DbTrip = {
   region: string;
   /** destination's default currency */
   currency: string;
+  destinations?: TripDestination[];
+  destinationRevision?: number;
   /** origin's default currency */
   originCurrency: string;
   /** origin 2-letter Intl region. Uppercase! Optional for backward compat */
@@ -137,6 +140,9 @@ export async function dbUpdateTrip(
     () =>
       optimisticPatchTrip(trip.id, {
         title: trip.title,
+        ...(trip.destinations !== undefined
+          ? { destinations: trip.destinations }
+          : {}),
         timestampStart: trip.timestampStart,
         timestampEnd: trip.timestampEnd,
         timeZone: trip.timeZone,
@@ -146,7 +152,18 @@ export async function dbUpdateTrip(
         originRegion: trip.originRegion ?? '',
         originTimeZone: trip.originTimeZone ?? '',
       }),
-    () => putMutation(`/api/trips/${encodeURIComponent(trip.id)}`, trip),
+    async () => {
+      const result = await putMutation<
+        Pick<DbTrip, 'destinations' | 'destinationRevision'>
+      >(`/api/trips/${encodeURIComponent(trip.id)}`, trip);
+      if (result.destinationRevision !== undefined) {
+        optimisticPatchTrip(trip.id, {
+          destinations: result.destinations,
+          destinationRevision: result.destinationRevision,
+        });
+      }
+      return result;
+    },
   );
 }
 

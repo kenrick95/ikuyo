@@ -12,6 +12,7 @@ use App\Models\Task;
 use App\Models\Trip;
 use App\Services\ExpenseLedgerService;
 use App\Services\TripAccessService;
+use App\Services\TripDestinations;
 use App\Services\TripPeopleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -124,6 +125,7 @@ class TripController extends Controller
             'originCurrency' => ['required', 'string', 'max:8'],
             'originRegion' => ['nullable', 'string', 'max:8'],
             'originTimeZone' => ['nullable', 'string', 'max:64'],
+            ...TripDestinations::RULES,
         ]);
 
         $trip = DB::transaction(function () use ($data, $user): Trip {
@@ -139,6 +141,7 @@ class TripController extends Controller
                 'origin_region' => $data['originRegion'] ?? null,
                 'origin_timezone' => $data['originTimeZone'] ?? null,
                 'sharing_level' => 0,
+                'destinations' => TripDestinations::resolve($data['destinations'] ?? [], $data['timestampStart'], $data['timestampEnd']) ?: null,
             ]);
             $trip->users()->attach($user->id, [
                 'id' => (string) Str::uuid(),
@@ -166,9 +169,25 @@ class TripController extends Controller
             'originCurrency' => ['sometimes', 'string', 'max:8'],
             'originRegion' => ['nullable', 'string', 'max:8'],
             'originTimeZone' => ['nullable', 'string', 'max:64'],
+            ...TripDestinations::RULES,
+            'destinationRevision' => ['required_with:destinations', 'integer', 'min:0'],
         ]);
         $map = ['title' => 'title', 'timestampStart' => 'timestamp_start_ms', 'timestampEnd' => 'timestamp_end_ms', 'timeZone' => 'timezone', 'region' => 'region', 'currency' => 'currency', 'originCurrency' => 'origin_currency', 'originRegion' => 'origin_region', 'originTimeZone' => 'origin_timezone'];
-        $trip->update(array_combine(array_map(fn ($key) => $map[$key], array_keys($data)), array_values($data)));
+        foreach ($map as $key => $attribute) {
+            if (array_key_exists($key, $data)) {
+                $trip->{$attribute} = $data[$key];
+            }
+        }
+        if (array_key_exists('destinations', $data)) {
+            abort_unless((int) ($data['destinationRevision'] ?? -1) === (int) $trip->destination_revision, 409, 'Destinations changed. Reopen Edit trip and try again.');
+            $trip->destinations = TripDestinations::resolve($data['destinations'], $trip->timestamp_start_ms, $trip->timestamp_end_ms) ?: null;
+        } elseif ($trip->destinations && $trip->isDirty(['timestamp_start_ms', 'timestamp_end_ms'])) {
+            TripDestinations::resolve($trip->destinations, $trip->timestamp_start_ms, $trip->timestamp_end_ms);
+        }
+        if ($trip->isDirty(['destinations', 'timestamp_start_ms', 'timestamp_end_ms', 'timezone', 'region', 'currency'])) {
+            $trip->destination_revision = (int) $trip->destination_revision + 1;
+        }
+        $trip->save();
 
         return response()->json($this->serializeTrip($trip->fresh('users')));
     }
@@ -226,12 +245,20 @@ class TripController extends Controller
         $now = $this->nowMs();
         $trip->load(['activities', 'accommodations', 'macroPlans', 'expenses', 'taskLists.tasks']);
         $newTrip = DB::transaction(function () use ($trip, $data, $user, $now): Trip {
+            $destinations = null;
+            if ($trip->destinations) {
+                $zone = new \DateTimeZone($trip->timezone);
+                $localDate = static fn ($ms) => (new \DateTimeImmutable('@' . intdiv($ms, 1000)))->setTimezone($zone)->setTime(0, 0);
+                $days = (int) $localDate($trip->timestamp_start_ms)->diff($localDate($data['startDateMs']))->format('%r%a');
+                $destinations = TripDestinations::duplicate($trip->destinations, $days, $data['startDateMs'], $data['endDateMs']);
+            }
             $copy = Trip::create([
                 'id' => (string) Str::uuid(), 'title' => $data['title'],
                 'timestamp_start_ms' => $data['startDateMs'], 'timestamp_end_ms' => $data['endDateMs'],
                 'timezone' => $trip->timezone, 'region' => $trip->region, 'currency' => $trip->currency,
                 'origin_currency' => $trip->origin_currency, 'origin_region' => $trip->origin_region,
                 'origin_timezone' => $trip->origin_timezone, 'sharing_level' => 0,
+                'destinations' => $destinations,
             ]);
             $copy->users()->attach($user->id, ['id' => (string) Str::uuid(), 'role' => 0, 'created_at_ms' => $now, 'updated_at_ms' => $now]);
             app(TripPeopleService::class)->person($copy, $user, $user->handle);
@@ -374,6 +401,8 @@ class TripController extends Controller
             'timeZone' => $trip->timezone,
             'region' => $trip->region,
             'currency' => $trip->currency,
+            'destinations' => $trip->destinations ?? [],
+            'destinationRevision' => (int) $trip->destination_revision,
             'originCurrency' => $trip->origin_currency,
             'originRegion' => $trip->origin_region,
             'originTimeZone' => $trip->origin_timezone,

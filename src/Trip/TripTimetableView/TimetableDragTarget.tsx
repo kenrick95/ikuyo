@@ -7,6 +7,8 @@ import { useInViewport } from './useInViewport';
 interface TimetableDragTargetProps {
   day: number;
   timeStr: string;
+  instant?: number;
+  date?: string;
   columnStr: string;
   gridStyle: CSSProperties;
   scrollContainerRef: RefObject<HTMLElement | null>;
@@ -22,6 +24,8 @@ interface TimetableDragTargetProps {
 function TimetableDragTargetInner({
   day,
   timeStr,
+  instant,
+  date,
   columnStr,
   gridStyle,
   scrollContainerRef,
@@ -37,11 +41,15 @@ function TimetableDragTargetInner({
   const isInViewport = useInViewport(placeholderRef, scrollContainerRef);
 
   return (
-    <div ref={placeholderRef} style={gridStyle}>
+    <div ref={placeholderRef} style={gridStyle} data-time-slot={instant}>
       {isInViewport ? (
         <ContextMenu.Root>
           <ContextMenu.Trigger>
-            <TimetableCell row={`t${timeStr}`} column={columnStr} />
+            <TimetableCell
+              row={`t${timeStr}`}
+              column={columnStr}
+              data-instant={instant}
+            />
           </ContextMenu.Trigger>
           <ContextMenu.Content>
             <ContextMenu.Label>{tripTitle}</ContextMenu.Label>
@@ -50,6 +58,8 @@ function TimetableDragTargetInner({
               disabled={!userCanModifyTrip}
               data-time-start={timeStr}
               data-day={day}
+              data-instant={instant}
+              data-date={date}
             >
               New activity
             </ContextMenu.Item>
@@ -58,6 +68,8 @@ function TimetableDragTargetInner({
               disabled={!userCanModifyTrip}
               data-time-start={timeStr}
               data-day={day}
+              data-instant={instant}
+              data-date={date}
             >
               New flight
             </ContextMenu.Item>
@@ -66,6 +78,8 @@ function TimetableDragTargetInner({
               disabled={!userCanModifyTrip}
               data-time-start={timeStr}
               data-day={day}
+              data-instant={instant}
+              data-date={date}
             >
               New train
             </ContextMenu.Item>
@@ -73,6 +87,8 @@ function TimetableDragTargetInner({
               onClick={userCanModifyTrip ? onNewAccommodation : undefined}
               disabled={!userCanModifyTrip}
               data-day={day}
+              data-instant={instant}
+              data-date={date}
             >
               New accommodation
             </ContextMenu.Item>
@@ -80,6 +96,8 @@ function TimetableDragTargetInner({
               onClick={userCanModifyTrip ? onNewMacroplan : undefined}
               disabled={!userCanModifyTrip}
               data-day={day}
+              data-instant={instant}
+              data-date={date}
             >
               New day plan
             </ContextMenu.Item>
