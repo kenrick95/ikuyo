@@ -177,9 +177,6 @@ function ExpenseCardView({
                 <Text as="p" size="2">
                   Delete expense "{expense.title}"?
                 </Text>
-                <Text as="p" size="2" color={dangerToken}>
-                  This action is irreversible!
-                </Text>
                 <Flex gap="3" mt="4" justify="end">
                   <Popover.Close>
                     <Button variant="soft" color="gray">

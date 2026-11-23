@@ -1,5 +1,4 @@
 import {
-  Badge,
   Button,
   Checkbox,
   Dialog,
@@ -168,7 +167,11 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
             ?.balances.find((b) => b.participantId === draft.senderId)
             ?.amountMinor ?? '0',
         ) + n;
-      result = `${title(draft.senderId)} ${balance > 0n ? 'will be owed' : 'will owe'} ${formatMinor((balance < 0n ? -balance : balance).toString(), draft.currency)}`;
+      const senderName = title(draft.senderId);
+      result =
+        balance === 0n
+          ? `${senderName}’s ${draft.currency} balance will be settled.`
+          : `${senderName} ${balance > 0n ? 'will be owed' : 'will owe'} ${formatMinor((balance < 0n ? -balance : balance).toString(), draft.currency)}`;
     } catch {
       /* Inline validation occurs on submit. */
     }
@@ -296,12 +299,6 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
                     mt="1"
                   />
                 </Text>
-                {draft.paidAmount && (
-                  <Text size="2">
-                    {draft.amount} {draft.currency} cleared for{' '}
-                    {draft.paidAmount} {draft.paidCurrency}
-                  </Text>
-                )}
               </>
             )}
             <Flex direction="column" gap="1">
@@ -340,11 +337,13 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
         ) : (
           <Flex direction="column" gap="4">
             <ExpenseHistory tripId={trip.id} timeZone={trip.timeZone} />
-            {data && data.splitCount < data.expenseCount && (
-              <Text size="1" color="gray">
-                {data.splitCount} of {data.expenseCount} expenses split
-              </Text>
-            )}
+            {data &&
+              data.splitCount > 0 &&
+              data.splitCount < data.expenseCount && (
+                <Text size="1" color="gray">
+                  {data.splitCount} of {data.expenseCount} expenses split
+                </Text>
+              )}
             {!data?.currencies.length && (
               <Text color="gray" size="2">
                 No split expenses.
@@ -373,7 +372,7 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
                     </Flex>
                   );
                 })}
-                {group.suggestions.length ? (
+                {group.suggestions.length > 0 && (
                   <>
                     <Text weight="medium" size="2" mt="2">
                       Settle balances
@@ -404,8 +403,6 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
                       </Flex>
                     ))}
                   </>
-                ) : (
-                  <Badge color="gray">All settled</Badge>
                 )}
               </Flex>
             ))}

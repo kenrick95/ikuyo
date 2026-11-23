@@ -172,12 +172,7 @@ export const ExpenseSplitFields = memo(function ExpenseSplitFields({
         >
           <div className={s.controlRow}>
             <Text size="2" className={s.peopleSummary}>
-              Split among:{' '}
-              {value.shares
-                .map(
-                  (row) => peopleById.get(row.participantId)?.name ?? 'Person',
-                )
-                .join(', ') || 'No people selected'}
+              {value.shares.length ? 'Split among' : 'No people selected'}
             </Text>
             <div className={s.control}>
               <TripPeopleDialog
@@ -203,7 +198,7 @@ export const ExpenseSplitFields = memo(function ExpenseSplitFields({
           </div>
           <div className={s.controlRow}>
             <Text as="label" htmlFor={methodId} size="2">
-              Split method:
+              Split method
             </Text>
             <Select.Root
               value={value.method}

@@ -581,7 +581,7 @@ async function checkSplitGrid() {
     .getByRole('button', { name: 'Choose people' })
     .boundingBox();
   const method = await region
-    .getByRole('combobox', { name: 'Split method:' })
+    .getByRole('combobox', { name: 'Split method' })
     .boundingBox();
   const bounds = await region.boundingBox();
   assert(
@@ -758,7 +758,7 @@ try {
     ['By percentage', 'percent'],
     ['By shares', 'shares'],
   ]) {
-    await page.getByRole('combobox', { name: 'Split method:' }).click();
+    await page.getByRole('combobox', { name: 'Split method' }).click();
     await page.getByRole('option', { name: option, exact: true }).click();
     if (state === 'exact')
       await page
@@ -776,7 +776,7 @@ try {
     );
   }
   await capture('17-narrow-share-split');
-  await page.getByRole('combobox', { name: 'Split method:' }).click();
+  await page.getByRole('combobox', { name: 'Split method' }).click();
   await page.getByRole('option', { name: 'Equally', exact: true }).click();
   await page.setViewportSize({ width: 1280, height: 1040 });
   checks.push(

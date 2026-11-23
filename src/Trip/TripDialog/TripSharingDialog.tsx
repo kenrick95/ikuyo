@@ -201,6 +201,7 @@ export function TripSharingDialog({
       <Dialog.Content
         width="calc(100% - 2 * var(--space-4))"
         maxWidth={CommonLargeDialogMaxWidth}
+        aria-describedby={undefined}
         onEscapeKeyDown={(e) => {
           if (e.defaultPrevented) return;
           e.preventDefault();
@@ -217,14 +218,11 @@ export function TripSharingDialog({
         }}
       >
         <Dialog.Title>Sharing & Privacy for Trip</Dialog.Title>
-        <Dialog.Description size="2">
-          Share this trip with other people!
-        </Dialog.Description>
 
         {currentUserIsOwner ? (
           <Flex direction="column" gap="2" my="2">
             <Flex direction="row" gap="1" align="baseline">
-              <Text size="2">Privacy setting for this trip: </Text>
+              <Text size="2">Trip privacy</Text>
               <Select.Root
                 name="tripSharingLevel"
                 value={String(tripSharingLevel)}
@@ -328,7 +326,7 @@ export function TripSharingDialog({
                     gap="1"
                   >
                     <Text size="1" color="gray" weight="medium">
-                      Invited Viewers (Viewer Role)
+                      Invited viewers
                     </Text>
                     {(
                       [
