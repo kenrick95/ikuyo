@@ -7,7 +7,6 @@ describe('expense ledger arithmetic', () => {
   for (const fixture of fixtures) {
     test(`${fixture.currency} ${fixture.method} matches the server fixture`, () => {
       const result = previewSplit(fixture.amount, fixture.currency, {
-        paidBy: 'a',
         method: fixture.method as SplitMethod,
         shares: fixture.shares,
       });
@@ -42,14 +41,12 @@ describe('expense ledger arithmetic', () => {
     expect(() => toMinor('1e3', 'SGD')).toThrow('amount');
     expect(() =>
       previewSplit('10', 'SGD', {
-        paidBy: 'a',
         method: 'percent',
         shares: [{ participantId: 'a', value: '99' }],
       }),
     ).toThrow('100%');
     expect(() =>
       previewSplit('10', 'SGD', {
-        paidBy: 'a',
         method: 'exact',
         shares: [{ participantId: 'a', value: '9' }],
       }),

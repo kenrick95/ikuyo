@@ -9,3 +9,5 @@ export type TripPerson = {
   accessRole: 0 | 1 | 2 | null;
   archived?: boolean;
 };
+
+export const EMPTY_TRIP_PEOPLE: TripPerson[] = [];

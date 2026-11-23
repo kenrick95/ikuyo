@@ -1,6 +1,6 @@
 import { Badge, Box, Card, Heading, Text } from '@radix-ui/themes';
-import { getTripStatus } from '../Trip/getTripStatus';
-import { useCurrentTrip, useTripExpenses } from '../Trip/store/hooks';
+import { useMemo } from 'react';
+import type { TripSliceExpense, TripSliceTrip } from '../Trip/store/types';
 import { formatCurrencyAmount } from './currency';
 import s from './ExpenseHeaderCard.module.css';
 
@@ -46,40 +46,50 @@ function Amounts({ totals }: { totals: Record<string, number> }) {
   ));
 }
 
-export function ExpenseHeaderCard() {
-  const { trip } = useCurrentTrip();
-  const expenses = useTripExpenses(trip?.expenseIds ?? []);
+export function ExpenseHeaderCard({
+  trip,
+  expenses,
+}: {
+  trip: TripSliceTrip | undefined;
+  expenses: TripSliceExpense[];
+}) {
   const origin = trip?.originCurrency || trip?.currency || 'USD';
-  const summary = expenseTotals(expenses, origin);
-  if (!expenses.length) summary.totals[trip?.currency || origin] = 0;
-  let daily: { label: string; totals: Record<string, number> } | null = null;
+  const displayCurrency = trip?.currency || origin;
+  const totals = useMemo(
+    () =>
+      expenses.length
+        ? expenseTotals(expenses, origin).totals
+        : { [displayCurrency]: 0 },
+    [expenses, origin, displayCurrency],
+  );
+  let label: string | undefined;
+  let dayStart: number | undefined;
+  let dayEnd: number | undefined;
   if (trip) {
-    const start = Temporal.Instant.fromEpochMilliseconds(
-      trip.timestampStart,
-    ).toZonedDateTimeISO(trip.timeZone);
-    const end = Temporal.Instant.fromEpochMilliseconds(
-      trip.timestampEnd,
-    ).toZonedDateTimeISO(trip.timeZone);
-    const status = getTripStatus(start, end);
-    if (status && status.status !== 'upcoming') {
-      const target = (
-        status.status === 'current'
-          ? Temporal.Now.zonedDateTimeISO(trip.timeZone)
-          : end.subtract({ days: 1 })
-      ).toPlainDate();
-      const filtered = expenses.filter((e) =>
-        Temporal.Instant.fromEpochMilliseconds(e.timestampIncurred)
-          .toZonedDateTimeISO(trip.timeZone)
-          .toPlainDate()
-          .equals(target),
-      );
-      daily = {
-        label: status.status === 'current' ? 'Today' : 'Final Day',
-        totals: expenseTotals(filtered, origin).totals,
-      };
-      if (!filtered.length) daily.totals[trip.currency] = 0;
+    const now = Temporal.Now.instant();
+    if (now.epochMilliseconds >= trip.timestampStart) {
+      const isCurrent = now.epochMilliseconds < trip.timestampEnd;
+      const day = isCurrent
+        ? now.toZonedDateTimeISO(trip.timeZone)
+        : Temporal.Instant.fromEpochMilliseconds(trip.timestampEnd)
+            .toZonedDateTimeISO(trip.timeZone)
+            .subtract({ days: 1 });
+      label = isCurrent ? 'Today' : 'Final Day';
+      dayStart = day.startOfDay().epochMilliseconds;
+      dayEnd = day.add({ days: 1 }).startOfDay().epochMilliseconds;
     }
   }
+  const dailyTotals = useMemo(() => {
+    if (dayStart === undefined || dayEnd === undefined) return null;
+    const filtered = expenses.filter(
+      (expense) =>
+        expense.timestampIncurred >= dayStart &&
+        expense.timestampIncurred < dayEnd,
+    );
+    return filtered.length
+      ? expenseTotals(filtered, origin).totals
+      : { [displayCurrency]: 0 };
+  }, [expenses, origin, displayCurrency, dayStart, dayEnd]);
   return (
     <Box className={s.expenseHeaderCard}>
       <Card className={s.summaryItem}>
@@ -92,7 +102,7 @@ export function ExpenseHeaderCard() {
         >
           Total
         </Heading>
-        <Amounts totals={summary.totals} />
+        <Amounts totals={totals} />
       </Card>
       <Card className={s.summaryItem}>
         <Heading
@@ -110,7 +120,7 @@ export function ExpenseHeaderCard() {
           </Text>
         </Box>
       </Card>
-      {daily && (
+      {dailyTotals && (
         <Card className={s.summaryItem}>
           <Heading
             as="h4"
@@ -119,9 +129,9 @@ export function ExpenseHeaderCard() {
             size="2"
             className={s.summaryKey}
           >
-            {daily.label}
+            {label}
           </Heading>
-          <Amounts totals={daily.totals} />
+          <Amounts totals={dailyTotals} />
         </Card>
       )}
     </Box>

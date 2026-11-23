@@ -35,6 +35,18 @@
   display: none;
 }
 
+.linkPopover {
+  width: min(20rem, var(--radix-popover-content-available-width));
+  max-height: var(--radix-popover-content-available-height);
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+}
+
+.linkIdentity {
+  flex: 1;
+  min-width: 0;
+}
+
 @media (max-width: 479px) {
   .peopleTable {
     & th,

@@ -1,3 +1,4 @@
+import deepEqual from 'react-fast-compare';
 import {
   COMMENT_GROUP_OBJECT_TYPE,
   type DbCommentGroupObjectType,
@@ -30,6 +31,14 @@ export function deriveNewTripState(
   const currentUserTripUser = trip.tripUser.find((tu) => {
     return tu.user?.[0]?.id === currentUser?.id;
   });
+  const previous = state.trip[trip.id];
+  const people = trip.people ?? [];
+  const expenseIds = trip.expense
+    .sort(
+      (a, b) =>
+        b.timestampIncurred - a.timestampIncurred || b.createdAt - a.createdAt,
+    )
+    .map((expense) => expense.id);
 
   const newTripState = {
     ...state.trip,
@@ -45,24 +54,16 @@ export function deriveNewTripState(
       originTimeZone: trip.originTimeZone ?? '',
       archivedAt: trip.archivedAt,
       expenseLedger: trip.expenseLedger,
-      people: trip.people ?? [],
+      people: deepEqual(previous?.people, people) ? previous.people : people,
       timeZone: trip.timeZone,
       accommodationIds: trip.accommodation.map((a) => a.id),
       activityIds: trip.activity.map((a) => a.id),
       macroplanIds: trip.macroplan.map((a) => a.id),
       tripUserIds: trip.tripUser.map((a) => a.id),
       commentGroupIds: trip.commentGroup.map((a) => a.id),
-      expenseIds: trip.expense
-        .sort((a, b) => {
-          const compareTimestampIncurredDesc =
-            b.timestampIncurred - a.timestampIncurred;
-          if (compareTimestampIncurredDesc !== 0) {
-            return compareTimestampIncurredDesc;
-          }
-          // if timestampIncurred is the same, sort by createdAt descending
-          return b.createdAt - a.createdAt;
-        })
-        .map((a) => a.id),
+      expenseIds: deepEqual(previous?.expenseIds, expenseIds)
+        ? previous.expenseIds
+        : expenseIds,
       taskListIds: trip.taskList
         .sort((a, b) => a.index - b.index)
         .map((a) => a.id),
@@ -224,20 +225,27 @@ export function deriveNewExpenseState(
 ): {
   [id: string]: TripSliceExpense;
 } {
-  const newExpenseState = { ...state.expense };
+  if (!trip.expense?.length) return state.expense;
+  const commentGroupByExpenseId = new Map<string, string>();
+  for (const group of trip.commentGroup ?? []) {
+    if (group.object?.type !== COMMENT_GROUP_OBJECT_TYPE.EXPENSE) continue;
+    const expenseId = group.object.expense?.[0]?.id;
+    if (expenseId && !commentGroupByExpenseId.has(expenseId)) {
+      commentGroupByExpenseId.set(expenseId, group.id);
+    }
+  }
+  let newExpenseState = state.expense;
   for (const expense of trip.expense ?? []) {
-    const commentGroup = trip.commentGroup?.find((cg) => {
-      return (
-        cg.object?.type === COMMENT_GROUP_OBJECT_TYPE.EXPENSE &&
-        cg.object?.expense?.[0]?.id === expense.id
-      );
-    });
-    newExpenseState[expense.id] = {
+    const next = {
       ...expense,
       tripId: trip.id,
-      commentGroupId: commentGroup?.id ?? undefined,
+      commentGroupId: commentGroupByExpenseId.get(expense.id),
       timeZoneIncurred: expense.timeZoneIncurred ?? trip.timeZone,
     } satisfies TripSliceExpense;
+    if (deepEqual(state.expense[expense.id], next)) continue;
+    if (newExpenseState === state.expense)
+      newExpenseState = { ...state.expense };
+    newExpenseState[expense.id] = next;
   }
   return newExpenseState;
 }

@@ -1,9 +1,18 @@
 import { Theme } from '@radix-ui/themes';
-import { act, render, screen, within } from '@testing-library/react';
+import {
+  act,
+  render,
+  renderHook,
+  screen,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { TripPeopleDialog } from '../Trip/people/TripPeopleDialog';
+import {
+  TripPeopleDialog,
+  useTripPeople,
+} from '../Trip/people/TripPeopleDialog';
 import type { TripSliceTrip } from '../Trip/store/types';
 import { TripUserRole } from '../User/TripUserRole';
 import { ExpenseBalancesDialog } from './ExpenseBalancesDialog';
@@ -105,6 +114,40 @@ beforeEach(() => {
   mocks.post.mockReset();
   mocks.refresh.mockResolvedValue(undefined);
   mocks.patch.mockResolvedValue({});
+});
+
+test('the payer roster reuses its reference across unrelated trip changes', () => {
+  const context: TripSliceTrip = {
+    ...trip,
+    people: trip.people?.filter((person) => person.id !== 'a'),
+  };
+  const { result, rerender } = renderHook(
+    (currentTrip) => useTripPeople(currentTrip, true),
+    {
+      initialProps: context,
+    },
+  );
+  const original = result.current;
+  expect(original[0]).toMatchObject({ id: 'me', userId: 'user-a' });
+  rerender({ ...context, title: 'Renamed trip' });
+  expect(result.current).toBe(original);
+  rerender(trip);
+  expect(result.current).toBe(trip.people);
+});
+
+test('the people dialog builds roster rows when opened', async () => {
+  const user = userEvent.setup();
+  const people = [...(trip.people ?? [])];
+  const buildRows = vi.spyOn(people, 'map');
+  render(
+    <Theme>
+      <TripPeopleDialog trip={{ ...trip, people }} />
+    </Theme>,
+  );
+  expect(buildRows).not.toHaveBeenCalled();
+  await user.click(screen.getByRole('button', { name: 'People' }));
+  expect(buildRows).toHaveBeenCalled();
+  expect(screen.getByRole('rowheader', { name: /Bea/ })).toBeVisible();
 });
 
 test('settlement actions stay disabled until a delayed authoritative refresh completes', async () => {
@@ -332,12 +375,17 @@ test('linking an account changes the existing trip person without granting acces
   await user.click(screen.getByRole('button', { name: 'People' }));
   await user.click(screen.getByRole('button', { name: 'Actions for Bea' }));
   await user.click(screen.getByRole('menuitem', { name: 'Link account' }));
-  await user.type(
-    screen.getByPlaceholderText('Name, Ikuyo email or @username'),
-    '@guest_account',
+  const popover = within(
+    await screen.findByRole('dialog', { name: 'Link account to Bea' }),
   );
-  await user.click(screen.getByRole('button', { name: 'Find' }));
-  await user.click(screen.getByRole('button', { name: 'Link' }));
+  const identity = popover.getByRole('textbox', {
+    name: 'Ikuyo email or @username',
+  });
+  expect(identity).toHaveFocus();
+  await user.type(identity, '@guest_account{Enter}');
+  expect(await popover.findByText('Found @guest_account')).toBeVisible();
+  expect(mocks.patch).not.toHaveBeenCalled();
+  await user.click(popover.getByRole('button', { name: 'Link account' }));
   expect(mocks.post).toHaveBeenCalledTimes(1);
   expect(mocks.post).toHaveBeenCalledWith('/api/trips/trip/people/lookup', {
     identity: '@guest_account',

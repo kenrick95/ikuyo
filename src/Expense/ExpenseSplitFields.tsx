@@ -1,5 +1,5 @@
 import { Flex, Select, Switch, Text, TextField } from '@radix-ui/themes';
-import { useId, useState } from 'react';
+import { memo, useId, useMemo, useState } from 'react';
 import {
   PersonLabel,
   TripPeopleDialog,
@@ -16,7 +16,7 @@ import {
   toMinor,
 } from './ledger';
 
-export function ExpenseSplitFields({
+export const ExpenseSplitFields = memo(function ExpenseSplitFields({
   trip,
   amount,
   currency,
@@ -32,18 +32,39 @@ export function ExpenseSplitFields({
   disabled: boolean;
 }) {
   const people = useTripPeople(trip, true);
+  const peopleById = useMemo(
+    () => new Map(people.map((p) => [p.id, p])),
+    [people],
+  );
   const methodId = useId();
   const splitRegionId = useId();
   const [paidInputs, setPaidInputs] = useState<Record<string, string>>({});
-  let preview: { participantId: string; amountMinor: string }[] = [],
-    error = '';
-  if (value.method && amount) {
-    try {
-      preview = previewSplit(amount, currency, value);
-    } catch (err) {
-      error = (err as Error).message;
+  const { method, shares } = value;
+  const { preview, error } = useMemo(() => {
+    if (method && amount) {
+      try {
+        return {
+          preview: new Map(
+            previewSplit(amount, currency, { method, shares }).map((row) => [
+              row.participantId,
+              row.amountMinor,
+            ]),
+          ),
+          error: '',
+        };
+      } catch (err) {
+        return { error: (err as Error).message };
+      }
     }
-  }
+    return { error: '' };
+  }, [amount, currency, method, shares]);
+  const contributions = useMemo(
+    () =>
+      new Map(
+        value.contributions?.map((r) => [r.participantId, r.amountMinor]),
+      ),
+    [value.contributions],
+  );
   const patch = (update: Partial<ExpenseLedger>) =>
     onChange({ ...value, ...update });
   return (
@@ -90,15 +111,10 @@ export function ExpenseSplitFields({
               value={(() => {
                 const typed = paidInputs[`${currency}:${p.id}`];
                 if (typed !== undefined) return typed;
-                const contribution = value.contributions?.find(
-                  (r) => r.participantId === p.id,
-                );
-                if (contribution?.amountMinor === '') return '';
+                const contribution = contributions.get(p.id);
+                if (contribution === '') return '';
                 try {
-                  return minorToDecimal(
-                    contribution?.amountMinor ?? '0',
-                    currency,
-                  );
+                  return minorToDecimal(contribution ?? '0', currency);
                 } catch {
                   return '';
                 }
@@ -159,30 +175,29 @@ export function ExpenseSplitFields({
               Split among:{' '}
               {value.shares
                 .map(
-                  (row) =>
-                    people.find((p) => p.id === row.participantId)?.name ??
-                    'Person',
+                  (row) => peopleById.get(row.participantId)?.name ?? 'Person',
                 )
                 .join(', ') || 'No people selected'}
             </Text>
             <div className={s.control}>
               <TripPeopleDialog
                 trip={trip}
-                selected={value.shares.map((r) => r.participantId)}
+                selected={value.shares.map((row) => row.participantId)}
                 disabled={disabled}
-                onApply={(ids) =>
+                onApply={(ids) => {
+                  const sharesById = new Map(
+                    value.shares.map((row) => [row.participantId, row]),
+                  );
                   patch({
                     shares: ids.map(
                       (participantId) =>
-                        value.shares.find(
-                          (r) => r.participantId === participantId,
-                        ) ?? {
+                        sharesById.get(participantId) ?? {
                           participantId,
                           value: value.method === 'shares' ? '1' : '0',
                         },
                     ),
-                  })
-                }
+                  });
+                }}
               />
             </div>
           </div>
@@ -219,12 +234,8 @@ export function ExpenseSplitFields({
           </div>
           <ul className={s.allocations} aria-label="Split amounts">
             {value.shares.map((row) => {
-              const name =
-                people.find((p) => p.id === row.participantId)?.name ??
-                'Person';
-              const allocation = preview.find(
-                (p) => p.participantId === row.participantId,
-              );
+              const name = peopleById.get(row.participantId)?.name ?? 'Person';
+              const allocation = preview?.get(row.participantId);
               return (
                 <li className={s.allocationRow} key={row.participantId}>
                   <Text size="2" className={s.personName}>
@@ -233,9 +244,7 @@ export function ExpenseSplitFields({
                   <div className={s.valueCell}>
                     {value.method === 'equal' ? (
                       <Text size="2" className={s.amount} aria-live="polite">
-                        {allocation
-                          ? formatMinor(allocation.amountMinor, currency)
-                          : '—'}
+                        {allocation ? formatMinor(allocation, currency) : '—'}
                       </Text>
                     ) : (
                       <>
@@ -271,7 +280,7 @@ export function ExpenseSplitFields({
                             className={s.amount}
                             aria-live="polite"
                           >
-                            {formatMinor(allocation.amountMinor, currency)}
+                            {formatMinor(allocation, currency)}
                           </Text>
                         )}
                       </>
@@ -290,4 +299,4 @@ export function ExpenseSplitFields({
       )}
     </Flex>
   );
-}
+});

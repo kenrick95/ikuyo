@@ -145,30 +145,56 @@ export function ExpenseInlineCardForm({
         },
   );
   const [errorMessage, setErrorMessage] = useState('');
-  const currentUser = useBoundStore((state) => state.currentUser);
-  const selfId =
-    trip.people?.find((p) => p.userId === currentUser?.id)?.id ?? 'me';
-  const [ledger, setLedger] = useState<ExpenseLedger>(
+  const currentUserId = useBoundStore((state) => state.currentUser?.id);
+  const selfId = useMemo(
+    () => trip.people?.find((p) => p.userId === currentUserId)?.id ?? 'me',
+    [trip.people, currentUserId],
+  );
+  const [ledger, setLedger] = useState<ExpenseLedger>(() =>
     refundOf?.ledger
       ? { ...refundOf.ledger, kind: 'refund', refundOf: refundOf.id }
       : (expense?.ledger ?? { paidBy: selfId, method: null, shares: [] }),
   );
   const [expectedRevision] = useState(expense?.ledgerRevision);
   const [payerEdited, setPayerEdited] = useState(false);
+  const handleLedgerChange = useCallback(
+    (next: ExpenseLedger) => {
+      if (
+        next.paidBy !== ledger.paidBy ||
+        next.contributions !== ledger.contributions
+      ) {
+        setPayerEdited(true);
+      }
+      setLedger(next);
+    },
+    [ledger.paidBy, ledger.contributions],
+  );
   const submitting = useRef(false);
   const [creationId, setCreationId] = useState(() => newExpenseId());
   useEffect(() => {
     if (selfId === 'me') return;
-    setLedger((previous) => ({
-      ...previous,
-      paidBy: previous.paidBy === 'me' ? selfId : previous.paidBy,
-      shares: previous.shares.map((r) =>
-        r.participantId === 'me' ? { ...r, participantId: selfId } : r,
-      ),
-      contributions: previous.contributions?.map((r) =>
-        r.participantId === 'me' ? { ...r, participantId: selfId } : r,
-      ),
-    }));
+    setLedger((previous) => {
+      const replaceAlias = <T extends { participantId: string }>(rows: T[]) =>
+        rows.some((row) => row.participantId === 'me')
+          ? rows.map((row) =>
+              row.participantId === 'me'
+                ? { ...row, participantId: selfId }
+                : row,
+            )
+          : rows;
+      const paidBy = previous.paidBy === 'me' ? selfId : previous.paidBy;
+      const shares = replaceAlias(previous.shares);
+      const contributions =
+        previous.contributions && replaceAlias(previous.contributions);
+      if (
+        paidBy === previous.paidBy &&
+        shares === previous.shares &&
+        contributions === previous.contributions
+      ) {
+        return previous;
+      }
+      return { ...previous, paidBy, shares, contributions };
+    });
   }, [selfId]);
   const [timeZoneIncurred] = useState<string>(
     expenseMode === ExpenseMode.Edit && expense && expense.timeZoneIncurred
@@ -804,15 +830,7 @@ export function ExpenseInlineCardForm({
         amount={formState.amount}
         currency={formState.currency}
         value={ledger}
-        onChange={(next) => {
-          if (
-            next.paidBy !== ledger.paidBy ||
-            next.contributions !== ledger.contributions
-          ) {
-            setPayerEdited(true);
-          }
-          setLedger(next);
-        }}
+        onChange={handleLedgerChange}
         disabled={formState.loading}
       />
 

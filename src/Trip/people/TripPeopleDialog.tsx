@@ -6,11 +6,15 @@ import {
   Dialog,
   DropdownMenu,
   Flex,
+  Heading,
+  Popover,
   Table,
   Text,
   TextField,
 } from '@radix-ui/themes';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+import { RenderContent } from '../../common/RenderContent';
 import { patchMutation, postMutation } from '../../data/apiClient';
 import { id } from '../../data/id';
 import { useBoundStore } from '../../data/store';
@@ -18,31 +22,56 @@ import { isTripOwner } from '../permissions';
 import type { TripSliceTrip } from '../store/types';
 import { TripSharingDialog } from '../TripDialog/TripSharingDialog';
 import s from './TripPeopleDialog.module.css';
-import type { TripPerson } from './types';
+import { EMPTY_TRIP_PEOPLE, type TripPerson } from './types';
+
+type AccountMatch = { id: string; handle: string };
+
+async function findAccount(prefix: string, identity: string) {
+  const { user } = await postMutation<{ user: AccountMatch | null }>(
+    `${prefix}/lookup`,
+    { identity },
+  );
+  return user;
+}
 
 export function useTripPeople(
   trip: TripSliceTrip,
   includeSelf = false,
 ): TripPerson[] {
-  const currentUser = useBoundStore((state) => state.currentUser);
-  const people = trip.people ?? [];
-  return includeSelf &&
-    currentUser &&
-    !people.some((p) => p.userId === currentUser.id)
-    ? [
-        {
-          id: 'me',
-          name: currentUser.handle,
-          handle: currentUser.handle,
-          userId: currentUser.id,
-          hasAccount: true,
-          accountType: currentUser.email ? 'registered' : 'guest',
-          isParticipant: false,
-          accessRole: null,
-        },
-        ...people,
-      ]
-    : people;
+  const [userId, handle, hasEmail] = useBoundStore(
+    useShallow((state) =>
+      includeSelf
+        ? ([
+            state.currentUser?.id,
+            state.currentUser?.handle,
+            !!state.currentUser?.email,
+          ] as const)
+        : ([undefined, undefined, false] as const),
+    ),
+  );
+  const people = trip.people ?? EMPTY_TRIP_PEOPLE;
+  return useMemo(() => {
+    if (
+      !userId ||
+      handle === undefined ||
+      people.some((p) => p.userId === userId)
+    ) {
+      return people;
+    }
+    return [
+      {
+        id: 'me',
+        name: handle,
+        handle,
+        userId,
+        hasAccount: true,
+        accountType: hasEmail ? 'registered' : 'guest',
+        isParticipant: false,
+        accessRole: null,
+      },
+      ...people,
+    ];
+  }, [people, userId, handle, hasEmail]);
 }
 
 export function PersonLabel({ person }: { person: TripPerson }) {
@@ -81,13 +110,12 @@ export function TripPeopleDialog({
   onApply?: (ids: string[]) => void;
   disabled?: boolean;
 }) {
-  const people = useTripPeople(trip, selected !== undefined);
   const [open, setOpen] = useState(false);
+  const people = useTripPeople(trip, selected !== undefined);
   const [pending, setPending] = useState<string[]>([]);
+  const pendingIds = useMemo(() => new Set(pending), [pending]);
   const [query, setQuery] = useState('');
-  const [match, setMatch] = useState<{ id: string; handle: string } | null>(
-    null,
-  );
+  const [match, setMatch] = useState<AccountMatch | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);
@@ -95,7 +123,13 @@ export function TripPeopleDialog({
   const renameInput = useRef<HTMLInputElement>(null);
   const rowActions = useRef(new Map<string, HTMLButtonElement>());
   const renameReturnId = useRef<string | null>(null);
-  const [linking, setLinking] = useState<string | null>(null);
+  const [linking, setLinking] = useState<{
+    personId: string;
+    personName: string;
+    anchor: HTMLButtonElement;
+  } | null>(null);
+  const linkFromMenu = useRef<string | null>(null);
+  const linkDismissedOutside = useRef(false);
   const refreshTrip = useBoundStore((state) => state.refreshTrip);
   const pushDialog = useBoundStore((state) => state.pushDialog);
   const prefix = `/api/trips/${encodeURIComponent(trip.id)}/people`;
@@ -123,7 +157,6 @@ export function TripPeopleDialog({
       await patchMutation(`${prefix}/${encodeURIComponent(participant)}`, data);
       await refreshTrip(trip.id);
       setRenaming(null);
-      setLinking(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to update person.');
     } finally {
@@ -131,16 +164,10 @@ export function TripPeopleDialog({
     }
   }
 
-  async function add(user?: { id: string; handle: string }) {
+  async function add(user?: AccountMatch) {
     setLoading(true);
     setError('');
     try {
-      if (linking && user) {
-        await updateParticipant(linking, { userId: user.id });
-        setQuery('');
-        setMatch(null);
-        return;
-      }
       const result = await postMutation<{ id: string }>(
         prefix,
         user ? { id: id(), userId: user.id } : { id: id(), name: query.trim() },
@@ -158,20 +185,15 @@ export function TripPeopleDialog({
   }
 
   async function findOrAdd() {
-    if (linking && !lookup) {
-      setError('Enter an Ikuyo email or @username.');
-      return;
-    }
+    if (!query.trim()) return;
     if (!lookup) return add();
     setLoading(true);
     setError('');
     setMatch(null);
     try {
-      const result = await postMutation<{
-        user: { id: string; handle: string } | null;
-      }>(`${prefix}/lookup`, { identity: query.trim() });
-      setMatch(result.user);
-      if (!result.user) setError('No matching account.');
+      const account = await findAccount(prefix, query.trim());
+      setMatch(account);
+      if (!account) setError('No matching account.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to find account.');
     } finally {
@@ -179,40 +201,13 @@ export function TripPeopleDialog({
     }
   }
 
-  return (
-    <Dialog.Root
-      open={open}
-      onOpenChange={(value) => {
-        if (loading) return;
-        setOpen(value);
-        if (value) {
-          setPending(selected ?? []);
-          setQuery('');
-          setMatch(null);
-          setError('');
-          setRenaming(null);
-          setLinking(null);
-        }
-      }}
-    >
-      <Dialog.Trigger>
-        <Button
-          type="button"
-          variant="outline"
-          color="gray"
-          size="2"
-          disabled={disabled}
-        >
-          {selected ? 'Choose people' : 'People'}
-        </Button>
-      </Dialog.Trigger>
-      <Dialog.Content maxWidth="600px" aria-describedby={undefined}>
+  function renderContent() {
+    return (
+      <>
         <Dialog.Title>{selected ? 'Split between' : 'People'}</Dialog.Title>
         <Flex direction="column" gap="3">
           <Text as="label" size="2">
-            {linking
-              ? `Link account to ${people.find((p) => p.id === linking)?.name}`
-              : 'Add or find a person'}
+            Add or find a person
             <Flex gap="2" mt="1">
               <TextField.Root
                 style={{ flex: 1 }}
@@ -237,7 +232,7 @@ export function TripPeopleDialog({
                 disabled={loading || !query.trim()}
                 onClick={() => void findOrAdd()}
               >
-                {lookup || linking ? 'Find' : 'Add'}
+                {lookup ? 'Find' : 'Add'}
               </Button>
             </Flex>
           </Text>
@@ -250,23 +245,9 @@ export function TripPeopleDialog({
                 disabled={loading}
                 onClick={() => void add(match)}
               >
-                {linking ? 'Link' : 'Add'}
+                Add
               </Button>
             </Flex>
-          )}
-          {linking && (
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={loading}
-              onClick={() => {
-                setLinking(null);
-                setMatch(null);
-                setQuery('');
-              }}
-            >
-              Cancel link
-            </Button>
           )}
           <Table.Root layout="fixed" className={s.peopleTable}>
             <Table.Header>
@@ -339,7 +320,7 @@ export function TripPeopleDialog({
                     {selected ? (
                       <Checkbox
                         aria-label={`Include ${p.name}`}
-                        checked={pending.includes(p.id)}
+                        checked={pendingIds.has(p.id)}
                         onCheckedChange={(checked) =>
                           setPending((previous) =>
                             checked
@@ -348,7 +329,7 @@ export function TripPeopleDialog({
                           )
                         }
                         disabled={
-                          loading || (p.archived && !pending.includes(p.id))
+                          loading || (p.archived && !pendingIds.has(p.id))
                         }
                       />
                     ) : (
@@ -393,6 +374,20 @@ export function TripPeopleDialog({
                             </DropdownMenu.Trigger>
                             <DropdownMenu.Content
                               onCloseAutoFocus={(event) => {
+                                if (linkFromMenu.current === p.id) {
+                                  event.preventDefault();
+                                  linkFromMenu.current = null;
+                                  linkDismissedOutside.current = false;
+                                  const anchor = rowActions.current.get(p.id);
+                                  if (anchor) {
+                                    setLinking({
+                                      personId: p.id,
+                                      personName: p.name,
+                                      anchor,
+                                    });
+                                  }
+                                  return;
+                                }
                                 const input = renameInput.current;
                                 if (!input || renameReturnId.current !== p.id)
                                   return;
@@ -412,10 +407,7 @@ export function TripPeopleDialog({
                               {!p.hasAccount ? (
                                 <DropdownMenu.Item
                                   onSelect={() => {
-                                    setLinking(p.id);
-                                    setQuery('');
-                                    setMatch(null);
-                                    setError('');
+                                    linkFromMenu.current = p.id;
                                   }}
                                 >
                                   Link account
@@ -465,6 +457,48 @@ export function TripPeopleDialog({
               ))}
             </Table.Body>
           </Table.Root>
+          {linking && (
+            <Popover.Root
+              open
+              onOpenChange={(next) => {
+                if (!next && !loading) setLinking(null);
+              }}
+            >
+              <Popover.Anchor virtualRef={{ current: linking.anchor }} />
+              <Popover.Content
+                aria-label={`Link account to ${linking.personName}`}
+                align="end"
+                collisionPadding={12}
+                className={s.linkPopover}
+                onEscapeKeyDown={(event) => {
+                  if (loading) event.preventDefault();
+                }}
+                onInteractOutside={(event) => {
+                  if (loading) event.preventDefault();
+                  else linkDismissedOutside.current = true;
+                }}
+                onCloseAutoFocus={(event) => {
+                  event.preventDefault();
+                  if (!linkDismissedOutside.current) linking.anchor.focus();
+                }}
+              >
+                <LinkAccountForm
+                  personName={linking.personName}
+                  prefix={prefix}
+                  loading={loading}
+                  setLoading={setLoading}
+                  onLink={async (userId) => {
+                    await patchMutation(
+                      `${prefix}/${encodeURIComponent(linking.personId)}`,
+                      { userId },
+                    );
+                    await refreshTrip(trip.id);
+                    setLinking(null);
+                  }}
+                />
+              </Popover.Content>
+            </Popover.Root>
+          )}
           {error && (
             <Text color="red" size="2" role="alert">
               {error}
@@ -495,8 +529,164 @@ export function TripPeopleDialog({
             </Button>
           )}
         </Flex>
+      </>
+    );
+  }
+
+  return (
+    <Dialog.Root
+      open={open}
+      onOpenChange={(value) => {
+        if (loading) return;
+        setOpen(value);
+        if (value) {
+          setPending(selected ?? []);
+          setQuery('');
+          setMatch(null);
+          setError('');
+          setRenaming(null);
+          setLinking(null);
+        }
+      }}
+    >
+      <Dialog.Trigger>
+        <Button
+          type="button"
+          variant="outline"
+          color="gray"
+          size="2"
+          disabled={disabled}
+        >
+          {selected ? 'Choose people' : 'People'}
+        </Button>
+      </Dialog.Trigger>
+      <Dialog.Content maxWidth="600px" aria-describedby={undefined}>
+        <RenderContent>{renderContent}</RenderContent>
       </Dialog.Content>
     </Dialog.Root>
+  );
+}
+
+function LinkAccountForm({
+  personName,
+  prefix,
+  loading,
+  setLoading,
+  onLink,
+}: {
+  personName: string;
+  prefix: string;
+  loading: boolean;
+  setLoading: (value: boolean) => void;
+  onLink: (userId: string) => Promise<void>;
+}) {
+  const identityId = useId();
+  const [identity, setIdentity] = useState('');
+  const [match, setMatch] = useState<AccountMatch | null>(null);
+  const [error, setError] = useState('');
+
+  async function lookup() {
+    const query = identity.trim();
+    if (!query.includes('@')) {
+      setError('Enter an Ikuyo email or @username.');
+      return;
+    }
+    setLoading(true);
+    setMatch(null);
+    setError('');
+    try {
+      const account = await findAccount(prefix, query);
+      setMatch(account);
+      if (!account) setError('No matching account.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to find account.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function link(account: AccountMatch) {
+    setLoading(true);
+    setError('');
+    try {
+      await onLink(account.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to link account.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Flex direction="column" gap="3">
+      <Heading as="h3" size="3">
+        Link account to {personName}
+      </Heading>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!loading && identity.trim()) void lookup();
+        }}
+      >
+        <Flex direction="column" gap="1">
+          <Text as="label" htmlFor={identityId} size="2">
+            Ikuyo email or @username
+          </Text>
+          <Flex gap="2">
+            <TextField.Root
+              id={identityId}
+              className={s.linkIdentity}
+              value={identity}
+              maxLength={255}
+              autoCapitalize="none"
+              spellCheck={false}
+              readOnly={loading}
+              onChange={(event) => {
+                setIdentity(event.target.value);
+                setMatch(null);
+                setError('');
+              }}
+            />
+            <Button
+              type="submit"
+              variant="outline"
+              disabled={loading || !identity.trim()}
+            >
+              Find
+            </Button>
+          </Flex>
+        </Flex>
+      </form>
+      {match && (
+        <Text size="2" role="status">
+          Found @{match.handle}
+        </Text>
+      )}
+      {error && (
+        <Text size="2" color="red" role="alert">
+          {error}
+        </Text>
+      )}
+      <Text size="1" color="gray">
+        Trip access stays the same.
+      </Text>
+      <Flex gap="2" justify="end" wrap="wrap">
+        <Popover.Close>
+          <Button type="button" variant="soft" color="gray" disabled={loading}>
+            Cancel
+          </Button>
+        </Popover.Close>
+        <Button
+          type="button"
+          disabled={!match || loading}
+          onClick={() => {
+            if (match) void link(match);
+          }}
+        >
+          Link account
+        </Button>
+      </Flex>
+    </Flex>
   );
 }
 

@@ -75,7 +75,7 @@ export function formatMinor(value: string, currency: string): string {
 export function previewSplit(
   amount: string,
   currency: string,
-  ledger: ExpenseLedger,
+  ledger: Pick<ExpenseLedger, 'method' | 'shares'>,
 ) {
   const total = BigInt(toMinor(amount, currency));
   if (total <= 0n) throw new Error('Amount must be greater than zero.');

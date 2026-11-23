@@ -8,14 +8,16 @@ import {
   Text,
   TextField,
 } from '@radix-ui/themes';
-import { useId, useRef, useState } from 'react';
+import { useId, useMemo, useRef, useState } from 'react';
 import { DateTimePicker } from '../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../common/DatePicker2/DateTimePickerMode';
+import { RenderContent } from '../common/RenderContent';
 import { deleteMutation, postMutation } from '../data/apiClient';
 import { id } from '../data/id';
 import { ALL_CURRENCIES } from '../data/intl/currencies';
 import { useBoundStore } from '../data/store';
 import { PersonLabel } from '../Trip/people/TripPeopleDialog';
+import { EMPTY_TRIP_PEOPLE } from '../Trip/people/types';
 import { canModifyTripContent } from '../Trip/permissions';
 import type { TripSliceTrip } from '../Trip/store/types';
 import { downloadCsv, ledgerStatementToCsv } from './csvExport';
@@ -46,8 +48,12 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
   const submitting = useRef(false);
   const refreshTrip = useBoundStore((state) => state.refreshTrip);
   const editable = canModifyTripContent(trip);
-  const participants = trip.people ?? [];
-  const person = (id: string) => participants.find((p) => p.id === id);
+  const participants = trip.people ?? EMPTY_TRIP_PEOPLE;
+  const peopleById = useMemo(
+    () => new Map(participants.map((p) => [p.id, p])),
+    [participants],
+  );
+  const person = (id: string) => peopleById.get(id);
   const title = (id: string) => person(id)?.name ?? 'Person';
   function settle(
     currency: string,
@@ -167,28 +173,9 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
       /* Inline validation occurs on submit. */
     }
   }
-  return (
-    <Dialog.Root
-      open={open}
-      onOpenChange={(next) => {
-        if (loading) return;
-        setOpen(next);
-        setDraft(null);
-        setVoiding(null);
-        setError('');
-      }}
-    >
-      <Dialog.Trigger>
-        <Button variant="outline" color="gray" size="2" type="button">
-          Balances
-        </Button>
-      </Dialog.Trigger>
-      <Dialog.Content
-        width="calc(100% - 2 * var(--space-4))"
-        maxWidth="500px"
-        className={s.content}
-        aria-describedby={undefined}
-      >
+  function renderContent() {
+    return (
+      <>
         <Dialog.Title>{draft ? 'Settle balance' : 'Balances'}</Dialog.Title>
         {draft ? (
           <Flex direction="column" gap="3">
@@ -574,6 +561,33 @@ export function ExpenseBalancesDialog({ trip }: { trip: TripSliceTrip }) {
             </>
           )}
         </Flex>
+      </>
+    );
+  }
+
+  return (
+    <Dialog.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (loading) return;
+        setOpen(next);
+        setDraft(null);
+        setVoiding(null);
+        setError('');
+      }}
+    >
+      <Dialog.Trigger>
+        <Button variant="outline" color="gray" size="2" type="button">
+          Balances
+        </Button>
+      </Dialog.Trigger>
+      <Dialog.Content
+        width="calc(100% - 2 * var(--space-4))"
+        maxWidth="500px"
+        className={s.content}
+        aria-describedby={undefined}
+      >
+        <RenderContent>{renderContent}</RenderContent>
       </Dialog.Content>
     </Dialog.Root>
   );

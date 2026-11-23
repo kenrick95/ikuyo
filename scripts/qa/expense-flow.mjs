@@ -475,6 +475,27 @@ async function audit(name) {
   console.log(`${name}: ${report.violations.length} accessibility violations`);
 }
 async function capture(name) {
+  if (name === '12-link-account') {
+    const [people, popover] = await Promise.all([
+      page.getByRole('dialog', { name: 'People', exact: true }).boundingBox(),
+      page.getByRole('dialog', { name: 'Link account to Chen' }).boundingBox(),
+    ]);
+    assert(people && popover);
+    const x = Math.floor(Math.min(people.x, popover.x));
+    const y = Math.floor(Math.min(people.y, popover.y));
+    const right = Math.ceil(
+      Math.max(people.x + people.width, popover.x + popover.width),
+    );
+    const bottom = Math.ceil(
+      Math.max(people.y + people.height, popover.y + popover.height),
+    );
+    await page.screenshot({
+      path: path.join(output, `${name}.png`),
+      clip: { x, y, width: right - x, height: bottom - y },
+      animations: 'disabled',
+    });
+    return;
+  }
   if (
     [
       '15-mobile-inline-split',
@@ -501,7 +522,6 @@ async function capture(name) {
       '05-partial-settlement',
       '06-cross-currency-settlement',
       '11-trip-people',
-      '12-link-account',
       '14-trip-sharing',
     ].includes(name)
   ) {
@@ -626,18 +646,53 @@ try {
         ?.getAttribute('aria-checked') === 'false',
   );
   assert.equal(people.find((p) => p.id === 'd').accessRole, 1);
-  await page.getByRole('button', { name: 'Actions for Chen' }).click();
-  await page
-    .getByRole('menuitem', { name: 'Link account', exact: true })
-    .click();
-  await page
-    .getByPlaceholder('Name, Ikuyo email or @username')
-    .fill('@new_guest');
-  await page.getByRole('button', { name: 'Find', exact: true }).click();
-  await page.getByRole('button', { name: 'Link', exact: true }).waitFor();
+  const chenActions = page.getByRole('button', { name: 'Actions for Chen' });
+  const accountLink = page.getByRole('dialog', {
+    name: 'Link account to Chen',
+  });
+  const accountIdentity = accountLink.getByRole('textbox', {
+    name: 'Ikuyo email or @username',
+  });
+  const openAccountLink = async () => {
+    await chenActions.press('Enter');
+    await page
+      .getByRole('menuitem', { name: 'Link account', exact: true })
+      .press('Enter');
+    await accountIdentity.waitFor();
+    assert(
+      await accountIdentity.evaluate(
+        (input) => input === document.activeElement,
+      ),
+    );
+  };
+  for (const width of [390, 320]) {
+    await page.setViewportSize({ width, height: 800 });
+    await openAccountLink();
+    const bounds = await accountLink.boundingBox();
+    assert(bounds && bounds.x >= 0 && bounds.x + bounds.width <= width);
+    await page.keyboard.press('Escape');
+    await accountLink.waitFor({ state: 'hidden' });
+    await page.getByRole('heading', { name: 'People', exact: true }).waitFor();
+    await page.waitForFunction(
+      () =>
+        document.activeElement?.getAttribute('aria-label') ===
+        'Actions for Chen',
+    );
+  }
+  checks.push(
+    'Account linking fits at 390px and 320px and Escape returns focus to its row',
+  );
+  await page.setViewportSize({ width: 1280, height: 1040 });
+  await openAccountLink();
+  await accountIdentity.fill('@new_guest');
+  await accountIdentity.press('Enter');
+  await accountLink.getByText('Found @new_guest').waitFor();
   await audit('trip-person-link');
   await capture('12-link-account');
-  await page.getByRole('button', { name: 'Link', exact: true }).click();
+  await accountLink
+    .getByRole('button', { name: 'Link account', exact: true })
+    .click();
+  await accountLink.waitFor({ state: 'hidden' });
   await page.waitForFunction(
     () =>
       document.querySelectorAll('[data-state="open"] [role="checkbox"]')

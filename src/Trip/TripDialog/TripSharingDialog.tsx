@@ -51,12 +51,19 @@ export function TripSharingDialog({
   const currentUser = useCurrentUser();
   const [dialogClosable, setDialogClosable] = useState(true);
   const tripUsers = useTripUserIds(trip?.tripUserIds ?? []);
+  const peopleByUserId = useMemo(
+    () =>
+      new Map(
+        trip?.people
+          ?.filter((p) => p.userId !== null)
+          .map((p) => [p.userId, p]),
+      ),
+    [trip?.people],
+  );
   const popDialog = useBoundStore((state) => state.popDialog);
   const publishToast = useBoundStore((state) => state.publishToast);
   const [errorMessage, setErrorMessage] = useState('');
-  const currentUserIsOwner = useMemo(() => {
-    return trip?.currentUserRole === TripUserRole.Owner;
-  }, [trip?.currentUserRole]);
+  const currentUserIsOwner = trip?.currentUserRole === TripUserRole.Owner;
   const [isLoading, setIsLoading] = useState(false);
 
   const [newUserEmail, setNewUserEmail] = useState(accountIdentity ?? '');
@@ -455,6 +462,7 @@ export function TripSharingDialog({
 
             <Table.Body>
               {tripUsers.map((tripUser) => {
+                const person = peopleByUserId.get(tripUser.userId);
                 return (
                   <Table.Row key={tripUser.id}>
                     <Table.RowHeaderCell className={s.personCell}>
@@ -481,14 +489,7 @@ export function TripSharingDialog({
                     <Table.Cell className={s.joiningColumn}>
                       <Checkbox
                         aria-label={`${tripUser.handle} is joining the trip`}
-                        checked={
-                          !!trip?.people?.some(
-                            (p) =>
-                              p.userId === tripUser.userId &&
-                              p.isParticipant &&
-                              !p.archived,
-                          )
-                        }
+                        checked={!!person?.isParticipant && !person.archived}
                         disabled={
                           isLoading ||
                           !currentUserIsOwner ||
@@ -496,9 +497,6 @@ export function TripSharingDialog({
                         }
                         onCheckedChange={(checked) => {
                           if (!trip) return;
-                          const person = trip.people?.find(
-                            (p) => p.userId === tripUser.userId,
-                          );
                           setIsLoading(true);
                           const prefix = `/api/trips/${encodeURIComponent(trip.id)}/people`;
                           const request = person

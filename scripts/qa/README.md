@@ -25,7 +25,8 @@ The QA dependencies are separate from the application and deployment packages.
    ```
 
 The runner writes PNG captures and `accessibility-report.json` to
-`docs/screenshots/expense-splitting`. It exits with an error if an accessibility
+`docs/screenshots/expense-splitting`. Git ignores the generated report in that
+directory. The runner exits with an error if an accessibility
 violation, text contrast failure, browser error, or unexpected API request occurs.
 
 The checks cover expense entry, the people picker, partial payments, an explicit

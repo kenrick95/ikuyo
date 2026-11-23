@@ -9,7 +9,8 @@ import {
   Text,
 } from '@radix-ui/themes';
 import clsx from 'clsx';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useDeepBoundStore } from '../data/store';
 import { downloadCsv, expensesToCsv } from '../Expense/csvExport';
 import { ExpenseBalancesDialog } from '../Expense/ExpenseBalancesDialog';
 import { ExpenseCard } from '../Expense/ExpenseCard';
@@ -20,14 +21,17 @@ import { DocTitle } from '../Nav/DocTitle';
 import { TripPeopleDialog } from './people/TripPeopleDialog';
 import { canModifyTripContent } from './permissions';
 import { getSectionVisibility } from './sectionVisibility';
-import { useCurrentTrip, useTripExpenses } from './store/hooks';
+import { useTripExpenses } from './store/hooks';
 import s from './TripExpenseViewCards.module.css';
 
 export function TripExpenseViewCards() {
-  const { trip } = useCurrentTrip();
+  const trip = useDeepBoundStore((state) => state.getCurrentTrip());
   const sectionVisibility = trip ? getSectionVisibility(trip) : null;
-  const expenseIds = trip?.expenseIds ?? [];
-  const expenses = useTripExpenses(expenseIds);
+  const expenses = useTripExpenses(trip?.expenseIds);
+  const peopleById = useMemo(
+    () => new Map(trip?.people?.map((person) => [person.id, person])),
+    [trip?.people],
+  );
   const [expenseMode, setExpenseMode] = useState(ExpenseMode.View);
   const userCanModifyExpense = canModifyTripContent(trip);
   const handleAddExpenseClick = useCallback(() => {
@@ -73,7 +77,7 @@ export function TripExpenseViewCards() {
             </Flex>
           </Flex>
           <Grid className={s.expenseGrid}>
-            <ExpenseHeaderCard />
+            <ExpenseHeaderCard trip={trip} expenses={expenses} />
             {userCanModifyExpense ? (
               expenseMode === ExpenseMode.View ? (
                 <Card
@@ -104,7 +108,11 @@ export function TripExpenseViewCards() {
               )
             ) : null}
             {expenses.map((expense) => (
-              <ExpenseCard key={expense.id} expense={expense} />
+              <ExpenseCard
+                key={expense.id}
+                expense={expense}
+                peopleById={peopleById}
+              />
             ))}
           </Grid>
         </>
