@@ -19,8 +19,8 @@ payments. All API responses are local fixtures. No real trip or account appears.
 | [Link account](12-link-account.png) | Open the popover from Chen's row. Find and link an account. |
 | [Mobile people](13-mobile-trip-people.png) | Manage trip people at 390px; access appears beneath each name. |
 | [Sharing](14-trip-sharing.png) | Share with a guest account; Joining stays optional. |
-| [Mobile split](15-mobile-inline-split.png) | Align the people picker, split method, and amounts at 390px. |
-| [Narrow split](16-narrow-inline-split.png) | Stack split controls at 320px while keeping amounts aligned. |
+| [Mobile split](15-mobile-inline-split.png) | Use the split method and Choose people on one row at 390px. |
+| [Narrow split](16-narrow-inline-split.png) | Use the same controls at 320px. |
 | [Narrow share split](17-narrow-share-split.png) | Edit share weights and read calculated amounts in the same row. |
 
 The QA runner writes a local accessibility report. It checks the calendar,
@@ -28,12 +28,12 @@ the 320px layout, and dark mode. Keyboard checks cover focus trapping, focus
 return after Escape, and date selection with the arrow keys and Enter.
 People table checks verify column alignment and horizontal fit on desktop,
 390px, and 320px, including inline renaming.
-Split controls and amount rows align at 320px, 390px, 1280px, and 1920px.
+The split controls share one row at 320px, 390px, 1280px, and 1920px.
 All four split methods fit at 320px. The section stops growing at 640px.
 
 The review fixed field labels, navigation names, calendar row semantics, and
 mobile summary overflow. The latest UX changes use gray outline header actions,
-native-currency totals, a split switch, a nearby people button, and a visible
-split-method label. Foreign conversion fields appear only for foreign currencies.
+native-currency totals, and a split switch. The split method and Choose people
+appear above the amounts. Foreign conversion fields appear only for foreign currencies.
 
 See [the runner instructions](../../../scripts/qa/README.md) to repeat the check.

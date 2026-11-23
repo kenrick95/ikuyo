@@ -13,20 +13,10 @@
   padding-top: var(--space-3);
 }
 
-.controlRow,
-.allocationRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--space-3);
+.methodSelect {
+  padding-inline: var(--space-2);
 }
 
-.control {
-  justify-self: end;
-  max-width: 100%;
-}
-
-.peopleSummary,
 .personName {
   overflow-wrap: anywhere;
 }
@@ -38,6 +28,10 @@
 }
 
 .allocationRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
   min-height: 2.5rem;
   padding-block: var(--space-2);
   border-bottom: 1px solid var(--gray-4);
@@ -68,11 +62,4 @@
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   text-align: right;
-}
-
-@container (max-width: 18rem) {
-  .controlRow {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-2);
-  }
 }

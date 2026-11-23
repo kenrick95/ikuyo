@@ -16,6 +16,13 @@ import {
   toMinor,
 } from './ledger';
 
+const splitMethodLabels: Record<SplitMethod, string> = {
+  equal: 'Split equally',
+  exact: 'Exact amounts',
+  percent: 'Percentages',
+  shares: 'Shares',
+};
+
 export const ExpenseSplitFields = memo(function ExpenseSplitFields({
   trip,
   amount,
@@ -36,7 +43,6 @@ export const ExpenseSplitFields = memo(function ExpenseSplitFields({
     () => new Map(people.map((p) => [p.id, p])),
     [people],
   );
-  const methodId = useId();
   const splitRegionId = useId();
   const [paidInputs, setPaidInputs] = useState<Record<string, string>>({});
   const { method, shares } = value;
@@ -164,44 +170,15 @@ export const ExpenseSplitFields = memo(function ExpenseSplitFields({
           Split expense
         </Flex>
       </Text>
-      {value.method && (
+      {method && (
         <section
           id={splitRegionId}
           aria-label="Expense split"
           className={s.splitSection}
         >
-          <div className={s.controlRow}>
-            <Text size="2" className={s.peopleSummary}>
-              {value.shares.length ? 'Split among' : 'No people selected'}
-            </Text>
-            <div className={s.control}>
-              <TripPeopleDialog
-                trip={trip}
-                selected={value.shares.map((row) => row.participantId)}
-                disabled={disabled}
-                onApply={(ids) => {
-                  const sharesById = new Map(
-                    value.shares.map((row) => [row.participantId, row]),
-                  );
-                  patch({
-                    shares: ids.map(
-                      (participantId) =>
-                        sharesById.get(participantId) ?? {
-                          participantId,
-                          value: value.method === 'shares' ? '1' : '0',
-                        },
-                    ),
-                  });
-                }}
-              />
-            </div>
-          </div>
-          <div className={s.controlRow}>
-            <Text as="label" htmlFor={methodId} size="2">
-              Split method
-            </Text>
+          <Flex align="center" gap="2" wrap="wrap">
             <Select.Root
-              value={value.method}
+              value={method}
               disabled={disabled}
               onValueChange={(method) =>
                 patch({
@@ -218,15 +195,38 @@ export const ExpenseSplitFields = memo(function ExpenseSplitFields({
                 })
               }
             >
-              <Select.Trigger id={methodId} className={s.control} />
+              <Select.Trigger
+                className={s.methodSelect}
+                aria-label={`Split method: ${splitMethodLabels[method]}`}
+              />
               <Select.Content>
-                <Select.Item value="equal">Equally</Select.Item>
-                <Select.Item value="exact">By exact amounts</Select.Item>
-                <Select.Item value="percent">By percentage</Select.Item>
-                <Select.Item value="shares">By shares</Select.Item>
+                {Object.entries(splitMethodLabels).map(([id, label]) => (
+                  <Select.Item key={id} value={id}>
+                    {label}
+                  </Select.Item>
+                ))}
               </Select.Content>
             </Select.Root>
-          </div>
+            <TripPeopleDialog
+              trip={trip}
+              selected={shares.map((row) => row.participantId)}
+              disabled={disabled}
+              onApply={(ids) => {
+                const sharesById = new Map(
+                  shares.map((row) => [row.participantId, row]),
+                );
+                patch({
+                  shares: ids.map(
+                    (participantId) =>
+                      sharesById.get(participantId) ?? {
+                        participantId,
+                        value: method === 'shares' ? '1' : '0',
+                      },
+                  ),
+                });
+              }}
+            />
+          </Flex>
           <ul className={s.allocations} aria-label="Split amounts">
             {value.shares.map((row) => {
               const name = peopleById.get(row.participantId)?.name ?? 'Person';

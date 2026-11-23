@@ -584,13 +584,18 @@ async function checkSplitGrid() {
     .getByRole('combobox', { name: 'Split method' })
     .boundingBox();
   const bounds = await region.boundingBox();
+  assert(choose && method && bounds, 'Split controls should be visible');
   assert(
     bounds.width <= 640,
     'Split controls should have a bounded reading width',
   );
   assert(
-    Math.abs(choose.x + choose.width - method.x - method.width) < 1,
-    'Split controls should share a right edge',
+    Math.abs(method.x - bounds.x) < 1 &&
+      Math.abs(method.y + method.height / 2 - choose.y - choose.height / 2) <
+        1 &&
+      choose.x >= method.x + method.width &&
+      choose.x + choose.width <= bounds.x + bounds.width + 1,
+    'Split method and Choose people should fit on one left-aligned row',
   );
   assert(
     await region.evaluate((section) => {
@@ -754,9 +759,9 @@ try {
   await checkSplitGrid();
   await capture('16-narrow-inline-split');
   for (const [option, state] of [
-    ['By exact amounts', 'exact'],
-    ['By percentage', 'percent'],
-    ['By shares', 'shares'],
+    ['Exact amounts', 'exact'],
+    ['Percentages', 'percent'],
+    ['Shares', 'shares'],
   ]) {
     await page.getByRole('combobox', { name: 'Split method' }).click();
     await page.getByRole('option', { name: option, exact: true }).click();
@@ -777,10 +782,12 @@ try {
   }
   await capture('17-narrow-share-split');
   await page.getByRole('combobox', { name: 'Split method' }).click();
-  await page.getByRole('option', { name: 'Equally', exact: true }).click();
+  await page
+    .getByRole('option', { name: 'Split equally', exact: true })
+    .click();
   await page.setViewportSize({ width: 1280, height: 1040 });
   checks.push(
-    'Split controls and amount rows align at 320px, 390px, 1280px, and 1920px; all four methods fit on narrow screens',
+    'Split controls share one row at 320px, 390px, 1280px, and 1920px. All four methods fit at 320px.',
   );
   await page
     .getByRole('button', { name: 'Choose people', exact: true })
