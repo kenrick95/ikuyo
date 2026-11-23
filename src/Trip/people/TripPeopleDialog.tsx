@@ -667,9 +667,6 @@ function LinkAccountForm({
           {error}
         </Text>
       )}
-      <Text size="1" color="gray">
-        Trip access stays the same.
-      </Text>
       <Flex gap="2" justify="end" wrap="wrap">
         <Popover.Close>
           <Button type="button" variant="soft" color="gray" disabled={loading}>
