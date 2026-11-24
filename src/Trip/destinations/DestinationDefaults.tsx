@@ -1,5 +1,5 @@
 import { Flex, Select, Text } from '@radix-ui/themes';
-import { useId, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import {
   type DestinationTrip,
   destinationAt,
@@ -12,7 +12,9 @@ export function useDestinationDefaults(
   place?: string,
   instant?: number,
 ) {
-  const [selectedId, setSelectedId] = useState('');
+  const trigger = useRef<HTMLButtonElement>(null);
+  const [attempt, setAttempt] = useState(0);
+  const [selectedId, setSelected] = useState('');
   const choices = trip?.destinations?.length
     ? instant !== undefined && !place?.trim()
       ? [destinationAt(trip, instant)]
@@ -21,7 +23,27 @@ export function useDestinationDefaults(
   const selected =
     choices.find((destination) => destination.id === selectedId) ??
     (choices.length === 1 ? choices[0] : undefined);
-  return { choices, selected, setSelectedId };
+  const unresolved = choices.length > 1 && !selected;
+  const failedAttempt = unresolved ? attempt : 0;
+  useEffect(() => {
+    if (failedAttempt > 0) trigger.current?.focus();
+  }, [failedAttempt]);
+  const setSelectedId = useCallback((id: string) => {
+    setSelected(id);
+    setAttempt(0);
+  }, []);
+  const validate = useCallback(() => {
+    if (unresolved) setAttempt((current) => current + 1);
+    return !unresolved;
+  }, [unresolved]);
+  return {
+    choices,
+    selected,
+    setSelectedId,
+    trigger,
+    invalid: failedAttempt > 0,
+    validate,
+  };
 }
 
 export function DestinationPicker({
@@ -39,12 +61,17 @@ export function DestinationPicker({
         {label}
       </Text>
       <Select.Root
-        name={id}
-        required
         value={defaults.selected?.id ?? ''}
         onValueChange={defaults.setSelectedId}
       >
-        <Select.Trigger id={id} placeholder="Select a destination…" />
+        <Select.Trigger
+          id={id}
+          ref={defaults.trigger}
+          placeholder="Select a destination…"
+          aria-required="true"
+          aria-invalid={defaults.invalid}
+          aria-describedby={defaults.invalid ? `${id}-error` : undefined}
+        />
         <Select.Content position="popper">
           {defaults.choices.map((destination) => (
             <Select.Item key={destination.id} value={destination.id}>
@@ -53,6 +80,11 @@ export function DestinationPicker({
           ))}
         </Select.Content>
       </Select.Root>
+      {defaults.invalid && (
+        <Text id={`${id}-error`} color="red" size="2">
+          Choose a destination for this time.
+        </Text>
+      )}
     </Flex>
   );
 }

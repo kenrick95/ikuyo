@@ -158,6 +158,8 @@ let trip = {
 };
 const tripUrl = `/trip/${trip.id}`;
 let submitted;
+const submittedExpenses = [];
+const submittedActivities = [];
 await page.route('**/*', async (route) => {
   const url = new URL(route.request().url());
   if (url.origin !== base) return route.abort();
@@ -183,6 +185,16 @@ await page.route('**/*', async (route) => {
       };
     }
     return respond(trip);
+  }
+  if (method === 'POST' && url.pathname.endsWith('/expenses')) {
+    const expense = route.request().postDataJSON();
+    submittedExpenses.push(expense);
+    return respond({ id: expense.id }, 201);
+  }
+  if (method === 'POST' && url.pathname.endsWith('/activities')) {
+    const activity = route.request().postDataJSON();
+    submittedActivities.push(activity);
+    return respond({ id: activity.id }, 201);
   }
   if (url.pathname.startsWith('/api/users/me')) return respond({ user });
   return respond({ data: [] });
@@ -247,8 +259,27 @@ try {
   await page.getByRole('combobox', { name: 'Display time zone' }).click();
   await shot('03-list-time-zone.png');
   await page.keyboard.press('Escape');
+  await page.setViewportSize({ width: 320, height: 840 });
+  const checkZoneFits = async () => {
+    const trigger = page.getByRole('combobox', { name: 'Display time zone' });
+    assert.equal(
+      await trigger.evaluate((element) => {
+        const bounds = element.getBoundingClientRect();
+        const hit = document.elementFromPoint(
+          bounds.right - 2,
+          bounds.top + bounds.height / 2,
+        );
+        return element.contains(hit);
+      }),
+      true,
+    );
+  };
+  await checkZoneFits();
 
   await page.goto(`${base + tripUrl}/timetable`);
+  await page.getByRole('combobox', { name: 'Display time zone' }).waitFor();
+  await checkZoneFits();
+  await page.setViewportSize({ width: 1280, height: 940 });
   assert.equal(
     await page
       .getByRole('combobox', { name: 'Display time zone' })
@@ -294,6 +325,27 @@ try {
       animations: 'disabled',
     });
   await page.getByRole('button', { name: 'Done', exact: true }).click();
+  const editTaipei = page.getByRole('button', { name: 'Edit Taipei' });
+  await editTaipei.press('Enter');
+  await pickDate(
+    page.getByRole('button', { name: /Destination start date:/ }),
+    '2026-05-02',
+  );
+  await page.getByRole('button', { name: 'Done', exact: true }).press('Enter');
+  await page.getByRole('button', { name: 'Save', exact: true }).press('Enter');
+  const rangeError = page.getByText(/Taipei must start after/);
+  await rangeError.waitFor();
+  assert.equal(
+    await editTaipei.evaluate((el) => document.activeElement === el),
+    true,
+  );
+  assert.equal(
+    await editTaipei.getAttribute('aria-describedby'),
+    await rangeError.getAttribute('id'),
+  );
+  await editTaipei.press('Enter');
+  await select('Use arrival', /Flight to Taipei · Taipei Songshan/);
+  await page.getByRole('button', { name: 'Done', exact: true }).press('Enter');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await page.getByRole('dialog').waitFor({ state: 'hidden' });
   assert.equal(trip.destinations[0].startsAtTime, '15:40');
@@ -347,9 +399,120 @@ try {
     await page.getByRole('combobox', { name: 'Currency' }).textContent(),
     'JPY',
   );
+  await page.reload();
+  await page.getByRole('button', { name: 'Add Expense' }).click();
+  await pickDate(
+    page.getByRole('button', { name: /Date incurred:/i }),
+    '2026-05-06',
+    16,
+    0,
+  );
+  await page
+    .getByRole('button', { name: /Date incurred: 6 May 2026 16:00/i })
+    .waitFor();
+  await page
+    .getByRole('combobox', { name: 'Destination', exact: true })
+    .waitFor();
+  await page.getByRole('textbox', { name: /^Title/ }).fill('Taipei lunch');
+  await page
+    .getByRole('textbox', { name: 'Amount *', exact: true })
+    .fill('100');
+  await page.getByRole('button', { name: 'Add', exact: true }).press('Enter');
+  const missingDestination = page.getByText(
+    'Choose a destination for this time.',
+  );
+  await missingDestination.waitFor();
+  const destination = page.getByRole('combobox', {
+    name: 'Destination',
+    exact: true,
+  });
+  assert.equal(
+    await destination.evaluate((el) => document.activeElement === el),
+    true,
+  );
+  assert.equal(await destination.getAttribute('aria-invalid'), 'true');
+  assert.equal(
+    await destination.getAttribute('aria-describedby'),
+    await missingDestination.getAttribute('id'),
+  );
+  assert.equal(submittedExpenses.length, 0);
+  await select('Destination', 'Taipei · Asia/Taipei');
+  await select('Currency', 'TWD');
+  await page.getByRole('button', { name: 'Add', exact: true }).press('Enter');
+  await page.getByRole('button', { name: 'Add Expense' }).waitFor();
+  assert.equal(submittedExpenses[0]?.currency, 'TWD');
+  assert.equal(submittedExpenses[0]?.timeZoneIncurred, 'Asia/Taipei');
+
+  trip = {
+    ...trip,
+    title: 'New York and Chicago',
+    region: 'US',
+    currency: 'USD',
+    timeZone: 'America/New_York',
+    timestampStart: Date.parse('2026-11-01T00:00:00-04:00'),
+    timestampEnd: Date.parse('2026-11-04T00:00:00-05:00'),
+    activity: [],
+    destinations: [
+      {
+        ...taipei,
+        name: 'Chicago',
+        region: 'US',
+        currency: 'USD',
+        timeZone: 'America/Chicago',
+        startsOn: '2026-11-02',
+        startsAtTime: null,
+        startsAtMs: Date.parse('2026-11-02T00:00:00-06:00'),
+      },
+    ],
+  };
+  await page.goto(`${base + tripUrl}/timetable`);
+  await page.getByText('New York and Chicago', { exact: true }).waitFor();
+  await page.getByRole('button', { name: 'Add at time' }).press('Enter');
+  const slotDialog = page.getByRole('dialog', { name: 'Add at time' });
+  await slotDialog
+    .getByRole('combobox', { name: 'Time (America/New_York)', exact: true })
+    .press('Enter');
+  const earlier = page.getByRole('option', { name: '01:30 (UTC-04:00)' });
+  const later = page.getByRole('option', { name: '01:30 (UTC-05:00)' });
+  await earlier.waitFor();
+  await later.waitFor();
+  await page.keyboard.press('Home');
+  for (const label of [
+    '00:30',
+    '01:00 (UTC-04:00)',
+    '01:30 (UTC-04:00)',
+    '01:00 (UTC-05:00)',
+    '01:30 (UTC-05:00)',
+  ]) {
+    await page.keyboard.press('ArrowDown');
+    await page
+      .getByRole('option', { name: label, exact: true })
+      .and(page.locator('[data-highlighted]'))
+      .waitFor();
+  }
+  await page.keyboard.press('Enter');
+  await slotDialog.getByRole('button', { name: 'Continue' }).press('Enter');
+  const lateActivity = page.getByRole('dialog', { name: 'New Activity' });
+  await lateActivity
+    .getByRole('combobox', { name: 'Start time zone', exact: true })
+    .waitFor();
+  await lateActivity
+    .getByRole('combobox', { name: 'End time zone', exact: true })
+    .waitFor();
+  await lateActivity
+    .getByRole('textbox', { name: /Activity name/i })
+    .fill('After the clocks change');
+  await lateActivity
+    .getByRole('button', { name: 'Save', exact: true })
+    .press('Enter');
+  await lateActivity.waitFor({ state: 'hidden' });
+  assert.equal(
+    submittedActivities[0]?.timestampStart,
+    Date.parse('2026-11-01T06:30:00Z'),
+  );
   assert.deepEqual(errors, []);
   console.log(
-    'Wizard, arrival, display zone, cross-midnight entry, and expense defaults verified.',
+    'Verified the wizard, destination errors, narrow layout, required expense destination, and keyboard selection of a repeated time.',
   );
 } finally {
   await browser.close();

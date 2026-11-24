@@ -531,10 +531,18 @@ export function TrainForm({
   const onFormSubmit = useCallback(
     (event: SubmitEvent<HTMLFormElement>) => {
       event.preventDefault();
+      if (!manualStartZone && !startDefaults.validate()) return;
+      if (!manualEndZone && !endDefaults.validate()) return;
       const elForm = event.currentTarget;
       void handleSubmit()(elForm);
     },
-    [handleSubmit],
+    [
+      handleSubmit,
+      manualStartZone,
+      startDefaults.validate,
+      manualEndZone,
+      endDefaults.validate,
+    ],
   );
 
   return (
@@ -680,7 +688,7 @@ export function TrainForm({
             />
           ) : null}
         </Flex>
-        <Text as="label">
+        <Text as="label" htmlFor="timeZoneStart">
           Departure time zone{' '}
           <Text weight="light" size="1">
             (trip default: {tripTimeZone})
@@ -715,7 +723,7 @@ export function TrainForm({
           clearable={true}
         />
 
-        <Text as="label">
+        <Text as="label" htmlFor="timeZoneEnd">
           Arrival time zone{' '}
           <Text weight="light" size="1">
             (trip default: {tripTimeZone})

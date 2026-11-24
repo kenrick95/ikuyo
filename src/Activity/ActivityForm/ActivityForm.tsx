@@ -640,10 +640,24 @@ export function ActivityForm({
   const onFormSubmit = useCallback(
     (event: SubmitEvent<HTMLFormElement>) => {
       event.preventDefault();
+      if (!manualStartZone && !startDefaults.validate()) return;
+      if (
+        !manualEndZone &&
+        locationFieldsState.names[1] &&
+        !endDefaults.validate()
+      )
+        return;
       const elForm = event.currentTarget;
       void handleSubmit()(elForm);
     },
-    [handleSubmit],
+    [
+      handleSubmit,
+      manualStartZone,
+      startDefaults.validate,
+      manualEndZone,
+      endDefaults.validate,
+      locationFieldsState.names[1],
+    ],
   );
 
   return (
@@ -823,7 +837,7 @@ export function ActivityForm({
           </>
         ) : null}
 
-        <Text as="label">
+        <Text as="label" htmlFor="timeZoneStart">
           Start time zone{' '}
           {!destinationTrip?.destinations?.length && (
             <Text weight="light" size="1">
@@ -857,7 +871,7 @@ export function ActivityForm({
           onChange={handleStartDateTimeChange}
           clearable={true}
         />
-        <Text as="label">
+        <Text as="label" htmlFor="timeZoneEnd">
           End time zone{' '}
           {!destinationTrip?.destinations?.length && (
             <Text weight="light" size="1">

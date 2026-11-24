@@ -1,3 +1,9 @@
 .page {
   min-height: 100dvh;
 }
+
+@media (width < 520px) {
+  .page:has([data-wrap-last-left-item]) {
+    --trip-navbar-extra-height: var(--space-6);
+  }
+}

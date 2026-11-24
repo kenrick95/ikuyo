@@ -310,7 +310,7 @@ export function ExpenseInlineCardForm({
 
   const handleForm = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (submitting.current) return;
+    if (submitting.current || (!manualZone && !defaults.validate())) return;
     setErrorMessage('');
     try {
       const { dateTimeIncurred, title, description, currency, amount } =

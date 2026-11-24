@@ -55,7 +55,7 @@ export function destinationStart(destination: TripDestination) {
   )?.epochMilliseconds;
 }
 
-export function destinationError(
+export function validateDestinations(
   destinations: TripDestination[],
   start?: number,
   end?: number,
@@ -70,17 +70,28 @@ export function destinationError(
       !destination.timeZone ||
       !destination.startsOn
     ) {
-      return 'Complete each destination.';
+      return { id: destination.id, message: 'Complete each destination.' };
     }
     const ms = destinationStart(destination);
-    if (ms === undefined) return `${name} has an invalid or ambiguous start.`;
+    if (ms === undefined)
+      return {
+        id: destination.id,
+        message: `${name} has an invalid or ambiguous start.`,
+      };
     if (
       (start !== undefined && ms <= start) ||
       (end !== undefined && ms >= end)
     ) {
-      return `${name} must start after the trip begins and before it ends.`;
+      return {
+        id: destination.id,
+        message: `${name} must start after the trip begins and before it ends.`,
+      };
     }
-    if (seen.has(ms)) return 'Choose a different start for each destination.';
+    if (seen.has(ms))
+      return {
+        id: destination.id,
+        message: `Choose a different start for ${name}.`,
+      };
     seen.add(ms);
   }
 }

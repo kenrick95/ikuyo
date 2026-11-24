@@ -24,8 +24,8 @@ import {
   DestinationEditor,
 } from './destinations/DestinationEditor';
 import {
-  destinationError,
   type TripDestination,
+  validateDestinations,
 } from './destinations/destinations';
 import { TripFormMode } from './TripFormMode';
 import {
@@ -107,10 +107,13 @@ export function TripForm({
   const [isDestinationDraft, setIsDestinationDraft] = useState(false);
   const [openNewDestination, setOpenNewDestination] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [destinationIssue, setDestinationIssue] =
+    useState<ReturnType<typeof validateDestinations>>();
 
   // Handler for start date changes
   const handleStartDateChange = useCallback(
     (date: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
+      setDestinationIssue(undefined);
       if (date instanceof Temporal.PlainDateTime) {
         setCurrentStartDate(date.toPlainDate());
       } else {
@@ -123,6 +126,7 @@ export function TripForm({
   // Handler for end date changes
   const handleEndDateChange = useCallback(
     (date: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
+      setDestinationIssue(undefined);
       if (date instanceof Temporal.PlainDateTime) {
         setCurrentEndDate(date.toPlainDate());
       } else {
@@ -134,6 +138,7 @@ export function TripForm({
 
   // Handler for timezone change
   const handleTimeZoneChange = useCallback((newTimeZone: string) => {
+    setDestinationIssue(undefined);
     setCurrentTimeZone(newTimeZone);
   }, []);
 
@@ -202,6 +207,7 @@ export function TripForm({
   const handleForm = useCallback(() => {
     return async (elForm: HTMLFormElement) => {
       setErrorMessage('');
+      setDestinationIssue(undefined);
       if (!elForm.reportValidity()) {
         setIsFormLoading(false);
         return;
@@ -258,13 +264,13 @@ export function TripForm({
         dateStartForDb.toZonedDateTime(timeZone).epochMilliseconds;
       const timestampEnd =
         dateEndForDb.toZonedDateTime(timeZone).epochMilliseconds;
-      const invalid = destinationError(
+      const invalid = validateDestinations(
         destinations,
         timestampStart,
         timestampEnd,
       );
       if (invalid) {
-        setErrorMessage(invalid);
+        setDestinationIssue(invalid);
         setIsFormLoading(false);
         return;
       }
@@ -589,7 +595,11 @@ export function TripForm({
                   }),
                 }}
                 destinations={destinations}
-                onChange={setDestinations}
+                issue={destinationIssue}
+                onChange={(value) => {
+                  setDestinations(value);
+                  setDestinationIssue(undefined);
+                }}
                 onDraftChange={setIsDestinationDraft}
                 arrivals={arrivals}
                 dayPlans={dayPlans}
@@ -630,8 +640,8 @@ export function TripForm({
         </Flex>
       ) : null}
       <Flex mt="5" justify="end">
-        <Text color={dangerToken} size="2">
-          {errorMessage}&nbsp;
+        <Text color={dangerToken} size="2" aria-live="polite">
+          {errorMessage}
         </Text>
       </Flex>
       <Flex gap="3" mt="2" justify="end">

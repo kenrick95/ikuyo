@@ -1,15 +1,10 @@
 import type { RefObject } from 'react';
-import React, { type MouseEvent, memo, useCallback } from 'react';
-import { AccommodationNewDialog } from '../../Accommodation/AccommodationNewDialog';
-import { ActivityNewDialog } from '../../Activity/ActivityNewDialog';
-import { FlightNewDialog } from '../../Activity/FlightNewDialog';
-import { TrainNewDialog } from '../../Activity/TrainNewDialog';
-import { useBoundStore } from '../../data/store';
-import { MacroplanNewDialog } from '../../Macroplan/MacroplanNewDialog';
+import React, { memo } from 'react';
 import { canModifyTripContent } from '../permissions';
 import { useCurrentTrip } from '../store/hooks';
 import { TimetableDragTarget } from './TimetableDragTarget';
 import { gridSlot, pad2 } from './time';
+import { useTimetableSlotActions } from './useTimetableSlotActions';
 
 interface TimetableGridProps {
   days: number;
@@ -33,106 +28,7 @@ function TimetableGridInner({
 
   const { trip } = useCurrentTrip();
   const userCanModifyTrip = canModifyTripContent(trip);
-  const pushDialog = useBoundStore((state) => state.pushDialog);
-
-  const openActivityNewDialog = useCallback(
-    (e: MouseEvent<HTMLDivElement>) => {
-      if (!trip) return;
-      const el = e.currentTarget;
-      const dayOfTrip = el.dataset.day;
-      const timeStart = el.dataset.timeStart;
-      const instant = el.dataset.instant;
-
-      // Pass the data attributes to prefill the ActivityNewDialog
-      const prefillData =
-        dayOfTrip && timeStart
-          ? {
-              dayOfTrip: parseInt(dayOfTrip, 10),
-              timeStart,
-              instant: instant === undefined ? undefined : Number(instant),
-            }
-          : undefined;
-
-      pushDialog(ActivityNewDialog, { trip, prefillData });
-    },
-    [pushDialog, trip],
-  );
-  const openFlightNewDialog = useCallback(
-    (e: MouseEvent<HTMLDivElement>) => {
-      if (!trip) return;
-      const el = e.currentTarget;
-      const dayOfTrip = el.dataset.day;
-      const timeStart = el.dataset.timeStart;
-      const instant = el.dataset.instant;
-
-      const prefillData =
-        dayOfTrip && timeStart
-          ? {
-              dayOfTrip: parseInt(dayOfTrip, 10),
-              timeStart,
-              instant: instant === undefined ? undefined : Number(instant),
-            }
-          : undefined;
-
-      pushDialog(FlightNewDialog, { trip, prefillData });
-    },
-    [pushDialog, trip],
-  );
-  const openTrainNewDialog = useCallback(
-    (e: MouseEvent<HTMLDivElement>) => {
-      if (!trip) return;
-      const el = e.currentTarget;
-      const dayOfTrip = el.dataset.day;
-      const timeStart = el.dataset.timeStart;
-      const instant = el.dataset.instant;
-
-      const prefillData =
-        dayOfTrip && timeStart
-          ? {
-              dayOfTrip: parseInt(dayOfTrip, 10),
-              timeStart,
-              instant: instant === undefined ? undefined : Number(instant),
-            }
-          : undefined;
-
-      pushDialog(TrainNewDialog, { trip, prefillData });
-    },
-    [pushDialog, trip],
-  );
-  const openAccommodationNewDialog = useCallback(
-    (e: MouseEvent<HTMLDivElement>) => {
-      if (!trip) return;
-      const el = e.currentTarget;
-      const dayOfTrip = el.dataset.day;
-
-      const prefillData = dayOfTrip
-        ? {
-            dayOfTrip: parseInt(dayOfTrip, 10),
-            date: el.dataset.date,
-          }
-        : undefined;
-
-      pushDialog(AccommodationNewDialog, { trip, prefillData });
-    },
-    [pushDialog, trip],
-  );
-  const openMacroplanNewDialog = useCallback(
-    (e: MouseEvent<HTMLDivElement>) => {
-      if (!trip) return;
-      const el = e.currentTarget;
-      const dayOfTrip = el.dataset.day;
-
-      const prefillData = dayOfTrip
-        ? {
-            dayOfTrip: parseInt(dayOfTrip, 10),
-            date: el.dataset.date,
-          }
-        : undefined;
-
-      pushDialog(MacroplanNewDialog, { trip, prefillData });
-    },
-    [pushDialog, trip],
-  );
+  const openSlot = useTimetableSlotActions(trip);
 
   return (
     <>
@@ -174,11 +70,7 @@ function TimetableGridInner({
                       scrollContainerRef={scrollContainerRef}
                       tripTitle={trip?.title}
                       userCanModifyTrip={userCanModifyTrip}
-                      onNewActivity={openActivityNewDialog}
-                      onNewFlight={openFlightNewDialog}
-                      onNewTrain={openTrainNewDialog}
-                      onNewAccommodation={openAccommodationNewDialog}
-                      onNewMacroplan={openMacroplanNewDialog}
+                      onSelect={openSlot}
                     />
                   );
                 });

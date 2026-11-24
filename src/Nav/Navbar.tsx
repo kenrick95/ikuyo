@@ -10,13 +10,18 @@ import s from './Navbar.module.css';
 export function Navbar({
   leftItems,
   rightItems,
+  wrapLastLeftItem = false,
 }: {
   leftItems: Array<React.ReactElement>;
   rightItems: Array<React.ReactElement>;
+  wrapLastLeftItem?: boolean;
 }) {
   return (
     <RouteTransition name="navbar" default="vt-chrome">
-      <Container className={s.container}>
+      <Container
+        className={s.container}
+        data-wrap-last-left-item={wrapLastLeftItem || undefined}
+      >
         <Flex gap="3" align="stretch" className={s.flexContainer}>
           <Box className={s.logoBox}>
             <Heading asChild as="h1" size="6">

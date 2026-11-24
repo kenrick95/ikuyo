@@ -75,3 +75,27 @@
     display: none;
   }
 }
+
+@media (width < 520px) {
+  .container[data-wrap-last-left-item] {
+    height: auto;
+  }
+
+  .container[data-wrap-last-left-item] .flexContainer {
+    display: grid;
+    height: auto;
+    column-gap: var(--space-2);
+    row-gap: 0;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: var(--space-8) var(--space-6);
+  }
+
+  .container[data-wrap-last-left-item] .boxLeftLast {
+    grid-area: 2 / 2 / 3 / -1;
+    overflow: visible;
+  }
+
+  .container[data-wrap-last-left-item] .boxRightFirst {
+    grid-area: 1 / 3;
+  }
+}

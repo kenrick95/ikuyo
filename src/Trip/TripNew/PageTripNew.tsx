@@ -27,9 +27,9 @@ import { RouteTrip, RouteTripNew, RouteTrips } from '../../Routes/routes';
 import { dbAddTrip } from '../db';
 import { DestinationEditor } from '../destinations/DestinationEditor';
 import {
-  destinationError,
   destinationStart,
   type TripDestination,
+  validateDestinations,
 } from '../destinations/destinations';
 import { TripSharingLevel } from '../tripSharingLevel';
 import { FlightSubform } from './FlightSubform';
@@ -405,7 +405,7 @@ export default function PageTripNew() {
     dateError === undefined;
 
   const itineraryError = multiRegion
-    ? destinationError(
+    ? validateDestinations(
         destinations,
         state.startDate?.toZonedDateTime(state.timeZone).epochMilliseconds,
         state.endDate?.add({ days: 1 }).toZonedDateTime(state.timeZone)
@@ -718,7 +718,7 @@ export default function PageTripNew() {
           )}
           {itineraryError ? (
             <Text color="red" size="2" role="alert">
-              {itineraryError}
+              {itineraryError.message}
             </Text>
           ) : null}
           <Flex direction="column" gap="1">

@@ -76,6 +76,7 @@ import { SwapDayDialog } from './SwapDay/SwapDayDialog';
 import s from './Timetable.module.scss';
 import { TimetableDialogState } from './TimetableDialogState';
 import { TimetableGrid } from './TimetableGrid';
+import { TimetableSlotDialog } from './TimetableSlotDialog';
 import {
   gridTemplateWithRepeats,
   gridTime,
@@ -591,7 +592,18 @@ export function Timetable() {
           dayStarts={dayStarts}
           scrollContainerRef={timetableRef}
         />
-        <TimetableTimeHeader />
+        <TimetableTimeHeader>
+          {originalTrip && userCanModifyTrip && dayGroups.inTrip.length > 0 ? (
+            <TimetableSlotDialog
+              key={originalTrip.id + (zone ?? '')}
+              trip={originalTrip}
+              days={dayGroups.inTrip.map((day) => day.startDateTime)}
+              initialDay={(currentDayIndex ?? 1) - 1}
+            />
+          ) : (
+            <ClockIcon />
+          )}
+        </TimetableTimeHeader>
         {dayGroups.inTrip.map((dayGroup, i) => {
           const dayNumber = i + 1;
           const isCurrentDay = currentDayIndex === dayNumber;
@@ -931,10 +943,10 @@ function TimetableAccommodationHeader() {
     </Text>
   );
 }
-function TimetableTimeHeader() {
+function TimetableTimeHeader({ children }: { children: React.ReactNode }) {
   return (
     <Text as="div" size="1" className={clsx(s.timetableTimeHeader)}>
-      <ClockIcon />
+      {children}
     </Text>
   );
 }

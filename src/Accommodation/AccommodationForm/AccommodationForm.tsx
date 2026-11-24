@@ -454,10 +454,11 @@ export function AccommodationForm({
   const onFormSubmit = useCallback(
     (event: SubmitEvent<HTMLFormElement>) => {
       event.preventDefault();
+      if (!manualCheckInZone && !defaults.validate()) return;
       const elForm = event.currentTarget;
       void handleSubmit()(elForm);
     },
-    [handleSubmit],
+    [handleSubmit, manualCheckInZone, defaults.validate],
   );
 
   return (
@@ -517,7 +518,7 @@ export function AccommodationForm({
             setMapZoom={setMapZoom}
           />
         ) : null}
-        <Text as="label">
+        <Text as="label" htmlFor="timeZoneCheckIn">
           Check in time zone{' '}
           <Text weight="light" size="1">
             (required; trip default time zone is {tripTimeZone})
@@ -548,7 +549,7 @@ export function AccommodationForm({
           min={tripStartDateTime}
           max={tripEndDateTime}
         />
-        <Text as="label">
+        <Text as="label" htmlFor="timeZoneCheckOut">
           Check out time zone{' '}
           <Text weight="light" size="1">
             (required; trip default time zone is {tripTimeZone})

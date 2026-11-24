@@ -7,8 +7,8 @@ import {
 import {
   destinationAt,
   destinationChoices,
-  destinationError,
   type TripDestination,
+  validateDestinations,
 } from './destinations';
 import { itemZonedTime, newActivityTimes } from './newItemTimes';
 
@@ -84,9 +84,9 @@ describe('destination defaults', () => {
       startsOn: '2026-11-01',
       startsAtTime: '01:30',
     };
-    expect(destinationError([stop])).toContain('ambiguous');
+    expect(validateDestinations([stop])?.message).toContain('ambiguous');
     expect(
-      destinationError([{ ...stop, startOffset: '-05:00' }]),
+      validateDestinations([{ ...stop, startOffset: '-05:00' }]),
     ).toBeUndefined();
   });
 });

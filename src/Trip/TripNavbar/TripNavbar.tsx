@@ -35,6 +35,7 @@ export function TripNavbar() {
   const isSchedule =
     selection === RouteTripTimetableView.routePath ||
     selection === RouteTripListView.routePath;
+  const hasZoneSelector = isSchedule && display.zones.length > 1;
   const selector = useMemo(() => {
     return (
       <Select.Root
@@ -67,6 +68,7 @@ export function TripNavbar() {
   }, [selection, handleLocationSelectorChange]);
   return (
     <Navbar
+      wrapLastLeftItem={hasZoneSelector}
       leftItems={[
         <Heading
           as="h1"
@@ -85,7 +87,7 @@ export function TripNavbar() {
           <DoubleArrowRightIcon className={s.tripTitleDivider} />
           {selector}
         </Heading>,
-        isSchedule && display.zones.length > 1 ? (
+        hasZoneSelector ? (
           <Select.Root
             key="tz"
             value={display.zone}

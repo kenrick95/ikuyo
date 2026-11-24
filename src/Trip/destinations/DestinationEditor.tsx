@@ -29,6 +29,7 @@ export function DestinationEditor({
   arrivals = [],
   dayPlans = [],
   initialAdd = false,
+  issue,
 }: {
   destinations: TripDestination[];
   onChange: (destinations: TripDestination[]) => void;
@@ -38,6 +39,7 @@ export function DestinationEditor({
   arrivals?: DestinationArrival[];
   dayPlans?: { id: string; name: string; date: string }[];
   initialAdd?: boolean;
+  issue?: { id: string; message: string };
 }) {
   const [draft, setDraftValue] = useState<TripDestination | undefined>(() =>
     initialAdd ? makeDraft() : undefined,
@@ -55,6 +57,9 @@ export function DestinationEditor({
   useEffect(() => {
     if (draftId) document.getElementById(`${prefix}-region`)?.focus();
   }, [draftId, prefix]);
+  useEffect(() => {
+    if (issue) document.getElementById(`${prefix}-edit-${issue.id}`)?.focus();
+  }, [issue, prefix]);
   function change(patch: Partial<TripDestination>) {
     setDraftValue(
       (current) => current && { ...current, startsAtMs: undefined, ...patch },
@@ -118,6 +123,10 @@ export function DestinationEditor({
               variant="soft"
               size="2"
               disabled={!!draft}
+              id={`${prefix}-edit-${destination.id}`}
+              aria-describedby={
+                issue?.id === destination.id ? `${prefix}-issue` : undefined
+              }
               aria-label={`Edit ${destination.name}`}
               onClick={() => {
                 setDraft(destination);
@@ -127,6 +136,11 @@ export function DestinationEditor({
               Edit
             </Button>
           </Flex>
+          {issue?.id === destination.id && (
+            <Text as="p" color="red" size="2" id={`${prefix}-issue`}>
+              {issue.message}
+            </Text>
+          )}
         </Card>
       ))}
       {draft ? (
