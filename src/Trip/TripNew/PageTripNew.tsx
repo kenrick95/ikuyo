@@ -700,10 +700,7 @@ export default function PageTripNew() {
                 region: state.region,
                 timeZone: state.timeZone,
                 currency: state.currency,
-                date: state.startDate?.toLocaleString(undefined, {
-                  month: 'short',
-                  day: 'numeric',
-                }),
+                startDate: state.startDate,
               }}
               firstFields={firstFields}
               destinations={destinations}
