@@ -82,6 +82,9 @@ export function TripForm({
   const idOriginTimeZone = useId();
   const regionTrigger = useRef<HTMLButtonElement>(null);
   const publishToast = useBoundStore((state) => state.publishToast);
+  const canAddDestinations = useBoundStore(
+    (state) => state.currentUser?.experimentalFeatures === true,
+  );
   const [isFormLoading, setIsFormLoading] = useState(false);
   const [currentTimeZone, setCurrentTimeZone] = useState(tripTimeZone);
   const [currentRegion, setCurrentRegion] = useState(tripRegion);
@@ -586,7 +589,8 @@ export function TripForm({
           handleChange={setCurrentOriginCurrency}
         />
       </Flex>
-      {mode === TripFormMode.Edit ? (
+      {mode === TripFormMode.Edit &&
+      (showDestinations || canAddDestinations) ? (
         <Flex mt="4" direction="column" gap="3">
           {showDestinations ? (
             <>
@@ -601,6 +605,7 @@ export function TripForm({
                 onEditFirst={handleEditFirstDestination}
                 destinations={editedDestinations ?? tripDestinations ?? []}
                 issue={destinationIssue}
+                canAddDestination={canAddDestinations}
                 onChange={(value) => {
                   setEditedDestinations(value);
                   setDestinationIssue(undefined);

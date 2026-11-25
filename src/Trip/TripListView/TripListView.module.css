@@ -36,6 +36,21 @@
   margin-left: var(--space-2);
   margin-right: var(--space-2);
 }
+.destinationChange {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-inline-start: 2px solid var(--accent-8);
+  background: var(--accent-3);
+  color: var(--accent-12);
+  overflow-wrap: anywhere;
+}
+.destinationChangeTime {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
 @media (min-width: 520px) {
   .list {
     /* Reduce for Navbar (height) */

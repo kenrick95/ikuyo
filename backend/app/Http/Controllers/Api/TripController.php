@@ -10,6 +10,7 @@ use App\Models\Expense;
 use App\Models\MacroPlan;
 use App\Models\Task;
 use App\Models\Trip;
+use App\Models\User;
 use App\Services\ExpenseLedgerService;
 use App\Services\TripAccessService;
 use App\Services\TripDestinations;
@@ -128,6 +129,9 @@ class TripController extends Controller
             'originTimeZone' => ['nullable', 'string', 'max:64'],
             ...TripDestinations::RULES,
         ]);
+        if (! empty($data['destinations'])) {
+            $this->requireExperimentalFeatures($user);
+        }
 
         $trip = DB::transaction(function () use ($data, $user): Trip {
             $trip = Trip::create([
@@ -179,6 +183,13 @@ class TripController extends Controller
             }
         }
         if (array_key_exists('destinations', $data)) {
+            $newIds = array_diff(
+                array_column($data['destinations'], 'id'),
+                array_column($trip->destinations ?? [], 'id'),
+            );
+            if ($newIds !== []) {
+                $this->requireExperimentalFeatures($request->user());
+            }
             $trip->destinations = TripDestinations::validateAndSort($data['destinations'], $trip->timestamp_start_ms, $trip->timestamp_end_ms) ?: null;
         } elseif ($trip->destinations && $trip->isDirty(['timestamp_start_ms', 'timestamp_end_ms'])) {
             TripDestinations::validateAndSort($trip->destinations, $trip->timestamp_start_ms, $trip->timestamp_end_ms);
@@ -239,16 +250,20 @@ class TripController extends Controller
         ]);
         $user = $request->user();
         abort_unless($user, 401);
+        $destinationInput = $data['destinations'] ?? $trip->destinations ?? [];
+        if ($destinationInput !== []) {
+            $this->requireExperimentalFeatures($user);
+        }
         $now = $this->nowMs();
         $trip->load(['activities', 'accommodations', 'macroPlans', 'expenses', 'taskLists.tasks']);
-        $newTrip = DB::transaction(function () use ($trip, $data, $user, $now): Trip {
+        $newTrip = DB::transaction(function () use ($trip, $data, $user, $now, $destinationInput): Trip {
             if ($trip->destinations && (int) $data['startDateMs'] !== $trip->timestamp_start_ms && ! isset($data['destinations'])) {
                 throw ValidationException::withMessages([
                     'destinations' => 'Provide the destination starts for the new trip dates.',
                 ]);
             }
             $destinations = TripDestinations::validateAndSort(
-                $data['destinations'] ?? $trip->destinations ?? [],
+                $destinationInput,
                 $data['startDateMs'],
                 $data['endDateMs'],
             );
@@ -309,6 +324,11 @@ class TripController extends Controller
         });
 
         return response()->json(['id' => $newTrip->id], 201);
+    }
+
+    private function requireExperimentalFeatures(?User $user): void
+    {
+        abort_unless($user?->experimental_features, 403, 'Enable Experimental features in Account to add destinations.');
     }
 
     public function show(Request $request, Trip $trip, TripAccessService $access): JsonResponse

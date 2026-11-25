@@ -4,6 +4,7 @@ import {
   Flex,
   Heading,
   Select,
+  Switch,
   Text,
   TextField,
 } from '@radix-ui/themes';
@@ -38,6 +39,7 @@ export function PageAccount(_props: RouteComponentProps) {
   const idPrefRegion = useId();
   const idPrefCurrency = useId();
   const idPrefTimeZone = useId();
+  const idExperimentalFeatures = useId();
 
   const [errorMessage, setErrorMessage] = useState('');
   const { authUser } = useAuthUser();
@@ -51,6 +53,9 @@ export function PageAccount(_props: RouteComponentProps) {
   );
   const [prefTimeZone, setPrefTimeZone] = useState(
     currentUser?.preferredTimeZone ?? Temporal.Now.timeZoneId(),
+  );
+  const [experimentalFeatures, setExperimentalFeatures] = useState(
+    currentUser?.experimentalFeatures ?? false,
   );
 
   const handleForm = useCallback(() => {
@@ -130,6 +135,11 @@ export function PageAccount(_props: RouteComponentProps) {
             region: prefRegion || undefined,
             currency: prefCurrency || undefined,
             timeZone: prefTimeZone || undefined,
+            experimentalFeatures:
+              experimentalFeatures !==
+              (currentUser.experimentalFeatures ?? false)
+                ? experimentalFeatures
+                : undefined,
           });
           await refreshCurrentUser();
           publishToast({
@@ -153,6 +163,8 @@ export function PageAccount(_props: RouteComponentProps) {
     },
     [
       currentUser?.id,
+      currentUser?.experimentalFeatures,
+      experimentalFeatures,
       prefRegion,
       prefCurrency,
       prefTimeZone,
@@ -282,6 +294,21 @@ export function PageAccount(_props: RouteComponentProps) {
               isFormLoading={isFormLoading}
               handleChange={setPrefTimeZone}
             />
+            <Flex align="center" gap="2" mt="2">
+              <Switch
+                id={idExperimentalFeatures}
+                checked={experimentalFeatures}
+                onCheckedChange={setExperimentalFeatures}
+                disabled={isFormLoading}
+                aria-describedby={`${idExperimentalFeatures}-hint`}
+              />
+              <Text as="label" htmlFor={idExperimentalFeatures}>
+                Experimental features
+              </Text>
+            </Flex>
+            <Text id={`${idExperimentalFeatures}-hint`} size="2" color="gray">
+              Enable multi-destination trips.
+            </Text>
           </Flex>
           <Flex gap="3" mt="5">
             <Button

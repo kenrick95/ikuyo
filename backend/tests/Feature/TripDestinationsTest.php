@@ -12,6 +12,38 @@ class TripDestinationsTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_new_destinations_require_opt_in_and_existing_destinations_stay_editable(): void
+    {
+        $user = $this->signIn(experimental: false);
+        $stop = $this->destination();
+        $this->getJson('/api/auth/me')->assertOk()->assertJsonPath('user.experimentalFeatures', false);
+        $this->postJson('/api/trips', $this->trip([$stop]))->assertForbidden();
+        $trip = $this->postJson('/api/trips', $this->trip([]))->assertCreated()->json('id');
+        $this->putJson("/api/trips/$trip", ['destinations' => [$stop]])->assertForbidden();
+
+        $this->putJson('/api/users/me/preferences', ['experimentalFeatures' => true])
+            ->assertOk()->assertJsonPath('experimentalFeatures', true);
+        $this->putJson('/api/users/me/preferences', ['currency' => 'SGD'])
+            ->assertOk()->assertJsonPath('experimentalFeatures', true);
+        $user->refresh();
+        $this->getJson('/api/auth/me')->assertOk()->assertJsonPath('user.experimentalFeatures', true);
+        $this->putJson("/api/trips/$trip", ['destinations' => [$stop]])->assertOk();
+
+        $this->putJson('/api/users/me/preferences', ['experimentalFeatures' => false])
+            ->assertOk()->assertJsonPath('experimentalFeatures', false);
+        $this->getJson("/api/trips/$trip")->assertOk()->assertJsonPath('destinations.0.id', $stop['id']);
+        $this->putJson("/api/trips/$trip", ['destinations' => [array_replace($stop, ['name' => 'Taipei City'])]])
+            ->assertOk()->assertJsonPath('destinations.0.name', 'Taipei City');
+        $this->putJson("/api/trips/$trip", ['destinations' => [array_replace($stop, ['id' => (string) Str::uuid()])]])
+            ->assertForbidden();
+        $this->postJson("/api/trips/$trip/duplicate", [
+            'title' => 'Copy',
+            'startDateMs' => $this->ms('2026-10-30 00:00:00+09:00'),
+            'endDateMs' => $this->ms('2026-11-07 00:00:00+09:00'),
+        ])->assertForbidden();
+        $this->putJson("/api/trips/$trip", ['destinations' => []])->assertOk()->assertJsonCount(0, 'destinations');
+    }
+
     public function test_destinations_save_in_chronological_order_and_can_be_removed(): void
     {
         $this->signIn();
@@ -92,12 +124,18 @@ class TripDestinationsTest extends TestCase
             ->assertJsonPath('destinations.0.startsAtMs', $stop['startsAtMs']);
     }
 
-    private function signIn(): void
+    private function signIn(bool $experimental = true): User
     {
-        $this->actingAs(User::create([
+        $user = User::create([
             'id' => (string) Str::uuid(), 'handle' => 'owner', 'email' => 'owner@example.test',
             'password_hash' => password_hash('password', PASSWORD_DEFAULT), 'activated' => true,
-        ]));
+        ]);
+        if ($experimental) {
+            $user->update(['experimental_features' => true]);
+        }
+        $this->actingAs($user);
+
+        return $user;
     }
 
     private function destination(): array

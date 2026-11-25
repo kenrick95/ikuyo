@@ -270,6 +270,7 @@ class AuthController extends Controller
             'preferredRegion' => $user->preferred_region,
             'preferredCurrency' => $user->preferred_currency,
             'preferredTimeZone' => $user->preferred_timezone,
+            'experimentalFeatures' => (bool) $user->experimental_features,
         ];
     }
 }

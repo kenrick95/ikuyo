@@ -12,22 +12,26 @@ export type DbUser = {
   preferredRegion?: string;
   preferredCurrency?: string;
   preferredTimeZone?: string;
+  experimentalFeatures?: boolean;
 };
 
 export async function dbUpdateUserPreferences({
   region,
   currency,
   timeZone,
+  experimentalFeatures,
 }: {
   id?: string;
   region?: string;
   currency?: string;
   timeZone?: string;
+  experimentalFeatures?: boolean;
 }) {
   return putMutation(`/api/users/me/preferences`, {
     region,
     currency,
     timeZone,
+    experimentalFeatures,
   });
 }
 
