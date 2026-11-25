@@ -1,15 +1,11 @@
 import { Flex, Select, Text } from '@radix-ui/themes';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import {
-  type DestinationItinerary,
-  destinationAt,
-  destinationChoices,
-} from './destinations';
+import { type DestinationItinerary, destinationChoices } from './destinations';
 
 /**
  * Suggests a destination for a form and tracks the user's choice if several fit.
  * The optional prefilled instant identifies the exact time while the original
- * wall time is still selected and the place field is blank.
+ * wall time is still selected.
  */
 export function useDestinationDefaults(
   destinations: DestinationItinerary | undefined,
@@ -21,9 +17,7 @@ export function useDestinationDefaults(
   const [attempt, setAttempt] = useState(0);
   const [selectedId, setSelected] = useState('');
   const choices = destinations
-    ? prefilledInstant && !place?.trim()
-      ? [destinationAt(destinations, prefilledInstant)]
-      : destinationChoices(destinations, value, place)
+    ? destinationChoices(destinations, value, place, prefilledInstant)
     : [];
   const selected =
     choices.find((destination) => destination.id === selectedId) ??

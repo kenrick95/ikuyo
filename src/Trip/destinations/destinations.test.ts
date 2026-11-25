@@ -8,6 +8,7 @@ import {
   destinationAt,
   destinationChoices,
   itinerary,
+  regionName,
   resolveDestination,
   type TripDestination,
 } from './destinations';
@@ -35,6 +36,12 @@ const trip = {
 const destinations = itinerary(trip);
 
 describe('destination defaults', () => {
+  it('looks up region names and preserves unknown codes', () => {
+    expect(regionName('JP')).toBe('Japan');
+    expect(regionName('ZZ')).toBe('ZZ');
+    expect(regionName('constructor')).toBe('constructor');
+  });
+
   it('changes currency and time zone at the arrival instant', () => {
     const arrival = Temporal.Instant.from('2026-05-06T15:40:00+08:00');
     expect(
@@ -58,6 +65,36 @@ describe('destination defaults', () => {
         'Taipei 101, Taiwan',
       )[0]?.currency,
     ).toBe('TWD');
+  });
+
+  it('uses exact place labels and ignores address prefixes and time zone names', () => {
+    const beforeArrival = Temporal.PlainDateTime.from('2026-05-05T13:00');
+    expect(
+      destinationChoices(
+        destinations,
+        beforeArrival,
+        'Taipei Grill, Japan',
+      ).map((item) => item.currency),
+    ).toEqual(['JPY']);
+
+    const afterArrival = Temporal.PlainDateTime.from('2026-05-07T13:00');
+    expect(
+      destinationChoices(destinations, afterArrival, 'Tokyo').map(
+        (item) => item.currency,
+      ),
+    ).toEqual(['TWD']);
+  });
+
+  it('uses the exact prefilled instant when the place text has no match', () => {
+    const instant = Temporal.Instant.from('2026-05-06T16:00:00+08:00');
+    const localTime = instant
+      .toZonedDateTimeISO('Asia/Taipei')
+      .toPlainDateTime();
+    expect(
+      destinationChoices(destinations, localTime, 'Hotel', instant).map(
+        (item) => item.currency,
+      ),
+    ).toEqual(['TWD']);
   });
 
   it('offers a destination choice when local times overlap at the handoff', () => {

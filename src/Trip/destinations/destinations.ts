@@ -1,4 +1,4 @@
-import { REGIONS_LIST } from '../../data/intl/regions';
+import { REGIONS_MAP, type RegionCode } from '../../data/intl/regions';
 
 export type TripDestination = {
   id: string;
@@ -23,15 +23,20 @@ export type DestinationTrip = {
 };
 
 /** Looks up the display name for a region code, falling back to the code. */
-export const regionName = (region: string) =>
-  REGIONS_LIST.find(([code]) => code === region)?.[1] ?? region;
+export function regionName(region: string): string {
+  return Object.hasOwn(REGIONS_MAP, region)
+    ? REGIONS_MAP[region as RegionCode]
+    : region;
+}
 
 /**
  * Finds the possible starts for the destination's local date and time.
  * A date without a time uses the start of the local day. A repeated time
  * yields both offsets in order, and an invalid or skipped time yields none.
  */
-export function startCandidates(destination: DestinationDraft) {
+export function startCandidates(
+  destination: DestinationDraft,
+): Temporal.ZonedDateTime[] {
   const { startsOn, startsAtTime, timeZone } = destination;
   if (!startsOn || !timeZone) return [];
   try {
@@ -84,7 +89,7 @@ export function validateDestinations(
   destinations: TripDestination[],
   start?: number,
   end?: number,
-) {
+): { id: string; message: string } | undefined {
   const seen = new Set<number>();
   for (const destination of destinations) {
     const name = destination.name.trim() || regionName(destination.region);
@@ -126,14 +131,18 @@ export function duplicateDestinations(
   trip: Pick<DestinationTrip, 'destinations' | 'timestampStart' | 'timeZone'>,
   start: number,
   end: number,
-) {
+): TripDestination[] | undefined {
   if (!trip.destinations?.length) return undefined;
 
-  const localDate = (ms: number) =>
-    Temporal.Instant.fromEpochMilliseconds(ms)
-      .toZonedDateTimeISO(trip.timeZone)
-      .toPlainDate();
-  const days = localDate(trip.timestampStart).until(localDate(start)).days;
+  const originalDate = Temporal.Instant.fromEpochMilliseconds(
+    trip.timestampStart,
+  )
+    .toZonedDateTimeISO(trip.timeZone)
+    .toPlainDate();
+  const copyDate = Temporal.Instant.fromEpochMilliseconds(start)
+    .toZonedDateTimeISO(trip.timeZone)
+    .toPlainDate();
+  const days = originalDate.until(copyDate).days;
   const destinations = days
     ? trip.destinations.map((destination) => {
         const shifted = resolveDestination({
@@ -201,53 +210,52 @@ export function itinerary(trip: DestinationTrip): DestinationItinerary {
 export function destinationAt(
   stops: DestinationItinerary,
   instant: Temporal.Instant,
-) {
+): ResolvedDestination {
   const ms = instant.epochMilliseconds;
   return stops.findLast((stop) => stop.startsAtMs <= ms) ?? stops[0];
 }
 
 /**
- * Suggests destinations for a place name or a local date and time. A unique
- * place match takes priority. Otherwise each candidate's time zone determines
- * whether its itinerary window contains the local time. If none fit the time,
- * returns the candidates so the form can ask the user to choose.
+ * Suggests destinations for a form based on exact place labels and timing.
+ * A unique place match takes priority. A prefilled instant selects the active
+ * destination if it fits the place. Otherwise, interpret the local time in each
+ * candidate's zone. If none fit the time, return the candidates for the picker.
  */
 export function destinationChoices(
   stops: DestinationItinerary,
   value?: Temporal.PlainDateTime,
   place?: string,
-) {
-  const normalized = place?.trim().toLocaleLowerCase();
-  const parts = normalized?.split(/[,，]/).map((part) => part.trim()) ?? [];
-  const matchesName = (name: string | undefined) => {
-    const word = name?.trim().toLocaleLowerCase();
-    return word
-      ? parts.some((part) => part === word || part.startsWith(`${word} `))
-      : false;
-  };
-  const placeMatches = stops.filter(
-    (stop) =>
-      matchesName(stop.name) ||
-      matchesName(stop.timeZone.split('/').at(-1)?.replaceAll('_', ' ')),
+  prefilledInstant?: Temporal.Instant,
+): readonly ResolvedDestination[] {
+  const parts = new Set(
+    place
+      ?.toLowerCase()
+      .split(/[,，]/)
+      .map((part) => part.trim())
+      .filter(Boolean),
   );
-  const names = placeMatches.length
-    ? placeMatches
-    : stops.filter((stop) => matchesName(regionName(stop.region)));
-  if (names.length === 1) return names;
-  if (!value) return names.length ? names : stops.slice(0, 1);
-  const candidates = names.length ? names : stops;
-  const matches = candidates.filter((stop) => {
-    const instant = value.toZonedDateTime(stop.timeZone).epochMilliseconds;
-    const index = stops.indexOf(stop);
+  const namedStops = stops.filter((stop) =>
+    parts.has(stop.name.trim().toLowerCase()),
+  );
+  const placeMatches = namedStops.length
+    ? namedStops
+    : stops.filter((stop) => parts.has(regionName(stop.region).toLowerCase()));
+  if (placeMatches.length === 1) return placeMatches;
+  if (prefilledInstant) {
+    const active = destinationAt(stops, prefilledInstant);
+    if (!placeMatches.length || placeMatches.includes(active)) return [active];
+  }
+  if (!value) return placeMatches.length ? placeMatches : [stops[0]];
+
+  const matchingPlaces = new Set(placeMatches);
+  const matches = stops.filter((stop, index) => {
+    if (matchingPlaces.size && !matchingPlaces.has(stop)) return false;
+    const ms = value.toZonedDateTime(stop.timeZone).epochMilliseconds;
     const next = stops[index + 1];
     return (
-      (index === 0 || instant >= stop.startsAtMs) &&
-      (!next || instant < next.startsAtMs)
+      (index === 0 || ms >= stop.startsAtMs) && (!next || ms < next.startsAtMs)
     );
   });
-  return matches.length
-    ? matches
-    : candidates.length > 1
-      ? candidates
-      : stops.slice(0, 1);
+  if (matches.length) return matches;
+  return placeMatches.length ? placeMatches : stops;
 }

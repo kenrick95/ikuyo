@@ -35,13 +35,14 @@ export function calendarTrip(
   zone?: string,
 ): TripSliceTrip {
   if (!zone || zone === trip.timeZone) return trip;
-  const inZone = (value: number) =>
-    Temporal.Instant.fromEpochMilliseconds(value).toZonedDateTimeISO(zone);
   return {
     ...trip,
     timeZone: zone,
-    timestampStart: inZone(trip.timestampStart).startOfDay().epochMilliseconds,
-    timestampEnd: inZone(trip.timestampEnd - 1)
+    timestampStart: Temporal.Instant.fromEpochMilliseconds(trip.timestampStart)
+      .toZonedDateTimeISO(zone)
+      .startOfDay().epochMilliseconds,
+    timestampEnd: Temporal.Instant.fromEpochMilliseconds(trip.timestampEnd - 1)
+      .toZonedDateTimeISO(zone)
       .add({ days: 1 })
       .startOfDay().epochMilliseconds,
   };

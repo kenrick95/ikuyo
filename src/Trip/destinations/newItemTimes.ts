@@ -13,22 +13,21 @@ export function newActivityTimes(
   hours: number,
   separateEndpoints = false,
 ) {
-  const inTripZone = (ms: number) =>
-    Temporal.Instant.fromEpochMilliseconds(ms).toZonedDateTimeISO(
-      trip.timeZone,
-    );
-  const start =
-    prefill?.instant !== undefined
-      ? inTripZone(prefill.instant)
-      : prefill
-        ? inTripZone(trip.timestampStart)
-            .add({ days: prefill.dayOfTrip - 1 })
-            .startOfDay()
-            .with({
-              hour: Number(prefill.timeStart.slice(0, 2)),
-              minute: Number(prefill.timeStart.slice(2)),
-            })
-        : inTripZone(previous ?? trip.timestampStart);
+  const startMs = prefill
+    ? (prefill.instant ?? trip.timestampStart)
+    : (previous ?? trip.timestampStart);
+  let start = Temporal.Instant.fromEpochMilliseconds(
+    startMs,
+  ).toZonedDateTimeISO(trip.timeZone);
+  if (prefill && prefill.instant === undefined) {
+    start = start
+      .add({ days: prefill.dayOfTrip - 1 })
+      .startOfDay()
+      .with({
+        hour: Number(prefill.timeStart.slice(0, 2)),
+        minute: Number(prefill.timeStart.slice(2)),
+      });
+  }
   const end = start.add({ hours });
   const startInstant = start.toInstant();
   const endInstant = end.toInstant();
