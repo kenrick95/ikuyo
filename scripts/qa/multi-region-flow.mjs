@@ -219,6 +219,16 @@ async function pickDate(trigger, date, hour, minute) {
   await page.getByRole('button', { name: 'OK', exact: true }).click();
 }
 
+const destinationName = page.getByLabel('Destination name (optional)', {
+  exact: true,
+});
+const destinationStartDate = page.getByRole('button', {
+  name: /Destination start date:/,
+});
+const destinationStartTime = page.getByLabel('Start time (optional)', {
+  exact: true,
+});
+
 try {
   await page.goto(`${base}/trip/new`);
   const addDestination = page.getByRole('button', {
@@ -246,13 +256,10 @@ try {
   await page.getByRole('heading', { name: 'Trip details' }).waitFor();
   await page.getByRole('button', { name: '← Back', exact: true }).click();
   await addDestination.click();
-  await select('Region', 'Taiwan');
-  await page.getByLabel('Place', { exact: true }).fill('Taipei');
-  await pickDate(
-    page.getByRole('button', { name: /Destination start date:/ }),
-    '2026-05-06',
-  );
-  await page.getByLabel('Time (optional)', { exact: true }).fill('15:40');
+  await select(/^Region$/, 'Taiwan');
+  await destinationName.fill('Taipei');
+  await pickDate(destinationStartDate, '2026-05-06');
+  await destinationStartTime.fill('15:40');
   await shot('01-destination-editor.png');
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   await shot('02-wizard-destinations.png');
@@ -344,15 +351,55 @@ try {
 
   await page.getByRole('button', { name: 'Actions' }).click();
   await page.getByRole('menuitem', { name: 'Edit trip' }).click();
+  const editTripDialog = page.getByRole('dialog', { name: 'Edit Trip' });
+  await editTripDialog.getByText(/^Trip start.*2026.*Asia\/Tokyo/).waitFor();
+  await editTripDialog.getByText(/^Starts.*2026.*Asia\/Taipei/).waitFor();
+  await editTripDialog
+    .getByRole('button', { name: 'Edit trip details' })
+    .press('Enter');
+  assert.equal(
+    await editTripDialog
+      .getByRole('combobox', { name: /^First destination region/ })
+      .evaluate((element) => document.activeElement === element),
+    true,
+  );
+
+  await editTripDialog
+    .getByRole('button', { name: 'Add destination', exact: true })
+    .click();
+  await select(/^Region$/, 'Japan');
+  await destinationName.fill('Osaka');
+  await pickDate(destinationStartDate, '2026-05-07');
+  assert.equal(await destinationStartTime.inputValue(), '');
+  assert.equal(
+    await destinationStartTime.getAttribute('aria-describedby'),
+    await editTripDialog
+      .getByText('Leave blank for the start of the day.')
+      .getAttribute('id'),
+  );
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  const editStops = editTripDialog.getByRole('button', {
+    name: /^Edit (Taipei|Osaka)$/,
+  });
+  assert.equal(
+    await editStops.first().getAttribute('aria-label'),
+    'Edit Taipei',
+  );
+  const editOsaka = editTripDialog.getByRole('button', { name: 'Edit Osaka' });
+  await editOsaka.click();
+  await pickDate(destinationStartDate, '2026-05-04');
+  await page.getByRole('button', { name: 'Done', exact: true }).click();
+  assert.equal(
+    await editStops.first().getAttribute('aria-label'),
+    'Edit Osaka',
+  );
+  await editOsaka.click();
+  await page.getByRole('button', { name: 'Remove destination' }).click();
+
   await page.getByRole('button', { name: 'Edit Taipei' }).click();
   await select('Use arrival', /Flight to Taipei · Taipei Songshan/);
-  assert.equal(
-    await page.getByLabel('Time (optional)', { exact: true }).inputValue(),
-    '15:40',
-  );
-  await page
-    .getByLabel('Time (optional)', { exact: true })
-    .scrollIntoViewIfNeeded();
+  assert.equal(await destinationStartTime.inputValue(), '15:40');
+  await destinationStartTime.scrollIntoViewIfNeeded();
   await page
     .getByRole('combobox', { name: 'Use arrival' })
     .locator('xpath=../../..')
@@ -363,10 +410,7 @@ try {
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   const editTaipei = page.getByRole('button', { name: 'Edit Taipei' });
   await editTaipei.press('Enter');
-  await pickDate(
-    page.getByRole('button', { name: /Destination start date:/ }),
-    '2026-05-02',
-  );
+  await pickDate(destinationStartDate, '2026-05-02');
   await page.getByRole('button', { name: 'Done', exact: true }).press('Enter');
   await page.getByRole('button', { name: 'Save', exact: true }).press('Enter');
   const rangeError = page.getByText(/Taipei must start after/);

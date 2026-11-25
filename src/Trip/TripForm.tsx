@@ -1,6 +1,6 @@
 import { Button, Flex, Select, Text, TextField } from '@radix-ui/themes';
 import type { SubmitEvent } from 'react';
-import { useCallback, useId, useMemo, useState } from 'react';
+import { useCallback, useId, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import { CurrencySelect } from '../common/CurrencySelect/CurrencySelect';
 import { DateTimePicker } from '../common/DatePicker2/DateTimePicker';
@@ -80,6 +80,7 @@ export function TripForm({
   const idRegion = useId();
   const idOriginRegion = useId();
   const idOriginTimeZone = useId();
+  const regionTrigger = useRef<HTMLButtonElement>(null);
   const publishToast = useBoundStore((state) => state.publishToast);
   const [isFormLoading, setIsFormLoading] = useState(false);
   const [currentTimeZone, setCurrentTimeZone] = useState(tripTimeZone);
@@ -201,6 +202,10 @@ export function TripForm({
   );
   const handleOriginTimeZoneChange = useCallback((newTimeZone: string) => {
     setCurrentOriginTimeZone(newTimeZone);
+  }, []);
+
+  const handleEditFirstDestination = useCallback(() => {
+    regionTrigger.current?.focus();
   }, []);
 
   const handleForm = useCallback(() => {
@@ -373,7 +378,7 @@ export function TripForm({
         required
         disabled={isFormLoading}
       >
-        <Select.Trigger id={idRegion} />
+        <Select.Trigger id={idRegion} ref={regionTrigger} />
         <Select.Content>
           {REGIONS_LIST.map(([regionCode, regionName]) => {
             return (
@@ -421,7 +426,9 @@ export function TripForm({
         />
 
         <Text as="label" htmlFor={idRegion}>
-          Destination's region{' '}
+          {showDestinations
+            ? 'First destination region'
+            : "Destination's region"}{' '}
           <Text weight="light" size="1">
             (required)
           </Text>
@@ -435,7 +442,9 @@ export function TripForm({
         {fieldSelectRegion}
 
         <Text as="label" htmlFor={idTimeZone}>
-          Destination's default time zone{' '}
+          {showDestinations
+            ? 'First destination time zone'
+            : "Destination's default time zone"}{' '}
           <Text weight="light" size="1">
             (required)
           </Text>
@@ -484,7 +493,9 @@ export function TripForm({
         />
 
         <Text as="label" htmlFor={idCurrency}>
-          Destination's currency{' '}
+          {showDestinations
+            ? 'First destination currency'
+            : "Destination's currency"}{' '}
           <Text weight="light" size="1">
             (required)
           </Text>
@@ -585,11 +596,9 @@ export function TripForm({
                   region: currentRegion,
                   timeZone: currentTimeZone,
                   currency: currentCurrency,
-                  date: currentStartDate?.toLocaleString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                  }),
+                  startDate: currentStartDate,
                 }}
+                onEditFirst={handleEditFirstDestination}
                 destinations={editedDestinations ?? tripDestinations ?? []}
                 issue={destinationIssue}
                 onChange={(value) => {

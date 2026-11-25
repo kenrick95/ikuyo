@@ -21,12 +21,19 @@ import {
 
 export type DestinationArrival = { id: string; label: string; instant: number };
 
+const destinationDateFormat = {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+} as const;
+
 export function DestinationEditor({
   destinations,
   onChange,
   onDraftChange,
   first,
   firstFields,
+  onEditFirst,
   arrivals = [],
   dayPlans = [],
   initialAdd = false,
@@ -36,7 +43,13 @@ export function DestinationEditor({
   onChange: (destinations: TripDestination[]) => void;
   onDraftChange?: (active: boolean) => void;
   firstFields?: ReactNode;
-  first: { region: string; timeZone: string; currency: string; date?: string };
+  onEditFirst?: () => void;
+  first: {
+    region: string;
+    timeZone: string;
+    currency: string;
+    startDate?: Temporal.PlainDate;
+  };
   arrivals?: DestinationArrival[];
   dayPlans?: { id: string; name: string; date: string }[];
   initialAdd?: boolean;
@@ -70,16 +83,34 @@ export function DestinationEditor({
 
   return (
     <Flex direction="column" gap="3">
+      <Text size="2" color="gray">
+        Each destination ends when the next one starts, or when the trip ends.
+        Change start dates or times to reorder.
+      </Text>
       <Card size="1">
         <Flex direction="column" gap="2">
           <Flex align="center" justify="between" gap="3" wrap="wrap">
             <Flex direction="column" gap="1">
               <Text weight="medium">{regionName(first.region)}</Text>
               <Text size="2" color="gray">
-                {first.date} · {first.timeZone} · {first.currency}
+                Trip start
+                {first.startDate
+                  ? ` · ${first.startDate.toLocaleString(undefined, destinationDateFormat)}`
+                  : ''}
+                {' · '}
+                {first.timeZone} · {first.currency}
               </Text>
             </Flex>
-            {firstFields ? (
+            {onEditFirst ? (
+              <Button
+                type="button"
+                variant="soft"
+                size="2"
+                onClick={onEditFirst}
+              >
+                Edit trip details
+              </Button>
+            ) : firstFields ? (
               <Button
                 type="button"
                 variant="soft"
@@ -105,9 +136,10 @@ export function DestinationEditor({
             <Flex direction="column" gap="1">
               <Text weight="medium">{destination.name}</Text>
               <Text size="2" color="gray">
+                Starts{' '}
                 {Temporal.PlainDate.from(destination.startsOn).toLocaleString(
                   undefined,
-                  { month: 'short', day: 'numeric' },
+                  destinationDateFormat,
                 )}
                 {destination.startsAtTime ? ` ${destination.startsAtTime}` : ''}
                 {' · '}
@@ -180,7 +212,7 @@ export function DestinationEditor({
             <Flex asChild direction="column" gap="1">
               <label htmlFor={`${prefix}-place`}>
                 <Text size="2" weight="medium">
-                  Place
+                  Destination name (optional)
                 </Text>
                 <TextField.Root
                   id={`${prefix}-place`}
@@ -239,24 +271,31 @@ export function DestinationEditor({
                   placeholder="Select date"
                 />
               </Flex>
-              <Flex asChild direction="column" gap="1">
-                <label htmlFor={`${prefix}-time`}>
-                  <Text size="2" weight="medium">
-                    Time (optional)
-                  </Text>
-                  <TextField.Root
-                    id={`${prefix}-time`}
-                    type="time"
-                    value={draft.startsAtTime ?? ''}
-                    onChange={(event) => {
-                      change({
-                        startsAtTime: event.currentTarget.value || null,
-                        startOffset: null,
-                      });
-                      setArrival('');
-                    }}
-                  />
-                </label>
+              <Flex direction="column" gap="1">
+                <Text
+                  as="label"
+                  htmlFor={`${prefix}-time`}
+                  size="2"
+                  weight="medium"
+                >
+                  Start time (optional)
+                </Text>
+                <TextField.Root
+                  id={`${prefix}-time`}
+                  type="time"
+                  aria-describedby={`${prefix}-time-hint`}
+                  value={draft.startsAtTime ?? ''}
+                  onChange={(event) => {
+                    change({
+                      startsAtTime: event.currentTarget.value || null,
+                      startOffset: null,
+                    });
+                    setArrival('');
+                  }}
+                />
+                <Text id={`${prefix}-time-hint`} size="1" color="gray">
+                  Leave blank for the start of the day.
+                </Text>
               </Flex>
             </Flex>
             {arrivals.length > 0 && draft.region ? (
