@@ -79,12 +79,14 @@
 .control {
   flex: 1;
 }
-.othersButton {
+.controlContainer .othersButton {
+  align-self: stretch;
+  block-size: auto;
   flex: 0 0 20%;
   margin: 0;
 }
 @media (min-width: 520px) {
-  .othersButton {
+  .controlContainer .othersButton {
     flex: 0 0 auto;
   }
 }
