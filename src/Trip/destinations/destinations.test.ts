@@ -7,6 +7,7 @@ import {
 import {
   destinationAt,
   destinationChoices,
+  itinerary,
   type TripDestination,
   validateDestinations,
 } from './destinations';
@@ -30,23 +31,25 @@ const trip = {
   destinations: [taipei],
 };
 
+const destinations = itinerary(trip);
+
 describe('destination defaults', () => {
   it('changes currency and time zone at the arrival instant', () => {
     const arrival = Date.parse('2026-05-06T15:40:00+08:00');
-    expect(destinationAt(trip, arrival - 1).currency).toBe('JPY');
-    expect(destinationAt(trip, arrival).currency).toBe('TWD');
+    expect(destinationAt(destinations, arrival - 1).currency).toBe('JPY');
+    expect(destinationAt(destinations, arrival).currency).toBe('TWD');
   });
 
   it('resolves an out-of-order expense and gives a recognized place priority', () => {
     expect(
       destinationChoices(
-        trip,
+        destinations,
         Temporal.PlainDateTime.from('2026-05-05T13:00'),
       )[0]?.currency,
     ).toBe('JPY');
     expect(
       destinationChoices(
-        trip,
+        destinations,
         Temporal.PlainDateTime.from('2026-05-05T13:00'),
         'Taipei 101, Taiwan',
       )[0]?.currency,
@@ -56,7 +59,7 @@ describe('destination defaults', () => {
   it('offers a destination choice when local times overlap at the handoff', () => {
     expect(
       destinationChoices(
-        trip,
+        destinations,
         Temporal.PlainDateTime.from('2026-05-06T16:00'),
       ).map((item) => item.currency),
     ).toEqual(['JPY', 'TWD']);

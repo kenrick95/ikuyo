@@ -2,7 +2,7 @@ import { Box, Dialog } from '@radix-ui/themes';
 import { useCallback, useMemo } from 'react';
 import { CommonLargeDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
-import { destinationAt } from '../Trip/destinations/destinations';
+import { destinationAt, itinerary } from '../Trip/destinations/destinations';
 import { useTripAccommodations } from '../Trip/store/hooks';
 import type { TripSliceTrip } from '../Trip/store/types';
 import { AccommodationForm } from './AccommodationForm/AccommodationForm';
@@ -24,6 +24,10 @@ export function AccommodationNewDialog({
     (state) => state.askToConfirmPopDialog,
   );
   const accommodations = useTripAccommodations(trip.accommodationIds);
+  const destinations = useMemo(
+    () => (trip.destinations?.length ? itinerary(trip) : undefined),
+    [trip],
+  );
   const handleFormCancel = useCallback(() => {
     askToConfirmPopDialog();
   }, [askToConfirmPopDialog]);
@@ -46,13 +50,13 @@ export function AccommodationNewDialog({
     accommodationCheckInTimeZone,
     accommodationCheckOutTimeZone,
   ] = useMemo(() => {
-    if (trip.destinations?.length) {
+    if (destinations) {
       const date = prefillData?.date
         ? Temporal.PlainDate.from(prefillData.date)
         : getDefaultAccommodationCheckInDate(trip, accommodations);
       const checkIn = date.toPlainDateTime({ hour: 15 });
       const destination = destinationAt(
-        trip,
+        destinations,
         checkIn.toZonedDateTime(trip.timeZone).epochMilliseconds,
       );
       return [
@@ -107,7 +111,7 @@ export function AccommodationNewDialog({
       trip.timeZone,
       trip.timeZone,
     ];
-  }, [trip, accommodations, prefillData, tripEndDateTime]);
+  }, [trip, accommodations, destinations, prefillData, tripEndDateTime]);
 
   return (
     <Dialog.Root open>
@@ -123,7 +127,7 @@ export function AccommodationNewDialog({
         <AccommodationForm
           mode={AccommodationFormMode.New}
           tripId={trip.id}
-          destinationTrip={trip}
+          destinations={destinations}
           tripTimeZone={trip.timeZone}
           tripStartDateTime={tripStartDateTime}
           tripEndDateTime={tripEndDateTime}

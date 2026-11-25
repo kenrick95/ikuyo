@@ -24,18 +24,15 @@ class TripDestinationsTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('destinations.0.name', 'Taipei')
             ->assertJsonPath('destinations.0.startsAtMs', $this->ms('2026-11-02 15:40:00+08:00'))
-            ->assertJsonPath('destinationRevision', 0)
             ->json('id');
 
         $this->putJson("/api/trips/$trip", ['title' => 'Updated title'])
             ->assertOk()->assertJsonCount(2, 'destinations');
-        $this->putJson("/api/trips/$trip", ['destinations' => [$taipei], 'destinationRevision' => 0])
-            ->assertOk()->assertJsonPath('destinationRevision', 1);
-        $this->putJson("/api/trips/$trip", ['destinations' => [], 'destinationRevision' => 0])
-            ->assertConflict();
+        $this->putJson("/api/trips/$trip", ['destinations' => [$taipei]])
+            ->assertOk()->assertJsonCount(1, 'destinations');
         $this->putJson("/api/trips/$trip", ['timestampEnd' => $this->ms('2026-11-02 09:00:00+09:00')])
             ->assertUnprocessable()->assertJsonValidationErrors('destinations.0.startsOn');
-        $this->putJson("/api/trips/$trip", ['destinations' => [], 'destinationRevision' => 1])
+        $this->putJson("/api/trips/$trip", ['destinations' => []])
             ->assertOk()->assertJsonCount(0, 'destinations');
     }
 

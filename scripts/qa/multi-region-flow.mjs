@@ -78,7 +78,6 @@ let trip = {
   timestampStart: Date.parse('2026-05-03T00:00:00+09:00'),
   timestampEnd: Date.parse('2026-05-09T00:00:00+09:00'),
   destinations: [taipei],
-  destinationRevision: 2,
   sharingLevel: 0,
   activity: [
     activity(
@@ -158,6 +157,7 @@ let trip = {
 };
 const tripUrl = `/trip/${trip.id}`;
 let submitted;
+const tripUpdates = [];
 const submittedExpenses = [];
 const submittedActivities = [];
 await page.route('**/*', async (route) => {
@@ -178,11 +178,9 @@ await page.route('**/*', async (route) => {
   }
   if (url.pathname === `/api/trips/${trip.id}`) {
     if (method === 'PUT') {
-      trip = {
-        ...trip,
-        ...route.request().postDataJSON(),
-        destinationRevision: trip.destinationRevision + 1,
-      };
+      const update = route.request().postDataJSON();
+      tripUpdates.push(update);
+      trip = { ...trip, ...update };
     }
     return respond(trip);
   }
@@ -348,7 +346,37 @@ try {
   await page.getByRole('button', { name: 'Done', exact: true }).press('Enter');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await page.getByRole('dialog').waitFor({ state: 'hidden' });
+  assert.equal(tripUpdates.at(-1)?.destinations?.[0]?.startsAtTime, '15:40');
+
+  await page.getByRole('button', { name: 'Actions' }).click();
+  await page.getByRole('menuitem', { name: 'Edit trip' }).click();
+  const tripEditor = page.getByRole('dialog', { name: 'Edit Trip' });
+  await tripEditor
+    .locator('input[name="title"]')
+    .fill('Tokyo and Taipei itinerary');
+  await tripEditor.getByRole('button', { name: 'Save', exact: true }).click();
+  await tripEditor.waitFor({ state: 'hidden' });
+  assert.equal(tripUpdates.at(-1)?.title, 'Tokyo and Taipei itinerary');
+  assert.equal(Object.hasOwn(tripUpdates.at(-1), 'destinations'), false);
   assert.equal(trip.destinations[0].startsAtTime, '15:40');
+
+  await page.getByRole('button', { name: 'Add at time' }).click();
+  await select('Date', /7 May 2026/);
+  await select('Item', 'New accommodation');
+  await page.getByRole('button', { name: 'Continue' }).click();
+  const stayEditor = page.getByRole('dialog', { name: 'New Accommodation' });
+  assert.equal(
+    await stayEditor
+      .getByRole('combobox', { name: /Check in time zone/ })
+      .textContent(),
+    'Asia/Taipei',
+  );
+  assert.equal(
+    await stayEditor
+      .getByRole('combobox', { name: /Check out time zone/ })
+      .textContent(),
+    'Asia/Taipei',
+  );
 
   await page.setViewportSize({ width: 390, height: 840 });
   await page.goto(`${base + tripUrl}/expenses`);

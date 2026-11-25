@@ -18,7 +18,7 @@ import {
   DestinationPicker,
   useDestinationDefaults,
 } from '../../Trip/destinations/DestinationDefaults';
-import type { DestinationTrip } from '../../Trip/destinations/destinations';
+import type { DestinationItinerary } from '../../Trip/destinations/destinations';
 import { itemZonedTime } from '../../Trip/destinations/newItemTimes';
 import { ActivityMap } from '../ActivityDialog/ActivityDialogMap';
 import s from '../ActivityForm/ActivityForm.module.css';
@@ -46,7 +46,7 @@ export function FlightForm({
   mode,
   activityId,
   tripId,
-  destinationTrip,
+  destinations,
   prefilledStart,
   prefilledEnd,
   tripStartDateTime,
@@ -80,7 +80,7 @@ export function FlightForm({
   tripEndDateTime: Temporal.PlainDate | undefined;
   tripTimeZone: string;
   tripRegion: string;
-  destinationTrip?: DestinationTrip;
+  destinations?: DestinationItinerary;
   prefilledStart?: number;
   prefilledEnd?: number;
   activityTitle: string;
@@ -159,7 +159,7 @@ export function FlightForm({
   const [manualStartZone, setManualStartZone] = useState(false);
   const [manualEndZone, setManualEndZone] = useState(false);
   const startDefaults = useDestinationDefaults(
-    destinationTrip,
+    destinations,
     startDateTime,
     locationFieldsState.names[0],
     activityStartDateTime && startDateTime?.equals(activityStartDateTime)
@@ -167,7 +167,7 @@ export function FlightForm({
       : undefined,
   );
   const endDefaults = useDestinationDefaults(
-    destinationTrip,
+    destinations,
     endDateTime,
     locationFieldsState.names[1],
     activityEndDateTime && endDateTime?.equals(activityEndDateTime)

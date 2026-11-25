@@ -80,7 +80,6 @@ export function TripEditDialog({ trip }: { trip: TripSliceTrip }) {
           tripOriginTimeZone={trip.originTimeZone}
           tripRegion={trip.region}
           tripDestinations={trip.destinations}
-          destinationRevision={trip.destinationRevision}
           arrivals={arrivals}
           dayPlans={dayPlans}
           tripSharingLevel={trip.sharingLevel}

@@ -31,6 +31,7 @@ import {
 import {
   destinationAt,
   destinationChoices,
+  itinerary,
 } from '../Trip/destinations/destinations';
 import type { TripSliceExpense, TripSliceTrip } from '../Trip/store/types';
 import { formatCurrencyAmount } from './currency';
@@ -69,7 +70,8 @@ export function ExpenseInlineCardForm({
     expenseMode === ExpenseMode.Edit && expense
       ? expense.timestampIncurred
       : (tripLocalState?.expenseTimestampIncurred ?? trip.timestampStart);
-  const initialDestination = destinationAt(trip, initialInstant);
+  const destinations = useMemo(() => itinerary(trip), [trip]);
+  const initialDestination = destinationAt(destinations, initialInstant);
   const initialZone = multiRegion
     ? expenseMode === ExpenseMode.Edit
       ? (expense?.timeZoneIncurred ?? trip.timeZone)
@@ -209,7 +211,7 @@ export function ExpenseInlineCardForm({
   const [automaticZone, setAutomaticZone] = useState(initialZone);
   const manualCurrency = useRef(false);
   const defaults = useDestinationDefaults(
-    addingExpense ? trip : undefined,
+    multiRegion && addingExpense ? destinations : undefined,
     formState.dateTimeIncurred instanceof Temporal.PlainDateTime
       ? formState.dateTimeIncurred
       : undefined,
@@ -479,7 +481,7 @@ export function ExpenseInlineCardForm({
         addingExpense &&
         date instanceof Temporal.PlainDateTime
       ) {
-        const choices = destinationChoices(trip, date);
+        const choices = destinationChoices(destinations, date);
         if (choices.length === 1) applyDestination(choices[0]);
       }
     },
@@ -488,7 +490,7 @@ export function ExpenseInlineCardForm({
       applyDestination,
       defaults.setSelectedId,
       multiRegion,
-      trip,
+      destinations,
     ],
   );
 

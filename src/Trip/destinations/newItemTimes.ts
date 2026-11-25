@@ -1,4 +1,4 @@
-import { type DestinationTrip, destinationAt } from './destinations';
+import { type DestinationTrip, destinationAt, itinerary } from './destinations';
 
 export type NewItemPrefill = {
   dayOfTrip: number;
@@ -30,9 +30,10 @@ export function newActivityTimes(
             })
         : inTripZone(previous ?? trip.timestampStart);
   const end = start.add({ hours });
-  const startDestination = destinationAt(trip, start.epochMilliseconds);
+  const destinations = itinerary(trip);
+  const startDestination = destinationAt(destinations, start.epochMilliseconds);
   const endDestination = separateEndpoints
-    ? destinationAt(trip, end.epochMilliseconds)
+    ? destinationAt(destinations, end.epochMilliseconds)
     : startDestination;
   return [
     start.withTimeZone(startDestination.timeZone).toPlainDateTime(),

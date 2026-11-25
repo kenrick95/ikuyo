@@ -10,14 +10,13 @@ return new class extends Migration
     {
         Schema::table('trips', function (Blueprint $table): void {
             $table->json('destinations')->nullable();
-            $table->unsignedInteger('destination_revision')->default(0);
         });
     }
 
     public function down(): void
     {
         Schema::table('trips', function (Blueprint $table): void {
-            $table->dropColumn(['destinations', 'destination_revision']);
+            $table->dropColumn('destinations');
         });
     }
 };

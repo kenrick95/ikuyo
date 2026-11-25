@@ -101,9 +101,12 @@ type ResolvedDestination = Pick<
   'id' | 'name' | 'region' | 'currency' | 'timeZone'
 > & { startsAtMs: number };
 
-export function itinerary(
-  trip: DestinationTrip,
-): [ResolvedDestination, ...ResolvedDestination[]] {
+export type DestinationItinerary = readonly [
+  ResolvedDestination,
+  ...ResolvedDestination[],
+];
+
+export function itinerary(trip: DestinationTrip): DestinationItinerary {
   return [
     {
       id: 'first',
@@ -115,25 +118,26 @@ export function itinerary(
     },
     ...(trip.destinations ?? [])
       .flatMap((destination) => {
+        const { id, name, region, currency, timeZone } = destination;
         const startsAtMs =
           destination.startsAtMs ?? destinationStart(destination);
-        return startsAtMs === undefined ? [] : [{ ...destination, startsAtMs }];
+        return startsAtMs === undefined
+          ? []
+          : [{ id, name, region, currency, timeZone, startsAtMs }];
       })
       .sort((a, b) => a.startsAtMs - b.startsAtMs),
   ];
 }
 
-export function destinationAt(trip: DestinationTrip, instant: number) {
-  const [first, ...stops] = itinerary(trip);
-  return stops.findLast((stop) => stop.startsAtMs <= instant) ?? first;
+export function destinationAt(stops: DestinationItinerary, instant: number) {
+  return stops.findLast((stop) => stop.startsAtMs <= instant) ?? stops[0];
 }
 
 export function destinationChoices(
-  trip: DestinationTrip,
+  stops: DestinationItinerary,
   value?: Temporal.PlainDateTime,
   place?: string,
 ) {
-  const stops = itinerary(trip);
   const normalized = place?.trim().toLocaleLowerCase();
   const parts = normalized?.split(/[,，]/).map((part) => part.trim()) ?? [];
   const matchesName = (name: string | undefined) => {

@@ -1,13 +1,13 @@
 import { Flex, Select, Text } from '@radix-ui/themes';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import {
-  type DestinationTrip,
+  type DestinationItinerary,
   destinationAt,
   destinationChoices,
 } from './destinations';
 
 export function useDestinationDefaults(
-  trip: DestinationTrip | undefined,
+  destinations: DestinationItinerary | undefined,
   value: Temporal.PlainDateTime | undefined,
   place?: string,
   instant?: number,
@@ -15,10 +15,10 @@ export function useDestinationDefaults(
   const trigger = useRef<HTMLButtonElement>(null);
   const [attempt, setAttempt] = useState(0);
   const [selectedId, setSelected] = useState('');
-  const choices = trip?.destinations?.length
+  const choices = destinations
     ? instant !== undefined && !place?.trim()
-      ? [destinationAt(trip, instant)]
-      : destinationChoices(trip, value, place)
+      ? [destinationAt(destinations, instant)]
+      : destinationChoices(destinations, value, place)
     : [];
   const selected =
     choices.find((destination) => destination.id === selectedId) ??

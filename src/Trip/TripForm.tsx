@@ -42,7 +42,6 @@ export function TripForm({
   tripTimeZone,
   tripRegion,
   tripDestinations,
-  destinationRevision,
   arrivals,
   dayPlans,
   tripCurrency,
@@ -62,7 +61,6 @@ export function TripForm({
   tripTimeZone: string;
   tripRegion: string;
   tripDestinations?: TripDestination[];
-  destinationRevision?: number;
   arrivals?: DestinationArrival[];
   dayPlans?: { id: string; name: string; date: string }[];
   tripCurrency: string;
@@ -100,7 +98,8 @@ export function TripForm({
     Temporal.PlainDate | undefined
   >(tripEndDateTime);
 
-  const [destinations, setDestinations] = useState(tripDestinations ?? []);
+  const [editedDestinations, setEditedDestinations] =
+    useState<TripDestination[]>();
   const [showDestinations, setShowDestinations] = useState(
     Boolean(tripDestinations?.length),
   );
@@ -265,7 +264,7 @@ export function TripForm({
       const timestampEnd =
         dateEndForDb.toZonedDateTime(timeZone).epochMilliseconds;
       const invalid = validateDestinations(
-        destinations,
+        editedDestinations ?? tripDestinations ?? [],
         timestampStart,
         timestampEnd,
       );
@@ -290,9 +289,7 @@ export function TripForm({
             originRegion,
             originTimeZone,
             sharingLevel: tripSharingLevel,
-            ...(destinations.length || tripDestinations?.length
-              ? { destinations, destinationRevision: destinationRevision ?? 0 }
-              : {}),
+            destinations: editedDestinations,
           });
         } catch (error) {
           setErrorMessage(
@@ -363,8 +360,7 @@ export function TripForm({
     currentOriginTimeZone,
     currentStartDate,
     currentEndDate,
-    destinationRevision,
-    destinations,
+    editedDestinations,
     isDestinationDraft,
     tripDestinations,
   ]);
@@ -594,10 +590,10 @@ export function TripForm({
                     day: 'numeric',
                   }),
                 }}
-                destinations={destinations}
+                destinations={editedDestinations ?? tripDestinations ?? []}
                 issue={destinationIssue}
                 onChange={(value) => {
-                  setDestinations(value);
+                  setEditedDestinations(value);
                   setDestinationIssue(undefined);
                 }}
                 onDraftChange={setIsDestinationDraft}

@@ -144,7 +144,7 @@ The server verifies identifiers, supported zones and currencies, and unique star
 
 Extend the existing trip create, update, and full-trip read contracts with `destinations`. Omission in an update keeps the current itinerary. An empty array clears the added destinations. The create path saves trip details and destinations in one transaction. Optional transport records use the existing post-create flow. If optional transport fails, keep the trip and offer a retry for the failed entries using the same IDs.
 
-The full trip response includes a `destinationRevision` counter. Under the trip write lock, the server compares the counter on itinerary updates. It then verifies the full itinerary and saves and publishes the update. Changes to the destination list, trip dates, or first destination defaults increment the counter. A stale update returns a conflict so the editor can reload the saved itinerary.
+The server verifies and saves the itinerary under the existing trip write lock. The trip editor sends the destination list only after the user edits it.
 
 Existing trip edit permissions, archive rules, and read visibility apply. The full trip API, store, and sync carry the itinerary to viewers with trip access. Trip listing payloads need only the existing summary fields.
 
@@ -152,7 +152,7 @@ Trip duplication copies added destinations with fresh IDs and shifts each start 
 
 ## Implementation and verification
 
-1. Add the trip migration, API validation, revision check, sync mapping, and duplication support.
+1. Add the trip migration, API validation, sync mapping, and duplication support.
 2. Add the destination editor to **Edit trip** and the opt-in wizard branch. Reuse the date, currency, and time-zone controls.
 3. Apply the resolver to new activities, transport, accommodations, and expenses. Pass explicit date and time context from their entry points.
 4. Share a display-zone adapter between the Timetable and List. Apply it to day grouping and grid interactions before adding the header selector.
@@ -163,7 +163,7 @@ Trip duplication copies added destinations with fresh IDs and shifts each start 
 | Destination changes | Cover a domestic zone change, a cross-border train, a return visit, an arrival copy, and removal of all added destinations. Verify defaults before, at, and after arrival. |
 | Item forms | Add a late expense for an earlier stop. Verify manual choices, currency locks, refund currency, and both transport endpoint zones. |
 | Itinerary views | Verify cross-midnight grouping, clock changes, click and drop behavior, and the same selected zone in both views. Verify keyboard and narrow-screen access. |
-| Trip lifecycle | Verify create and update contracts, sync, stale saves, read and edit permissions, archives, and duplicate date shifts. |
+| Trip lifecycle | Verify create and update contracts, sync, read and edit permissions, archives, and duplicate date shifts. |
 
 The additive migration uses the existing `php scripts/deploy/deploy.php` workflow. The deployment controller keeps its manual gate for pending migrations and incomplete deployments. Builds without pending migrations retain automatic single-copy rsync deployment.
 

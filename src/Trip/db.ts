@@ -57,7 +57,6 @@ export type DbTrip = {
   /** destination's default currency */
   currency: string;
   destinations?: TripDestination[];
-  destinationRevision?: number;
   /** origin's default currency */
   originCurrency: string;
   /** origin 2-letter Intl region. Uppercase! Optional for backward compat */
@@ -153,13 +152,16 @@ export async function dbUpdateTrip(
         originTimeZone: trip.originTimeZone ?? '',
       }),
     async () => {
-      const result = await putMutation<
-        Pick<DbTrip, 'destinations' | 'destinationRevision'>
-      >(`/api/trips/${encodeURIComponent(trip.id)}`, trip);
-      if (result.destinationRevision !== undefined) {
+      const result = await putMutation<Pick<DbTrip, 'destinations'>>(
+        `/api/trips/${encodeURIComponent(trip.id)}`,
+        trip,
+      );
+      if (
+        trip.destinations !== undefined &&
+        result.destinations !== undefined
+      ) {
         optimisticPatchTrip(trip.id, {
           destinations: result.destinations,
-          destinationRevision: result.destinationRevision,
         });
       }
       return result;

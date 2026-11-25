@@ -170,7 +170,6 @@ class TripController extends Controller
             'originRegion' => ['nullable', 'string', 'max:8'],
             'originTimeZone' => ['nullable', 'string', 'max:64'],
             ...TripDestinations::RULES,
-            'destinationRevision' => ['required_with:destinations', 'integer', 'min:0'],
         ]);
         $map = ['title' => 'title', 'timestampStart' => 'timestamp_start_ms', 'timestampEnd' => 'timestamp_end_ms', 'timeZone' => 'timezone', 'region' => 'region', 'currency' => 'currency', 'originCurrency' => 'origin_currency', 'originRegion' => 'origin_region', 'originTimeZone' => 'origin_timezone'];
         foreach ($map as $key => $attribute) {
@@ -179,13 +178,9 @@ class TripController extends Controller
             }
         }
         if (array_key_exists('destinations', $data)) {
-            abort_unless((int) ($data['destinationRevision'] ?? -1) === (int) $trip->destination_revision, 409, 'Destinations changed. Reopen Edit trip and try again.');
             $trip->destinations = TripDestinations::resolve($data['destinations'], $trip->timestamp_start_ms, $trip->timestamp_end_ms) ?: null;
         } elseif ($trip->destinations && $trip->isDirty(['timestamp_start_ms', 'timestamp_end_ms'])) {
             TripDestinations::resolve($trip->destinations, $trip->timestamp_start_ms, $trip->timestamp_end_ms);
-        }
-        if ($trip->isDirty(['destinations', 'timestamp_start_ms', 'timestamp_end_ms', 'timezone', 'region', 'currency'])) {
-            $trip->destination_revision = (int) $trip->destination_revision + 1;
         }
         $trip->save();
 
@@ -402,7 +397,6 @@ class TripController extends Controller
             'region' => $trip->region,
             'currency' => $trip->currency,
             'destinations' => $trip->destinations ?? [],
-            'destinationRevision' => (int) $trip->destination_revision,
             'originCurrency' => $trip->origin_currency,
             'originRegion' => $trip->origin_region,
             'originTimeZone' => $trip->origin_timezone,

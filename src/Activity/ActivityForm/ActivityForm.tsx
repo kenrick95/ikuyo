@@ -11,7 +11,7 @@ import {
   DestinationPicker,
   useDestinationDefaults,
 } from '../../Trip/destinations/DestinationDefaults';
-import type { DestinationTrip } from '../../Trip/destinations/destinations';
+import type { DestinationItinerary } from '../../Trip/destinations/destinations';
 import { itemZonedTime } from '../../Trip/destinations/newItemTimes';
 import { ActivityMap } from '../ActivityDialog/ActivityDialogMap';
 import {
@@ -38,7 +38,7 @@ export function ActivityForm({
   mode,
   activityId,
   tripId,
-  destinationTrip,
+  destinations,
   prefilledStart,
   prefilledEnd,
   tripStartDateTime,
@@ -77,7 +77,7 @@ export function ActivityForm({
   tripEndDateTime: Temporal.PlainDate | undefined;
   tripTimeZone: string;
   tripRegion: string;
-  destinationTrip?: DestinationTrip;
+  destinations?: DestinationItinerary;
   prefilledStart?: number;
   prefilledEnd?: number;
   activityTitle: string;
@@ -171,7 +171,7 @@ export function ActivityForm({
   const [manualStartZone, setManualStartZone] = useState(false);
   const [manualEndZone, setManualEndZone] = useState(false);
   const startDefaults = useDestinationDefaults(
-    destinationTrip,
+    destinations,
     startDateTime,
     locationFieldsState.names[0],
     activityStartDateTime && startDateTime?.equals(activityStartDateTime)
@@ -179,7 +179,7 @@ export function ActivityForm({
       : undefined,
   );
   const endDefaults = useDestinationDefaults(
-    destinationTrip,
+    destinations,
     locationFieldsState.names[1] ? endDateTime : undefined,
     locationFieldsState.names[1],
   );
@@ -190,7 +190,7 @@ export function ActivityForm({
     ? initialEndZone
     : locationFieldsState.names[1]
       ? (endDefaults.selected?.timeZone ?? startTimeZone)
-      : destinationTrip?.destinations?.length
+      : destinations
         ? startTimeZone
         : initialEndZone;
 
@@ -839,7 +839,7 @@ export function ActivityForm({
 
         <Text as="label" htmlFor="timeZoneStart">
           Start time zone{' '}
-          {!destinationTrip?.destinations?.length && (
+          {!destinations && (
             <Text weight="light" size="1">
               (trip default time zone is {tripTimeZone})
             </Text>
@@ -873,7 +873,7 @@ export function ActivityForm({
         />
         <Text as="label" htmlFor="timeZoneEnd">
           End time zone{' '}
-          {!destinationTrip?.destinations?.length && (
+          {!destinations && (
             <Text weight="light" size="1">
               (trip default time zone is {tripTimeZone})
             </Text>

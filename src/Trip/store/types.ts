@@ -154,7 +154,6 @@ export type DbTripQueryReturnType = {
   region: string;
   originCurrency: string;
   destinations?: TripDestination[];
-  destinationRevision?: number;
   originRegion?: string | null;
   originTimeZone?: string | null;
   archivedAt?: number;

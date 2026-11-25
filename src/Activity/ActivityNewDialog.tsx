@@ -2,6 +2,7 @@ import { Box, Dialog } from '@radix-ui/themes';
 import { useCallback, useMemo } from 'react';
 import { CommonLargeDialogMaxWidth } from '../Dialog/ui';
 import { useBoundStore } from '../data/store';
+import { itinerary } from '../Trip/destinations/destinations';
 import {
   type NewItemPrefill,
   newActivityTimes,
@@ -71,7 +72,7 @@ export function ActivityNewDialog({
         <ActivityForm
           mode={ActivityFormMode.New}
           tripId={trip.id}
-          destinationTrip={trip}
+          destinations={trip.destinations?.length ? itinerary(trip) : undefined}
           prefilledStart={prefilledStart}
           prefilledEnd={prefilledEnd}
           tripStartDateTime={tripStartDateTime}

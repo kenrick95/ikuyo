@@ -17,7 +17,7 @@ import {
   DestinationPicker,
   useDestinationDefaults,
 } from '../../Trip/destinations/DestinationDefaults';
-import type { DestinationTrip } from '../../Trip/destinations/destinations';
+import type { DestinationItinerary } from '../../Trip/destinations/destinations';
 import { AccommodationMap } from '../AccommodationDialog/AccommodationDialogMap';
 import { dbAddAccommodation, dbUpdateAccommodation } from '../db';
 import { geocodingRequest } from './AccommodationFormGeocoding';
@@ -82,7 +82,7 @@ export function AccommodationForm({
   mode,
   accommodationId,
   tripId,
-  destinationTrip,
+  destinations,
 
   tripTimeZone,
   tripStartDateTime,
@@ -113,7 +113,7 @@ export function AccommodationForm({
   /** Trip's final day */
   tripEndDateTime: Temporal.PlainDate | undefined;
   tripRegion: string;
-  destinationTrip?: DestinationTrip;
+  destinations?: DestinationItinerary;
 
   accommodationName: string;
   accommodationAddress: string;
@@ -158,7 +158,7 @@ export function AccommodationForm({
   const [manualCheckOutZone, setManualCheckOutZone] = useState(false);
   const [propertyAddress, setPropertyAddress] = useState(accommodationAddress);
   const defaults = useDestinationDefaults(
-    destinationTrip,
+    destinations,
     checkInDateTime,
     propertyAddress,
   );
@@ -166,9 +166,7 @@ export function AccommodationForm({
     ? initialCheckInZone
     : (defaults.selected?.timeZone ?? initialCheckInZone);
   const checkOutTimeZone =
-    manualCheckOutZone || !destinationTrip?.destinations?.length
-      ? initialCheckOutZone
-      : checkInTimeZone;
+    manualCheckOutZone || !destinations ? initialCheckOutZone : checkInTimeZone;
 
   const propertyRegion = defaults.selected?.region ?? tripRegion;
 
