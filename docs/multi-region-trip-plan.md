@@ -21,11 +21,10 @@ New trip
 
 Trip name                     [ Japan and Taiwan       ]
 Destination Region / Country  [ Japan                ▾ ]
-                              [ Add another destination ]
 Origin Region / Country       [ Singapore            ▾ ]
 Dates                         [ 3 May ] to [ 10 May    ]
 
-                                             [ Next → ]
+                 [ Add another destination ] [ Next → ]
 ```
 
 The branch shows the destinations in start order. The first row uses the trip start date. After the user selects a place, the row shows the editable time zone and currency.
