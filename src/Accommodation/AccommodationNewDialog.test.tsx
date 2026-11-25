@@ -152,3 +152,62 @@ test('opens a new accommodation prefilled from a timetable day', () => {
     screen.getByRole('button', { name: /^Accommodation check in time:/ }),
   ).toHaveTextContent('4 November 2026');
 });
+
+test.each([
+  { slot: '2026-11-02T23:30:00+08:00', day: 3 },
+  { slot: '2026-11-02T21:00:00+08:00', day: 2 },
+])(
+  'uses the destination and local day at timetable slot $slot',
+  async ({ slot, day }) => {
+    const user = userEvent.setup();
+    const selectedTrip: TripSliceTrip = {
+      ...trip,
+      destinations: [
+        {
+          id: 'tokyo',
+          name: 'Tokyo',
+          region: 'JP',
+          currency: 'JPY',
+          timeZone: 'Asia/Tokyo',
+          startsOn: '2026-11-02',
+          startsAtTime: '18:00',
+          startOffset: null,
+          startsAtMs: Date.parse('2026-11-02T18:00:00+09:00'),
+        },
+      ],
+    };
+    render(
+      <Theme>
+        <AccommodationNewDialog
+          trip={selectedTrip}
+          prefillData={{
+            dayOfTrip: 2,
+            date: '2026-11-02',
+            instant: Date.parse(slot),
+          }}
+        />
+      </Theme>,
+    );
+    expect(
+      screen.getByRole('button', { name: /^Accommodation check in time:/ }),
+    ).toHaveTextContent(`${day} November 2026`);
+    expect(
+      screen.getByRole('combobox', { name: /^Check in time zone/ }),
+    ).toHaveTextContent('Asia/Tokyo');
+    await user.type(
+      screen.getByRole('textbox', { name: /Accommodation name/ }),
+      'Tokyo hotel',
+    );
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(dbAddAccommodation).toHaveBeenCalledOnce());
+    expect(dbAddAccommodation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        timestampCheckIn: Date.parse(`2026-11-0${day}T15:00:00+09:00`),
+        timestampCheckOut: Date.parse(`2026-11-0${day + 1}T11:00:00+09:00`),
+        timeZoneCheckIn: 'Asia/Tokyo',
+        timeZoneCheckOut: 'Asia/Tokyo',
+      }),
+      { tripId: trip.id },
+    );
+  },
+);

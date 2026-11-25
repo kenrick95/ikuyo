@@ -17,6 +17,7 @@ export function AccommodationNewDialog({
   prefillData?: {
     dayOfTrip: number;
     date?: string;
+    instant?: number;
   };
 }) {
   const popDialog = useBoundStore((state) => state.popDialog);
@@ -49,7 +50,24 @@ export function AccommodationNewDialog({
     accommodationCheckOutDateTime,
     accommodationCheckInTimeZone,
     accommodationCheckOutTimeZone,
+    prefilledSlotInstant,
   ] = useMemo(() => {
+    if (prefillData?.instant !== undefined) {
+      const instant = Temporal.Instant.fromEpochMilliseconds(
+        prefillData.instant,
+      );
+      const timeZone = destinations
+        ? destinationAt(destinations, instant).timeZone
+        : trip.timeZone;
+      const date = instant.toZonedDateTimeISO(timeZone).toPlainDate();
+      return [
+        date.toPlainDateTime({ hour: 15 }),
+        date.add({ days: 1 }).toPlainDateTime({ hour: 11 }),
+        timeZone,
+        timeZone,
+        instant,
+      ] as const;
+    }
     if (destinations) {
       const date = prefillData?.date
         ? Temporal.PlainDate.from(prefillData.date)
@@ -87,7 +105,7 @@ export function AccommodationNewDialog({
         checkOutTime.toPlainDateTime(),
         checkInTime.timeZoneId,
         checkOutTime.timeZoneId,
-      ];
+      ] as const;
     }
 
     const defaultCheckInDate = getDefaultAccommodationCheckInDate(
@@ -110,7 +128,7 @@ export function AccommodationNewDialog({
         .toPlainDateTime(),
       trip.timeZone,
       trip.timeZone,
-    ];
+    ] as const;
   }, [trip, accommodations, destinations, prefillData, tripEndDateTime]);
 
   return (
@@ -128,6 +146,7 @@ export function AccommodationNewDialog({
           mode={AccommodationFormMode.New}
           tripId={trip.id}
           destinations={destinations}
+          prefilledSlotInstant={prefilledSlotInstant}
           tripTimeZone={trip.timeZone}
           tripStartDateTime={tripStartDateTime}
           tripEndDateTime={tripEndDateTime}

@@ -305,6 +305,26 @@ try {
   );
   await page.goto(`${base + tripUrl}/timetable`);
 
+  const accommodationSlot = page.locator(
+    `[data-grid-cell][data-instant="${slot}"]`,
+  );
+  await accommodationSlot.scrollIntoViewIfNeeded();
+  await accommodationSlot.click({ button: 'right' });
+  await page.getByRole('menuitem', { name: 'New accommodation' }).click();
+  const newAccommodation = page.getByRole('dialog', {
+    name: 'New Accommodation',
+  });
+  await newAccommodation
+    .getByRole('button', {
+      name: /Accommodation check in time:.*6 May 2026 15:00/,
+    })
+    .waitFor();
+  assert.equal(
+    await newAccommodation.locator('[id="timeZoneCheckIn"]').textContent(),
+    'Asia/Tokyo',
+  );
+  await page.goto(`${base + tripUrl}/timetable`);
+
   await page.getByRole('button', { name: 'Actions' }).click();
   await page.getByRole('menuitem', { name: 'Edit trip' }).click();
   await page.getByRole('button', { name: 'Edit Taipei' }).click();

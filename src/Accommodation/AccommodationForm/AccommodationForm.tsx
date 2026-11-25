@@ -83,6 +83,7 @@ export function AccommodationForm({
   accommodationId,
   tripId,
   destinations,
+  prefilledSlotInstant,
 
   tripTimeZone,
   tripStartDateTime,
@@ -114,6 +115,8 @@ export function AccommodationForm({
   tripEndDateTime: Temporal.PlainDate | undefined;
   tripRegion: string;
   destinations?: DestinationItinerary;
+  /** Timetable instant used to select the destination for the initial stay. */
+  prefilledSlotInstant?: Temporal.Instant;
 
   accommodationName: string;
   accommodationAddress: string;
@@ -161,6 +164,10 @@ export function AccommodationForm({
     destinations,
     checkInDateTime,
     propertyAddress,
+    accommodationCheckInDateTime &&
+      checkInDateTime?.equals(accommodationCheckInDateTime)
+      ? prefilledSlotInstant
+      : undefined,
   );
   const checkInTimeZone = manualCheckInZone
     ? initialCheckInZone
