@@ -19,11 +19,20 @@ import {
 } from 'react';
 import { DateTimePicker } from '../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../common/DatePicker2/DateTimePickerMode';
-// import { TimeZoneSelect } from '../common/TimeZoneSelect/TimeZoneSelect';
+import { TimeZoneSelect } from '../common/TimeZoneSelect/TimeZoneSelect';
 import { dangerToken } from '../common/ui';
 import { id as newExpenseId } from '../data/id';
 import { ALL_CURRENCIES } from '../data/intl/currencies';
 import { useBoundStore } from '../data/store';
+import {
+  DestinationPicker,
+  useDestinationDefaults,
+} from '../Trip/destinations/DestinationDefaults';
+import {
+  destinationAt,
+  destinationChoices,
+  itinerary,
+} from '../Trip/destinations/destinations';
 import type { TripSliceExpense, TripSliceTrip } from '../Trip/store/types';
 import { formatCurrencyAmount } from './currency';
 import { dbAddExpense, dbUpdateExpense } from './db';
@@ -55,25 +64,23 @@ export function ExpenseInlineCardForm({
   );
   const setTripLocalState = useBoundStore((state) => state.setTripLocalState);
 
-  const dateTimeIncurred: Temporal.PlainDate = useMemo(
-    () =>
-      Temporal.Instant.fromEpochMilliseconds(
-        expenseMode === ExpenseMode.Edit && expense
-          ? expense.timestampIncurred
-          : tripLocalState?.expenseTimestampIncurred != null
-            ? tripLocalState?.expenseTimestampIncurred
-            : trip.timestampStart,
-      )
-        .toZonedDateTimeISO(trip.timeZone)
-        .toPlainDate(),
-    [
-      trip.timestampStart,
-      trip.timeZone,
-      tripLocalState?.expenseTimestampIncurred,
-      expense,
-      expenseMode,
-    ],
+  const multiRegion = Boolean(trip.destinations?.length);
+  const addingExpense = expenseMode !== ExpenseMode.Edit && !refundOf;
+  const initialInstant = Temporal.Instant.fromEpochMilliseconds(
+    expenseMode === ExpenseMode.Edit && expense
+      ? expense.timestampIncurred
+      : (tripLocalState?.expenseTimestampIncurred ?? trip.timestampStart),
   );
+  const destinations = useMemo(() => itinerary(trip), [trip]);
+  const initialDestination = destinationAt(destinations, initialInstant);
+  const initialZone = multiRegion
+    ? expenseMode === ExpenseMode.Edit
+      ? (expense?.timeZoneIncurred ?? trip.timeZone)
+      : initialDestination.timeZone
+    : trip.timeZone;
+  const initialDate = initialInstant.toZonedDateTimeISO(initialZone);
+  const dateTimeIncurred: Temporal.PlainDate | Temporal.PlainDateTime =
+    multiRegion ? initialDate.toPlainDateTime() : initialDate.toPlainDate();
   const publishToast = useBoundStore((state) => state.publishToast);
   const idForm = useId();
   const [formState, setFormState] = useState(
@@ -115,12 +122,14 @@ export function ExpenseInlineCardForm({
           dateTimeIncurred,
           title: '',
           description: '',
-          currency:
-            tripLocalState?.expenseCurrency != null
+          currency: multiRegion
+            ? initialDestination.currency
+            : tripLocalState?.expenseCurrency != null
               ? tripLocalState?.expenseCurrency
               : trip.currency,
           amount: '',
           currencyConversionFactor:
+            !multiRegion &&
             tripLocalState?.expenseCurrencyConversionFactor != null
               ? formatCurrencyAmount(
                   undefined,
@@ -196,11 +205,26 @@ export function ExpenseInlineCardForm({
       return { ...previous, paidBy, shares, contributions };
     });
   }, [selfId]);
-  const [timeZoneIncurred] = useState<string>(
-    expenseMode === ExpenseMode.Edit && expense && expense.timeZoneIncurred
-      ? expense.timeZoneIncurred
-      : trip.timeZone,
+  const [manualZone, setManualZone] = useState<string>();
+  const [automaticZone, setAutomaticZone] = useState(initialZone);
+  const manualCurrency = useRef(false);
+  const defaults = useDestinationDefaults(
+    multiRegion && addingExpense ? destinations : undefined,
+    formState.dateTimeIncurred instanceof Temporal.PlainDateTime
+      ? formState.dateTimeIncurred
+      : undefined,
+    undefined,
+    formState.dateTimeIncurred instanceof Temporal.PlainDateTime &&
+      dateTimeIncurred instanceof Temporal.PlainDateTime &&
+      formState.dateTimeIncurred.equals(dateTimeIncurred)
+      ? initialInstant
+      : undefined,
   );
+  const timeZoneIncurred =
+    manualZone ??
+    (expenseMode === ExpenseMode.Edit && expense?.timeZoneIncurred
+      ? expense.timeZoneIncurred
+      : automaticZone);
 
   const resetFormState = useCallback(() => {
     setFormState((prevValue) => ({
@@ -286,7 +310,7 @@ export function ExpenseInlineCardForm({
 
   const handleForm = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (submitting.current) return;
+    if (submitting.current || (!manualZone && !defaults.validate())) return;
     setErrorMessage('');
     try {
       const { dateTimeIncurred, title, description, currency, amount } =
@@ -383,6 +407,7 @@ export function ExpenseInlineCardForm({
   };
   const handleCurrencyChange = useCallback(
     (value: string) => {
+      manualCurrency.current = true;
       setLedger((previous) => ({
         ...previous,
         allocations: undefined,
@@ -416,19 +441,55 @@ export function ExpenseInlineCardForm({
   const refTimestampIncurred = useRef<HTMLButtonElement>(null);
   const refTitle = useRef<HTMLInputElement>(null);
 
+  const applyDestination = useCallback(
+    (destination: { timeZone: string; currency: string } | undefined) => {
+      if (!destination) return;
+      setAutomaticZone(destination.timeZone);
+      setFormState((prev) => {
+        if (
+          manualCurrency.current ||
+          prev.amount ||
+          prev.amountInOriginCurrency ||
+          prev.currencyConversionFactor ||
+          ledger.method != null ||
+          ledger.contributions?.length ||
+          prev.currency === destination.currency
+        )
+          return prev;
+        return { ...prev, currency: destination.currency };
+      });
+    },
+    [ledger.method, ledger.contributions?.length],
+  );
+
   const handleTimestampIncurredChange = useCallback(
     (value: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
-      if (value) {
-        setFormState((prev) => ({
-          ...prev,
-          dateTimeIncurred:
-            value instanceof Temporal.PlainDateTime
-              ? value.toPlainDate()
-              : value,
-        }));
+      if (!value) return;
+      const date = multiRegion
+        ? value instanceof Temporal.PlainDateTime
+          ? value
+          : value.toPlainDateTime()
+        : value instanceof Temporal.PlainDateTime
+          ? value.toPlainDate()
+          : value;
+      setFormState((prev) => ({ ...prev, dateTimeIncurred: date }));
+      defaults.setSelectedId('');
+      if (
+        multiRegion &&
+        addingExpense &&
+        date instanceof Temporal.PlainDateTime
+      ) {
+        const choices = destinationChoices(destinations, date);
+        if (choices.length === 1) applyDestination(choices[0]);
       }
     },
-    [],
+    [
+      addingExpense,
+      applyDestination,
+      defaults.setSelectedId,
+      multiRegion,
+      destinations,
+    ],
   );
 
   const calculateAmount = useCallback(() => {
@@ -550,7 +611,9 @@ export function ExpenseInlineCardForm({
       <DateTimePicker
         name="timestampIncurred"
         aria-label="Date incurred"
-        mode={DateTimePickerMode.Date}
+        mode={
+          multiRegion ? DateTimePickerMode.DateTime : DateTimePickerMode.Date
+        }
         value={formState.dateTimeIncurred}
         onChange={handleTimestampIncurredChange}
         required
@@ -558,7 +621,7 @@ export function ExpenseInlineCardForm({
         placeholder="Select date"
       />
     );
-  }, [formState.dateTimeIncurred, handleTimestampIncurredChange]);
+  }, [formState.dateTimeIncurred, handleTimestampIncurredChange, multiRegion]);
 
   const fieldSelectCurrency = useMemo(() => {
     return (
@@ -596,24 +659,49 @@ export function ExpenseInlineCardForm({
       )}
       <div className={s.formRow}>
         <Text color="gray" size="1" weight="medium" className={s.formLabel}>
-          Date Incurred * (in {timeZoneIncurred} time zone)
+          Date incurred *
+          {!multiRegion ? ` (in ${timeZoneIncurred} time zone)` : ''}
         </Text>
         {fieldTimestampIncurred}
       </div>
 
-      {/* TODO: implement later */}
-      {/* <div className={s.formRow}>
-        <Text color="gray" size="1" weight="medium" className={s.formLabel}>
-          Time Zone (trip default: {trip.timeZone})
-        </Text>
-        <TimeZoneSelect
-          id="timeZoneIncurred"
-          name="timeZoneIncurred"
-          value={timeZoneIncurred}
-          handleChange={handleTimeZoneChange}
-          isFormLoading={formState.loading}
-        />
-      </div> */}
+      {multiRegion ? (
+        <>
+          {!manualZone && (
+            <DestinationPicker
+              defaults={{
+                ...defaults,
+                setSelectedId: (id) => {
+                  defaults.setSelectedId(id);
+                  applyDestination(
+                    defaults.choices.find(
+                      (destination) => destination.id === id,
+                    ),
+                  );
+                },
+              }}
+            />
+          )}
+          <div className={s.formRow}>
+            <Text
+              as="label"
+              htmlFor={`${idForm}-zone`}
+              size="1"
+              weight="medium"
+              className={s.formLabel}
+            >
+              Time zone
+            </Text>
+            <TimeZoneSelect
+              id={`${idForm}-zone`}
+              name="timeZoneIncurred"
+              value={timeZoneIncurred}
+              handleChange={setManualZone}
+              isFormLoading={formState.loading}
+            />
+          </div>
+        </>
+      ) : null}
 
       <div className={s.formRow}>
         <Text

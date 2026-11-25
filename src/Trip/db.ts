@@ -18,6 +18,10 @@ import {
 import type { DbUser } from '../data/types';
 import type { DbMacroplan, DbMacroplanWithTrip } from '../Macroplan/db';
 import { TripUserRole } from '../User/TripUserRole';
+import {
+  duplicateDestinations,
+  type TripDestination,
+} from './destinations/destinations';
 import type { TripSliceTrip } from './store/types';
 import type { TripSharingLevelType } from './tripSharingLevel';
 
@@ -55,6 +59,7 @@ export type DbTrip = {
   region: string;
   /** destination's default currency */
   currency: string;
+  destinations?: TripDestination[];
   /** origin's default currency */
   originCurrency: string;
   /** origin 2-letter Intl region. Uppercase! Optional for backward compat */
@@ -137,6 +142,9 @@ export async function dbUpdateTrip(
     () =>
       optimisticPatchTrip(trip.id, {
         title: trip.title,
+        ...(trip.destinations !== undefined
+          ? { destinations: trip.destinations }
+          : {}),
         timestampStart: trip.timestampStart,
         timestampEnd: trip.timestampEnd,
         timeZone: trip.timeZone,
@@ -146,7 +154,21 @@ export async function dbUpdateTrip(
         originRegion: trip.originRegion ?? '',
         originTimeZone: trip.originTimeZone ?? '',
       }),
-    () => putMutation(`/api/trips/${encodeURIComponent(trip.id)}`, trip),
+    async () => {
+      const result = await putMutation<Pick<DbTrip, 'destinations'>>(
+        `/api/trips/${encodeURIComponent(trip.id)}`,
+        trip,
+      );
+      if (
+        trip.destinations !== undefined &&
+        result.destinations !== undefined
+      ) {
+        optimisticPatchTrip(trip.id, {
+          destinations: result.destinations,
+        });
+      }
+      return result;
+    },
   );
 }
 
@@ -169,13 +191,21 @@ export type TripDuplicateOptions = {
  * Duplicate a trip into a new trip owned by `userId`.
  */
 export async function dbDuplicateTrip(
-  sourceTripId: string,
+  sourceTrip: Pick<
+    DbTrip,
+    'id' | 'timeZone' | 'timestampStart' | 'destinations'
+  >,
   options: TripDuplicateOptions,
   { userId: _userId }: { userId: string },
 ) {
+  const destinations = duplicateDestinations(
+    sourceTrip,
+    options.startDateMs,
+    options.endDateMs,
+  );
   const result = await postMutation<{ id: string }>(
-    `/api/trips/${encodeURIComponent(sourceTripId)}/duplicate`,
-    options,
+    `/api/trips/${encodeURIComponent(sourceTrip.id)}/duplicate`,
+    destinations ? { ...options, destinations } : options,
   );
   return { id: result.id, result };
 }

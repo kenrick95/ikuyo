@@ -41,11 +41,7 @@ describe('TimetableDragTarget', () => {
           gridStyle={{}}
           scrollContainerRef={{ current: null }}
           userCanModifyTrip={true}
-          onNewActivity={vi.fn()}
-          onNewFlight={vi.fn()}
-          onNewTrain={vi.fn()}
-          onNewAccommodation={vi.fn()}
-          onNewMacroplan={vi.fn()}
+          onSelect={vi.fn()}
         />
       </Theme>,
     );

@@ -42,6 +42,7 @@ export function calculateNewTimestamps(
   tripTimestampStart: number,
   tripTimeZone: string,
   mode: 'drag' | 'resize',
+  targetInstant?: number,
 ): { timestampStart: number; timestampEnd: number; error?: string } {
   // Get the new day index
   const newDayIndex = gridColumnToDay(gridColumn) - 1; // 0-based index
@@ -55,9 +56,11 @@ export function calculateNewTimestamps(
       tripTimestampStart,
     ).toZonedDateTimeISO(tripTimeZone);
   const newDayStart = tripStart.add({ days: newDayIndex }).startOfDay();
-  const dropTargetStartTimestamp = newDayStart.add({
-    milliseconds: timeOffset,
-  }).epochMilliseconds;
+  const dropTargetStartTimestamp =
+    targetInstant ??
+    newDayStart.add({
+      milliseconds: timeOffset,
+    }).epochMilliseconds;
 
   // Calculate the new duration of the activity: on dragging preserve the original duration, on resizing calculate the new duration based on the new end time
   /** -1 if either timestamp is not set! */

@@ -14,6 +14,12 @@ import { EmojiTextField } from '../../common/EmojiTextField/EmojiTextField';
 import { TimeZoneSelect } from '../../common/TimeZoneSelect/TimeZoneSelect';
 import { dangerToken } from '../../common/ui';
 import { useBoundStore } from '../../data/store';
+import {
+  DestinationPicker,
+  useDestinationDefaults,
+} from '../../Trip/destinations/DestinationDefaults';
+import type { DestinationItinerary } from '../../Trip/destinations/destinations';
+import { itemZonedTime } from '../../Trip/destinations/newItemTimes';
 import { ActivityMap } from '../ActivityDialog/ActivityDialogMap';
 import s from '../ActivityForm/ActivityForm.module.css';
 import {
@@ -40,6 +46,9 @@ export function FlightForm({
   mode,
   activityId,
   tripId,
+  destinations,
+  prefilledStart,
+  prefilledEnd,
   tripStartDateTime,
   tripEndDateTime,
   tripTimeZone,
@@ -71,6 +80,9 @@ export function FlightForm({
   tripEndDateTime: Temporal.PlainDate | undefined;
   tripTimeZone: string;
   tripRegion: string;
+  destinations?: DestinationItinerary;
+  prefilledStart?: Temporal.Instant;
+  prefilledEnd?: Temporal.Instant;
   activityTitle: string;
   activityIcon?: string | null | undefined;
   activityStartDateTime: Temporal.PlainDateTime | undefined;
@@ -120,10 +132,10 @@ export function FlightForm({
   const [endDateTime, setEndDateTime] = useState<
     Temporal.PlainDateTime | undefined
   >(activityEndDateTime);
-  const [startTimeZone, setStartTimeZone] = useState<string>(
+  const [initialStartZone, setStartTimeZone] = useState<string>(
     activityStartTimeZone ?? tripTimeZone,
   );
-  const [endTimeZone, setEndTimeZone] = useState<string>(
+  const [initialEndZone, setEndTimeZone] = useState<string>(
     activityEndTimeZone ?? tripTimeZone,
   );
 
@@ -143,6 +155,31 @@ export function FlightForm({
       zoom: [activityLocationZoom ?? 9, activityLocationDestinationZoom ?? 9],
     },
   );
+
+  const [manualStartZone, setManualStartZone] = useState(false);
+  const [manualEndZone, setManualEndZone] = useState(false);
+  const startDefaults = useDestinationDefaults(
+    destinations,
+    startDateTime,
+    locationFieldsState.names[0],
+    activityStartDateTime && startDateTime?.equals(activityStartDateTime)
+      ? prefilledStart
+      : undefined,
+  );
+  const endDefaults = useDestinationDefaults(
+    destinations,
+    endDateTime,
+    locationFieldsState.names[1],
+    activityEndDateTime && endDateTime?.equals(activityEndDateTime)
+      ? prefilledEnd
+      : undefined,
+  );
+  const startTimeZone = manualStartZone
+    ? initialStartZone
+    : (startDefaults.selected?.timeZone ?? initialStartZone);
+  const endTimeZone = manualEndZone
+    ? initialEndZone
+    : (endDefaults.selected?.timeZone ?? initialEndZone);
 
   const setCoordinateEnabled = useCallback(
     async (enabled: boolean) => {
@@ -258,9 +295,11 @@ export function FlightForm({
   }, []);
 
   const handleTimeZoneStartChange = useCallback((newTimeZone: string) => {
+    setManualStartZone(true);
     setStartTimeZone(newTimeZone);
   }, []);
   const handleTimeZoneEndChange = useCallback((newTimeZone: string) => {
+    setManualEndZone(true);
     setEndTimeZone(newTimeZone);
   }, []);
   const handleStartDateTimeChange = useCallback(
@@ -300,8 +339,16 @@ export function FlightForm({
       const description = (formData.get('description') as string | null) ?? '';
       const from = (formData.get('from') as string | null) ?? '';
       const to = (formData.get('to') as string | null) ?? '';
-      const startZonedDateTime = startDateTime?.toZonedDateTime(startTimeZone);
-      const endZonedDateTime = endDateTime?.toZonedDateTime(endTimeZone);
+      const startZonedDateTime = itemZonedTime(
+        startDateTime,
+        startTimeZone,
+        manualStartZone ? undefined : prefilledStart,
+      );
+      const endZonedDateTime = itemZonedTime(
+        endDateTime,
+        endTimeZone,
+        manualEndZone ? undefined : prefilledEnd,
+      );
 
       if (!title) return;
       if (!from) {
@@ -459,6 +506,10 @@ export function FlightForm({
     endDateTime,
     startTimeZone,
     endTimeZone,
+    manualStartZone,
+    manualEndZone,
+    prefilledStart,
+    prefilledEnd,
     isIdea,
     planningStatus,
     locationFieldsState,
@@ -479,10 +530,18 @@ export function FlightForm({
   const onFormSubmit = useCallback(
     (event: SubmitEvent<HTMLFormElement>) => {
       event.preventDefault();
+      if (!manualStartZone && !startDefaults.validate()) return;
+      if (!manualEndZone && !endDefaults.validate()) return;
       const elForm = event.currentTarget;
       void handleSubmit()(elForm);
     },
-    [handleSubmit],
+    [
+      handleSubmit,
+      manualStartZone,
+      startDefaults.validate,
+      manualEndZone,
+      endDefaults.validate,
+    ],
   );
 
   return (
@@ -628,12 +687,18 @@ export function FlightForm({
             />
           ) : null}
         </Flex>
-        <Text as="label">
+        <Text as="label" htmlFor="timeZoneStart">
           Departure time zone{' '}
           <Text weight="light" size="1">
             (trip default: {tripTimeZone})
           </Text>
         </Text>
+        {!manualStartZone && (
+          <DestinationPicker
+            defaults={startDefaults}
+            label="Departure destination"
+          />
+        )}
         <TimeZoneSelect
           id="timeZoneStart"
           name="timeZoneStart"
@@ -657,12 +722,18 @@ export function FlightForm({
           clearable={true}
         />
 
-        <Text as="label">
+        <Text as="label" htmlFor="timeZoneEnd">
           Arrival time zone{' '}
           <Text weight="light" size="1">
             (trip default: {tripTimeZone})
           </Text>
         </Text>
+        {!manualEndZone && (
+          <DestinationPicker
+            defaults={endDefaults}
+            label="Arrival destination"
+          />
+        )}
         <TimeZoneSelect
           id="timeZoneEnd"
           name="timeZoneEnd"

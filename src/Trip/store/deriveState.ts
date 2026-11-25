@@ -49,6 +49,9 @@ export function deriveNewTripState(
       timestampEnd: trip.timestampEnd,
       currency: trip.currency,
       region: trip.region,
+      destinations: deepEqual(previous?.destinations, trip.destinations)
+        ? previous?.destinations
+        : trip.destinations,
       originCurrency: trip.originCurrency,
       originRegion: trip.originRegion ?? '',
       originTimeZone: trip.originTimeZone ?? '',

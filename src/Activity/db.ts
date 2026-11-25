@@ -70,13 +70,15 @@ export async function dbAddActivity(
   newActivity: Omit<DbActivity, 'id' | 'createdAt' | 'lastUpdatedAt' | 'trip'>,
   {
     tripId,
+    activityId,
   }: {
     tripId: string;
+    activityId?: string;
   },
 ) {
   // Optimistic: insert locally with a client-generated id, send the same id so
   // the server persists it, and roll back on failure.
-  const newId = id();
+  const newId = activityId ?? id();
   return optimisticRun(
     ['activity', 'trip'],
     () => {

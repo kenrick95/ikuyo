@@ -55,3 +55,21 @@ export function formatMacroplanDateRange({
   }
   return null;
 }
+
+export function macroplanDates(
+  macroplan: {
+    timestampStart: number;
+    timestampEnd: number;
+    timeZoneStart?: string | null;
+    timeZoneEnd?: string | null;
+  },
+  fallback: string,
+) {
+  const start = Temporal.Instant.fromEpochMilliseconds(macroplan.timestampStart)
+    .toZonedDateTimeISO(macroplan.timeZoneStart ?? fallback)
+    .toPlainDate();
+  const end = Temporal.Instant.fromEpochMilliseconds(macroplan.timestampEnd - 1)
+    .toZonedDateTimeISO(macroplan.timeZoneEnd ?? fallback)
+    .toPlainDate();
+  return { start, end };
+}

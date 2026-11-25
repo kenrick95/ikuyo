@@ -149,7 +149,7 @@
 | POST | `/api/trips` | create trip + owner tripUser (atomic) | trip fields + `{userId}` | mirrors `dbAddTrip` (transaction: trip + tripUser role=owner linked) |
 | PUT | `/api/trips/{tripId}` | update trip | all trip fields | mirrors `dbUpdateTrip` (`merge`) |
 | DELETE | `/api/trips/{tripId}` | delete trip + all children (cascade) | — | mirrors `dbDeleteTrip` (activities, accommodations, macroplans, expenses, taskLists+tasks, commentGroups+comments+objects, tripUsers) |
-| POST | `/api/trips/{tripId}/duplicate` | duplicate trip | `TripDuplicateOptions` | mirrors `dbDuplicateTrip`; server does date-shifting (`shiftTimestampToTripDate`) — see `duplicateTripDateShift.ts` |
+| POST | `/api/trips/{tripId}/duplicate` | duplicate trip | `TripDuplicateOptions` and optional `destinations` | Mirrors `dbDuplicateTrip`. When a multi-region trip's start changes, include the destination list with its new start instants. |
 | PATCH | `/api/trips/{tripId}/sharing` | set `sharingLevel` | `{sharingLevel}` | mirrors `dbUpdateTripSharingLevel` |
 | PATCH | `/api/trips/{tripId}/sections` | set `publicShow*`/`viewerShow*` toggles | partial of those 6 booleans | mirrors `dbUpdateTripSectionVisibility` |
 

@@ -62,6 +62,7 @@ export function mapApiTrip(trip: ApiTrip): DbTripQueryReturnType {
 
   return {
     ...map(trip),
+    destinations: trip.destinations ?? [],
     activity: (trip.activity ?? trip.activities ?? []).map(map),
     accommodation: (trip.accommodation ?? trip.accommodations ?? []).map(map),
     macroplan: (trip.macroplan ?? trip.macroplans ?? []).map(map),

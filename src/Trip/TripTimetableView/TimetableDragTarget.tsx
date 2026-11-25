@@ -1,88 +1,71 @@
 import { ContextMenu } from '@radix-ui/themes';
-import type { CSSProperties, MouseEvent, RefObject } from 'react';
+import type { CSSProperties, RefObject } from 'react';
 import { memo, useRef } from 'react';
 import { TimetableCell } from './TimetableCell';
 import { useInViewport } from './useInViewport';
+import {
+  slotActions,
+  type TimetableAction,
+  type TimetableSlot,
+} from './useTimetableSlotActions';
 
 interface TimetableDragTargetProps {
   day: number;
   timeStr: string;
+  instant?: number;
+  date?: string;
   columnStr: string;
   gridStyle: CSSProperties;
   scrollContainerRef: RefObject<HTMLElement | null>;
   tripTitle?: string;
   userCanModifyTrip: boolean;
-  onNewActivity: (e: MouseEvent<HTMLDivElement>) => void;
-  onNewFlight: (e: MouseEvent<HTMLDivElement>) => void;
-  onNewTrain: (e: MouseEvent<HTMLDivElement>) => void;
-  onNewAccommodation: (e: MouseEvent<HTMLDivElement>) => void;
-  onNewMacroplan: (e: MouseEvent<HTMLDivElement>) => void;
+  onSelect: (action: TimetableAction, slot: TimetableSlot) => void;
 }
 
 function TimetableDragTargetInner({
   day,
   timeStr,
+  instant,
+  date,
   columnStr,
   gridStyle,
   scrollContainerRef,
   tripTitle,
   userCanModifyTrip,
-  onNewActivity,
-  onNewFlight,
-  onNewTrain,
-  onNewAccommodation,
-  onNewMacroplan,
+  onSelect,
 }: TimetableDragTargetProps) {
   const placeholderRef = useRef<HTMLDivElement>(null);
   const isInViewport = useInViewport(placeholderRef, scrollContainerRef);
 
   return (
-    <div ref={placeholderRef} style={gridStyle}>
+    <div ref={placeholderRef} style={gridStyle} data-time-slot={instant}>
       {isInViewport ? (
         <ContextMenu.Root>
           <ContextMenu.Trigger>
-            <TimetableCell row={`t${timeStr}`} column={columnStr} />
+            <TimetableCell
+              row={`t${timeStr}`}
+              column={columnStr}
+              data-instant={instant}
+            />
           </ContextMenu.Trigger>
           <ContextMenu.Content>
             <ContextMenu.Label>{tripTitle}</ContextMenu.Label>
-            <ContextMenu.Item
-              onClick={userCanModifyTrip ? onNewActivity : undefined}
-              disabled={!userCanModifyTrip}
-              data-time-start={timeStr}
-              data-day={day}
-            >
-              New activity
-            </ContextMenu.Item>
-            <ContextMenu.Item
-              onClick={userCanModifyTrip ? onNewFlight : undefined}
-              disabled={!userCanModifyTrip}
-              data-time-start={timeStr}
-              data-day={day}
-            >
-              New flight
-            </ContextMenu.Item>
-            <ContextMenu.Item
-              onClick={userCanModifyTrip ? onNewTrain : undefined}
-              disabled={!userCanModifyTrip}
-              data-time-start={timeStr}
-              data-day={day}
-            >
-              New train
-            </ContextMenu.Item>
-            <ContextMenu.Item
-              onClick={userCanModifyTrip ? onNewAccommodation : undefined}
-              disabled={!userCanModifyTrip}
-              data-day={day}
-            >
-              New accommodation
-            </ContextMenu.Item>
-            <ContextMenu.Item
-              onClick={userCanModifyTrip ? onNewMacroplan : undefined}
-              disabled={!userCanModifyTrip}
-              data-day={day}
-            >
-              New day plan
-            </ContextMenu.Item>
+            {slotActions.map(({ id, label }) => (
+              <ContextMenu.Item
+                key={id}
+                disabled={!userCanModifyTrip}
+                onSelect={() =>
+                  onSelect(id, {
+                    dayOfTrip: day,
+                    timeStart: timeStr,
+                    instant,
+                    date,
+                  })
+                }
+              >
+                {label}
+              </ContextMenu.Item>
+            ))}
           </ContextMenu.Content>
         </ContextMenu.Root>
       ) : null}

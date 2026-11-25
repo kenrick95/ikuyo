@@ -6,13 +6,18 @@ import {
   TextArea,
   TextField,
 } from '@radix-ui/themes';
-import type { SubmitEvent } from 'react';
+import type { ChangeEvent, SubmitEvent } from 'react';
 import { useCallback, useId, useReducer, useState } from 'react';
 import { DateTimePicker } from '../../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../../common/DatePicker2/DateTimePickerMode';
 import { TimeZoneSelect } from '../../common/TimeZoneSelect/TimeZoneSelect';
 import { dangerToken } from '../../common/ui';
 import { useBoundStore } from '../../data/store';
+import {
+  DestinationPicker,
+  useDestinationDefaults,
+} from '../../Trip/destinations/DestinationDefaults';
+import type { DestinationItinerary } from '../../Trip/destinations/destinations';
 import { AccommodationMap } from '../AccommodationDialog/AccommodationDialogMap';
 import { dbAddAccommodation, dbUpdateAccommodation } from '../db';
 import { geocodingRequest } from './AccommodationFormGeocoding';
@@ -77,6 +82,8 @@ export function AccommodationForm({
   mode,
   accommodationId,
   tripId,
+  destinations,
+  prefilledSlotInstant,
 
   tripTimeZone,
   tripStartDateTime,
@@ -107,6 +114,9 @@ export function AccommodationForm({
   /** Trip's final day */
   tripEndDateTime: Temporal.PlainDate | undefined;
   tripRegion: string;
+  destinations?: DestinationItinerary;
+  /** Timetable instant used to select the destination for the initial stay. */
+  prefilledSlotInstant?: Temporal.Instant;
 
   accommodationName: string;
   accommodationAddress: string;
@@ -140,12 +150,32 @@ export function AccommodationForm({
     Temporal.PlainDateTime | undefined
   >(accommodationCheckOutDateTime);
 
-  const [checkInTimeZone, setCheckInTimeZone] = useState<string>(
+  const [initialCheckInZone, setCheckInTimeZone] = useState<string>(
     accommodationCheckInTimeZone ?? tripTimeZone,
   );
-  const [checkOutTimeZone, setCheckOutTimeZone] = useState<string>(
+  const [initialCheckOutZone, setCheckOutTimeZone] = useState<string>(
     accommodationCheckOutTimeZone ?? tripTimeZone,
   );
+
+  const [manualCheckInZone, setManualCheckInZone] = useState(false);
+  const [manualCheckOutZone, setManualCheckOutZone] = useState(false);
+  const [propertyAddress, setPropertyAddress] = useState(accommodationAddress);
+  const defaults = useDestinationDefaults(
+    destinations,
+    checkInDateTime,
+    propertyAddress,
+    accommodationCheckInDateTime &&
+      checkInDateTime?.equals(accommodationCheckInDateTime)
+      ? prefilledSlotInstant
+      : undefined,
+  );
+  const checkInTimeZone = manualCheckInZone
+    ? initialCheckInZone
+    : (defaults.selected?.timeZone ?? initialCheckInZone);
+  const checkOutTimeZone =
+    manualCheckOutZone || !destinations ? initialCheckOutZone : checkInTimeZone;
+
+  const propertyRegion = defaults.selected?.region ?? tripRegion;
 
   // Handlers for date changes
   const handleCheckInDateChange = useCallback(
@@ -203,7 +233,10 @@ export function AccommodationForm({
             idAddress,
           ) as HTMLInputElement;
           const address = elAddress.value;
-          const [lng, lat, zoom] = await geocodingRequest(address, tripRegion);
+          const [lng, lat, zoom] = await geocodingRequest(
+            address,
+            propertyRegion,
+          );
           dispatchCoordinateState({
             type: 'setEnabled',
             lat: lat,
@@ -219,7 +252,7 @@ export function AccommodationForm({
     },
     [
       idAddress,
-      tripRegion,
+      propertyRegion,
       coordinateState.lat,
       coordinateState.lng,
       coordinateState.zoom,
@@ -411,11 +444,20 @@ export function AccommodationForm({
   ]);
 
   const handleTimeZoneCheckInChange = useCallback((newTimeZone: string) => {
+    setManualCheckInZone(true);
     setCheckInTimeZone(newTimeZone);
   }, []);
   const handleTimeZoneCheckOutChange = useCallback((newTimeZone: string) => {
+    setManualCheckOutZone(true);
     setCheckOutTimeZone(newTimeZone);
   }, []);
+
+  const handleAddressChange = useCallback(
+    (event: ChangeEvent<HTMLTextAreaElement>) => {
+      setPropertyAddress(event.currentTarget.value);
+    },
+    [],
+  );
 
   const onFormInput = useCallback(() => {
     setErrorMessage('');
@@ -424,10 +466,11 @@ export function AccommodationForm({
   const onFormSubmit = useCallback(
     (event: SubmitEvent<HTMLFormElement>) => {
       event.preventDefault();
+      if (!manualCheckInZone && !defaults.validate()) return;
       const elForm = event.currentTarget;
       void handleSubmit()(elForm);
     },
-    [handleSubmit],
+    [handleSubmit, manualCheckInZone, defaults.validate],
   );
 
   return (
@@ -451,7 +494,8 @@ export function AccommodationForm({
           Address
         </Text>
         <TextArea
-          defaultValue={accommodationAddress}
+          value={propertyAddress}
+          onChange={handleAddressChange}
           placeholder="Enter accommodation address"
           name="address"
           id={idAddress}
@@ -472,7 +516,7 @@ export function AccommodationForm({
               lng: coordinateState.lng ?? 0,
               lat: coordinateState.lat ?? 0,
               zoom: coordinateState.zoom ?? 9,
-              region: tripRegion,
+              region: propertyRegion,
             }}
             marker={
               coordinateState.lng != null && coordinateState.lat != null
@@ -486,12 +530,13 @@ export function AccommodationForm({
             setMapZoom={setMapZoom}
           />
         ) : null}
-        <Text as="label">
+        <Text as="label" htmlFor="timeZoneCheckIn">
           Check in time zone{' '}
           <Text weight="light" size="1">
             (required; trip default time zone is {tripTimeZone})
           </Text>
         </Text>
+        {!manualCheckInZone && <DestinationPicker defaults={defaults} />}
         <TimeZoneSelect
           id="timeZoneCheckIn"
           name="timeZoneCheckIn"
@@ -516,7 +561,7 @@ export function AccommodationForm({
           min={tripStartDateTime}
           max={tripEndDateTime}
         />
-        <Text as="label">
+        <Text as="label" htmlFor="timeZoneCheckOut">
           Check out time zone{' '}
           <Text weight="light" size="1">
             (required; trip default time zone is {tripTimeZone})

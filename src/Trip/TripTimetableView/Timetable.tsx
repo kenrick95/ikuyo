@@ -13,7 +13,6 @@ import {
   Tooltip,
 } from '@radix-ui/themes';
 import clsx from 'clsx';
-
 import type * as React from 'react';
 import {
   memo,
@@ -52,6 +51,8 @@ import {
   RouteTripTimetableViewMacroplan,
 } from '../../Routes/routes';
 import { useRouteSnapshot } from '../../Routes/TransitionRouter';
+import { itinerary } from '../destinations/destinations';
+import { calendarTrip, useTripDisplayZone } from '../destinations/displayZone';
 import { IdeaSidebar } from '../Ideas/IdeaSidebar';
 import { canModifyTripContent } from '../permissions';
 import {
@@ -75,7 +76,13 @@ import { SwapDayDialog } from './SwapDay/SwapDayDialog';
 import s from './Timetable.module.scss';
 import { TimetableDialogState } from './TimetableDialogState';
 import { TimetableGrid } from './TimetableGrid';
-import { pad2 } from './time';
+import { TimetableSlotDialog } from './TimetableSlotDialog';
+import {
+  gridTemplateWithRepeats,
+  gridTime,
+  pad2,
+  repeatedGridRanges,
+} from './time';
 
 const TimetableTime = memo(TimetableTimeInner, (prevProps, nextProps) => {
   return (
@@ -87,7 +94,12 @@ const TimetableTime = memo(TimetableTimeInner, (prevProps, nextProps) => {
 const times = new Array(24).fill(0);
 
 export function Timetable() {
-  const { trip } = useCurrentTrip();
+  const { trip: originalTrip } = useCurrentTrip();
+  const { zone } = useTripDisplayZone(originalTrip);
+  const trip = useMemo(
+    () => originalTrip && calendarTrip(originalTrip, zone),
+    [originalTrip, zone],
+  );
   const activities = useTripActivities(trip?.activityIds ?? []);
   const tripAccommodations = useTripAccommodations(
     trip?.accommodationIds ?? [],
@@ -111,6 +123,13 @@ export function Timetable() {
       macroplans: tripMacroplans,
     });
   }, [trip, activities, tripAccommodations, tripMacroplans]);
+  const destinations = useMemo(
+    () =>
+      originalTrip?.destinations?.length
+        ? itinerary(originalTrip).slice(1)
+        : [],
+    [originalTrip],
+  );
   const macroplans = useMemo(() => {
     if (!trip) return [];
     return getMacroplanIndexes({ trip, macroplans: tripMacroplans });
@@ -196,13 +215,25 @@ export function Timetable() {
     return clampedDay;
   }, [trip, dayGroups.inTrip.length]);
 
+  const dayStarts = useMemo(
+    () =>
+      originalTrip?.destinations?.length
+        ? dayGroups.inTrip.map((day) => day.startDateTime)
+        : undefined,
+    [dayGroups, originalTrip?.destinations?.length],
+  );
+  const repeatedRanges = useMemo(
+    () => repeatedGridRanges(dayStarts ?? []),
+    [dayStarts],
+  );
   const timetableStyle = useMemo(() => {
     return {
       gridTemplateColumns: generateMainGridTemplateColumns(dayGroups),
+      gridTemplateRows: gridTemplateWithRepeats(repeatedRanges),
       '--day-count': dayGroups.inTrip.length,
       '--current-day': currentDayIndex || 0,
     };
-  }, [dayGroups, currentDayIndex]);
+  }, [dayGroups, currentDayIndex, repeatedRanges]);
 
   // Auto-scroll to current day and hour when trip is in progress
   useLayoutEffect(() => {
@@ -221,6 +252,9 @@ export function Timetable() {
 
     const now = Temporal.Now.zonedDateTimeISO(trip.timeZone);
     const currentHour = now.hour;
+    const currentRow = dayStarts
+      ? gridTime(now.with({ minute: now.minute < 30 ? 0 : 30 }))
+      : `${pad2(currentHour)}00`;
 
     // Delay scroll to ensure elements are rendered
     const scrollToPosition = () => {
@@ -229,7 +263,7 @@ export function Timetable() {
       let targetElement = null;
       // Find a grid cell for the current day and hour (look for the first column of the day)
       const currentDayGridCell = timetableRef.current.querySelector(
-        `[data-grid-column="d${currentDayIndex}-c1"][data-grid-row="t${currentHour.toString().padStart(2, '0')}00"]`,
+        `[data-grid-column="d${currentDayIndex}-c1"][data-grid-row="t${currentRow}"]`,
       );
       if (currentDayGridCell) {
         targetElement = currentDayGridCell;
@@ -243,7 +277,7 @@ export function Timetable() {
         } else {
           // Fallback: look for any cell at the current hour if the day doesn't exist
           const fallbackHourCell = timetableRef.current.querySelector(
-            `[data-grid-row="t${currentHour.toString().padStart(2, '0')}00"]`,
+            `[data-grid-row="t${currentRow}"]`,
           );
 
           if (fallbackHourCell) {
@@ -281,7 +315,13 @@ export function Timetable() {
     // Small delay to ensure all elements are rendered
     const timeoutId = setTimeout(scrollToPosition, 100);
     return () => clearTimeout(timeoutId);
-  }, [trip?.timeZone, trip?.id, currentDayIndex, hasScrolledForTrip]);
+  }, [
+    trip?.timeZone,
+    trip?.id,
+    currentDayIndex,
+    hasScrolledForTrip,
+    dayStarts,
+  ]);
 
   // Reset scroll state when trip changes
   useEffect(() => {
@@ -290,7 +330,7 @@ export function Timetable() {
     }
   }, [trip, hasScrolledForTrip]);
 
-  const userCanModifyTrip = canModifyTripContent(trip);
+  const userCanModifyTrip = canModifyTripContent(originalTrip);
 
   // Days available for the day-swap context menu (derived once, not per header).
   const tripDays = useMemo(() => {
@@ -406,6 +446,9 @@ export function Timetable() {
           trip.timestampStart,
           trip.timeZone,
           mode,
+          gridCell.hasAttribute('data-instant')
+            ? Number(gridCell.getAttribute('data-instant'))
+            : undefined,
         );
 
         if (error) {
@@ -516,11 +559,11 @@ export function Timetable() {
     const dialogState = routeState?.dialog;
     if (!dialogState || history.state !== route.state) return;
     if (dialogState === TimetableDialogState.ActivityNew) {
-      pushDialog(ActivityNewDialog, { trip });
+      pushDialog(ActivityNewDialog, { trip: originalTrip ?? trip });
     } else if (dialogState === TimetableDialogState.AccommodationNew) {
-      pushDialog(AccommodationNewDialog, { trip });
+      pushDialog(AccommodationNewDialog, { trip: originalTrip ?? trip });
     } else if (dialogState === TimetableDialogState.MacroplanNew) {
-      pushDialog(MacroplanNewDialog, { trip });
+      pushDialog(MacroplanNewDialog, { trip: originalTrip ?? trip });
     }
     // Immediately clear the dialog state from history to prevent it from unable to close dialog
     history.replaceState(
@@ -528,7 +571,7 @@ export function Timetable() {
       '',
       window.location.href,
     );
-  }, [pushDialog, trip, route]);
+  }, [pushDialog, trip, route, originalTrip]);
 
   return (
     <Section py="0">
@@ -546,14 +589,41 @@ export function Timetable() {
       >
         <TimetableGrid
           days={dayGroups.inTrip.length}
+          dayStarts={dayStarts}
           scrollContainerRef={timetableRef}
         />
-        <TimetableTimeHeader />
+        <TimetableTimeHeader>
+          {originalTrip && userCanModifyTrip && dayGroups.inTrip.length > 0 ? (
+            <TimetableSlotDialog
+              key={originalTrip.id + (zone ?? '')}
+              trip={originalTrip}
+              days={dayGroups.inTrip.map((day) => day.startDateTime)}
+              initialDay={(currentDayIndex ?? 1) - 1}
+            />
+          ) : (
+            <ClockIcon />
+          )}
+        </TimetableTimeHeader>
         {dayGroups.inTrip.map((dayGroup, i) => {
           const dayNumber = i + 1;
           const isCurrentDay = currentDayIndex === dayNumber;
           return (
             <TimetableDayHeader
+              destinationStarts={destinations
+                .filter(
+                  (destination) =>
+                    destination.startsAtMs >=
+                      dayGroup.startDateTime.epochMilliseconds &&
+                    destination.startsAtMs <
+                      dayGroup.startDateTime.add({ days: 1 }).epochMilliseconds,
+                )
+                .map((destination) => {
+                  const local = Temporal.Instant.fromEpochMilliseconds(
+                    destination.startsAtMs,
+                  ).toZonedDateTimeISO(dayGroup.startDateTime.timeZoneId);
+                  return `${toFormat('HH:mm', local)} · ${destination.name}`;
+                })
+                .join(' / ')}
               dateString={toFormat('ccc, d LLL yyyy', dayGroup.startDateTime)}
               key={dayGroup.startDateTime.toString()}
               gridColumnStart={`d${String(dayNumber)}`}
@@ -623,6 +693,16 @@ export function Timetable() {
             />
           );
         })}
+        {repeatedRanges.map((range) => {
+          const time = `${pad2(Math.floor(range.start / 60))}:${pad2(range.start % 60)}`;
+          return (
+            <TimetableTime
+              key={range.start}
+              timeStart={`${time} ${range.label}`}
+              gridRowStart={`t${time.replace(':', '')}-repeat`}
+            />
+          );
+        })}
         {dayGroups.inTrip.map((dayGroup) => {
           return Object.values(dayGroup.activities).map((activity) => {
             const columnIndex = dayGroup.activityColumnIndexMap.get(
@@ -638,6 +718,7 @@ export function Timetable() {
                 tripViewMode={TripViewMode.Timetable}
                 tripTimeZone={trip?.timeZone ?? ''}
                 tripTimestampStart={trip?.timestampStart ?? 0}
+                useZonedGrid={Boolean(dayStarts)}
                 userCanEditOrDelete={userCanModifyTrip}
               />
             );
@@ -724,6 +805,7 @@ function generateMainGridTemplateColumns(dayGroups: DayGroups): string {
 
 function TimetableDayHeaderInner({
   dateString,
+  destinationStarts,
   gridColumnStart,
   gridColumnEnd,
   isActive,
@@ -734,6 +816,7 @@ function TimetableDayHeaderInner({
   tripDays,
 }: {
   dateString: string;
+  destinationStarts?: string;
   gridColumnStart: string;
   gridColumnEnd: string;
   isActive?: boolean;
@@ -775,7 +858,14 @@ function TimetableDayHeaderInner({
       )}
       style={style}
     >
-      {dateString}
+      <div>
+        {dateString}
+        {destinationStarts ? (
+          <Text as="div" size="1" color="gray">
+            {destinationStarts}
+          </Text>
+        ) : null}
+      </div>
     </Text>
   );
 
@@ -826,6 +916,7 @@ const TimetableDayHeader = memo(
   (prevProps, nextProps) => {
     return (
       prevProps.dateString === nextProps.dateString &&
+      prevProps.destinationStarts === nextProps.destinationStarts &&
       prevProps.gridColumnStart === nextProps.gridColumnStart &&
       prevProps.gridColumnEnd === nextProps.gridColumnEnd &&
       prevProps.isActive === nextProps.isActive &&
@@ -852,10 +943,10 @@ function TimetableAccommodationHeader() {
     </Text>
   );
 }
-function TimetableTimeHeader() {
+function TimetableTimeHeader({ children }: { children: React.ReactNode }) {
   return (
     <Text as="div" size="1" className={clsx(s.timetableTimeHeader)}>
-      <ClockIcon />
+      {children}
     </Text>
   );
 }

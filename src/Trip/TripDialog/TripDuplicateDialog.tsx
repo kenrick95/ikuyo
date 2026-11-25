@@ -96,7 +96,7 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
     if (Temporal.PlainDate.compare(startDate, endDate) > 0) return;
     setIsSubmitting(true);
     void dbDuplicateTrip(
-      trip.id,
+      trip,
       {
         title: title.trim(),
         startDateMs: startDate.toZonedDateTime(trip.timeZone).toInstant()
@@ -127,15 +127,17 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
         console.error('Error duplicating trip', err);
         publishToast({
           root: {},
-          title: { children: 'Error duplicating trip' },
+          title: {
+            children:
+              err instanceof Error ? err.message : 'Error duplicating trip',
+          },
           close: {},
         });
         setIsSubmitting(false);
       });
   }, [
     user,
-    trip.id,
-    trip.timeZone,
+    trip,
     title,
     startDate,
     endDate,

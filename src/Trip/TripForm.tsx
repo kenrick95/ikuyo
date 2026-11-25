@@ -19,6 +19,14 @@ import {
 import { useBoundStore } from '../data/store';
 import { RouteTrip } from '../Routes/routes';
 import { dbAddTrip, dbUpdateTrip } from './db';
+import {
+  type DestinationArrival,
+  DestinationEditor,
+} from './destinations/DestinationEditor';
+import {
+  type TripDestination,
+  validateDestinations,
+} from './destinations/destinations';
 import { TripFormMode } from './TripFormMode';
 import {
   TripSharingLevel,
@@ -33,6 +41,9 @@ export function TripForm({
   tripTitle,
   tripTimeZone,
   tripRegion,
+  tripDestinations,
+  arrivals,
+  dayPlans,
   tripCurrency,
   tripOriginCurrency,
   tripOriginRegion,
@@ -49,6 +60,9 @@ export function TripForm({
   tripTitle: string;
   tripTimeZone: string;
   tripRegion: string;
+  tripDestinations?: TripDestination[];
+  arrivals?: DestinationArrival[];
+  dayPlans?: { id: string; name: string; date: string }[];
   tripCurrency: string;
   tripOriginCurrency: string;
   tripOriginRegion: string;
@@ -84,11 +98,21 @@ export function TripForm({
     Temporal.PlainDate | undefined
   >(tripEndDateTime);
 
+  const [editedDestinations, setEditedDestinations] =
+    useState<TripDestination[]>();
+  const [showDestinations, setShowDestinations] = useState(
+    Boolean(tripDestinations?.length),
+  );
+  const [isDestinationDraft, setIsDestinationDraft] = useState(false);
+  const [openNewDestination, setOpenNewDestination] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [destinationIssue, setDestinationIssue] =
+    useState<ReturnType<typeof validateDestinations>>();
 
   // Handler for start date changes
   const handleStartDateChange = useCallback(
     (date: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
+      setDestinationIssue(undefined);
       if (date instanceof Temporal.PlainDateTime) {
         setCurrentStartDate(date.toPlainDate());
       } else {
@@ -101,6 +125,7 @@ export function TripForm({
   // Handler for end date changes
   const handleEndDateChange = useCallback(
     (date: Temporal.PlainDate | Temporal.PlainDateTime | undefined) => {
+      setDestinationIssue(undefined);
       if (date instanceof Temporal.PlainDateTime) {
         setCurrentEndDate(date.toPlainDate());
       } else {
@@ -112,6 +137,7 @@ export function TripForm({
 
   // Handler for timezone change
   const handleTimeZoneChange = useCallback((newTimeZone: string) => {
+    setDestinationIssue(undefined);
     setCurrentTimeZone(newTimeZone);
   }, []);
 
@@ -180,6 +206,7 @@ export function TripForm({
   const handleForm = useCallback(() => {
     return async (elForm: HTMLFormElement) => {
       setErrorMessage('');
+      setDestinationIssue(undefined);
       if (!elForm.reportValidity()) {
         setIsFormLoading(false);
         return;
@@ -228,22 +255,49 @@ export function TripForm({
         setIsFormLoading(false);
         return;
       }
+      if (isDestinationDraft) {
+        setIsFormLoading(false);
+        return;
+      }
+      const timestampStart =
+        dateStartForDb.toZonedDateTime(timeZone).epochMilliseconds;
+      const timestampEnd =
+        dateEndForDb.toZonedDateTime(timeZone).epochMilliseconds;
+      const invalid = validateDestinations(
+        editedDestinations ?? tripDestinations ?? [],
+        timestampStart,
+        timestampEnd,
+      );
+      if (invalid) {
+        setDestinationIssue(invalid);
+        setIsFormLoading(false);
+        return;
+      }
       if (mode === TripFormMode.Edit && tripId) {
-        await dbUpdateTrip({
-          id: tripId,
-          title,
-          timeZone,
-          timestampStart: dateStartForDb.toZonedDateTime(timeZone).toInstant()
-            .epochMilliseconds,
-          timestampEnd: dateEndForDb.toZonedDateTime(timeZone).toInstant()
-            .epochMilliseconds,
-          region,
-          currency,
-          originCurrency,
-          originRegion,
-          originTimeZone,
-          sharingLevel: tripSharingLevel,
-        });
+        try {
+          await dbUpdateTrip({
+            id: tripId,
+            title,
+            timeZone,
+            timestampStart: dateStartForDb.toZonedDateTime(timeZone).toInstant()
+              .epochMilliseconds,
+            timestampEnd: dateEndForDb.toZonedDateTime(timeZone).toInstant()
+              .epochMilliseconds,
+            region,
+            currency,
+            originCurrency,
+            originRegion,
+            originTimeZone,
+            sharingLevel: tripSharingLevel,
+            destinations: editedDestinations,
+          });
+        } catch (error) {
+          setErrorMessage(
+            error instanceof Error ? error.message : 'Could not save trip.',
+          );
+          setIsFormLoading(false);
+          return;
+        }
         publishToast({
           root: {},
           title: { children: `Trip ${title} edited` },
@@ -306,6 +360,9 @@ export function TripForm({
     currentOriginTimeZone,
     currentStartDate,
     currentEndDate,
+    editedDestinations,
+    isDestinationDraft,
+    tripDestinations,
   ]);
   const fieldSelectRegion = useMemo(() => {
     return (
@@ -519,6 +576,49 @@ export function TripForm({
         />
       </Flex>
       {mode === TripFormMode.Edit ? (
+        <Flex mt="4" direction="column" gap="3">
+          {showDestinations ? (
+            <>
+              <Text weight="medium">Destinations</Text>
+              <DestinationEditor
+                first={{
+                  region: currentRegion,
+                  timeZone: currentTimeZone,
+                  currency: currentCurrency,
+                  date: currentStartDate?.toLocaleString(undefined, {
+                    month: 'short',
+                    day: 'numeric',
+                  }),
+                }}
+                destinations={editedDestinations ?? tripDestinations ?? []}
+                issue={destinationIssue}
+                onChange={(value) => {
+                  setEditedDestinations(value);
+                  setDestinationIssue(undefined);
+                }}
+                onDraftChange={setIsDestinationDraft}
+                arrivals={arrivals}
+                dayPlans={dayPlans}
+                initialAdd={openNewDestination}
+              />
+            </>
+          ) : (
+            <Button
+              type="button"
+              style={{ alignSelf: 'start' }}
+              variant="soft"
+              onClick={() => {
+                setOpenNewDestination(true);
+                setIsDestinationDraft(true);
+                setShowDestinations(true);
+              }}
+            >
+              Add destination
+            </Button>
+          )}
+        </Flex>
+      ) : null}
+      {mode === TripFormMode.Edit ? (
         <Flex mt="5">
           <Text size="1">
             <Text weight="bold" color={dangerToken} size="1">
@@ -536,8 +636,8 @@ export function TripForm({
         </Flex>
       ) : null}
       <Flex mt="5" justify="end">
-        <Text color={dangerToken} size="2">
-          {errorMessage}&nbsp;
+        <Text color={dangerToken} size="2" aria-live="polite">
+          {errorMessage}
         </Text>
       </Flex>
       <Flex gap="3" mt="2" justify="end">
@@ -551,7 +651,13 @@ export function TripForm({
         >
           Cancel
         </Button>
-        <Button type="submit" size="2" variant="solid" loading={isFormLoading}>
+        <Button
+          type="submit"
+          size="2"
+          variant="solid"
+          loading={isFormLoading}
+          disabled={isDestinationDraft}
+        >
           Save
         </Button>
       </Flex>

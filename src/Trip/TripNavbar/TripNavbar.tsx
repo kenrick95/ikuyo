@@ -12,6 +12,7 @@ import {
   RouteTripTaskList,
   RouteTripTimetableView,
 } from '../../Routes/routes';
+import { useTripDisplayZone } from '../destinations/displayZone';
 import { useCurrentTrip } from '../store/hooks';
 import { TripMenu } from '../TripMenu/TripMenu';
 import s from './TripNavbar.module.css';
@@ -30,6 +31,11 @@ export function TripNavbar() {
     },
     [setLocation],
   );
+  const display = useTripDisplayZone(trip);
+  const isSchedule =
+    selection === RouteTripTimetableView.routePath ||
+    selection === RouteTripListView.routePath;
+  const hasZoneSelector = isSchedule && display.zones.length > 1;
   const selector = useMemo(() => {
     return (
       <Select.Root
@@ -62,6 +68,7 @@ export function TripNavbar() {
   }, [selection, handleLocationSelectorChange]);
   return (
     <Navbar
+      wrapLastLeftItem={hasZoneSelector}
       leftItems={[
         <Heading
           as="h1"
@@ -80,9 +87,27 @@ export function TripNavbar() {
           <DoubleArrowRightIcon className={s.tripTitleDivider} />
           {selector}
         </Heading>,
-        selection === RouteTripTimetableView.routePath ||
-        selection === RouteTripListView.routePath ||
-        selection === RouteTripExpenses.routePath ? (
+        hasZoneSelector ? (
+          <Select.Root
+            key="tz"
+            value={display.zone}
+            onValueChange={display.setZone}
+            size="1"
+          >
+            <Select.Trigger
+              aria-label="Display time zone"
+              variant="soft"
+              color="gray"
+            />
+            <Select.Content position="popper">
+              {display.zones.map((zone) => (
+                <Select.Item key={zone} value={zone}>
+                  {zone}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Root>
+        ) : isSchedule || selection === RouteTripExpenses.routePath ? (
           <Tooltip
             key="tz"
             content={`${selection === RouteTripTimetableView.routePath ? 'Timetable' : selection === RouteTripExpenses.routePath ? 'Expense' : 'List'} is displayed in ${trip?.timeZone} time zone`}

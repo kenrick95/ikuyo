@@ -1,6 +1,5 @@
-import { ContextMenu, Flex, Heading } from '@radix-ui/themes';
+import { ContextMenu, Flex, Heading, Text } from '@radix-ui/themes';
 import clsx from 'clsx';
-
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Route, Switch } from 'wouter';
 import { Accommodation } from '../../Accommodation/Accommodation';
@@ -26,6 +25,8 @@ import {
   RouteTripListViewActivity,
   RouteTripListViewMacroplan,
 } from '../../Routes/routes';
+import { itinerary } from '../destinations/destinations';
+import { calendarTrip, useTripDisplayZone } from '../destinations/displayZone';
 import { canModifyTripContent } from '../permissions';
 import {
   useCurrentTrip,
@@ -37,7 +38,19 @@ import { TripViewMode } from '../TripViewMode';
 import s from './TripListView.module.css';
 
 export function TripListView() {
-  const { trip } = useCurrentTrip();
+  const { trip: originalTrip } = useCurrentTrip();
+  const { zone } = useTripDisplayZone(originalTrip);
+  const trip = useMemo(
+    () => originalTrip && calendarTrip(originalTrip, zone),
+    [originalTrip, zone],
+  );
+  const destinations = useMemo(
+    () =>
+      originalTrip?.destinations?.length
+        ? itinerary(originalTrip).slice(1)
+        : [],
+    [originalTrip],
+  );
   const activities = useTripActivities(trip?.activityIds ?? []);
   const tripAccommodations = useTripAccommodations(
     trip?.accommodationIds ?? [],
@@ -167,16 +180,16 @@ export function TripListView() {
   const pushDialog = useBoundStore((state) => state.pushDialog);
   const openActivityNewDialog = useCallback(() => {
     if (!trip) return;
-    pushDialog(ActivityNewDialog, { trip });
-  }, [pushDialog, trip]);
+    pushDialog(ActivityNewDialog, { trip: originalTrip ?? trip });
+  }, [pushDialog, originalTrip, trip]);
   const openAccommodationNewDialog = useCallback(() => {
     if (!trip) return;
-    pushDialog(AccommodationNewDialog, { trip });
-  }, [pushDialog, trip]);
+    pushDialog(AccommodationNewDialog, { trip: originalTrip ?? trip });
+  }, [pushDialog, originalTrip, trip]);
   const openMacroplanNewDialog = useCallback(() => {
     if (!trip) return;
-    pushDialog(MacroplanNewDialog, { trip });
-  }, [pushDialog, trip]);
+    pushDialog(MacroplanNewDialog, { trip: originalTrip ?? trip });
+  }, [pushDialog, originalTrip, trip]);
 
   const hasIdeas =
     dayGroups.ideas.activities.length > 0 ||
@@ -247,6 +260,33 @@ export function TripListView() {
                     )}
                   >
                     {toFormat('cccc, d LLLL yyyy', dayGroup.startDateTime)}
+                    {destinations
+                      .filter(
+                        (destination) =>
+                          destination.startsAtMs >=
+                            dayGroup.startDateTime.epochMilliseconds &&
+                          destination.startsAtMs <
+                            dayGroup.startDateTime.add({ days: 1 })
+                              .epochMilliseconds,
+                      )
+                      .map((destination) => (
+                        <Text
+                          as="div"
+                          key={destination.id}
+                          size="2"
+                          color="gray"
+                        >
+                          {toFormat(
+                            'HH:mm',
+                            Temporal.Instant.fromEpochMilliseconds(
+                              destination.startsAtMs,
+                            ).toZonedDateTimeISO(
+                              dayGroup.startDateTime.timeZoneId,
+                            ),
+                          )}{' '}
+                          · {destination.name}
+                        </Text>
+                      ))}
                   </Heading>,
                   ...dayMacroplans.map((macroplan, i) => {
                     return (

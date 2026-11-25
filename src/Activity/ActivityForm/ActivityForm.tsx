@@ -7,6 +7,12 @@ import { EmojiTextField } from '../../common/EmojiTextField/EmojiTextField';
 import { TimeZoneSelect } from '../../common/TimeZoneSelect/TimeZoneSelect';
 import { dangerToken } from '../../common/ui';
 import { useBoundStore } from '../../data/store';
+import {
+  DestinationPicker,
+  useDestinationDefaults,
+} from '../../Trip/destinations/DestinationDefaults';
+import type { DestinationItinerary } from '../../Trip/destinations/destinations';
+import { itemZonedTime } from '../../Trip/destinations/newItemTimes';
 import { ActivityMap } from '../ActivityDialog/ActivityDialogMap';
 import {
   ActivityFlag,
@@ -32,6 +38,9 @@ export function ActivityForm({
   mode,
   activityId,
   tripId,
+  destinations,
+  prefilledStart,
+  prefilledEnd,
   tripStartDateTime,
   tripEndDateTime,
   tripTimeZone,
@@ -68,6 +77,9 @@ export function ActivityForm({
   tripEndDateTime: Temporal.PlainDate | undefined;
   tripTimeZone: string;
   tripRegion: string;
+  destinations?: DestinationItinerary;
+  prefilledStart?: Temporal.Instant;
+  prefilledEnd?: Temporal.Instant;
   activityTitle: string;
   activityIcon?: string | null | undefined;
   activityStartDateTime: Temporal.PlainDateTime | undefined;
@@ -127,10 +139,10 @@ export function ActivityForm({
     Temporal.PlainDateTime | undefined
   >(activityEndDateTime);
 
-  const [startTimeZone, setStartTimeZone] = useState<string>(
+  const [initialStartZone, setStartTimeZone] = useState<string>(
     activityStartTimeZone ?? tripTimeZone,
   );
-  const [endTimeZone, setEndTimeZone] = useState<string>(
+  const [initialEndZone, setEndTimeZone] = useState<string>(
     activityEndTimeZone ?? tripTimeZone,
   );
 
@@ -156,6 +168,35 @@ export function ActivityForm({
           : 1,
     },
   );
+  const [manualStartZone, setManualStartZone] = useState(false);
+  const [manualEndZone, setManualEndZone] = useState(false);
+  const startDefaults = useDestinationDefaults(
+    destinations,
+    startDateTime,
+    locationFieldsState.names[0],
+    activityStartDateTime && startDateTime?.equals(activityStartDateTime)
+      ? prefilledStart
+      : undefined,
+  );
+  const endDefaults = useDestinationDefaults(
+    destinations,
+    locationFieldsState.names[1] ? endDateTime : undefined,
+    locationFieldsState.names[1],
+  );
+  const startTimeZone = manualStartZone
+    ? initialStartZone
+    : (startDefaults.selected?.timeZone ?? initialStartZone);
+  const endTimeZone = manualEndZone
+    ? initialEndZone
+    : locationFieldsState.names[1]
+      ? (endDefaults.selected?.timeZone ?? startTimeZone)
+      : destinations
+        ? startTimeZone
+        : initialEndZone;
+
+  const startRegion = startDefaults.selected?.region ?? tripRegion;
+  const endRegion = endDefaults.selected?.region ?? startRegion;
+
   const setCoordinateEnabled = useCallback(
     async (enabled: boolean) => {
       if (enabled) {
@@ -174,7 +215,10 @@ export function ActivityForm({
             idLocation,
           ) as HTMLInputElement;
           const location = elLocation.value;
-          const [lng, lat, zoom] = await geocodingRequest(location, tripRegion);
+          const [lng, lat, zoom] = await geocodingRequest(
+            location,
+            startRegion,
+          );
           dispatchLocationFieldsState({
             type: 'setEnabled',
             swapVersion: locationFieldsState.swapVersion,
@@ -193,7 +237,7 @@ export function ActivityForm({
     },
     [
       idLocation,
-      tripRegion,
+      startRegion,
       locationFieldsState.lat,
       locationFieldsState.lng,
       locationFieldsState.zoom,
@@ -219,7 +263,7 @@ export function ActivityForm({
             idLocationDestination,
           ) as HTMLInputElement;
           const location = elLocation.value;
-          const [lng, lat, zoom] = await geocodingRequest(location, tripRegion);
+          const [lng, lat, zoom] = await geocodingRequest(location, endRegion);
           dispatchLocationFieldsState({
             type: 'setEnabled',
             swapVersion: locationFieldsState.swapVersion,
@@ -238,7 +282,7 @@ export function ActivityForm({
     },
     [
       idLocationDestination,
-      tripRegion,
+      endRegion,
       locationFieldsState.lat,
       locationFieldsState.lng,
       locationFieldsState.zoom,
@@ -296,10 +340,12 @@ export function ActivityForm({
   }, []);
 
   const handleTimeZoneStartChange = useCallback((newTimeZone: string) => {
+    setManualStartZone(true);
     setStartTimeZone(newTimeZone);
   }, []);
 
   const handleTimeZoneEndChange = useCallback((newTimeZone: string) => {
+    setManualEndZone(true);
     setEndTimeZone(newTimeZone);
   }, []);
 
@@ -361,8 +407,16 @@ export function ActivityForm({
       const location = (formData.get('location') as string | null) ?? '';
       const locationDestination =
         (formData.get('locationDestination') as string | null) ?? '';
-      const timeStartDate = startDateTime?.toZonedDateTime(startTimeZone);
-      const timeEndDate = endDateTime?.toZonedDateTime(endTimeZone);
+      const timeStartDate = itemZonedTime(
+        startDateTime,
+        startTimeZone,
+        manualStartZone ? undefined : prefilledStart,
+      );
+      const timeEndDate = itemZonedTime(
+        endDateTime,
+        endTimeZone,
+        manualEndZone ? undefined : prefilledEnd,
+      );
       const flags = updateActivityFlag(
         activityFlags,
         ActivityFlag.IsIdea,
@@ -564,6 +618,10 @@ export function ActivityForm({
     endDateTime,
     startTimeZone,
     endTimeZone,
+    manualStartZone,
+    manualEndZone,
+    prefilledStart,
+    prefilledEnd,
     isIdea,
     planningStatus,
     tripId,
@@ -582,10 +640,24 @@ export function ActivityForm({
   const onFormSubmit = useCallback(
     (event: SubmitEvent<HTMLFormElement>) => {
       event.preventDefault();
+      if (!manualStartZone && !startDefaults.validate()) return;
+      if (
+        !manualEndZone &&
+        locationFieldsState.names[1] &&
+        !endDefaults.validate()
+      )
+        return;
       const elForm = event.currentTarget;
       void handleSubmit()(elForm);
     },
-    [handleSubmit],
+    [
+      handleSubmit,
+      manualStartZone,
+      startDefaults.validate,
+      manualEndZone,
+      endDefaults.validate,
+      locationFieldsState.names[1],
+    ],
   );
 
   return (
@@ -684,7 +756,7 @@ export function ActivityForm({
                 lng: locationFieldsState.lng[0] ?? 0,
                 lat: locationFieldsState.lat[0] ?? 0,
                 zoom: locationFieldsState.zoom[0] ?? 9,
-                region: tripRegion,
+                region: startRegion,
               }}
               marker={
                 locationFieldsState.lng[0] != null &&
@@ -746,7 +818,7 @@ export function ActivityForm({
                     lng: locationFieldsState.lng[1] ?? 0,
                     lat: locationFieldsState.lat[1] ?? 0,
                     zoom: locationFieldsState.zoom[1] ?? 9,
-                    region: tripRegion,
+                    region: endRegion,
                   }}
                   marker={
                     locationFieldsState.lng[1] != null &&
@@ -765,12 +837,17 @@ export function ActivityForm({
           </>
         ) : null}
 
-        <Text as="label">
+        <Text as="label" htmlFor="timeZoneStart">
           Start time zone{' '}
-          <Text weight="light" size="1">
-            (trip default time zone is {tripTimeZone})
-          </Text>
+          {!destinations && (
+            <Text weight="light" size="1">
+              (trip default time zone is {tripTimeZone})
+            </Text>
+          )}
         </Text>
+        {!manualStartZone && (
+          <DestinationPicker defaults={startDefaults} label="Destination" />
+        )}
         <TimeZoneSelect
           id="timeZoneStart"
           name="timeZoneStart"
@@ -794,12 +871,20 @@ export function ActivityForm({
           onChange={handleStartDateTimeChange}
           clearable={true}
         />
-        <Text as="label">
+        <Text as="label" htmlFor="timeZoneEnd">
           End time zone{' '}
-          <Text weight="light" size="1">
-            (trip default time zone is {tripTimeZone})
-          </Text>
+          {!destinations && (
+            <Text weight="light" size="1">
+              (trip default time zone is {tripTimeZone})
+            </Text>
+          )}
         </Text>
+        {!manualEndZone && locationFieldsState.names[1] && (
+          <DestinationPicker
+            defaults={endDefaults}
+            label="Arrival destination"
+          />
+        )}
         <TimeZoneSelect
           id="timeZoneEnd"
           name="timeZoneEnd"

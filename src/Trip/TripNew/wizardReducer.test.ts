@@ -55,6 +55,35 @@ describe('wizardReducer', () => {
     expect(next.step).toBe(2);
   });
 
+  test('uses the final destination for return defaults and preserves a manual endpoint zone', () => {
+    const stage: WizardState = {
+      ...BASE,
+      step: 2,
+      startDate: Temporal.PlainDate.from('2026-05-03'),
+      endDate: Temporal.PlainDate.from('2026-05-08'),
+    };
+    const travel = wizardReducer(stage, {
+      type: 'SET_STEP',
+      step: 3,
+      returnTimeZone: 'Asia/Taipei',
+    });
+    expect(travel.outboundFlight?.arrivalTimeZone).toBe('Asia/Tokyo');
+    expect(travel.returnFlight?.departureTimeZone).toBe('Asia/Taipei');
+    const revised = wizardReducer(
+      {
+        ...travel,
+        step: 2,
+        returnTrain: {
+          ...travel.returnTrain,
+          departureTimeZone: 'Asia/Hong_Kong',
+        },
+      },
+      { type: 'SET_STEP', step: 3, returnTimeZone: 'Asia/Manila' },
+    );
+    expect(revised.returnFlight?.departureTimeZone).toBe('Asia/Manila');
+    expect(revised.returnTrain?.departureTimeZone).toBe('Asia/Hong_Kong');
+  });
+
   test('SET_TITLE updates title', () => {
     const next = wizardReducer(BASE, {
       type: 'SET_TITLE',
