@@ -85,6 +85,25 @@ export default function PageTripNew() {
     });
   }, []);
 
+  const handleAddDestination = useCallback(() => {
+    setMultiRegion(true);
+    setInitialAdd(true);
+    setIsDestinationDraft(true);
+    dispatch({ type: 'SET_STEP', step: 2 });
+  }, []);
+
+  const handleUseOneDestination = useCallback(() => {
+    setMultiRegion(false);
+    setInitialAdd(false);
+    setIsDestinationDraft(false);
+  }, []);
+
+  const handleBackToTripSetup = useCallback(() => {
+    setInitialAdd(false);
+    setIsDestinationDraft(false);
+    dispatch({ type: 'SET_STEP', step: 1 });
+  }, []);
+
   const idRegion = 'wizard-region';
 
   const regionSelect = useMemo(
@@ -520,24 +539,6 @@ export default function PageTripNew() {
               Destination Region / Country
             </Text>
             {regionSelect}
-            <Button
-              type="button"
-              size="2"
-              variant="ghost"
-              style={{ alignSelf: 'start' }}
-              onClick={() => {
-                setMultiRegion(!multiRegion);
-                setInitialAdd(!multiRegion && destinations.length === 0);
-                setIsDestinationDraft(
-                  !multiRegion && destinations.length === 0,
-                );
-                if (!multiRegion && step1Valid)
-                  dispatch({ type: 'SET_STEP', step: 2 });
-                if (multiRegion) setDestinations([]);
-              }}
-            >
-              {multiRegion ? 'Single destination' : 'Add another destination'}
-            </Button>
           </Flex>
 
           <Flex direction="column" gap="1">
@@ -605,7 +606,7 @@ export default function PageTripNew() {
           </Flex>
         </Flex>
 
-        <Flex justify="between" mt="5">
+        <Flex justify="between" align="center" wrap="wrap" gap="3" mt="5">
           <Button
             variant="ghost"
             color="gray"
@@ -613,17 +614,22 @@ export default function PageTripNew() {
           >
             ← Back to trips
           </Button>
-          <Button
-            disabled={!step1Valid}
-            onClick={() => {
-              setIsDestinationDraft(
-                multiRegion && initialAdd && !destinations.length,
-              );
-              dispatch({ type: 'SET_STEP', step: 2 });
-            }}
-          >
-            Next →
-          </Button>
+          <Flex gap="2" wrap="wrap">
+            <Button
+              type="button"
+              variant="soft"
+              disabled={!step1Valid}
+              onClick={handleAddDestination}
+            >
+              Add another destination
+            </Button>
+            <Button
+              disabled={!step1Valid}
+              onClick={() => dispatch({ type: 'SET_STEP', step: 2 })}
+            >
+              Next →
+            </Button>
+          </Flex>
         </Flex>
       </div>
     );
@@ -737,31 +743,39 @@ export default function PageTripNew() {
           </Flex>
         </Flex>
 
-        <Flex justify="between" mt="5">
-          <Button
-            variant="ghost"
-            color="gray"
-            onClick={() => dispatch({ type: 'SET_STEP', step: 1 })}
-          >
+        <Flex justify="between" align="center" wrap="wrap" gap="3" mt="5">
+          <Button variant="ghost" color="gray" onClick={handleBackToTripSetup}>
             ← Back
           </Button>
-          <Button
-            disabled={
-              !step2Valid ||
-              isDestinationDraft ||
-              Boolean(itineraryError) ||
-              (multiRegion && !destinations.length)
-            }
-            onClick={() => {
-              dispatch({
-                type: 'SET_STEP',
-                step: 3,
-                returnTimeZone: lastDestination?.timeZone,
-              });
-            }}
-          >
-            Next →
-          </Button>
+          <Flex gap="2" wrap="wrap">
+            {multiRegion && (
+              <Button
+                type="button"
+                variant="ghost"
+                color="gray"
+                onClick={handleUseOneDestination}
+              >
+                Use one destination
+              </Button>
+            )}
+            <Button
+              disabled={
+                !step2Valid ||
+                isDestinationDraft ||
+                Boolean(itineraryError) ||
+                (multiRegion && !destinations.length)
+              }
+              onClick={() => {
+                dispatch({
+                  type: 'SET_STEP',
+                  step: 3,
+                  returnTimeZone: lastDestination?.timeZone,
+                });
+              }}
+            >
+              Next →
+            </Button>
+          </Flex>
         </Flex>
       </div>
     );

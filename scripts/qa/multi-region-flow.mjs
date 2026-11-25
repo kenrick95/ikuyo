@@ -221,8 +221,13 @@ async function pickDate(trigger, date, hour, minute) {
 
 try {
   await page.goto(`${base}/trip/new`);
+  const addDestination = page.getByRole('button', {
+    name: 'Add another destination',
+  });
+  assert.equal(await addDestination.isDisabled(), true);
   await page.getByRole('textbox').first().fill('Tokyo and Taipei');
   await select('Destination Region / Country', 'Japan');
+  assert.equal(await addDestination.isDisabled(), true);
   await pickDate(
     page.getByRole('button', { name: /Trip start date:/i }),
     '2026-05-03',
@@ -231,7 +236,16 @@ try {
     page.getByRole('button', { name: /Trip end date:/i }),
     '2026-05-08',
   );
-  await page.getByRole('button', { name: 'Add another destination' }).click();
+  await page.getByRole('button', { name: /Next/ }).click();
+  await page.getByRole('heading', { name: 'Trip details' }).waitFor();
+  await page.getByRole('button', { name: '← Back', exact: true }).click();
+  assert.equal(await addDestination.isEnabled(), true);
+  await addDestination.press('Enter');
+  await page.getByRole('heading', { name: 'Destinations' }).waitFor();
+  await page.getByRole('button', { name: 'Use one destination' }).click();
+  await page.getByRole('heading', { name: 'Trip details' }).waitFor();
+  await page.getByRole('button', { name: '← Back', exact: true }).click();
+  await addDestination.click();
   await select('Region', 'Taiwan');
   await page.getByLabel('Place', { exact: true }).fill('Taipei');
   await pickDate(
@@ -242,6 +256,9 @@ try {
   await shot('01-destination-editor.png');
   await page.getByRole('button', { name: 'Done', exact: true }).click();
   await shot('02-wizard-destinations.png');
+  await page.getByRole('button', { name: '← Back', exact: true }).click();
+  await page.getByRole('button', { name: /Next/ }).click();
+  await page.getByRole('button', { name: 'Edit Taipei' }).waitFor();
   await page.getByRole('button', { name: /Next/ }).click();
   await page.getByRole('button', { name: 'Create Trip' }).click();
   await page.waitForURL((url) => url.pathname.startsWith(tripUrl));
