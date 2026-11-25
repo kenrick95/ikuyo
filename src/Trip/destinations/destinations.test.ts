@@ -8,8 +8,8 @@ import {
   destinationAt,
   destinationChoices,
   itinerary,
+  resolveDestination,
   type TripDestination,
-  validateDestinations,
 } from './destinations';
 import { itemZonedTime, newActivityTimes } from './newItemTimes';
 
@@ -22,6 +22,7 @@ const taipei: TripDestination = {
   startsOn: '2026-05-06',
   startsAtTime: '15:40',
   startOffset: null,
+  startsAtMs: Date.parse('2026-05-06T15:40:00+08:00'),
 };
 const trip = {
   region: 'JP',
@@ -87,10 +88,10 @@ describe('destination defaults', () => {
       startsOn: '2026-11-01',
       startsAtTime: '01:30',
     };
-    expect(validateDestinations([stop])?.message).toContain('ambiguous');
+    expect(resolveDestination(stop)).toBeUndefined();
     expect(
-      validateDestinations([{ ...stop, startOffset: '-05:00' }]),
-    ).toBeUndefined();
+      resolveDestination({ ...stop, startOffset: '-05:00' })?.startsAtMs,
+    ).toBe(Date.parse('2026-11-01T06:30:00Z'));
   });
 });
 

@@ -136,19 +136,19 @@ Store added destinations in a nullable JSON column on `trips`. Each destination 
 | `timeZone`, `currency` | IANA time-zone ID and currency code |
 | `startsOn`, `startsAtTime` | Local date and optional local time in the destination zone |
 | `startOffset` | Selected UTC offset for a repeated local time |
-| `startsAtMs` | Server-resolved instant for ordering and prefill |
+| `startsAtMs` | Instant resolved by Temporal in the browser, used for ordering and prefill |
 
-The server resolves and returns the start instant. If a local time repeats, the editor asks the user to choose an offset. If a local time falls in a clock gap, the editor asks for a valid time.
+The editor resolves the instant with Temporal and sends it in the trip save request. If a local time repeats, the editor asks the user to choose an offset. If a local time falls in a clock gap, the editor asks for a valid time.
 
-The server verifies identifiers, supported zones and currencies, and unique starts strictly inside the trip bounds. If trip dates change, the server verifies all destinations against the proposed dates. If the dates exclude a destination, the editor identifies the row the user must move or remove.
+The server verifies identifiers, supported zones and currencies, and that submitted instants are unique and strictly inside the trip bounds. It stores the submitted instants. If trip dates change, the server checks the instants against the proposed dates. If the dates exclude a destination, the editor identifies the row the user must move or remove.
 
 Extend the existing trip create, update, and full-trip read contracts with `destinations`. Omission in an update keeps the current itinerary. An empty array clears the added destinations. The create path saves trip details and destinations in one transaction. Optional transport records use the existing post-create flow. If optional transport fails, keep the trip and offer a retry for the failed entries using the same IDs.
 
-The server verifies and saves the itinerary under the existing trip write lock. The trip editor sends the destination list only after the user edits it.
+The trip editor sends the destination list only after the user edits it.
 
 Existing trip edit permissions, archive rules, and read visibility apply. The full trip API, store, and sync carry the itinerary to viewers with trip access. Trip listing payloads need only the existing summary fields.
 
-Trip duplication copies added destinations with fresh IDs and shifts each start by the trip date change in local calendar days. The server resolves each shifted start in its destination zone. If a shifted start falls outside the new dates or in a clock gap, the duplicate dialog identifies the affected destination before save.
+When duplicating a trip to new dates, the browser shifts each start by the trip date change in local calendar days, resolves it in the destination's zone, and sends it in the duplicate request. The server assigns fresh destination IDs. If a shifted start is ambiguous, falls in a clock gap, or falls outside the new dates, the duplicate dialog identifies the affected destination before sending the request.
 
 ## Implementation and verification
 

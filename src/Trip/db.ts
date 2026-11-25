@@ -18,7 +18,10 @@ import {
 import type { DbUser } from '../data/types';
 import type { DbMacroplan, DbMacroplanWithTrip } from '../Macroplan/db';
 import { TripUserRole } from '../User/TripUserRole';
-import type { TripDestination } from './destinations/destinations';
+import {
+  duplicateDestinations,
+  type TripDestination,
+} from './destinations/destinations';
 import type { TripSliceTrip } from './store/types';
 import type { TripSharingLevelType } from './tripSharingLevel';
 
@@ -188,13 +191,21 @@ export type TripDuplicateOptions = {
  * Duplicate a trip into a new trip owned by `userId`.
  */
 export async function dbDuplicateTrip(
-  sourceTripId: string,
+  sourceTrip: Pick<
+    DbTrip,
+    'id' | 'timeZone' | 'timestampStart' | 'destinations'
+  >,
   options: TripDuplicateOptions,
   { userId: _userId }: { userId: string },
 ) {
+  const destinations = duplicateDestinations(
+    sourceTrip,
+    options.startDateMs,
+    options.endDateMs,
+  );
   const result = await postMutation<{ id: string }>(
-    `/api/trips/${encodeURIComponent(sourceTripId)}/duplicate`,
-    options,
+    `/api/trips/${encodeURIComponent(sourceTrip.id)}/duplicate`,
+    destinations ? { ...options, destinations } : options,
   );
   return { id: result.id, result };
 }

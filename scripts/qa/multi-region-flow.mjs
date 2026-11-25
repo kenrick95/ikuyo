@@ -247,6 +247,7 @@ try {
   await page.waitForURL((url) => url.pathname.startsWith(tripUrl));
   assert.equal(submitted.destinations[0].name, 'Taipei');
   assert.equal(submitted.destinations[0].currency, 'TWD');
+  assert.equal(submitted.destinations[0].startsAtMs, taipei.startsAtMs);
 
   await page.goto(`${base + tripUrl}/list`);
   await page.getByText('Late-night ramen').waitFor();

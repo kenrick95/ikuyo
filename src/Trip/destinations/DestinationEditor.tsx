@@ -12,8 +12,9 @@ import {
   getDefaultTimezoneForRegion,
 } from '../../data/intl/timezones';
 import {
-  destinationStart,
+  type DestinationDraft,
   regionName,
+  resolveDestination,
   startCandidates,
   type TripDestination,
 } from './destinations';
@@ -41,10 +42,10 @@ export function DestinationEditor({
   initialAdd?: boolean;
   issue?: { id: string; message: string };
 }) {
-  const [draft, setDraftValue] = useState<TripDestination | undefined>(() =>
+  const [draft, setDraftValue] = useState<DestinationDraft | undefined>(() =>
     initialAdd ? makeDraft() : undefined,
   );
-  function setDraft(value: TripDestination | undefined) {
+  function setDraft(value: DestinationDraft | undefined) {
     setDraftValue(value);
     setZoneEdited(Boolean(value?.region));
     onDraftChange?.(value !== undefined);
@@ -60,15 +61,12 @@ export function DestinationEditor({
   useEffect(() => {
     if (issue) document.getElementById(`${prefix}-edit-${issue.id}`)?.focus();
   }, [issue, prefix]);
-  function change(patch: Partial<TripDestination>) {
-    setDraftValue(
-      (current) => current && { ...current, startsAtMs: undefined, ...patch },
-    );
+  function change(patch: Partial<DestinationDraft>) {
+    setDraftValue((current) => current && { ...current, ...patch });
   }
   const candidates = draft ? startCandidates(draft) : [];
-  const sorted = [...destinations].sort(
-    (a, b) => (destinationStart(a) ?? 0) - (destinationStart(b) ?? 0),
-  );
+  const resolved = draft ? resolveDestination(draft, candidates) : undefined;
+  const sorted = destinations.toSorted((a, b) => a.startsAtMs - b.startsAtMs);
 
   return (
     <Flex direction="column" gap="3">
@@ -405,20 +403,16 @@ export function DestinationEditor({
                 </Button>
                 <Button
                   type="button"
-                  disabled={
-                    !draft.region ||
-                    !draft.currency ||
-                    destinationStart(draft) === undefined
-                  }
+                  disabled={!draft.region || !draft.currency || !resolved}
                   onClick={() => {
-                    const next = {
-                      ...draft,
-                      name: draft.name.trim() || regionName(draft.region),
-                      startsAtMs: destinationStart(draft),
-                    };
+                    if (!resolved) return;
                     onChange([
                       ...destinations.filter((item) => item.id !== draft.id),
-                      next,
+                      {
+                        ...resolved,
+                        name:
+                          resolved.name.trim() || regionName(resolved.region),
+                      },
                     ]);
                     setDraft(undefined);
                   }}
@@ -475,7 +469,7 @@ export function DestinationEditor({
   );
 }
 
-function makeDraft(): TripDestination {
+function makeDraft(): DestinationDraft {
   return {
     id: id(),
     name: '',

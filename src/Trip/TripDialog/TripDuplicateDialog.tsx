@@ -96,7 +96,7 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
     if (Temporal.PlainDate.compare(startDate, endDate) > 0) return;
     setIsSubmitting(true);
     void dbDuplicateTrip(
-      trip.id,
+      trip,
       {
         title: title.trim(),
         startDateMs: startDate.toZonedDateTime(trip.timeZone).toInstant()
@@ -137,8 +137,7 @@ export function TripDuplicateDialog({ trip }: { trip: TripSliceTrip }) {
       });
   }, [
     user,
-    trip.id,
-    trip.timeZone,
+    trip,
     title,
     startDate,
     endDate,

@@ -27,7 +27,6 @@ import { RouteTrip, RouteTripNew, RouteTrips } from '../../Routes/routes';
 import { dbAddTrip } from '../db';
 import { DestinationEditor } from '../destinations/DestinationEditor';
 import {
-  destinationStart,
   type TripDestination,
   validateDestinations,
 } from '../destinations/destinations';
@@ -67,11 +66,7 @@ export default function PageTripNew() {
   const [isDestinationDraft, setIsDestinationDraft] = useState(false);
   const [initialAdd, setInitialAdd] = useState(false);
   const lastDestination = multiRegion
-    ? destinations
-        .toSorted(
-          (a, b) => (destinationStart(a) ?? 0) - (destinationStart(b) ?? 0),
-        )
-        .at(-1)
+    ? destinations.toSorted((a, b) => a.startsAtMs - b.startsAtMs).at(-1)
     : undefined;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const publishToast = useBoundStore((store) => store.publishToast);

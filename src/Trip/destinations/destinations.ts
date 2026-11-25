@@ -9,8 +9,10 @@ export type TripDestination = {
   startsOn: string;
   startsAtTime: string | null;
   startOffset: string | null;
-  startsAtMs?: number;
+  startsAtMs: number;
 };
+
+export type DestinationDraft = Omit<TripDestination, 'startsAtMs'>;
 
 export type DestinationTrip = {
   timestampStart: number;
@@ -23,7 +25,7 @@ export type DestinationTrip = {
 export const regionName = (region: string) =>
   REGIONS_LIST.find(([code]) => code === region)?.[1] ?? region;
 
-export function startCandidates(destination: TripDestination) {
+export function startCandidates(destination: DestinationDraft) {
   const { startsOn, startsAtTime, timeZone } = destination;
   if (!startsOn || !timeZone) return [];
   try {
@@ -44,15 +46,23 @@ export function startCandidates(destination: TripDestination) {
   }
 }
 
-export function destinationStart(destination: TripDestination) {
-  const candidates = startCandidates(destination);
-  return (
+export function resolveDestination(
+  destination: DestinationDraft,
+  candidates = startCandidates(destination),
+): TripDestination | undefined {
+  const start =
     candidates.length === 1
       ? candidates[0]
       : candidates.find(
           (candidate) => candidate.offset === destination.startOffset,
-        )
-  )?.epochMilliseconds;
+        );
+  if (start) {
+    return {
+      ...destination,
+      startOffset: candidates.length > 1 ? start.offset : null,
+      startsAtMs: start.epochMilliseconds,
+    };
+  }
 }
 
 export function validateDestinations(
@@ -72,12 +82,7 @@ export function validateDestinations(
     ) {
       return { id: destination.id, message: 'Complete each destination.' };
     }
-    const ms = destinationStart(destination);
-    if (ms === undefined)
-      return {
-        id: destination.id,
-        message: `${name} has an invalid or ambiguous start.`,
-      };
+    const ms = destination.startsAtMs;
     if (
       (start !== undefined && ms <= start) ||
       (end !== undefined && ms >= end)
@@ -94,6 +99,41 @@ export function validateDestinations(
       };
     seen.add(ms);
   }
+}
+
+export function duplicateDestinations(
+  trip: Pick<DestinationTrip, 'destinations' | 'timestampStart' | 'timeZone'>,
+  start: number,
+  end: number,
+) {
+  if (!trip.destinations?.length) return undefined;
+
+  const localDate = (ms: number) =>
+    Temporal.Instant.fromEpochMilliseconds(ms)
+      .toZonedDateTimeISO(trip.timeZone)
+      .toPlainDate();
+  const days = localDate(trip.timestampStart).until(localDate(start)).days;
+  const destinations = days
+    ? trip.destinations.map((destination) => {
+        const shifted = resolveDestination({
+          ...destination,
+          startsOn: Temporal.PlainDate.from(destination.startsOn)
+            .add({ days })
+            .toString(),
+        });
+        if (!shifted) {
+          throw new Error(
+            `${destination.name} has an invalid or ambiguous start on the new dates.`,
+          );
+        }
+        return shifted;
+      })
+    : trip.destinations;
+
+  const issue = validateDestinations(destinations, start, end);
+  if (issue) throw new Error(issue.message);
+
+  return destinations;
 }
 
 type ResolvedDestination = Pick<
@@ -117,15 +157,15 @@ export function itinerary(trip: DestinationTrip): DestinationItinerary {
       startsAtMs: trip.timestampStart,
     },
     ...(trip.destinations ?? [])
-      .flatMap((destination) => {
-        const { id, name, region, currency, timeZone } = destination;
-        const startsAtMs =
-          destination.startsAtMs ?? destinationStart(destination);
-        return startsAtMs === undefined
-          ? []
-          : [{ id, name, region, currency, timeZone, startsAtMs }];
-      })
-      .sort((a, b) => a.startsAtMs - b.startsAtMs),
+      .toSorted((a, b) => a.startsAtMs - b.startsAtMs)
+      .map(({ id, name, region, currency, timeZone, startsAtMs }) => ({
+        id,
+        name,
+        region,
+        currency,
+        timeZone,
+        startsAtMs,
+      })),
   ];
 }
 
