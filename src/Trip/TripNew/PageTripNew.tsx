@@ -615,14 +615,16 @@ export default function PageTripNew() {
             ← Back to trips
           </Button>
           <Flex gap="2" wrap="wrap">
-            <Button
-              type="button"
-              variant="soft"
-              disabled={!step1Valid}
-              onClick={handleAddDestination}
-            >
-              Add another destination
-            </Button>
+            {currentUser?.experimentalFeatures && (
+              <Button
+                type="button"
+                variant="soft"
+                disabled={!step1Valid}
+                onClick={handleAddDestination}
+              >
+                Add another destination
+              </Button>
+            )}
             <Button
               disabled={!step1Valid}
               onClick={() => dispatch({ type: 'SET_STEP', step: 2 })}

@@ -31,7 +31,7 @@ class UserController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        return response()->json($this->serialize($request->user()));
+        return $this->accountResponse($request->user());
     }
 
     public function checkEmail(Request $request): JsonResponse
@@ -51,14 +51,20 @@ class UserController extends Controller
             'region' => ['sometimes', 'nullable', 'string', 'max:8'],
             'currency' => ['sometimes', 'nullable', 'string', 'max:8'],
             'timeZone' => ['sometimes', 'nullable', 'string', 'max:64'],
+            'experimentalFeatures' => ['sometimes', 'boolean'],
         ]);
-        $request->user()->update([
-            'preferred_region' => $data['region'] ?? $request->user()->preferred_region,
-            'preferred_currency' => $data['currency'] ?? $request->user()->preferred_currency,
-            'preferred_timezone' => $data['timeZone'] ?? $request->user()->preferred_timezone,
-        ]);
+        $user = $request->user();
+        $preferences = [
+            'preferred_region' => $data['region'] ?? $user->preferred_region,
+            'preferred_currency' => $data['currency'] ?? $user->preferred_currency,
+            'preferred_timezone' => $data['timeZone'] ?? $user->preferred_timezone,
+        ];
+        if (array_key_exists('experimentalFeatures', $data)) {
+            $preferences['experimental_features'] = $data['experimentalFeatures'];
+        }
+        $user->update($preferences);
 
-        return response()->json($this->serialize($request->user()->fresh()));
+        return $this->accountResponse($user->fresh());
     }
 
     public function update(Request $request): JsonResponse
@@ -72,7 +78,7 @@ class UserController extends Controller
         }
         $request->user()->update($data);
 
-        return response()->json($this->serialize($request->user()->fresh()));
+        return $this->accountResponse($request->user()->fresh());
     }
 
     public function addMember(Request $request, Trip $trip): JsonResponse
@@ -151,5 +157,10 @@ class UserController extends Controller
     private function serialize(User $user): array
     {
         return ['id' => $user->id, 'handle' => $user->handle, 'email' => $user->email, 'activated' => (bool) $user->activated, 'createdAt' => $user->created_at_ms, 'lastUpdatedAt' => $user->updated_at_ms, 'lastLoginAt' => $user->last_login_at, 'preferredRegion' => $user->preferred_region, 'preferredCurrency' => $user->preferred_currency, 'preferredTimeZone' => $user->preferred_timezone];
+    }
+
+    private function accountResponse(User $user): JsonResponse
+    {
+        return response()->json($this->serialize($user) + ['experimentalFeatures' => (bool) $user->experimental_features]);
     }
 }

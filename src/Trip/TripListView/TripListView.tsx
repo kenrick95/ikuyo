@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Route, Switch } from 'wouter';
 import { Accommodation } from '../../Accommodation/Accommodation';
 import { AccommodationDialog } from '../../Accommodation/AccommodationDialog/AccommodationDialog';
+import { AccommodationDisplayTimeMode } from '../../Accommodation/AccommodationDisplayTimeMode';
 import { AccommodationNewDialog } from '../../Accommodation/AccommodationNewDialog';
 import { Activity } from '../../Activity/Activity';
 import { ActivityDialog } from '../../Activity/ActivityDialog/ActivityDialog';
@@ -25,7 +26,7 @@ import {
   RouteTripListViewActivity,
   RouteTripListViewMacroplan,
 } from '../../Routes/routes';
-import { itinerary } from '../destinations/destinations';
+import { destinationChangesByDate } from '../destinations/destinationChanges';
 import { calendarTrip, useTripDisplayZone } from '../destinations/displayZone';
 import { canModifyTripContent } from '../permissions';
 import {
@@ -44,12 +45,9 @@ export function TripListView() {
     () => originalTrip && calendarTrip(originalTrip, zone),
     [originalTrip, zone],
   );
-  const destinations = useMemo(
-    () =>
-      originalTrip?.destinations?.length
-        ? itinerary(originalTrip).slice(1)
-        : [],
-    [originalTrip],
+  const destinationChanges = useMemo(
+    () => destinationChangesByDate(trip?.destinations, trip?.timeZone),
+    [trip?.destinations, trip?.timeZone],
   );
   const activities = useTripActivities(trip?.activityIds ?? []);
   const tripAccommodations = useTripAccommodations(
@@ -233,14 +231,81 @@ export function TripListView() {
                 </>
               ) : null}
               {dayGroups.inTrip.map((dayGroup, i) => {
-                const dayActivities = Object.values(dayGroup.activities);
-                const dayMacroplans = Object.values(dayGroup.macroplans);
-                const dayAccommodations = Object.values(
-                  dayGroup.accommodations,
-                );
                 const date = toFormat('yyyy-MM-dd', dayGroup.startDateTime);
                 const dayNumber = i + 1;
                 const isCurrentDay = currentDayIndex === dayNumber;
+                const changes = destinationChanges.get(date) ?? [];
+                const schedule = [
+                  ...dayGroup.accommodations.map((accommodation) => {
+                    const props = dayGroup.accommodationProps.get(
+                      accommodation.id,
+                    );
+                    const startsAtMs =
+                      props?.displayTimeMode ===
+                      AccommodationDisplayTimeMode.CheckIn
+                        ? accommodation.timestampCheckIn
+                        : props?.displayTimeMode ===
+                            AccommodationDisplayTimeMode.CheckOut
+                          ? accommodation.timestampCheckOut
+                          : dayGroup.startDateTime.epochMilliseconds - 1;
+                    return {
+                      startsAtMs,
+                      row: (
+                        <Accommodation
+                          key={`accommodation-${accommodation.id}`}
+                          accommodation={accommodation}
+                          tripViewMode={TripViewMode.List}
+                          className={s.listItem}
+                          timeZone={trip?.timeZone ?? ''}
+                          userCanEditOrDelete={userCanEditOrDelete}
+                          {...props}
+                        />
+                      ),
+                    };
+                  }),
+                  ...changes.map((change) => ({
+                    startsAtMs: change.startsAtMs,
+                    row: (
+                      <Text
+                        as="div"
+                        key={`destination-${change.id}`}
+                        role="separator"
+                        aria-label={`${change.time}, destination changes to ${change.name}`}
+                        size="2"
+                        className={clsx(s.listItem, s.destinationChange)}
+                      >
+                        <span className={s.destinationChangeTime}>
+                          {change.time} →
+                        </span>
+                        <span>{change.name}</span>
+                      </Text>
+                    ),
+                  })),
+                  ...dayGroup.activities.map((activity) => {
+                    const columnIndex = dayGroup.activityColumnIndexMap.get(
+                      activity.id,
+                    );
+                    return {
+                      startsAtMs: activity.timestampStart,
+                      row: (
+                        <Activity
+                          key={activity.id}
+                          className={s.listItem}
+                          activity={activity}
+                          columnIndex={columnIndex?.start ?? 1}
+                          columnEndIndex={columnIndex?.end ?? 1}
+                          tripViewMode={TripViewMode.List}
+                          tripTimeZone={trip?.timeZone ?? ''}
+                          tripTimestampStart={trip?.timestampStart ?? 0}
+                          userCanEditOrDelete={userCanEditOrDelete}
+                        />
+                      ),
+                    };
+                  }),
+                ];
+                if (changes.length) {
+                  schedule.sort((a, b) => a.startsAtMs - b.startsAtMs);
+                }
 
                 return [
                   // Dummy element as scroll target
@@ -260,35 +325,8 @@ export function TripListView() {
                     )}
                   >
                     {toFormat('cccc, d LLLL yyyy', dayGroup.startDateTime)}
-                    {destinations
-                      .filter(
-                        (destination) =>
-                          destination.startsAtMs >=
-                            dayGroup.startDateTime.epochMilliseconds &&
-                          destination.startsAtMs <
-                            dayGroup.startDateTime.add({ days: 1 })
-                              .epochMilliseconds,
-                      )
-                      .map((destination) => (
-                        <Text
-                          as="div"
-                          key={destination.id}
-                          size="2"
-                          color="gray"
-                        >
-                          {toFormat(
-                            'HH:mm',
-                            Temporal.Instant.fromEpochMilliseconds(
-                              destination.startsAtMs,
-                            ).toZonedDateTimeISO(
-                              dayGroup.startDateTime.timeZoneId,
-                            ),
-                          )}{' '}
-                          · {destination.name}
-                        </Text>
-                      ))}
                   </Heading>,
-                  ...dayMacroplans.map((macroplan, i) => {
+                  ...dayGroup.macroplans.map((macroplan, i) => {
                     return (
                       <Macroplan
                         key={`${macroplan.id}-${String(i)}`}
@@ -300,40 +338,7 @@ export function TripListView() {
                       />
                     );
                   }),
-                  ...dayAccommodations.map((accommodation, i) => {
-                    const props = dayGroup.accommodationProps.get(
-                      accommodation.id,
-                    );
-                    return (
-                      <Accommodation
-                        key={`${accommodation.id}-${String(i)}`}
-                        accommodation={accommodation}
-                        tripViewMode={TripViewMode.List}
-                        className={s.listItem}
-                        timeZone={trip?.timeZone ?? ''}
-                        userCanEditOrDelete={userCanEditOrDelete}
-                        {...props}
-                      />
-                    );
-                  }),
-                  ...dayActivities.map((activity) => {
-                    const columnIndex = dayGroup.activityColumnIndexMap.get(
-                      activity.id,
-                    );
-                    return (
-                      <Activity
-                        key={activity.id}
-                        className={s.listItem}
-                        activity={activity}
-                        columnIndex={columnIndex?.start ?? 1}
-                        columnEndIndex={columnIndex?.end ?? 1}
-                        tripViewMode={TripViewMode.List}
-                        tripTimeZone={trip?.timeZone ?? ''}
-                        tripTimestampStart={trip?.timestampStart ?? 0}
-                        userCanEditOrDelete={userCanEditOrDelete}
-                      />
-                    );
-                  }),
+                  ...schedule.map(({ row }) => row),
                 ];
               })}
             </Flex>

@@ -29,6 +29,12 @@ export function TripMenu() {
   const user = useCurrentUser();
   const userIsOwner = isTripOwner(trip);
   const userCanModifyTrip = canModifyTripContent(trip);
+  const canDuplicateTrip = Boolean(
+    user &&
+      trip &&
+      trip.archivedAt == null &&
+      (!trip.destinations?.length || user.experimentalFeatures),
+  );
   const pushDialog = useBoundStore((state) => state.pushDialog);
 
   const handlePrintTrip = useCallback(
@@ -142,9 +148,9 @@ export function TripMenu() {
           </DropdownMenu.Item>
 
           <DropdownMenu.Item
-            disabled={!user || trip?.archivedAt != null}
+            disabled={!canDuplicateTrip}
             onClick={
-              user && trip?.archivedAt == null
+              canDuplicateTrip
                 ? () => {
                     if (trip) {
                       pushDialog(TripDuplicateDialog, { trip });

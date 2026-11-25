@@ -37,6 +37,7 @@ export function DestinationEditor({
   arrivals = [],
   dayPlans = [],
   initialAdd = false,
+  canAddDestination = true,
   issue,
 }: {
   destinations: TripDestination[];
@@ -53,6 +54,7 @@ export function DestinationEditor({
   arrivals?: DestinationArrival[];
   dayPlans?: { id: string; name: string; date: string }[];
   initialAdd?: boolean;
+  canAddDestination?: boolean;
   issue?: { id: string; message: string };
 }) {
   const [draft, setDraftValue] = useState<DestinationDraft | undefined>(() =>
@@ -462,7 +464,7 @@ export function DestinationEditor({
             </Flex>
           </Flex>
         </Card>
-      ) : (
+      ) : canAddDestination ? (
         <Flex gap="3" align="center" wrap="wrap">
           <Button
             type="button"
@@ -503,7 +505,7 @@ export function DestinationEditor({
             </Select.Root>
           ) : null}
         </Flex>
-      )}
+      ) : null}
     </Flex>
   );
 }

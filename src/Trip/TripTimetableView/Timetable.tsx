@@ -51,7 +51,7 @@ import {
   RouteTripTimetableViewMacroplan,
 } from '../../Routes/routes';
 import { useRouteSnapshot } from '../../Routes/TransitionRouter';
-import { itinerary } from '../destinations/destinations';
+import { destinationChangesByDate } from '../destinations/destinationChanges';
 import { calendarTrip, useTripDisplayZone } from '../destinations/displayZone';
 import { IdeaSidebar } from '../Ideas/IdeaSidebar';
 import { canModifyTripContent } from '../permissions';
@@ -74,6 +74,7 @@ import {
 } from './macroplan';
 import { SwapDayDialog } from './SwapDay/SwapDayDialog';
 import s from './Timetable.module.scss';
+import { TimetableDestinationChanges } from './TimetableDestinationChanges';
 import { TimetableDialogState } from './TimetableDialogState';
 import { TimetableGrid } from './TimetableGrid';
 import { TimetableSlotDialog } from './TimetableSlotDialog';
@@ -123,12 +124,9 @@ export function Timetable() {
       macroplans: tripMacroplans,
     });
   }, [trip, activities, tripAccommodations, tripMacroplans]);
-  const destinations = useMemo(
-    () =>
-      originalTrip?.destinations?.length
-        ? itinerary(originalTrip).slice(1)
-        : [],
-    [originalTrip],
+  const destinationChanges = useMemo(
+    () => destinationChangesByDate(trip?.destinations, trip?.timeZone),
+    [trip?.destinations, trip?.timeZone],
   );
   const macroplans = useMemo(() => {
     if (!trip) return [];
@@ -609,21 +607,6 @@ export function Timetable() {
           const isCurrentDay = currentDayIndex === dayNumber;
           return (
             <TimetableDayHeader
-              destinationStarts={destinations
-                .filter(
-                  (destination) =>
-                    destination.startsAtMs >=
-                      dayGroup.startDateTime.epochMilliseconds &&
-                    destination.startsAtMs <
-                      dayGroup.startDateTime.add({ days: 1 }).epochMilliseconds,
-                )
-                .map((destination) => {
-                  const local = Temporal.Instant.fromEpochMilliseconds(
-                    destination.startsAtMs,
-                  ).toZonedDateTimeISO(dayGroup.startDateTime.timeZoneId);
-                  return `${toFormat('HH:mm', local)} · ${destination.name}`;
-                })
-                .join(' / ')}
               dateString={toFormat('ccc, d LLL yyyy', dayGroup.startDateTime)}
               key={dayGroup.startDateTime.toString()}
               gridColumnStart={`d${String(dayNumber)}`}
@@ -637,6 +620,18 @@ export function Timetable() {
             />
           );
         })}
+        {destinationChanges.size > 0 &&
+          dayGroups.inTrip.map((dayGroup, index) => {
+            const date = dayGroup.startDateTime.toPlainDate().toString();
+            const changes = destinationChanges.get(date);
+            return changes ? (
+              <TimetableDestinationChanges
+                key={date}
+                changes={changes}
+                day={index + 1}
+              />
+            ) : null;
+          })}
         {macroplans.length > 0 ? <TimetableMacroplanHeader /> : null}
         {macroplans.length > 0 ? (
           <div className={s.macroplanGrid} style={timetableMacroplanStyle}>
@@ -805,7 +800,6 @@ function generateMainGridTemplateColumns(dayGroups: DayGroups): string {
 
 function TimetableDayHeaderInner({
   dateString,
-  destinationStarts,
   gridColumnStart,
   gridColumnEnd,
   isActive,
@@ -816,7 +810,6 @@ function TimetableDayHeaderInner({
   tripDays,
 }: {
   dateString: string;
-  destinationStarts?: string;
   gridColumnStart: string;
   gridColumnEnd: string;
   isActive?: boolean;
@@ -858,14 +851,7 @@ function TimetableDayHeaderInner({
       )}
       style={style}
     >
-      <div>
-        {dateString}
-        {destinationStarts ? (
-          <Text as="div" size="1" color="gray">
-            {destinationStarts}
-          </Text>
-        ) : null}
-      </div>
+      {dateString}
     </Text>
   );
 
@@ -916,7 +902,6 @@ const TimetableDayHeader = memo(
   (prevProps, nextProps) => {
     return (
       prevProps.dateString === nextProps.dateString &&
-      prevProps.destinationStarts === nextProps.destinationStarts &&
       prevProps.gridColumnStart === nextProps.gridColumnStart &&
       prevProps.gridColumnEnd === nextProps.gridColumnEnd &&
       prevProps.isActive === nextProps.isActive &&

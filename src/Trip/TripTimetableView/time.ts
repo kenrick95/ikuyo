@@ -74,7 +74,7 @@ export function gridTemplateWithRepeats(
     if (minute < 1440) names.push(name(minute));
   }
   let rows =
-    '[header] 50px [macroplan] min-content [accommodation] min-content';
+    '[header] 50px [destinations] min-content [macroplan] min-content [accommodation] min-content';
   for (const [index, time] of names.entries()) {
     const previous = names[index - 1];
     rows += ` [${previous ? `te${previous} ` : ''}t${time}] var(--row-minute-${Number(time.slice(0, 2)) <= 5 ? 'narrow-' : ''}height)`;

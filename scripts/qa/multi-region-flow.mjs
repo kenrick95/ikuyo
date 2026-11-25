@@ -35,6 +35,7 @@ const user = {
   preferredRegion: 'SG',
   preferredCurrency: 'SGD',
   preferredTimeZone: 'Asia/Singapore',
+  experimentalFeatures: false,
 };
 const taipei = {
   id: '15d2ddfb-3061-46a1-9004-41acb07e3a10',
@@ -172,6 +173,12 @@ await page.route('**/*', async (route) => {
     return respond({ token: 'mock-token' });
   if (url.pathname === '/api/sync')
     return respond({ changes: [], nextCursor: 1 });
+  if (url.pathname === '/api/users/me/preferences' && method === 'PUT') {
+    const { experimentalFeatures } = route.request().postDataJSON();
+    if (experimentalFeatures !== undefined)
+      user.experimentalFeatures = experimentalFeatures;
+    return respond(user);
+  }
   if (url.pathname === '/api/trips' && method === 'POST') {
     submitted = route.request().postDataJSON();
     return respond({ id: trip.id }, 201);
@@ -234,6 +241,41 @@ try {
   const addDestination = page.getByRole('button', {
     name: 'Add another destination',
   });
+  await page.getByRole('heading', { name: 'Plan a new trip' }).waitFor();
+  assert.equal(await addDestination.count(), 0);
+
+  await page.goto(`${base + tripUrl}/list`);
+  await page
+    .getByRole('separator', {
+      name: '16:40, destination changes to Taipei',
+    })
+    .waitFor();
+  await page.getByRole('button', { name: 'Actions' }).click();
+  await page.getByRole('menuitem', { name: 'Edit trip' }).click();
+  const tripWithoutExperiment = page.getByRole('dialog', { name: 'Edit Trip' });
+  await tripWithoutExperiment
+    .getByRole('button', { name: 'Edit Taipei' })
+    .waitFor();
+  assert.equal(
+    await tripWithoutExperiment
+      .getByRole('button', {
+        name: 'Add destination',
+        exact: true,
+      })
+      .count(),
+    0,
+  );
+
+  await page.goto(`${base}/account/edit`);
+  const experimental = page.getByRole('switch', {
+    name: 'Experimental features',
+  });
+  assert.equal(await experimental.getAttribute('aria-checked'), 'false');
+  await experimental.click();
+  await page.getByRole('button', { name: 'Save Preferences' }).click();
+  await page.getByText('Trip preferences updated', { exact: true }).waitFor();
+  assert.equal(user.experimentalFeatures, true);
+  await page.goto(`${base}/trip/new`);
   assert.equal(await addDestination.isDisabled(), true);
   await page.getByRole('textbox').first().fill('Tokyo and Taipei');
   await select('Destination Region / Country', 'Japan');
@@ -279,6 +321,18 @@ try {
   await page
     .getByRole('button', { name: /23:?30.*Late-night ramen/ })
     .waitFor();
+  const listChange = page.getByRole('separator', {
+    name: '15:40, destination changes to Taipei',
+  });
+  await listChange.waitFor();
+  const schedule = await listChange
+    .or(
+      page.getByRole('button', { name: /Flight to Taipei|Raohe Night Market/ }),
+    )
+    .allTextContents();
+  assert.match(schedule[0], /Flight to Taipei/);
+  assert.match(schedule[1], /15:40.*Taipei/);
+  assert.match(schedule[2], /Raohe Night Market/);
   await page.getByRole('combobox', { name: 'Display time zone' }).click();
   await shot('03-list-time-zone.png');
   await page.keyboard.press('Escape');
@@ -309,7 +363,10 @@ try {
       .textContent(),
     'Asia/Taipei',
   );
-  await page.getByText('15:40 · Taipei', { exact: true }).waitFor();
+  const timetableChange = page.getByRole('button', {
+    name: /15:40.*→.*Taipei/,
+  });
+  await timetableChange.waitFor();
   await shot('04-timetable.png');
 
   const slot = Date.parse('2026-05-05T23:00:00+08:00');
@@ -553,6 +610,7 @@ try {
   assert.equal(submittedExpenses[0]?.currency, 'TWD');
   assert.equal(submittedExpenses[0]?.timeZoneIncurred, 'Asia/Taipei');
 
+  const chicago = 'Chicago lakefront and surrounding neighborhoods';
   trip = {
     ...trip,
     title: 'New York and Chicago',
@@ -565,7 +623,7 @@ try {
     destinations: [
       {
         ...taipei,
-        name: 'Chicago',
+        name: chicago,
         region: 'US',
         currency: 'USD',
         timeZone: 'America/Chicago',
@@ -573,10 +631,48 @@ try {
         startsAtTime: null,
         startsAtMs: Date.parse('2026-11-02T00:00:00-06:00'),
       },
+      {
+        ...taipei,
+        id: '4db5d34c-7a38-4b95-883f-8dffc7832274',
+        name: 'Milwaukee',
+        region: 'US',
+        currency: 'USD',
+        timeZone: 'America/Chicago',
+        startsOn: '2026-11-02',
+        startsAtTime: '14:00',
+        startsAtMs: Date.parse('2026-11-02T14:00:00-06:00'),
+      },
     ],
   };
+  await page.setViewportSize({ width: 320, height: 840 });
   await page.goto(`${base + tripUrl}/timetable`);
   await page.getByText('New York and Chicago', { exact: true }).waitFor();
+  const narrowChange = page.getByRole('button', {
+    name: /01:00.*Chicago.*\+1/,
+  });
+  await narrowChange.focus();
+  await page.getByRole('tooltip').filter({ hasText: chicago }).waitFor();
+  const nameWidths = await narrowChange
+    .getByText(chicago, { exact: true })
+    .evaluate((name) => ({
+      content: name.scrollWidth,
+      visible: name.clientWidth,
+    }));
+  assert.ok(
+    nameWidths.content > nameWidths.visible,
+    JSON.stringify(nameWidths),
+  );
+  await narrowChange.press('Enter');
+  const changeDetails = page.getByRole('dialog', {
+    name: 'Destination changes',
+  });
+  await changeDetails
+    .getByText(`01:00 → ${chicago}`, { exact: true })
+    .waitFor();
+  await changeDetails.getByText('15:00 → Milwaukee', { exact: true }).waitFor();
+  await page.keyboard.press('Escape');
+  await changeDetails.waitFor({ state: 'hidden' });
+  await page.setViewportSize({ width: 1280, height: 940 });
   await page.getByRole('button', { name: 'Add at time' }).press('Enter');
   const slotDialog = page.getByRole('dialog', { name: 'Add at time' });
   await slotDialog
@@ -622,7 +718,7 @@ try {
   );
   assert.deepEqual(errors, []);
   console.log(
-    'Verified the wizard, destination errors, narrow layout, required expense destination, and keyboard selection of a repeated time.',
+    'Verified the experimental opt-in, wizard, timetable and list handoffs, narrow layout, expense defaults, and repeated time selection.',
   );
 } finally {
   await browser.close();
