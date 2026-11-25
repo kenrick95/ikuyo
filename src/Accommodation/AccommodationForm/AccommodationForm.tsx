@@ -6,7 +6,7 @@ import {
   TextArea,
   TextField,
 } from '@radix-ui/themes';
-import type { SubmitEvent } from 'react';
+import type { ChangeEvent, SubmitEvent } from 'react';
 import { useCallback, useId, useReducer, useState } from 'react';
 import { DateTimePicker } from '../../common/DatePicker2/DateTimePicker';
 import { DateTimePickerMode } from '../../common/DatePicker2/DateTimePickerMode';
@@ -445,6 +445,13 @@ export function AccommodationForm({
     setCheckOutTimeZone(newTimeZone);
   }, []);
 
+  const handleAddressChange = useCallback(
+    (event: ChangeEvent<HTMLTextAreaElement>) => {
+      setPropertyAddress(event.currentTarget.value);
+    },
+    [],
+  );
+
   const onFormInput = useCallback(() => {
     setErrorMessage('');
   }, []);
@@ -481,7 +488,7 @@ export function AccommodationForm({
         </Text>
         <TextArea
           value={propertyAddress}
-          onChange={(event) => setPropertyAddress(event.currentTarget.value)}
+          onChange={handleAddressChange}
           placeholder="Enter accommodation address"
           name="address"
           id={idAddress}

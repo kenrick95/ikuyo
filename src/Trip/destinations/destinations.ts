@@ -22,9 +22,15 @@ export type DestinationTrip = {
   destinations?: TripDestination[];
 };
 
+/** Looks up the display name for a region code, falling back to the code. */
 export const regionName = (region: string) =>
   REGIONS_LIST.find(([code]) => code === region)?.[1] ?? region;
 
+/**
+ * Finds the possible starts for the destination's local date and time.
+ * A date without a time uses the start of the local day. A repeated time
+ * yields both offsets in order, and an invalid or skipped time yields none.
+ */
 export function startCandidates(destination: DestinationDraft) {
   const { startsOn, startsAtTime, timeZone } = destination;
   if (!startsOn || !timeZone) return [];
@@ -46,6 +52,10 @@ export function startCandidates(destination: DestinationDraft) {
   }
 }
 
+/**
+ * Converts a draft to a destination with a saved start in epoch milliseconds.
+ * Returns undefined if the start is invalid or a repeated time needs an offset.
+ */
 export function resolveDestination(
   destination: DestinationDraft,
   candidates = startCandidates(destination),
@@ -65,6 +75,11 @@ export function resolveDestination(
   }
 }
 
+/**
+ * Returns the first incomplete, out-of-range, or duplicate destination as a
+ * form error, or undefined if all starts pass. Bounds are exclusive and use
+ * epoch milliseconds.
+ */
 export function validateDestinations(
   destinations: TripDestination[],
   start?: number,
@@ -101,6 +116,12 @@ export function validateDestinations(
   }
 }
 
+/**
+ * Prepares destination records for a trip copy by shifting their local dates
+ * by the change in the trip's start date in the trip's time zone. Each shifted
+ * start is resolved in its own destination zone. Returns undefined when there
+ * are no added destinations. Throws on an invalid start.
+ */
 export function duplicateDestinations(
   trip: Pick<DestinationTrip, 'destinations' | 'timestampStart' | 'timeZone'>,
   start: number,
@@ -146,6 +167,10 @@ export type DestinationItinerary = readonly [
   ...ResolvedDestination[],
 ];
 
+/**
+ * Builds the chronological itinerary for default selection. The trip's region,
+ * currency, and time zone supply the first destination.
+ */
 export function itinerary(trip: DestinationTrip): DestinationItinerary {
   return [
     {
@@ -169,10 +194,24 @@ export function itinerary(trip: DestinationTrip): DestinationItinerary {
   ];
 }
 
-export function destinationAt(stops: DestinationItinerary, instant: number) {
-  return stops.findLast((stop) => stop.startsAtMs <= instant) ?? stops[0];
+/**
+ * Finds the destination in effect at an instant. Uses the first destination
+ * for instants before the trip begins.
+ */
+export function destinationAt(
+  stops: DestinationItinerary,
+  instant: Temporal.Instant,
+) {
+  const ms = instant.epochMilliseconds;
+  return stops.findLast((stop) => stop.startsAtMs <= ms) ?? stops[0];
 }
 
+/**
+ * Suggests destinations for a place name or a local date and time. A unique
+ * place match takes priority. Otherwise each candidate's time zone determines
+ * whether its itinerary window contains the local time. If none fit the time,
+ * returns the candidates so the form can ask the user to choose.
+ */
 export function destinationChoices(
   stops: DestinationItinerary,
   value?: Temporal.PlainDateTime,

@@ -57,7 +57,7 @@ export function AccommodationNewDialog({
       const checkIn = date.toPlainDateTime({ hour: 15 });
       const destination = destinationAt(
         destinations,
-        checkIn.toZonedDateTime(trip.timeZone).epochMilliseconds,
+        checkIn.toZonedDateTime(trip.timeZone).toInstant(),
       );
       return [
         checkIn,

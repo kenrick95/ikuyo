@@ -30,30 +30,31 @@ export function newActivityTimes(
             })
         : inTripZone(previous ?? trip.timestampStart);
   const end = start.add({ hours });
+  const startInstant = start.toInstant();
+  const endInstant = end.toInstant();
   const destinations = itinerary(trip);
-  const startDestination = destinationAt(destinations, start.epochMilliseconds);
+  const startDestination = destinationAt(destinations, startInstant);
   const endDestination = separateEndpoints
-    ? destinationAt(destinations, end.epochMilliseconds)
+    ? destinationAt(destinations, endInstant)
     : startDestination;
   return [
     start.withTimeZone(startDestination.timeZone).toPlainDateTime(),
     end.withTimeZone(endDestination.timeZone).toPlainDateTime(),
     startDestination.timeZone,
     endDestination.timeZone,
-    start.epochMilliseconds,
-    end.epochMilliseconds,
+    startInstant,
+    endInstant,
   ] as const;
 }
 
 export function itemZonedTime(
   value: Temporal.PlainDateTime | undefined,
   zone: string,
-  instant?: number,
+  instant?: Temporal.Instant,
 ) {
   if (!value) return undefined;
-  if (instant !== undefined) {
-    const original =
-      Temporal.Instant.fromEpochMilliseconds(instant).toZonedDateTimeISO(zone);
+  if (instant) {
+    const original = instant.toZonedDateTimeISO(zone);
     if (original.toPlainDateTime().equals(value)) return original;
   }
   return value.toZonedDateTime(zone);

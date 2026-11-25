@@ -81,8 +81,8 @@ export function TrainForm({
   tripTimeZone: string;
   tripRegion: string;
   destinations?: DestinationItinerary;
-  prefilledStart?: number;
-  prefilledEnd?: number;
+  prefilledStart?: Temporal.Instant;
+  prefilledEnd?: Temporal.Instant;
   activityTitle: string;
   activityIcon?: string | null | undefined;
   activityStartDateTime: Temporal.PlainDateTime | undefined;

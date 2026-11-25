@@ -6,18 +6,23 @@ import {
   destinationChoices,
 } from './destinations';
 
+/**
+ * Suggests a destination for a form and tracks the user's choice if several fit.
+ * The optional prefilled instant identifies the exact time while the original
+ * wall time is still selected and the place field is blank.
+ */
 export function useDestinationDefaults(
   destinations: DestinationItinerary | undefined,
   value: Temporal.PlainDateTime | undefined,
   place?: string,
-  instant?: number,
+  prefilledInstant?: Temporal.Instant,
 ) {
   const trigger = useRef<HTMLButtonElement>(null);
   const [attempt, setAttempt] = useState(0);
   const [selectedId, setSelected] = useState('');
   const choices = destinations
-    ? instant !== undefined && !place?.trim()
-      ? [destinationAt(destinations, instant)]
+    ? prefilledInstant && !place?.trim()
+      ? [destinationAt(destinations, prefilledInstant)]
       : destinationChoices(destinations, value, place)
     : [];
   const selected =

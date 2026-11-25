@@ -66,10 +66,11 @@ export function ExpenseInlineCardForm({
 
   const multiRegion = Boolean(trip.destinations?.length);
   const addingExpense = expenseMode !== ExpenseMode.Edit && !refundOf;
-  const initialInstant =
+  const initialInstant = Temporal.Instant.fromEpochMilliseconds(
     expenseMode === ExpenseMode.Edit && expense
       ? expense.timestampIncurred
-      : (tripLocalState?.expenseTimestampIncurred ?? trip.timestampStart);
+      : (tripLocalState?.expenseTimestampIncurred ?? trip.timestampStart),
+  );
   const destinations = useMemo(() => itinerary(trip), [trip]);
   const initialDestination = destinationAt(destinations, initialInstant);
   const initialZone = multiRegion
@@ -77,10 +78,7 @@ export function ExpenseInlineCardForm({
       ? (expense?.timeZoneIncurred ?? trip.timeZone)
       : initialDestination.timeZone
     : trip.timeZone;
-  const initialDate =
-    Temporal.Instant.fromEpochMilliseconds(initialInstant).toZonedDateTimeISO(
-      initialZone,
-    );
+  const initialDate = initialInstant.toZonedDateTimeISO(initialZone);
   const dateTimeIncurred: Temporal.PlainDate | Temporal.PlainDateTime =
     multiRegion ? initialDate.toPlainDateTime() : initialDate.toPlainDate();
   const publishToast = useBoundStore((state) => state.publishToast);

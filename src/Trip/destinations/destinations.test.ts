@@ -36,8 +36,11 @@ const destinations = itinerary(trip);
 
 describe('destination defaults', () => {
   it('changes currency and time zone at the arrival instant', () => {
-    const arrival = Date.parse('2026-05-06T15:40:00+08:00');
-    expect(destinationAt(destinations, arrival - 1).currency).toBe('JPY');
+    const arrival = Temporal.Instant.from('2026-05-06T15:40:00+08:00');
+    expect(
+      destinationAt(destinations, arrival.subtract({ milliseconds: 1 }))
+        .currency,
+    ).toBe('JPY');
     expect(destinationAt(destinations, arrival).currency).toBe('TWD');
   });
 
@@ -68,7 +71,7 @@ describe('destination defaults', () => {
 
   it('preserves the instant of a timetable slot in another display zone', () => {
     const instant = Date.parse('2026-05-05T23:30:00+08:00');
-    const [start, , zone] = newActivityTimes(
+    const [start, , zone, , prefilledStart] = newActivityTimes(
       trip,
       { instant, dayOfTrip: 1, timeStart: '2330' },
       undefined,
@@ -76,7 +79,7 @@ describe('destination defaults', () => {
     );
     expect(zone).toBe('Asia/Tokyo');
     expect(start.toString()).toBe('2026-05-06T00:30:00');
-    expect(itemZonedTime(start, zone, instant)?.epochMilliseconds).toBe(
+    expect(itemZonedTime(start, zone, prefilledStart)?.epochMilliseconds).toBe(
       instant,
     );
   });
