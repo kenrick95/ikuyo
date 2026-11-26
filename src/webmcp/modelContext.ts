@@ -1,4 +1,4 @@
-import { trackWebMCPTool } from './goatcounter';
+import { trackWebMCPTool } from '../telemetry/goatcounter';
 
 /**
  * WebMCP (Web Model Context Protocol) — minimal client-side helper.

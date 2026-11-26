@@ -33,7 +33,6 @@ import {
 import { ImperativeToastRoot } from './Toast/ImperativeToast';
 import { GoatCounterTelemetry } from './telemetry/GoatCounterTelemetry';
 import { useSubscribeTheme, useTheme } from './theme/hooks';
-import { WebMCPTools } from './webmcp/WebMCPTools';
 
 const PageLanding = React.lazy(() => import('./Landing/PageLanding'));
 const PageTerms = React.lazy(() => import('./Docs/Terms'));
@@ -129,7 +128,6 @@ function App() {
           </Suspense>
           <DialogRoot />
           <GoatCounterTelemetry />
-          <WebMCPTools />
         </TransitionRouter>
       </Theme>
       <ImperativeToastRoot />

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { trackPageView, trackUIInteraction } from '../webmcp/goatcounter';
+import { trackPageView, trackUIInteraction } from './goatcounter';
 
 /**
  * Reduce a route to a fixed category before reporting it. In particular, trip
