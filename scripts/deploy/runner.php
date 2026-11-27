@@ -3,6 +3,17 @@
 declare(strict_types=1);
 
 // Runner-side helpers. The shared host only receives state.php and maintenance.php.
+function migrationManifest(string $directory): string
+{
+    $files = glob("$directory/database/migrations/*.php");
+    if (!$files) {
+        throw new RuntimeException('No incoming migrations found; refusing deployment.');
+    }
+    $names = array_map(fn (string $file): string => pathinfo($file, PATHINFO_FILENAME), $files);
+    sort($names, SORT_STRING);
+    return base64_encode(json_encode($names, JSON_THROW_ON_ERROR));
+}
+
 function productionState(string $json): array
 {
     $decoded = json_decode($json, false, 512, JSON_THROW_ON_ERROR);
@@ -32,13 +43,7 @@ if (realpath($_SERVER['SCRIPT_FILENAME']) !== __FILE__) {
 try {
     switch ($argv[1] ?? '') {
         case 'manifest':
-            $files = glob('dist/backend/database/migrations/*.php');
-            if (!$files) {
-                throw new RuntimeException('No incoming migrations found; refusing deployment.');
-            }
-            $names = array_map(fn (string $file): string => pathinfo($file, PATHINFO_FILENAME), $files);
-            sort($names, SORT_STRING);
-            echo base64_encode(json_encode($names, JSON_THROW_ON_ERROR)) . PHP_EOL;
+            echo migrationManifest('dist/backend') . PHP_EOL;
             break;
 
         case 'gate':

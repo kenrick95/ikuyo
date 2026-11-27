@@ -1,0 +1,79 @@
+name: Test and build
+description: Run the frontend, backend, and deployment checks and build the frontend
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
+    - name: Use Node.js 24
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      with:
+        node-version: 24
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install
+    - name: Biome CI
+      shell: bash
+      run: pnpm biome:ci
+    - name: Typecheck
+      shell: bash
+      run: pnpm typecheck
+    - name: Test
+      shell: bash
+      run: pnpm test
+    - name: Deployment script regression tests
+      shell: bash
+      run: php scripts/deploy/tests/run.php
+    - name: Deployment PHP syntax
+      shell: bash
+      run: |
+        php -l scripts/deploy/deploy.php
+        php -l scripts/deploy/runner.php
+        php -l scripts/deploy/state.php
+        php -l scripts/deploy/maintenance.php
+    - name: Build
+      shell: bash
+      run: pnpm build
+    - name: Install dependencies
+      shell: bash
+      run: composer install --no-interaction --prefer-dist
+      working-directory: backend
+    - name: Provision .env and app key
+      shell: bash
+      run: |
+        cp .env.example .env
+        php artisan key:generate --ansi
+        php artisan config:clear
+      working-directory: backend
+    - name: PHP syntax lint
+      shell: bash
+      run: composer lint
+      working-directory: backend
+    - name: PHP code style (Pint)
+      shell: bash
+      run: composer style
+      working-directory: backend
+    - name: PHP static analysis (PHPStan)
+      shell: bash
+      run: composer static
+      working-directory: backend
+    - name: Generate temporary application key
+      shell: bash
+      run: touch .env && php artisan key:generate
+      working-directory: backend
+    - name: PHPUnit
+      shell: bash
+      run: composer test
+      working-directory: backend
+    - name: MariaDB concurrency regressions
+      shell: bash
+      run: php artisan test tests/Concurrency
+      working-directory: backend
+      env:
+        APP_ENV: testing
+        DB_CONNECTION: mariadb
+        DB_HOST: 127.0.0.1
+        DB_PORT: 3306
+        DB_DATABASE: ikuyo_testing
+        DB_USERNAME: root
+        DB_PASSWORD: testing
+        SESSION_DRIVER: array

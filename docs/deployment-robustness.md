@@ -8,45 +8,45 @@ changes.
 
 ## Current upload layout and its limits
 
-The GitHub Actions build job copies the Laravel app into the frontend artifact:
-
-```sh
-cp -r backend dist/backend
-```
-
-`deploy.yml` invokes `scripts/deploy/deploy.php`, which rsyncs `dist/` directly
-into `DEPLOY_TARGET` after checking production migration state. The deployed
-Laravel application is consequently at `DEPLOY_TARGET/backend`.
+On `main`, the Testing workflow builds and tests in the same job that deploys.
+The job adds the PHP metadata service and Laravel app to the runner's `dist/`
+directory, then invokes `php scripts/deploy/deploy.php` to rsync it directly
+into `DEPLOY_TARGET`. The deployed Laravel application is at
+`DEPLOY_TARGET/backend`. Pull requests run the same tests and frontend build.
 
 The rsync command uses `--delay-updates`, which reduces the chance of a partly
 uploaded file being served, but it is not a complete release switch. The migration
 path now blocks API traffic before upload until the schema is updated and the
 app is verified. Ordinary uploads still serve traffic during file replacement.
 
-The root `.gitignore` pattern `.env` is passed to rsync with
-`--exclude-from=.gitignore`. Because it is a basename pattern, it excludes
-`backend/.env` too. The production environment file is therefore preserved by
-the current deployment. The deployment additionally excludes
-`backend/storage/`, generated
-`backend/bootstrap/cache/*.php`, SQLite database files, and the host deployment
-lock. These exclusions preserve runtime state and prevent CI-generated Laravel
-caches from replacing production caches.
+Rsync applies the root `.gitignore` and skips dotfiles and hidden directories,
+including the CI-generated `backend/.env`. It also skips `backend/storage/`,
+generated `backend/bootstrap/cache/*.php`, SQLite database files, and the host
+deployment lock. These exclusions preserve production configuration and runtime
+state.
 
 ## Implemented plan: automatic uploads with a migration gate
 
-There is one deployed copy. No release directories or previous build artifacts
-are retained on the shared host. GitHub Actions retains build artifacts according
-to its retention policy; those can be downloaded for deliberate code recovery.
+The shared host serves a single deployed copy. The build stays on the GitHub
+Actions runner until rsync, and GitHub Actions stores no release artifacts.
 
 ### Automatic deployment
 
-Every successful push build on `main` enters the serialized production deploy job:
+Every push to `main` enters the serialized production job. Before testing or
+building, `php scripts/deploy/deploy.php --check` checks the current GitHub
+`main` SHA and compares the checked-out migration list with production under
+the host lock. If migrations are pending or an incomplete deployment requires
+recovery, the job posts a **Manual deployment required** summary and skips
+testing and deployment. A stale run also skips both. If the check succeeds,
+the job releases the lock and runs the full test suite and build.
+
+After the tests and build succeed, the deployment step:
 
 1. Acquire `DEPLOY_TARGET/.ikuyo-deploy-lock` with an atomic `mkdir`. Refuse to
    proceed if another deployment owns it.
 2. Compare the build SHA with the current GitHub `main` SHA. Skip a stale build,
    including an old workflow rerun; use a new run for latest `main` instead.
-3. Build a manifest of **all migration filenames in the incoming artifact**.
+3. Build a manifest of **all migration filenames in the staged build**.
    Stream `scripts/deploy/state.php` over SSH and bootstrap the deployed Laravel
    app to read its configured database's migration repository. Compare incoming
    names with completed names. This detects new files that the deployed code's
@@ -54,8 +54,7 @@ Every successful push build on `main` enters the serialized production deploy jo
 4. Also check maintenance mode and the persistent incomplete-deployment marker.
 5. If there are pending migrations or recovery is needed, finish with a
    **Manual deployment required** job summary. Leave production untouched and
-   release the host lock. This is a deliberately skipped deploy, not a failed
-   test/build or an indefinitely waiting workflow approval.
+   release the host lock.
 6. Otherwise, mark the deployment incomplete and rsync directly into the existing
    target. Do not enter maintenance or run migrations on this path.
 7. Clear caches, discover Composer packages, rebuild Laravel caches, query the
@@ -72,9 +71,8 @@ release atomic. This is an accepted limit of the single-copy approach.
 
 In GitHub Actions, select **Testing → Run workflow**, select **main**, and check
 **Authorize migrations / recovery** (`allow_migrations`). This rebuilds and tests
-latest `main`, then deploys it. The caller only passes authorization on its
-manual-dispatch path; the reusable deploy workflow uses that boolean input. No separate
-GitHub environment reviewer configuration is required for this manual gate.
+latest `main`, then deploys it. The workflow passes authorization to the PHP
+controller only for a manual dispatch with that option checked.
 
 The manual run repeats the same host lock, latest-SHA, and production-state
 checks. If migrations are pending or production is blocked, it:
@@ -112,9 +110,9 @@ roll back a database migration.
 The gate is derived from production's actual database, not the latest commit's
 diff and not a flag attached to one workflow run:
 
-- Merge A adds a migration; its automatic deployment stops before any upload.
-- Merge B changes only the UI, but its artifact includes A's migration. Since
-  production has not applied it, B also requires a manual run.
+- Merge A adds a migration. Its automatic run stops before testing or deploying.
+- Merge B changes only the UI and still contains A's migration. Since production
+  has not applied it, B also requires a manual run.
 - Manually deploy latest main to upload both changes and apply the migration.
 - Subsequent builds deploy automatically once every incoming migration is applied.
 
@@ -151,13 +149,13 @@ The controller runs PHP directly, invokes SSH and rsync with argument arrays, an
 runs Artisan directly over SSH. Only the persistent maintenance handler is written
 to the host; the database-state helper is streamed directly into PHP.
 Regression tests also run in PHP; the repository contains no Python test runner.
-Do not bundle a production SQLite database into the artifact.
+Keep the production SQLite database outside the staged build.
 
-GitHub deployment concurrency uses one production group with
-`cancel-in-progress: false`. A newer build cannot cancel an active upload or
-migration. The host lock also covers check, upload, migration, and verification;
-any separate manual host deploy must honor it. GitHub may replace an older
-pending job with a newer one; the SHA check ensures stale builds are skipped.
+Main-branch testing and deployment share one production concurrency group with
+`cancel-in-progress: false`. The host lock covers the preflight check and is
+acquired again for upload, migration, and verification. Any separate manual
+host deploy must honor it. GitHub may replace an older pending job with a newer
+one. The SHA check ensures stale builds are skipped.
 
 On catchable interruption, the controller stops scheduling deployment commands
 and waits for the active SSH/rsync child to finish before maintenance recovery or

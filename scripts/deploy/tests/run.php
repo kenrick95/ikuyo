@@ -34,7 +34,7 @@ function execute(array $args, ?string $cwd = null, ?array $env = null, ?Closure 
     fclose($out); fclose($err);
     return $result;
 }
-function deploy(array $settings = [], ?Closure $during = null): array {
+function deploy(array $settings = [], ?Closure $during = null, bool $checkOnly = false): array {
     global $root;
     $work = fixture();
     try {
@@ -42,21 +42,26 @@ function deploy(array $settings = [], ?Closure $during = null): array {
         foreach (['ssh', 'rsync', 'gh', 'curl', 'sleep'] as $tool) {
             copy(__DIR__ . '/transport.php', "$work/bin/$tool"); chmod("$work/bin/$tool", 0700);
         }
-        mkdir("$work/dist/backend/database/migrations", 0700, true);
-        file_put_contents("$work/dist/backend/database/migrations/2026_01_01_000001_create_trips.php", '<?php');
+        $migrations = $work . ($checkOnly ? '/backend' : '/dist/backend') . '/database/migrations';
+        mkdir($migrations, 0700, true);
+        file_put_contents("$migrations/2026_01_01_000001_create_trips.php", '<?php');
         file_put_contents("$work/.gitignore", ".env\n");
         $env = array_merge(getenv(), ['PATH' => "$work/bin:" . getenv('PATH'),
             'DEPLOY_HOST' => 'example.invalid', 'DEPLOY_PORT' => '22', 'DEPLOY_USER' => 'deploy',
             'DEPLOY_TARGET' => '/srv/ikuyo with space', 'DEPLOY_HEALTH_URL' => 'https://example.invalid/api/trips/public',
             'GITHUB_SHA' => 'abc123', 'GITHUB_REPOSITORY' => 'owner/ikuyo', 'DEPLOY_SSH_KEY' => 'TEST KEY',
             'TEST_LOG' => "$work/calls", 'TEST_COUNTER' => "$work/counter", 'GITHUB_STEP_SUMMARY' => "$work/summary",
+            'GITHUB_OUTPUT' => "$work/output",
             'ALLOW_MIGRATIONS' => 'false', 'PENDING' => 'false', 'BLOCKED' => 'false', 'FAIL_AT' => '',
             'MAINTENANCE_DRIVER' => 'file', 'QUEUE_DRIVER' => 'sync', 'BLOCK_AT' => '',
             'TEST_ACTIVE' => "$work/active", 'TEST_RELEASE' => "$work/release"], $settings);
-        $result = execute([PHP_BINARY, "$root/scripts/deploy/deploy.php"], $work, $env,
+        $command = [PHP_BINARY, "$root/scripts/deploy/deploy.php"];
+        if ($checkOnly) { $command[] = '--check'; }
+        $result = execute($command, $work, $env,
             $during ? fn ($process) => $during($process, $work) : null);
         $result['calls'] = is_file("$work/calls") ? array_map(fn ($line) => json_decode($line, true, 512, JSON_THROW_ON_ERROR), file("$work/calls", FILE_IGNORE_NEW_LINES)) : [];
         $result['summary'] = is_file("$work/summary") ? file_get_contents("$work/summary") : '';
+        $result['output'] = is_file("$work/output") ? file_get_contents("$work/output") : '';
         return $result;
     } finally { removeFixture($work); }
 }
@@ -108,6 +113,29 @@ test('automatic upload without maintenance or migration', function () {
     $r = deploy(); healthy($r);
     check(position($r['calls'], '--protect-args') >= 0, 'Missing upload');
     check(position($r['calls'], '/artisan down') < 0 && position($r['calls'], '/artisan migrate') < 0, 'Unexpected downtime or migration');
+});
+foreach ([
+    'automatic low risk' => [[], true, false],
+    'pending migrations' => [['PENDING' => 'true'], false, true],
+    'incomplete deployment' => [['BLOCKED' => 'true'], false, true],
+    'authorized migrations' => [['PENDING' => 'true', 'ALLOW_MIGRATIONS' => 'true'], true, false],
+    'authorized recovery' => [['BLOCKED' => 'true', 'ALLOW_MIGRATIONS' => 'true'], true, false],
+    'stale manual run' => [['LATEST_SHA' => 'newer', 'ALLOW_MIGRATIONS' => 'true'], false, false],
+] as $case => [$settings, $ready, $manual]) {
+    test("before tests: $case", function () use ($settings, $ready, $manual) {
+        $r = deploy($settings, checkOnly: true);
+        healthy($r);
+        check($r['output'] === ($ready ? "ready=true\n" : ''), 'Incorrect test gate output');
+        check(str_contains($r['summary'], 'Manual deployment required') === $manual, 'Incorrect manual gate summary');
+        check(position($r['calls'], 'rmdir --') >= 0, 'Preflight did not release the lock');
+        foreach (['--protect-args', '/artisan ', 'touch --'] as $mutation) {
+            check(position($r['calls'], $mutation) < 0, 'Preflight changed production');
+        }
+    });
+}
+test('failed production check does not start tests', function () {
+    $r = deploy(['FAIL_AT' => 'state'], checkOnly: true);
+    check($r['status'] !== 0 && $r['output'] === '', 'Failed state check allowed tests');
 });
 foreach ([['PENDING' => 'true'], ['BLOCKED' => 'true']] as $state) {
     test('later merges preserve gate ' . json_encode($state), function () use ($state) {
@@ -162,7 +190,7 @@ test('automatic upload failure retains marker', function () {
 });
 test('runtime files preserved by rsync', function () {
     $r = deploy(); healthy($r); $upload = $r['calls'][position($r['calls'], '--protect-args')]['command'];
-    foreach (['/backend/.env', '/backend/storage/', '/backend/bootstrap/cache/*.php', '/backend/database/*.sqlite*', '/.ikuyo-deploy-lock/'] as $exclude) {
+    foreach (['.*', '/backend/.env', '/backend/storage/', '/backend/bootstrap/cache/*.php', '/backend/database/*.sqlite*', '/.ikuyo-deploy-lock/'] as $exclude) {
         check(str_contains($upload, '--exclude=' . $exclude), 'Missing exclusion ' . $exclude);
     }
     check(!str_contains($upload, '--delete'), 'Unexpected deletion');

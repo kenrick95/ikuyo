@@ -110,6 +110,10 @@ register_shutdown_function(function () use (&$key, &$healthResponse, &$locked, &
 });
 
 try {
+    $checkOnly = array_slice($argv, 1) === ['--check'];
+    if ($argc !== 1 && !$checkOnly) {
+        throw new RuntimeException('Usage: php scripts/deploy/deploy.php [--check]');
+    }
     $host = requiredVariable('DEPLOY_HOST');
     $port = requiredVariable('DEPLOY_PORT');
     $user = requiredVariable('DEPLOY_USER');
@@ -139,7 +143,6 @@ try {
     chmod($key, 0600);
     file_put_contents($key, requiredVariable('DEPLOY_SSH_KEY') . "\n");
     putenv('DEPLOY_SSH_KEY');
-    $healthResponse = tempnam(sys_get_temp_dir(), 'ikuyo-health-');
     $ssh = ['ssh', '-i', $key, '-p', $port, '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=20',
         '-o', 'ServerAliveInterval=15', '-o', 'ServerAliveCountMax=3',
         '-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=no'];
@@ -161,13 +164,7 @@ try {
         $success = true;
         exit(0);
     }
-    $files = glob('dist/backend/database/migrations/*.php');
-    if (!$files) {
-        throw new RuntimeException('No incoming migrations found; refusing deployment.');
-    }
-    $names = array_map(fn (string $file) => pathinfo($file, PATHINFO_FILENAME), $files);
-    sort($names, SORT_STRING);
-    $manifest = base64_encode(json_encode($names, JSON_THROW_ON_ERROR));
+    $manifest = migrationManifest($checkOnly ? 'backend' : 'dist/backend');
     $readState = fn () => productionState($remote(['php', '/dev/stdin', $backend, $manifest],
         file_get_contents(__DIR__ . '/state.php'), true));
     $state = $readState();
@@ -186,6 +183,14 @@ try {
         $success = true;
         exit(0);
     }
+    if ($checkOnly) {
+        if (file_put_contents(requiredVariable('GITHUB_OUTPUT'), "ready=true\n", FILE_APPEND) === false) {
+            throw new RuntimeException('Cannot write deployment gate output.');
+        }
+        $success = true;
+        exit(0);
+    }
+    $healthResponse = tempnam(sys_get_temp_dir(), 'ikuyo-health-');
     if ($needsManual) {
         if (($state['maintenance_driver'] ?? null) !== 'file' || ($state['queue_driver'] ?? null) !== 'sync') {
             throw new RuntimeException('Require file maintenance and sync queues; drain workers separately otherwise.');
@@ -197,8 +202,9 @@ try {
     }
     $marker = "$backend/storage/framework/ikuyo-deploy-incomplete";
     $remote(['touch', '--', $marker]);
+    // Preserve the dotfile exclusion previously applied by the artifact upload.
     command(['rsync', '-avz', '--protect-args', '--delay-updates', '--exclude-from=.gitignore',
-        '--exclude=/.git/', '--exclude=/.github/', '--exclude=/backend/.env', '--exclude=/backend/storage/',
+        '--exclude=.*', '--exclude=/backend/.env', '--exclude=/backend/storage/',
         '--exclude=/backend/bootstrap/cache/*.php', '--exclude=/backend/database/*.sqlite*',
         '--exclude=/.ikuyo-deploy-lock/', '-e', implode(' ', array_map('escapeshellarg', $ssh)),
         './dist/', "$user@$host:$target/"]);

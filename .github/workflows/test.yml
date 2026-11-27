@@ -10,18 +10,35 @@ on:
   push:
     branches: ['main']
   pull_request:
-    branches: ['main']
 
 permissions: {}
+
+env:
+  MAPTILER_API_KEY: ${{ vars.MAPTILER_API_KEY }}
+  MAPTILER_MAP_STYLE_LIGHT: ${{ vars.MAPTILER_MAP_STYLE_LIGHT }}
+  MAPTILER_MAP_STYLE_DARK: ${{ vars.MAPTILER_MAP_STYLE_DARK }}
+  SENTRY_DSN: ${{ vars.SENTRY_DSN }}
+  SENTRY_ENABLED: ${{ vars.SENTRY_ENABLED }}
+  IKUYO_BACKEND_AUTH: ${{ vars.IKUYO_BACKEND_AUTH }}
+  IKUYO_BACKEND_TRIP_READS: ${{ vars.IKUYO_BACKEND_TRIP_READS }}
+  IKUYO_BACKEND_ACTIVITY_WRITES: ${{ vars.IKUYO_BACKEND_ACTIVITY_WRITES }}
+  IKUYO_BACKEND_CONTENT_WRITES: ${{ vars.IKUYO_BACKEND_CONTENT_WRITES }}
+  IKUYO_BACKEND_TASK_WRITES: ${{ vars.IKUYO_BACKEND_TASK_WRITES }}
+  IKUYO_BACKEND_SHARING_WRITES: ${{ vars.IKUYO_BACKEND_SHARING_WRITES }}
+  IKUYO_BACKEND_TRIP_WRITES: ${{ vars.IKUYO_BACKEND_TRIP_WRITES }}
+  IKUYO_MAINTENANCE_MODE: ${{ vars.IKUYO_MAINTENANCE_MODE }}
+  IKUYO_READ_ONLY_MODE: ${{ vars.IKUYO_READ_ONLY_MODE }}
+  IKUYO_VIEW_TRANSITIONS: ${{ vars.IKUYO_VIEW_TRANSITIONS }}
 
 jobs:
   test:
     name: "Lint, Typecheck, Test, and Build"
+    if: github.event_name == 'pull_request'
     concurrency:
       group: ci-${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true
     runs-on: ubuntu-24.04
-    services:
+    services: &test-services
       mariadb:
         image: mariadb:11.8
         env:
@@ -34,113 +51,56 @@ jobs:
           --health-interval=5s --health-timeout=5s --health-retries=20
     permissions:
       contents: read
-    outputs:
-      build-artifact-id: ${{ steps.artifact-upload-step.outputs.artifact-id }}
-    env:
-      MAPTILER_API_KEY: ${{ vars.MAPTILER_API_KEY }}
-      MAPTILER_MAP_STYLE_LIGHT: ${{ vars.MAPTILER_MAP_STYLE_LIGHT }}
-      MAPTILER_MAP_STYLE_DARK: ${{ vars.MAPTILER_MAP_STYLE_DARK }}
-      SENTRY_DSN: ${{ vars.SENTRY_DSN }}
-      SENTRY_ENABLED: ${{ vars.SENTRY_ENABLED }}
-      # Backend-migration flags (set in Settings → Secrets and variables → Actions → Variables)
-      IKUYO_BACKEND_AUTH: ${{ vars.IKUYO_BACKEND_AUTH }}
-      IKUYO_BACKEND_TRIP_READS: ${{ vars.IKUYO_BACKEND_TRIP_READS }}
-      IKUYO_BACKEND_ACTIVITY_WRITES: ${{ vars.IKUYO_BACKEND_ACTIVITY_WRITES }}
-      IKUYO_BACKEND_CONTENT_WRITES: ${{ vars.IKUYO_BACKEND_CONTENT_WRITES }}
-      IKUYO_BACKEND_TASK_WRITES: ${{ vars.IKUYO_BACKEND_TASK_WRITES }}
-      IKUYO_BACKEND_SHARING_WRITES: ${{ vars.IKUYO_BACKEND_SHARING_WRITES }}
-      IKUYO_BACKEND_TRIP_WRITES: ${{ vars.IKUYO_BACKEND_TRIP_WRITES }}
-      IKUYO_MAINTENANCE_MODE: ${{ vars.IKUYO_MAINTENANCE_MODE }}
-      IKUYO_READ_ONLY_MODE: ${{ vars.IKUYO_READ_ONLY_MODE }}
-      IKUYO_VIEW_TRANSITIONS: ${{ vars.IKUYO_VIEW_TRANSITIONS }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - &checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5dd2 # v4.0.0
-      - name: Setup PHP
+      - &setup-php
+        name: Setup PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
         with:
           php-version: '8.4'
           extensions: mbstring, curl, pdo, pdo_mysql, sqlite, xml, zip, intl, gd, pcntl, posix
-      - name: Use Node.js 24
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 24
-      - name: Install dependencies
-        run: pnpm install
-      - name: Biome CI
-        run: pnpm biome:ci
-      - name: Typecheck
-        run: pnpm typecheck
-      - name: Test
-        run: pnpm test
-      - name: Deployment script regression tests
-        run: php scripts/deploy/tests/run.php
-      - name: Deployment PHP syntax
-        run: |
-          php -l scripts/deploy/deploy.php
-          php -l scripts/deploy/runner.php
-          php -l scripts/deploy/state.php
-          php -l scripts/deploy/maintenance.php
-      - name: Build
-        run: pnpm build
-      - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist
-        working-directory: backend
-      - name: Provision .env and app key
-        run: |
-          cp .env.example .env
-          php artisan key:generate --ansi
-          php artisan config:clear
-        working-directory: backend
-      - name: PHP syntax lint
-        run: composer lint
-        working-directory: backend
-      - name: PHP code style (Pint)
-        run: composer style
-        working-directory: backend
-      - name: PHP static analysis (PHPStan)
-        run: composer static
-        working-directory: backend
-      - name: Generate temporary application key
-        run: touch .env && php artisan key:generate
-        working-directory: backend
-      - name: PHPUnit
-        run: composer test
-        working-directory: backend
-      - name: MariaDB concurrency regressions
-        run: php artisan test tests/Concurrency
-        working-directory: backend
-        env:
-          APP_ENV: testing
-          DB_CONNECTION: mariadb
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_DATABASE: ikuyo_testing
-          DB_USERNAME: root
-          DB_PASSWORD: testing
-          SESSION_DRIVER: array
-      - name: Bundle PHP metadata service + backend into dist
-        run: |
-          cp index.php dist/index.php
-          cp -r app dist/app
-          cp -r shared dist/shared
-          cp -r backend dist/backend
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        id: artifact-upload-step
-        with:
-          name: build-artifact
-          path: dist/
-          if-no-files-found: error
+      - name: Test and build
+        uses: ./.github/actions/test
 
   deploy:
-    needs: test
+    name: Test and Deploy to Production
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    concurrency:
+      group: ikuyo-production-deployment
+      cancel-in-progress: false
+    runs-on: ubuntu-24.04
+    environment: production
+    services: *test-services
     permissions:
       contents: read
-    uses: ./.github/workflows/deploy.yml
-    with:
-      allow_migrations: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_migrations || false }}
-    secrets:
-      DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+    steps:
+      - *checkout
+      - *setup-php
+      - name: Check production deployment gate
+        id: gate
+        env: &deploy-env
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_TARGET: ${{ vars.DEPLOY_TARGET }}
+          DEPLOY_HEALTH_URL: ${{ vars.DEPLOY_HEALTH_URL }}
+          DEPLOY_DRAIN_SECONDS: ${{ vars.DEPLOY_DRAIN_SECONDS || '30' }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          ALLOW_MIGRATIONS: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_migrations && 'true' || 'false' }}
+        run: php scripts/deploy/deploy.php --check
+      - name: Test and build
+        if: steps.gate.outputs.ready == 'true'
+        uses: ./.github/actions/test
+      - name: Bundle PHP metadata service and backend into dist
+        if: steps.gate.outputs.ready == 'true'
+        run: |
+          cp index.php dist/index.php
+          cp -r app shared backend dist/
+      - name: Deploy in place
+        if: steps.gate.outputs.ready == 'true'
+        env: *deploy-env
+        run: php scripts/deploy/deploy.php
